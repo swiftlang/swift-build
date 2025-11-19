@@ -33,8 +33,9 @@ final class ExtensionPointExtractorTaskProducer: PhasedTaskProducer, TaskProduce
         return fileTypes.flatMap { fileType in
             buildFiles.compactMap { buildFile in
                 guard let resolvedBuildFileInfo = try? self.context.resolveBuildFileReference(buildFile),
-                      !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
-                      resolvedBuildFileInfo.fileType.conformsTo(fileType) else {
+                    !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
+                    resolvedBuildFileInfo.fileType.conformsTo(fileType)
+                else {
                     return nil
                 }
 
@@ -78,7 +79,7 @@ final class ExtensionPointExtractorTaskProducer: PhasedTaskProducer, TaskProduce
             let cbc = CommandBuildContext(producer: self.context, scope: scope, inputs: inputs, resourcesDir: buildFilesProcessingContext.resourcesDir)
             await self.appendGeneratedTasks(&deferredTasks) { delegate in
                 let domain = self.context.settings.platform?.name ?? ""
-                guard let spec = self.context.specRegistry.getSpec("com.apple.compilers.extract-appextensionpoints", domain:domain) as? ExtensionPointExtractorSpec else {
+                guard let spec = self.context.specRegistry.getSpec("com.apple.compilers.extract-appextensionpoints", domain: domain) as? ExtensionPointExtractorSpec else {
                     return
                 }
                 await spec.constructTasks(cbc, delegate)
@@ -89,7 +90,6 @@ final class ExtensionPointExtractorTaskProducer: PhasedTaskProducer, TaskProduce
         return []
     }
 }
-
 
 final class AppExtensionInfoPlistGeneratorTaskProducer: PhasedTaskProducer, TaskProducer {
 
@@ -109,8 +109,9 @@ final class AppExtensionInfoPlistGeneratorTaskProducer: PhasedTaskProducer, Task
         return fileTypes.flatMap { fileType in
             buildFiles.compactMap { buildFile in
                 guard let resolvedBuildFileInfo = try? self.context.resolveBuildFileReference(buildFile),
-                      !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
-                      resolvedBuildFileInfo.fileType.conformsTo(fileType) else {
+                    !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
+                    resolvedBuildFileInfo.fileType.conformsTo(fileType)
+                else {
                     return nil
                 }
 
@@ -157,7 +158,7 @@ final class AppExtensionInfoPlistGeneratorTaskProducer: PhasedTaskProducer, Task
 
             await self.appendGeneratedTasks(&deferredTasks) { delegate in
                 let domain = self.context.settings.platform?.name ?? ""
-                guard let spec = self.context.specRegistry.getSpec("com.apple.compilers.appextension-plist-generator",domain: domain) as? AppExtensionPlistGeneratorSpec else {
+                guard let spec = self.context.specRegistry.getSpec("com.apple.compilers.appextension-plist-generator", domain: domain) as? AppExtensionPlistGeneratorSpec else {
                     return
                 }
                 await spec.constructTasks(cbc, delegate)

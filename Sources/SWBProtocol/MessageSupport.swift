@@ -72,8 +72,8 @@ public enum BuildCommandMessagePayload: SerializableCodable, Equatable, Sendable
         case .migrate:
             break
         case let .generateAssemblyCode(buildOnlyTheseFiles),
-             let .generatePreprocessedFile(buildOnlyTheseFiles),
-             let .singleFileBuild(buildOnlyTheseFiles):
+            let .generatePreprocessedFile(buildOnlyTheseFiles),
+            let .singleFileBuild(buildOnlyTheseFiles):
             try container.encode(buildOnlyTheseFiles, forKey: .files)
         case let .prepareForIndexing(buildOnlyTheseTargets, enableIndexBuildArena):
             try container.encode(buildOnlyTheseTargets, forKey: .targets)
@@ -457,7 +457,7 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
 
     public init(
         productModuleName: String,
-        objectFileInputMap: [String : Set<String>],
+        objectFileInputMap: [String: Set<String>],
         linkCommandLine: [String],
         linkerWorkingDirectory: String?,
         swiftEnableOpaqueTypeErasure: Bool,
@@ -561,10 +561,12 @@ public struct LocalizationInfoMessagePayload: SerializableCodable, Equatable, Se
     /// Paths to generated source code files holding string symbols, keyed by xcstrings file path.
     public var generatedSymbolFilesByXCStringsPath = [Path: Set<Path>]()
 
-    public init(targetIdentifier: String,
-                compilableXCStringsPaths: Set<Path>,
-                producedStringsdataPaths: [LocalizationInfoBuildPortion: Set<Path>],
-                effectivePlatformName: String?) {
+    public init(
+        targetIdentifier: String,
+        compilableXCStringsPaths: Set<Path>,
+        producedStringsdataPaths: [LocalizationInfoBuildPortion: Set<Path>],
+        effectivePlatformName: String?
+    ) {
         self.targetIdentifier = targetIdentifier
         self.compilableXCStringsPaths = compilableXCStringsPaths
         self.producedStringsdataPaths = producedStringsdataPaths

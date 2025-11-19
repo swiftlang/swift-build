@@ -20,8 +20,7 @@ fileprivate func supportSwiftABIChecking(_ context: TaskProducerContext) -> Bool
     // swift-api-digester is run only when the "build" component is present.
     guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else { return false }
 
-    guard scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE) == .api ||
-          (scope.evaluate(BuiltinMacros.SWIFT_EMIT_MODULE_INTERFACE) && scope.evaluate(BuiltinMacros.SWIFT_ENABLE_LIBRARY_EVOLUTION)) else {
+    guard scope.evaluate(BuiltinMacros.SWIFT_API_DIGESTER_MODE) == .api || (scope.evaluate(BuiltinMacros.SWIFT_EMIT_MODULE_INTERFACE) && scope.evaluate(BuiltinMacros.SWIFT_ENABLE_LIBRARY_EVOLUTION)) else {
         // BUILD_LIBRARY_FOR_DISTRIBUTION is the option clients should use (it's also what is exposed in the
         // Build Settings editor) and is what SWIFT_EMIT_MODULE_INTERFACE uses by default, but they are
         // configurable independently.
@@ -60,8 +59,7 @@ final class SwiftFrameworkABICheckerTaskProducer: PhasedTaskProducer, TaskProduc
         return .immediate
     }
 
-    func generateTasks() async -> [any PlannedTask]
-    {
+    func generateTasks() async -> [any PlannedTask] {
         var tasks = [any PlannedTask]()
         let scope = context.settings.globalScope
         // If running this tool is disabled via build setting, then we can abort this task provider.

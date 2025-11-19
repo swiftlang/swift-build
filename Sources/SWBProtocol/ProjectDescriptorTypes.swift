@@ -202,7 +202,7 @@ public struct DestinationInfo: Codable, Equatable, Hashable, Comparable, Seriali
         self.isSimulator = isSimulator
     }
 
-    public static func <(lhs: DestinationInfo, rhs: DestinationInfo) -> Bool {
+    public static func < (lhs: DestinationInfo, rhs: DestinationInfo) -> Bool {
         return lhs.platformName.localizedCompare(rhs.platformName) == .orderedAscending
     }
 
@@ -525,7 +525,7 @@ public struct ProductDescription: Equatable, Hashable, Serializable, Sendable {
         team: String?,
         infoPlistPath: String?,
         iconPath: String?
-        ) {
+    ) {
         self.displayName = displayName
         self.productName = productName
         self.identifier = identifier

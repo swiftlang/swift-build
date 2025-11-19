@@ -22,70 +22,70 @@ import SWBUtil
     @Test(.requireSDKs(.macOS))
     func parsingDiagnosticsFile() async throws {
         let diagnosticJSON = """
-{
-  "version": {
-    "major": 1,
-    "minor": 0,
-    "patch": 0
-  },
-  "diagnostics": [
-    {
-      "summary": "Topic reference 'LineList/translateToFileSpace(_:)' couldn't be resolved. Reference is ambiguous after '/SymbolKit/SymbolGraph/LineList'.",
-      "source": "file:///Users/username/Development/swift-docc-symbolkit/Sources/SymbolKit/SymbolGraph/LineList/LineList.swift",
-      "severity": "warning",
-      "range": {
-        "start": {
-          "line": 173,
-          "column": 41
-        },
-        "end": {
-          "line": 173,
-          "column": 78
-        }
-      },
-      "solutions": [
-        {
-          "summary": "Insert '9dlzx' to refer to 'func translateToFileSpace(_ position: SourceRange.Position) -> SourceRange.Position?'",
-          "replacements": [
             {
-              "range": {
-                "start": {
-                  "line": 173,
-                  "column": 76
-                },
-                "end": {
-                  "line": 173,
-                  "column": 76
-                }
+              "version": {
+                "major": 1,
+                "minor": 0,
+                "patch": 0
               },
-              "text": "-9dlzx"
-            }
-          ]
-        },
-        {
-          "summary": "Insert '4tk1b' to refer to 'func translateToFileSpace(_ range: SourceRange) -> SourceRange?'",
-          "replacements": [
-            {
-              "range": {
-                "start": {
-                  "line": 173,
-                  "column": 76
-                },
-                "end": {
-                  "line": 173,
-                  "column": 76
+              "diagnostics": [
+                {
+                  "summary": "Topic reference 'LineList/translateToFileSpace(_:)' couldn't be resolved. Reference is ambiguous after '/SymbolKit/SymbolGraph/LineList'.",
+                  "source": "file:///Users/username/Development/swift-docc-symbolkit/Sources/SymbolKit/SymbolGraph/LineList/LineList.swift",
+                  "severity": "warning",
+                  "range": {
+                    "start": {
+                      "line": 173,
+                      "column": 41
+                    },
+                    "end": {
+                      "line": 173,
+                      "column": 78
+                    }
+                  },
+                  "solutions": [
+                    {
+                      "summary": "Insert '9dlzx' to refer to 'func translateToFileSpace(_ position: SourceRange.Position) -> SourceRange.Position?'",
+                      "replacements": [
+                        {
+                          "range": {
+                            "start": {
+                              "line": 173,
+                              "column": 76
+                            },
+                            "end": {
+                              "line": 173,
+                              "column": 76
+                            }
+                          },
+                          "text": "-9dlzx"
+                        }
+                      ]
+                    },
+                    {
+                      "summary": "Insert '4tk1b' to refer to 'func translateToFileSpace(_ range: SourceRange) -> SourceRange?'",
+                      "replacements": [
+                        {
+                          "range": {
+                            "start": {
+                              "line": 173,
+                              "column": 76
+                            },
+                            "end": {
+                              "line": 173,
+                              "column": 76
+                            }
+                          },
+                          "text": "-4tk1b"
+                        }
+                      ]
+                    }
+                  ],
+                  "notes": []
                 }
-              },
-              "text": "-4tk1b"
+              ]
             }
-          ]
-        }
-      ],
-      "notes": []
-    }
-  ]
-}
-"""
+            """
         let delegate = CapturingTaskParserDelegate()
 
         try await withTemporaryDirectory { (tmpDir: Path) in
@@ -98,7 +98,7 @@ import SWBUtil
             let core = try await getCore()
             let workspaceContext = try WorkspaceContext(core: core, workspace: TestWorkspace("test", projects: []).load(core), processExecutionCache: .sharedForTesting)
             let parser = DocumentationDiagnosticsOutputParser(for: task, workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil)
-            parser.write(bytes: "error: is an error\n") // no diagnostic should be created created for this
+            parser.write(bytes: "error: is an error\n")  // no diagnostic should be created created for this
             parser.close(result: TaskResult.exit(exitStatus: .exit(0), metrics: nil))
         }
 
@@ -141,7 +141,7 @@ import SWBUtil
                             newText: "-4tk1b"
                         )
                     ]
-                )
+                ),
             ]
         )
         #expect(delegate.diagnosticsEngine.diagnostics == [expectedDiagnostic])

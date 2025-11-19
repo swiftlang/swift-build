@@ -134,11 +134,14 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: sdk, sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
 
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleDevelopmentRegion": "en",
-                "Integer": 1,
-                "Array": [1, 2],
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleDevelopmentRegion": "en",
+                    "Integer": 1,
+                    "Array": [1, 2],
+                ]
+            )
             try await setup(executionDelegate.fs)
 
             var commandLine = ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist"]
@@ -164,14 +167,20 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         // Test trying to merge incompatible types.
         try await checkAdditionalContentDiagnostics(["/tmp/bad.plist"], errors: ["tried to merge array value for key \'Integer\' onto integer value"]) { fs in
-            try await fs.writePlist(Path("/tmp/bad.plist"), [
-                "Integer": [1, 2],
-            ])
+            try await fs.writePlist(
+                Path("/tmp/bad.plist"),
+                [
+                    "Integer": [1, 2]
+                ]
+            )
         }
         try await checkAdditionalContentDiagnostics(["/tmp/bad.plist"], errors: ["tried to merge string value for key \'Array\' onto array value"]) { fs in
-            try await fs.writePlist(Path("/tmp/bad.plist"), [
-                "Array": "string",
-            ])
+            try await fs.writePlist(
+                Path("/tmp/bad.plist"),
+                [
+                    "Array": "string"
+                ]
+            )
         }
     }
 
@@ -225,63 +234,74 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: sdk, sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-enforceminimumos", "-genpkginfo", "/tmp/PkgInfo", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-additionalcontentfile", "/tmp/newcontent.plist", "-additionalcontentfile", "/tmp/mergecontent.plist", "-additionalcontentfile", "/tmp/required.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
 
-
         // Write the test files.
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
         do {
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleDevelopmentRegion": "en",
-                "CFBundleExecutable": "$(EXECUTABLE_NAME)",
-                "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
-                "CFBundleName": "$(PRODUCT_NAME)",
-                "CFBundlePackageType": "APPL",
-                "CFBundleSignature": "FOOZ",
-                "CFBundleVersion": "1",
-                // "LSMinimumSystemVersion": "$(MACOSX_DEPLOYMENT_TARGET)", this is commented out to test that -enforceminimumos works
-                "NSMainNibFile": "MainMenu",
-                "NSPrincipalClass": "NSApplication",
-                "CFBundleResourceSpecification": "",                // To test eliding empty string values
-                "DoNotElide": "",                                   // To test *not* eliding empty string values which are not among keys we should elide
-                "AsideBundleIdentifier": "$(CFBundleIdentifier)",   // To test evaluating $(CFBundleIdentifier)
-                "TestVersionString": "$(VERSION_STRING)",           // To test that quotes are preserved when evaluating a user-defined macro in string form
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleDevelopmentRegion": "en",
+                    "CFBundleExecutable": "$(EXECUTABLE_NAME)",
+                    "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
+                    "CFBundleName": "$(PRODUCT_NAME)",
+                    "CFBundlePackageType": "APPL",
+                    "CFBundleSignature": "FOOZ",
+                    "CFBundleVersion": "1",
+                    // "LSMinimumSystemVersion": "$(MACOSX_DEPLOYMENT_TARGET)", this is commented out to test that -enforceminimumos works
+                    "NSMainNibFile": "MainMenu",
+                    "NSPrincipalClass": "NSApplication",
+                    "CFBundleResourceSpecification": "",  // To test eliding empty string values
+                    "DoNotElide": "",  // To test *not* eliding empty string values which are not among keys we should elide
+                    "AsideBundleIdentifier": "$(CFBundleIdentifier)",  // To test evaluating $(CFBundleIdentifier)
+                    "TestVersionString": "$(VERSION_STRING)",  // To test that quotes are preserved when evaluating a user-defined macro in string form
 
-                // Content that will get merged with content from the additional content files.
-                "IntToInt": 1,
-                "IntToString": 2,
-                "MergeArray": [1, 2],
-                "MergeDict": ["one": "one", "two": "two"],
-                "UIRequiredDeviceCapabilities": ["arm64"],
-            ])
+                    // Content that will get merged with content from the additional content files.
+                    "IntToInt": 1,
+                    "IntToString": 2,
+                    "MergeArray": [1, 2],
+                    "MergeDict": ["one": "one", "two": "two"],
+                    "UIRequiredDeviceCapabilities": ["arm64"],
+                ]
+            )
         }
         do {
-            try await executionDelegate.fs.writePlist(Path("/tmp/newcontent.plist"), [
-                "Integer": 1,
-                "String": "string",
-                "Array": [1, 2],
-                "Dict": [
-                    "one": "one",
-                    "two": "two",
-                ],
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/newcontent.plist"),
+                [
+                    "Integer": 1,
+                    "String": "string",
+                    "Array": [1, 2],
+                    "Dict": [
+                        "one": "one",
+                        "two": "two",
+                    ],
+                ]
+            )
         }
         do {
-            try await executionDelegate.fs.writePlist(Path("/tmp/mergecontent.plist"), [
-                "IntToInt": 5,
-                "IntToString": "string",
-                "MergeArray": [1, 4],
-                "MergeDict": [
-                    "two": "three",
-                    "four": "four",
-                ],
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/mergecontent.plist"),
+                [
+                    "IntToInt": 5,
+                    "IntToString": "string",
+                    "MergeArray": [1, 4],
+                    "MergeDict": [
+                        "two": "three",
+                        "four": "four",
+                    ],
+                ]
+            )
         }
         do {
             // This will cause the array form in the base Info.plist to be promoted to a dictionary.
-            try await executionDelegate.fs.writePlist(Path("/tmp/required.plist"), [
-                "UIRequiredDeviceCapabilities": [
-                    "armv7": true,
-                ],
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/required.plist"),
+                [
+                    "UIRequiredDeviceCapabilities": [
+                        "armv7": true
+                    ]
+                ]
+            )
         }
 
         let outputDelegate = MockTaskOutputDelegate()
@@ -330,8 +350,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             if let supportedPlatformsArray = dict["CFBundleSupportedPlatforms"]?.arrayValue {
                 let supportedPlatforms = supportedPlatformsArray.map { $0.stringValue }
                 #expect(supportedPlatforms == ["MacOSX"])
-            }
-            else {
+            } else {
                 Issue.record("CFBundleSupportedPlatforms is not an array.")
             }
             #expect(dict["BuildMachineOSBuild"]?.stringValue == "15E35")
@@ -382,18 +401,21 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
             // Write the test files.
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleDevelopmentRegion": "en",
-                "CFBundleExecutable": "$(EXECUTABLE_NAME)",
-                "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
-                "CFBundleName": "$(PRODUCT_NAME)",
-                "CFBundlePackageType": "APPL",
-                "CFBundleSignature": "FOOZ",
-                "CFBundleVersion": "1",
-                "LSMinimumSystemVersion": "$(MINIMUM_SYSTEM_VERSION)",      // To check that the value of this key from the platform does not replace this value.
-                "NSMainNibFile": "MainMenu",
-                "NSPrincipalClass": "NSApplication",
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleDevelopmentRegion": "en",
+                    "CFBundleExecutable": "$(EXECUTABLE_NAME)",
+                    "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
+                    "CFBundleName": "$(PRODUCT_NAME)",
+                    "CFBundlePackageType": "APPL",
+                    "CFBundleSignature": "FOOZ",
+                    "CFBundleVersion": "1",
+                    "LSMinimumSystemVersion": "$(MINIMUM_SYSTEM_VERSION)",  // To check that the value of this key from the platform does not replace this value.
+                    "NSMainNibFile": "MainMenu",
+                    "NSPrincipalClass": "NSApplication",
+                ]
+            )
 
             let outputDelegate = MockTaskOutputDelegate()
             let result = await action.performTaskAction(
@@ -423,8 +445,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
                 if let supportedPlatformsArray = dict["CFBundleSupportedPlatforms"]?.arrayValue {
                     let supportedPlatforms = supportedPlatformsArray.map { $0.stringValue }
                     #expect(supportedPlatforms == ["MacOSX"])
-                }
-                else {
+                } else {
                     Issue.record("CFBundleSupportedPlatforms is not an array.")
                 }
                 #expect(dict["DTCompiler"]?.stringValue == "com.apple.compilers.llvm.clang.1_0")
@@ -451,14 +472,14 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         ]
 
         let INFOPLIST_FILE_CONTENTS = """
-        <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-            <dict>
-                <key>Key2</key><string>NewValue2</string>
-                <key>Key3</key><string>NewValue3</string>
-            </dict>
-        </plist>
-        """
+            <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+                <dict>
+                    <key>Key2</key><string>NewValue2</string>
+                    <key>Key3</key><string>NewValue3</string>
+                </dict>
+            </plist>
+            """
 
         // Test building for iOS.
         do {
@@ -489,20 +510,19 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             minimumSystemVersionKey = "MinimumOSVersion"
         }
         let plistData: [String: PropertyListItem] = [
-            minimumSystemVersionKey: .plString(minimumSystemVersion),
+            minimumSystemVersionKey: .plString(minimumSystemVersion)
         ]
         let scope = try createMockScope(debugDescription: "\(#function)_\(platformName)") { namespace, table in
             let sdkName = sdkName ?? platformName
             table.push(try #require(namespace.lookupMacroDeclaration("SDKROOT") as? PathMacroDeclaration), literal: sdkName)
-            table.push(try #require(namespace.lookupMacroDeclaration("SDK_NAME") as? StringMacroDeclaration), literal: "")                         // This is wrong but we don't have a good way to override this with the real version
+            table.push(try #require(namespace.lookupMacroDeclaration("SDK_NAME") as? StringMacroDeclaration), literal: "")  // This is wrong but we don't have a good way to override this with the real version
             table.push(try #require(namespace.lookupMacroDeclaration("SDK_VARIANT") as? StringMacroDeclaration), literal: sdkVariant)
             table.push(try #require(namespace.lookupMacroDeclaration("DEPLOYMENT_TARGET_SETTING_NAME") as? StringMacroDeclaration), literal: deploymentTargetName)
             table.push(try #require(namespace.lookupMacroDeclaration(deploymentTargetName) as? StringMacroDeclaration), literal: deploymentTarget)
             // I'm not sure why createMockScope() includes a particular and strange value for TARGET_DEVICE_FAMILY, but we override it here.
             if sdkVariant == MacCatalystInfo.sdkVariantName {
-                table.push(try #require(namespace.lookupMacroDeclaration("TARGETED_DEVICE_FAMILY") as? StringMacroDeclaration), literal: "6")      // 6 is Mac
-            }
-            else {
+                table.push(try #require(namespace.lookupMacroDeclaration("TARGETED_DEVICE_FAMILY") as? StringMacroDeclaration), literal: "6")  // 6 is Mac
+            } else {
                 table.push(try #require(namespace.lookupMacroDeclaration("TARGETED_DEVICE_FAMILY") as? StringMacroDeclaration), literal: "")
             }
         }
@@ -646,13 +666,13 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let services: [[String: PropertyListItem]] = [
             [
                 "NSMenuItem": [
-                    "default": "Stuff",
+                    "default": "Stuff"
                 ],
                 "NSMessage": "This doesn't work",
             ],
             [
                 "NSMenuItem": [
-                    "default": "More",
+                    "default": "More"
                 ],
                 "NSMessage": "This one does",
             ],
@@ -709,7 +729,6 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
                 #expect(dict["Foo"]?.stringValue ?? "" == "Bar")
                 #expect(dict["LSApplicationCategoryType"]?.stringValue == "public.app-category.entertainment")
 
-
                 // Check that macOS-specific keys are present.
                 #expect(dict["NSSupportsAutomaticTermination"]?.boolValue == true)
                 #expect(dict["NSSupportsSuddenTermination"]?.boolValue == false)
@@ -735,7 +754,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
     func processingInfoPlistForMacCatalyst() async throws {
         do {
             let plistData: [String: PropertyListItem] = [
-                "Foo": "Bar",
+                "Foo": "Bar"
             ]
             let scope = try createMockScope(debugDescription: "\(#function)_app_macCatalyst_missing") { namespace, table in
                 table.push(try #require(namespace.lookupMacroDeclaration("SDK_VARIANT") as? StringMacroDeclaration), literal: MacCatalystInfo.sdkVariantName)
@@ -775,14 +794,12 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
                 #expect(dict["Foo"]?.stringValue == "Bar")
                 if let autoTerm = dict["NSSupportsAutomaticTermination"]?.boolValue {
                     #expect(!autoTerm)
-                }
-                else {
+                } else {
                     Issue.record("NSSupportsAutomaticTermination not found")
                 }
                 if let suddenTerm = dict["NSSupportsSuddenTermination"]?.boolValue {
                     #expect(!suddenTerm)
-                }
-                else {
+                } else {
                     Issue.record("NSSupportsSuddenTermination not found")
                 }
 
@@ -800,7 +817,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         // Test that keys are not added if absent when building a non-application for macCatalyst.
         do {
             let plistData: [String: PropertyListItem] = [
-                "Foo": "Bar",
+                "Foo": "Bar"
             ]
             let scope = try createMockScope(debugDescription: "\(#function)_nonapp_macCatalyst_present") { namespace, table in
                 table.push(try #require(namespace.lookupMacroDeclaration("SDK_VARIANT") as? StringMacroDeclaration), literal: MacCatalystInfo.sdkVariantName)
@@ -826,7 +843,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         // Test that keys are not added if absent when building an application for iOS.
         do {
             let plistData: [String: PropertyListItem] = [
-                "Foo": "Bar",
+                "Foo": "Bar"
             ]
             let scope = try createMockScope(debugDescription: "\(#function)_app_ios_missing") { namespace, table in
                 table.push(try #require(namespace.lookupMacroDeclaration("SDK_VARIANT") as? StringMacroDeclaration), literal: MacCatalystInfo.sdkVariantName)
@@ -852,7 +869,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         // Test that keys are not added if absent when building an application for macOS (not macCatalyst).
         do {
             let plistData: [String: PropertyListItem] = [
-                "Foo": "Bar",
+                "Foo": "Bar"
             ]
             let scope = try createMockScope(debugDescription: "\(#function)_app_ios_missing") { namespace, table in
                 table.push(try #require(namespace.lookupMacroDeclaration("TARGETED_DEVICE_FAMILY") as? StringMacroDeclaration), literal: "2")
@@ -894,7 +911,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             "nearby-interaction",
             "processing",
             "push-to-talk",
-        ]
+        ],
     ]
 
     /// When processing an Info.plist configured to build for iOS.
@@ -1262,9 +1279,12 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         // Write the test files.
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-            "UIRequiredDeviceCapabilities": ["arm64"],
-        ])
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            [
+                "UIRequiredDeviceCapabilities": ["arm64"]
+            ]
+        )
 
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
@@ -1306,11 +1326,14 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         // Write the test files.
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-            "UIRequiredDeviceCapabilities": [
-                "arm64": true
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            [
+                "UIRequiredDeviceCapabilities": [
+                    "arm64": true
+                ]
             ]
-        ])
+        )
 
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
@@ -1352,11 +1375,14 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         // Write the test files.
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-            "UIRequiredDeviceCapabilities": [
-                "armv6": true
-            ],
-        ])
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            [
+                "UIRequiredDeviceCapabilities": [
+                    "armv6": true
+                ]
+            ]
+        )
 
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
@@ -1403,9 +1429,12 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         // Write the test files.
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), .plDict([
-            "CFBundleShortVersionString": .plString("1.0"),
-        ]))
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            .plDict([
+                "CFBundleShortVersionString": .plString("1.0")
+            ])
+        )
 
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
@@ -1448,9 +1477,12 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-            "CFBundleIdentifier": "abcdefghijklmnopqrstuvwxyz-0123456789.ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        ])
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            [
+                "CFBundleIdentifier": "abcdefghijklmnopqrstuvwxyz-0123456789.ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            ]
+        )
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
             task,
@@ -1478,9 +1510,12 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-            "CFBundleIdentifier": "32XN53XSGF.com.apple.foo"
-        ])
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            [
+                "CFBundleIdentifier": "32XN53XSGF.com.apple.foo"
+            ]
+        )
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
             task,
@@ -1546,10 +1581,13 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-expandbuildsettings", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist", "-genpkginfo", "/tmp/PkgInfo"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-            "CFBundlePackageType": "$(package_type)",
-            "CFBundleSignature": "$(package_signature)"
-        ])
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            [
+                "CFBundlePackageType": "$(package_type)",
+                "CFBundleSignature": "$(package_signature)",
+            ]
+        )
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
             task,
@@ -1588,10 +1626,13 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         // Write the test files.
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-            "CFBundlePackageType": "package_type",
-            "CFBundleSignature": "package_signature"
-        ])
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            [
+                "CFBundlePackageType": "package_type",
+                "CFBundleSignature": "package_signature",
+            ]
+        )
 
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
@@ -1606,10 +1647,12 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             return
         }
 
-        #expect(outputDelegate.warnings == [
-            "warning: value 'package_type' for 'CFBundlePackageType' in 'Info.plist' must be a four character string",
-            "warning: value 'package_signature' for 'CFBundleSignature' in 'Info.plist' must be a four character string",
-        ])
+        #expect(
+            outputDelegate.warnings == [
+                "warning: value 'package_type' for 'CFBundlePackageType' in 'Info.plist' must be a four character string",
+                "warning: value 'package_signature' for 'CFBundleSignature' in 'Info.plist' must be a four character string",
+            ]
+        )
     }
 
     @Test
@@ -1788,9 +1831,11 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             table.push(try namespace.declareStringMacro("DEPLOYMENT_TARGET_SETTING_NAME"), literal: deploymentTargetSettingName)
             let scope = MacroEvaluationScope(table: table)
             try await createAndRunTaskAction(inputPlistData: testNSExceptionMinimumTLSVersionDeprecationWarningPlistData, scope: scope, platformName: platformName) { result, dict, outputDelegate in
-                #expect(outputDelegate.warnings == [
-                    "warning: The value \"TLSv1.0\" for 'NSAppTransportSecurity' => 'NSExceptionDomains' => 'apple.com' => 'NSExceptionMinimumTLSVersion' has been deprecated starting in \(platformFamilyName) \(newDeploymentTarget), use TLSv1.2 or TLSv1.3 instead."
-                ])
+                #expect(
+                    outputDelegate.warnings == [
+                        "warning: The value \"TLSv1.0\" for 'NSAppTransportSecurity' => 'NSExceptionDomains' => 'apple.com' => 'NSExceptionMinimumTLSVersion' has been deprecated starting in \(platformFamilyName) \(newDeploymentTarget), use TLSv1.2 or TLSv1.3 instead."
+                    ]
+                )
             }
         }
     }
@@ -1831,10 +1876,13 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleIdentifier": "a.b.c",
-                "CFBundleDocumentTypes": [] as PropertyListItem
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleIdentifier": "a.b.c",
+                    "CFBundleDocumentTypes": [] as PropertyListItem,
+                ]
+            )
             let outputDelegate = MockTaskOutputDelegate()
             let result = await action.performTaskAction(
                 task,
@@ -1856,14 +1904,18 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleIdentifier": "a.b.c",
-                "CFBundleDocumentTypes": [
-                    [   "CFBundleTypeRole": "Viewer",
-                        "CFBundleTypeExtensions": [ "dat" ]
-                    ] as PropertyListItem
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleIdentifier": "a.b.c",
+                    "CFBundleDocumentTypes": [
+                        [
+                            "CFBundleTypeRole": "Viewer",
+                            "CFBundleTypeExtensions": ["dat"],
+                        ] as PropertyListItem
+                    ],
                 ]
-            ])
+            )
             let outputDelegate = MockTaskOutputDelegate()
             let result = await action.performTaskAction(
                 task,
@@ -1885,15 +1937,19 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleIdentifier": "a.b.c",
-                "CFBundleDocumentTypes": [
-                    [   "CFBundleTypeRole": "Viewer",
-                        "CFBundleTypeExtensions": [ "dat" ]
-                    ] as PropertyListItem
-                ],
-                "LSSupportsOpeningDocumentsInPlace": false
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleIdentifier": "a.b.c",
+                    "CFBundleDocumentTypes": [
+                        [
+                            "CFBundleTypeRole": "Viewer",
+                            "CFBundleTypeExtensions": ["dat"],
+                        ] as PropertyListItem
+                    ],
+                    "LSSupportsOpeningDocumentsInPlace": false,
+                ]
+            )
             let outputDelegate = MockTaskOutputDelegate()
             let result = await action.performTaskAction(
                 task,
@@ -1915,15 +1971,19 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleIdentifier": "a.b.c",
-                "CFBundleDocumentTypes": [
-                    [   "CFBundleTypeRole": "Viewer",
-                        "CFBundleTypeExtensions": [ "dat" ]
-                    ] as PropertyListItem
-                ],
-                "UISupportsDocumentBrowser": false
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleIdentifier": "a.b.c",
+                    "CFBundleDocumentTypes": [
+                        [
+                            "CFBundleTypeRole": "Viewer",
+                            "CFBundleTypeExtensions": ["dat"],
+                        ] as PropertyListItem
+                    ],
+                    "UISupportsDocumentBrowser": false,
+                ]
+            )
             let outputDelegate = MockTaskOutputDelegate()
             let result = await action.performTaskAction(
                 task,
@@ -1945,14 +2005,18 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let action = InfoPlistProcessorTaskAction(try prepareContext(InfoPlistProcessorTaskActionContext(scope: scope, productType: nil, platform: platform, sdk: core.sdkRegistry.lookup(platformName), sdkVariant: nil, cleanupRequiredArchitectures: []), fs: executionDelegate.fs))
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-infoPlistUtility", "-platform", platformName, "/tmp/input.plist", "-o", "/tmp/output.plist"], workingDirectory: Path.root.join("tmp"), outputs: [], action: action, execDescription: "Copy Info.plist")
             try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), [
-                "CFBundleIdentifier": "a.b.c",
-                "CFBundleDocumentTypes": [
-                    [   "CFBundleTypeRole": "Viewer",
-                        "CFBundleTypeExtensions": [ "dat" ]
-                    ] as PropertyListItem
-                ],
-            ])
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/input.plist"),
+                [
+                    "CFBundleIdentifier": "a.b.c",
+                    "CFBundleDocumentTypes": [
+                        [
+                            "CFBundleTypeRole": "Viewer",
+                            "CFBundleTypeExtensions": ["dat"],
+                        ] as PropertyListItem
+                    ],
+                ]
+            )
             let outputDelegate = MockTaskOutputDelegate()
             let result = await action.performTaskAction(
                 task,
@@ -1980,8 +2044,9 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let plistData: [String: PropertyListItem] = [
                 "CFBundleIdentifier": "a.b.c",
                 "CFBundleDocumentTypes": [
-                    [   "CFBundleTypeRole": "Viewer",
-                        "CFBundleTypeExtensions": [ "dat" ]
+                    [
+                        "CFBundleTypeRole": "Viewer",
+                        "CFBundleTypeExtensions": ["dat"],
                     ] as PropertyListItem
                 ],
                 "LSSupportsOpeningDocumentsInPlace": false,
@@ -2016,8 +2081,9 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let plistData: [String: PropertyListItem] = [
                 "CFBundleIdentifier": "a.b.c",
                 "CFBundleDocumentTypes": [
-                    [   "CFBundleTypeRole": "Viewer",
-                        "CFBundleTypeExtensions": [ "dat" ]
+                    [
+                        "CFBundleTypeRole": "Viewer",
+                        "CFBundleTypeExtensions": ["dat"],
                     ] as PropertyListItem
                 ],
                 "LSSupportsOpeningDocumentsInPlace": true,
@@ -2105,10 +2171,12 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             let table = MacroValueAssignmentTable(namespace: namespace)
             let scope = MacroEvaluationScope(table: table)
             try await createAndRunTaskAction(inputPlistData: plistData, scope: scope, platformName: "iphoneos", productTypeId: "com.apple.product-type.application.on-demand-install-capable") { result, dict, outputDelegate in
-                #expect(outputDelegate.warnings == [
-                    "warning: 'CFBundleDocumentTypes' has no effect for App Clip targets and will be ignored.",
-                    "warning: 'LSApplicationQueriesSchemes' has no effect for App Clip targets and will be ignored.",
-                ])
+                #expect(
+                    outputDelegate.warnings == [
+                        "warning: 'CFBundleDocumentTypes' has no effect for App Clip targets and will be ignored.",
+                        "warning: 'LSApplicationQueriesSchemes' has no effect for App Clip targets and will be ignored.",
+                    ]
+                )
             }
         }
     }
@@ -2141,7 +2209,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             if !domains.isEmpty {
                 if let dict = appPlist.dictValue {
                     var dict = dict
-                    dict["NSPrivacyTrackingDomains"] = .plArray(domains.map { .plString($0)} )
+                    dict["NSPrivacyTrackingDomains"] = .plArray(domains.map { .plString($0) })
                     appPlist = .plDict(dict)
                 }
             }
@@ -2151,32 +2219,41 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), appPlist)
 
             try executionDelegate.fs.createDirectory(Path("/tmp/frameworkA.framework"))
-            try await executionDelegate.fs.writePlist(Path("/tmp/frameworkA.framework/PrivacyInfo.xcprivacy"), [
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.frameworka.com",
-                    "internal.frameworka.com",
-                    "www.allframeworks.com",
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/frameworkA.framework/PrivacyInfo.xcprivacy"),
+                [
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.frameworka.com",
+                        "internal.frameworka.com",
+                        "www.allframeworks.com",
+                    ],
                 ]
-            ])
+            )
 
             try executionDelegate.fs.createDirectory(Path("/tmp/frameworkB.framework/Resources"), recursive: true)
-            try await executionDelegate.fs.writePlist(Path("/tmp/frameworkB.framework/Resources/PrivacyInfo.xcprivacy"), [
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.allframeworks.com",
-                    "internal.frameworkb.com",
-                    "www.frameworkb.com",
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/frameworkB.framework/Resources/PrivacyInfo.xcprivacy"),
+                [
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.allframeworks.com",
+                        "internal.frameworkb.com",
+                        "www.frameworkb.com",
+                    ],
                 ]
-            ])
+            )
             // Generic *.xcprivacy files are not supported, they must be named `PrivacyInfo.xcprivacy`; this is currently by convention.
             try executionDelegate.fs.createDirectory(Path("/tmp/frameworkC.framework/Resources"), recursive: true)
-            try await executionDelegate.fs.writePlist(Path("/tmp/frameworkC.framework/Resources/Nope.privacy"), [
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.nope.com",
+            try await executionDelegate.fs.writePlist(
+                Path("/tmp/frameworkC.framework/Resources/Nope.privacy"),
+                [
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.nope.com"
+                    ],
                 ]
-            ])
+            )
 
             let outputDelegate = MockTaskOutputDelegate()
             let result = await action.performTaskAction(
@@ -2262,10 +2339,10 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         let inputContent = PropertyListItem.plDict([
             "CFBundleAlternateIcons": [
                 "AppIcon2": [
-                    "NSAppIconComplementingColorName": "AppIcon2-ComplementingColorName",
+                    "NSAppIconComplementingColorName": "AppIcon2-ComplementingColorName"
                 ],
                 "AppIcon3": [
-                    "NSAppIconComplementingColorName": "AppIcon3-ComplementingColorName",
+                    "NSAppIconComplementingColorName": "AppIcon3-ComplementingColorName"
                 ],
             ],
             "CFBundlePrimaryIcon": [
@@ -2275,24 +2352,27 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
                 ],
                 // Overwrite conflicting keys with generated values.
                 "CFBundleIconFiles": PropertyListItem.plArray([
-                    "ReplaceMe",
+                    "ReplaceMe"
                 ]),
                 "CFBundleIconName": "ReplaceMe",
             ],
         ])
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), .plDict([
-            "CFBundleIcons": inputContent,
-            "CFBundleIcons~ipad": inputContent,
-        ]))
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            .plDict([
+                "CFBundleIcons": inputContent,
+                "CFBundleIcons~ipad": inputContent,
+            ])
+        )
 
         // `actool` generates a partial Info.plist similar to this for app icons.
         let mergeContent = PropertyListItem.plDict([
             "CFBundleAlternateIcons": [
                 "AppIcon2": [
-                    "CFBundleIconName": "AppIcon2",
+                    "CFBundleIconName": "AppIcon2"
                 ],
                 "AppIcon3": [
-                    "CFBundleIconName": "AppIcon3",
+                    "CFBundleIconName": "AppIcon3"
                 ],
                 "PreserveMe": [
                     "Key": "Value"
@@ -2300,7 +2380,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             ],
             "CFBundlePrimaryIcon": [
                 "CFBundleIconFiles": PropertyListItem.plArray([
-                    "AppIcon60x60",
+                    "AppIcon60x60"
                 ]),
                 "CFBundleIconName": "AppIcon",
             ],
@@ -2309,10 +2389,13 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
                 "Key": "Value"
             ],
         ])
-        try await executionDelegate.fs.writePlist(Path("/tmp/mergecontent.plist"), [
-            "CFBundleIcons": mergeContent,
-            "CFBundleIcons~ipad": mergeContent,
-        ])
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/mergecontent.plist"),
+            [
+                "CFBundleIcons": mergeContent,
+                "CFBundleIcons~ipad": mergeContent,
+            ]
+        )
 
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(
@@ -2357,7 +2440,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
                         "NSAppIconComplementingColorName": "AppIcon-ComplementingColorName",
                     ],
                     "CFBundleIconFiles": PropertyListItem.plArray([
-                        "AppIcon60x60",
+                        "AppIcon60x60"
                     ]),
                     "CFBundleIconName": "AppIcon",
                 ],
@@ -2389,12 +2472,15 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
 
         // Write the test files.
         try executionDelegate.fs.createDirectory(Path.root.join("tmp"))
-        try await executionDelegate.fs.writePlist(Path("/tmp/input.plist"), .plDict([
-            "CFBundleIconName": .plString(""),
-            "NSHomeKitUsageDescription": .plString(""),
-            "NSSiriUsageDescription": .plBool(true),
-            "NSFaceIDUsageDescription": .plString("Used for authentication."),
-        ]))
+        try await executionDelegate.fs.writePlist(
+            Path("/tmp/input.plist"),
+            .plDict([
+                "CFBundleIconName": .plString(""),
+                "NSHomeKitUsageDescription": .plString(""),
+                "NSSiriUsageDescription": .plBool(true),
+                "NSFaceIDUsageDescription": .plString("Used for authentication."),
+            ])
+        )
 
         let outputDelegate = MockTaskOutputDelegate()
         let result = await action.performTaskAction(

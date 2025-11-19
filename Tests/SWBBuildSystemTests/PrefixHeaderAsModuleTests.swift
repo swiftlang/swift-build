@@ -34,43 +34,49 @@ fileprivate struct PrefixHeaderAsModuleTests: CoreBasedTests {
                             children: [
                                 TestFile("file.c"),
                                 TestFile("pch.h"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                                "GCC_PREFIX_HEADER": "pch.h",
-                                "CLANG_IMPORT_PREFIX_HEADER_AS_MODULE": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                    "GCC_PREFIX_HEADER": "pch.h",
+                                    "CLANG_IMPORT_PREFIX_HEADER_AS_MODULE": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/pch.h")) { stream in
-                stream <<<
-                """
-                typedef int PCH_int;
-                #define PCH_one 1
-                """
+                stream <<< """
+                    typedef int PCH_int;
+                    #define PCH_one 1
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                PCH_int foo(void) {
-                  return PCH_one;
-                }
-                """
+                stream <<< """
+                    PCH_int foo(void) {
+                      return PCH_one;
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -100,43 +106,49 @@ fileprivate struct PrefixHeaderAsModuleTests: CoreBasedTests {
                             children: [
                                 TestFile("file.c"),
                                 TestFile("pch.h"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "NO",
-                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                                "GCC_PREFIX_HEADER": "pch.h",
-                                "CLANG_IMPORT_PREFIX_HEADER_AS_MODULE": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "NO",
+                                    "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                    "GCC_PREFIX_HEADER": "pch.h",
+                                    "CLANG_IMPORT_PREFIX_HEADER_AS_MODULE": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/pch.h")) { stream in
-                stream <<<
-                """
-                typedef int PCH_int;
-                #define PCH_one 1
-                """
+                stream <<< """
+                    typedef int PCH_int;
+                    #define PCH_one 1
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                PCH_int foo(void) {
-                  return PCH_one;
-                }
-                """
+                stream <<< """
+                    PCH_int foo(void) {
+                      return PCH_one;
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -161,43 +173,49 @@ fileprivate struct PrefixHeaderAsModuleTests: CoreBasedTests {
                             children: [
                                 TestFile("file.cpp"),
                                 TestFile("pch.h"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "OTHER_CFLAGS": "-fmodules -fcxx-modules",
-                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                                "GCC_PREFIX_HEADER": "pch.h",
-                                "CLANG_IMPORT_PREFIX_HEADER_AS_MODULE": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "OTHER_CFLAGS": "-fmodules -fcxx-modules",
+                                    "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                    "GCC_PREFIX_HEADER": "pch.h",
+                                    "CLANG_IMPORT_PREFIX_HEADER_AS_MODULE": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.cpp"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.cpp"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/pch.h")) { stream in
-                stream <<<
-                """
-                typedef int PCH_int;
-                #define PCH_one 1
-                """
+                stream <<< """
+                    typedef int PCH_int;
+                    #define PCH_one 1
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.cpp")) { stream in
-                stream <<<
-                """
-                PCH_int foo(void) {
-                  return PCH_one;
-                }
-                """
+                stream <<< """
+                    PCH_int foo(void) {
+                      return PCH_one;
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in

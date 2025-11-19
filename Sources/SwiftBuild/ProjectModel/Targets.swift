@@ -58,7 +58,7 @@ extension ProjectModel {
             let buildConfig = create(id)
 
             precondition(!buildConfig.name.isEmpty)
-            precondition(!buildConfigs.contains{ $0.name == buildConfig.name })
+            precondition(!buildConfigs.contains { $0.name == buildConfig.name })
 
             self.buildConfigs.append(buildConfig)
             return buildConfig
@@ -68,7 +68,6 @@ extension ProjectModel {
             get { buildConfigs[id: tag.value] }
             set { buildConfigs[id: tag.value] = newValue }
         }
-
 
         // MARK: - BuildPhase
         public typealias BuildPhaseTag<Phase> = XTag<Phase, GUID>
@@ -126,7 +125,8 @@ extension ProjectModel {
         public subscript(buildPhase tag: BuildPhaseTag<HeadersBuildPhase>) -> HeadersBuildPhase {
             get {
                 guard let idx = firstPhaseIndex(tag.value),
-                      case let .headers(t) = buildPhases[idx] else { fatalError() }
+                    case let .headers(t) = buildPhases[idx]
+                else { fatalError() }
                 return t
             }
             set {
@@ -140,7 +140,8 @@ extension ProjectModel {
         public subscript(buildPhase tag: BuildPhaseTag<SourcesBuildPhase>) -> SourcesBuildPhase {
             get {
                 guard let idx = firstPhaseIndex(tag.value),
-                      case let .sources(t) = buildPhases[idx] else { fatalError() }
+                    case let .sources(t) = buildPhases[idx]
+                else { fatalError() }
                 return t
             }
             set {
@@ -154,7 +155,8 @@ extension ProjectModel {
         public subscript(buildPhase tag: BuildPhaseTag<FrameworksBuildPhase>) -> FrameworksBuildPhase {
             get {
                 guard let idx = firstPhaseIndex(tag.value),
-                      case let .frameworks(t) = buildPhases[idx] else { fatalError() }
+                    case let .frameworks(t) = buildPhases[idx]
+                else { fatalError() }
                 return t
             }
             set {
@@ -168,7 +170,8 @@ extension ProjectModel {
         public subscript(buildPhase tag: BuildPhaseTag<CopyBundleResourcesBuildPhase>) -> CopyBundleResourcesBuildPhase {
             get {
                 guard let idx = firstPhaseIndex(tag.value),
-                      case let .copyBundleResources(t) = buildPhases[idx] else { fatalError() }
+                    case let .copyBundleResources(t) = buildPhases[idx]
+                else { fatalError() }
                 return t
             }
             set {
@@ -182,7 +185,8 @@ extension ProjectModel {
         public subscript(buildPhase tag: BuildPhaseTag<CopyFilesBuildPhase>) -> CopyFilesBuildPhase {
             get {
                 guard let idx = firstPhaseIndex(tag.value),
-                      case let .copyFiles(t) = buildPhases[idx] else { fatalError() }
+                    case let .copyFiles(t) = buildPhases[idx]
+                else { fatalError() }
                 return t
             }
             set {
@@ -196,7 +200,8 @@ extension ProjectModel {
         public subscript(buildPhase tag: BuildPhaseTag<ShellScriptBuildPhase>) -> ShellScriptBuildPhase {
             get {
                 guard let idx = firstPhaseIndex(tag.value),
-                      case let .shellScript(t) = buildPhases[idx] else { fatalError() }
+                    case let .shellScript(t) = buildPhases[idx]
+                else { fatalError() }
                 return t
             }
             set {
@@ -208,46 +213,50 @@ extension ProjectModel {
         }
 
         @discardableResult public mutating func withFrameworksBuildPhase<T>(_ modify: (inout FrameworksBuildPhase) -> T) -> T {
-            let phaseTag = firstPhaseTag({
-                switch $0 {
-                case .frameworks(_): return true
-                default: return false
-                }
-            }) ?? (addFrameworksBuildPhase { id in FrameworksBuildPhase(id: id) })
+            let phaseTag =
+                firstPhaseTag({
+                    switch $0 {
+                    case .frameworks(_): return true
+                    default: return false
+                    }
+                }) ?? (addFrameworksBuildPhase { id in FrameworksBuildPhase(id: id) })
 
             return modify(&self[buildPhase: phaseTag])
         }
 
         @discardableResult public mutating func withCopyBundleResourcesBuildPhase<T>(_ modify: (inout CopyBundleResourcesBuildPhase) -> T) -> T {
-            let phaseTag = firstPhaseTag({
-                switch $0 {
-                case .copyBundleResources(_): return true
-                default: return false
-                }
-            }) ?? (addCopyBundleResourcesBuildPhase { id in CopyBundleResourcesBuildPhase(id: id) })
+            let phaseTag =
+                firstPhaseTag({
+                    switch $0 {
+                    case .copyBundleResources(_): return true
+                    default: return false
+                    }
+                }) ?? (addCopyBundleResourcesBuildPhase { id in CopyBundleResourcesBuildPhase(id: id) })
 
             return modify(&self[buildPhase: phaseTag])
         }
 
         @discardableResult public mutating func withHeadersBuildPhase<T>(_ modify: (inout HeadersBuildPhase) -> T) -> T {
-            let phaseTag = firstPhaseTag({
-                switch $0 {
-                case .headers(_): return true
-                default: return false
-                }
-            }) ?? (addHeadersBuildPhase { id in HeadersBuildPhase(id: id) })
+            let phaseTag =
+                firstPhaseTag({
+                    switch $0 {
+                    case .headers(_): return true
+                    default: return false
+                    }
+                }) ?? (addHeadersBuildPhase { id in HeadersBuildPhase(id: id) })
 
             return modify(&self[buildPhase: phaseTag])
         }
 
         @discardableResult public mutating func withSourcesBuildPhase<T>(_ modify: (inout SourcesBuildPhase) -> T) -> T {
 
-            let phaseTag = firstPhaseTag({
-                switch $0 {
-                case .sources(_): return true
-                default: return false
-                }
-            }) ?? (addSourcesBuildPhase { id in SourcesBuildPhase(id: id) })
+            let phaseTag =
+                firstPhaseTag({
+                    switch $0 {
+                    case .sources(_): return true
+                    default: return false
+                    }
+                }) ?? (addSourcesBuildPhase { id in SourcesBuildPhase(id: id) })
 
             return modify(&self[buildPhase: phaseTag])
         }
@@ -264,7 +273,6 @@ extension ProjectModel {
         private func firstPhaseIndex(_ guid: GUID) -> Int? {
             return buildPhases.firstIndex(where: { $0.common.id == guid })
         }
-
 
         // MARK: - BuildRule
 
@@ -290,7 +298,6 @@ extension ProjectModel {
         public mutating func addTargetDependency(_ dependency: TargetDependency) {
             dependencies.append(dependency)
         }
-
 
         /// Adds a dependency on another target.  It is the caller's responsibility to avoid creating dependency cycles.  A dependency of one target on another ensures that the other target is built first. If `linkProduct` is true, the receiver will also be configured to link against the product produced by the other target (this presumes that the product type is one that can be linked against).
         @discardableResult public mutating func addDependency(on targetId: GUID, platformFilters: Set<PlatformFilter>, linkProduct: Bool = false) -> TargetDependency {
@@ -449,7 +456,8 @@ extension ProjectModel.Target: Codable {
         case .packageProduct:
             try container.encode("packageProduct", forKey: .type)
             if let first = self.buildPhases.first,
-               case let .frameworks(phase) = first {
+                case let .frameworks(phase) = first
+            {
                 try container.encode(phase, forKey: .frameworksBuildPhase)
             }
 
@@ -524,4 +532,3 @@ extension ProjectModel.AggregateTarget: Codable {
         case customTasks
     }
 }
-

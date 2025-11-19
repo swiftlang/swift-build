@@ -32,7 +32,8 @@ fileprivate struct RealityAssetsTaskConstructionTests: CoreBasedTests {
                     children: [
                         TestFile("Reality.rkassets"),
                         TestFile("Foo.txt"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -42,7 +43,8 @@ fileprivate struct RealityAssetsTaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "VERSIONING_SYSTEM": "apple-generic",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -61,10 +63,12 @@ fileprivate struct RealityAssetsTaskConstructionTests: CoreBasedTests {
                             TestResourcesBuildPhase([
                                 TestBuildFile("Reality.rkassets"),
                                 TestBuildFile("Foo.txt"),
-                            ]),
+                            ])
                         ]
-                    ),
-                ], classPrefix: "XC")
+                    )
+                ],
+                classPrefix: "XC"
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str

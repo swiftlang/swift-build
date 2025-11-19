@@ -73,7 +73,7 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
             components.append(("runDestination", runDestString))
         }
 
-        let string = components.map({ "\($0.key): \($0.value)"}).joined(separator: " ")
+        let string = components.map({ "\($0.key): \($0.value)" }).joined(separator: " ")
 
         // Construct the description.
         return "<\(type(of: self)) \(string)>"
@@ -107,7 +107,7 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
             }
         }
         if specializeGuidForActiveRunDestination {
-            let discriminator = self.parameters.activeRunDestination.map{ "\($0.platform)-\($0.sdkVariant ?? "")" } ?? ""
+            let discriminator = self.parameters.activeRunDestination.map { "\($0.platform)-\($0.sdkVariant ?? "")" } ?? ""
             parameters.append(discriminator)
         }
         return .init(id: ["target", target.name, target.guid, parameters.joined(separator: ":")].joined(separator: "-"))
@@ -127,12 +127,11 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
         // Make sure each build parameters struct is serialized only once.
         if let index = delegate.buildParametersIndexes[parameters] {
             // We already have an index into the build parameters list, so serialize it.
-            serializer.serialize(1)         // Placeholder indicating the next element is an index
+            serializer.serialize(1)  // Placeholder indicating the next element is an index
             serializer.serialize(index)
-        }
-        else {
+        } else {
             // These parameters have not been serialized before, so serialize them and add them to our delegate's index map.
-            serializer.serialize(0)         // Placeholder indicating the next element is a serialized BuildParameters
+            serializer.serialize(0)  // Placeholder indicating the next element is a serialized BuildParameters
             serializer.serialize(parameters)
             delegate.buildParametersIndexes[parameters] = delegate.currentBuildParametersIndex
             delegate.currentBuildParametersIndex += 1
@@ -171,7 +170,7 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
         }
     }
 
-    public static func ==(lhs: ConfiguredTarget, rhs: ConfiguredTarget) -> Bool {
+    public static func == (lhs: ConfiguredTarget, rhs: ConfiguredTarget) -> Bool {
         // Fast path common case.
         //
         // FIXME: We key on this a lot -- we need to move this to using reference equality: <rdar://problem/28948909> Change ConfiguredTarget to use reference equality

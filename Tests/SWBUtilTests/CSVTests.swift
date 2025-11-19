@@ -30,11 +30,13 @@ import SWBUtil
         builder.writeRow(["col1", "col2", "col3"])
         builder.writeRow(["v1", "v2", "v3"])
         builder.writeRow(["has whitespace", "has,comma", "has\"quote"])
-        #expect(builder.output == """
-        col1,col2,col3\r
-        v1,v2,v3\r
-        "has whitespace","has,comma","has""quote"\r
+        #expect(
+            builder.output == """
+                col1,col2,col3\r
+                v1,v2,v3\r
+                "has whitespace","has,comma","has""quote"\r
 
-        """)
+                """
+        )
     }
 }

@@ -35,7 +35,7 @@ fileprivate struct CreateXCFrameworkCommandTests {
         #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "error: at least one framework or library must be specified." + String.newline + String.newline)
     }
 
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows))  // PTY not supported on Windows
     func commandInvocationInProcess() async throws {
         try await withCLIConnection { cli in
             try cli.send(command: "createXCFramework -help")

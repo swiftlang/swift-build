@@ -92,7 +92,7 @@ fileprivate enum IntentsIndexingInfo: Serializable, SourceFileIndexingInfo, Enco
     }
 }
 
-public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class IntentsCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.intents"
 
     public override var supportsInstallAPI: Bool {
@@ -130,7 +130,8 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
         guard
             let target = cbc.producer.configuredTarget?.target as? SWBCore.BuildPhaseTarget,
             target.sourcesBuildPhase != nil,
-            let intentsCodegenVisibility = input.intentsCodegenVisibility else { return }
+            let intentsCodegenVisibility = input.intentsCodegenVisibility
+        else { return }
 
         if case .noCodegen = intentsCodegenVisibility {
             return
@@ -244,7 +245,8 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
                 guard
                     let target = cbc.producer.configuredTarget?.target as? SWBCore.BuildPhaseTarget,
                     let outputPath = headerOutputPath,
-                    target.headersBuildPhase != nil else { continue }
+                    target.headersBuildPhase != nil
+                else { continue }
 
                 await cbc.producer.copySpec.constructCopyTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [outputFile], output: outputPath, preparesForIndexing: true), delegate, additionalTaskOrderingOptions: .compilationRequirement)
             }

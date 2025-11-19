@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBMacro
 
-public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, SwiftDiscoveredCommandLineToolSpecInfo, @unchecked Sendable {
+public final class SwiftABICheckerToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, SwiftDiscoveredCommandLineToolSpecInfo, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.swift-abi-checker"
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
@@ -105,18 +105,20 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
         for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
             commandLine += ["-I", searchPath]
         }
-        delegate.createTask(type: self,
-                            payload: ABICheckerPayload(
-                                serializedDiagnosticsPath: serializedDiagsPath,
-                                downgradeErrors: downgradeErrors
-                            ),
-                            ruleInfo: defaultRuleInfo(cbc, delegate),
-                            commandLine: commandLine,
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: allInputs,
-                            outputs: [delegate.createNode(cbc.output)],
-                            enableSandboxing: enableSandboxing)
+        delegate.createTask(
+            type: self,
+            payload: ABICheckerPayload(
+                serializedDiagnosticsPath: serializedDiagsPath,
+                downgradeErrors: downgradeErrors
+            ),
+            ruleInfo: defaultRuleInfo(cbc, delegate),
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: allInputs,
+            outputs: [delegate.createNode(cbc.output)],
+            enableSandboxing: enableSandboxing
+        )
     }
 }
 

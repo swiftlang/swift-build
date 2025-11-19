@@ -23,15 +23,15 @@ import SWBMacro
     func discoveredClangSpecInfo() async throws {
         try await withSpec("com.apple.compilers.llvm.clang.1_0", .deferred) { (info: DiscoveredClangToolSpecInfo) in
             #expect(!info.toolPath.isEmpty)
-#if canImport(Darwin)
-            #expect(info.clangVersion != nil)
-#endif
+            #if canImport(Darwin)
+                #expect(info.clangVersion != nil)
+            #endif
             if let clangVersion = info.clangVersion {
                 #expect(clangVersion > Version(0, 0, 0, 0))
             }
-#if canImport(Darwin)
-            #expect(info.llvmVersion != nil)
-#endif
+            #if canImport(Darwin)
+                #expect(info.llvmVersion != nil)
+            #endif
             if let llvmVersion = info.llvmVersion {
                 #expect(llvmVersion > Version(0, 0, 0))
             }
@@ -80,7 +80,7 @@ import SWBMacro
     func discoveredClangSpecInfoAcrossToolchains() async throws {
         let core = try await getCore()
         let toolchains = core.toolchainRegistry.toolchains
-        #expect(toolchains.count > 0) // must be at least one toolchain (default)
+        #expect(toolchains.count > 0)  // must be at least one toolchain (default)
         for toolchain in toolchains.sorted(by: \.identifier) {
             if toolchain.identifier == "qnx" {
                 // QNX toolchains do not have clang
@@ -91,17 +91,17 @@ import SWBMacro
             let info = try await discoveredClangToolInfo(toolPath: clangPath, arch: "undefined_arch", sysroot: nil)
             #expect(info.toolPath == clangPath)
 
-#if canImport(Darwin)
-            if toolchain.identifier.hasPrefix("org.swift.") || toolchain.identifier.hasPrefix("org.swiftwasm.") {
-                #expect(info.clangVersion == nil, "Open Source toolchains are expected to NOT have a clang version")
-            } else if toolchain.identifier == "android" {
-                #expect(info.clangVersion == nil, "Android toolchains are expected to NOT have a clang version")
-            } else {
-                #expect(info.clangVersion != nil, "Unable to find clang version for toolchain \(toolchain.identifier). Used clang at path \(clangPath.str).")
-            }
+            #if canImport(Darwin)
+                if toolchain.identifier.hasPrefix("org.swift.") || toolchain.identifier.hasPrefix("org.swiftwasm.") {
+                    #expect(info.clangVersion == nil, "Open Source toolchains are expected to NOT have a clang version")
+                } else if toolchain.identifier == "android" {
+                    #expect(info.clangVersion == nil, "Android toolchains are expected to NOT have a clang version")
+                } else {
+                    #expect(info.clangVersion != nil, "Unable to find clang version for toolchain \(toolchain.identifier). Used clang at path \(clangPath.str).")
+                }
 
-            #expect(info.llvmVersion != nil, "Unable to find llvm version for toolchain \(toolchain.identifier). Used clang at path \(clangPath.str).")
-#endif
+                #expect(info.llvmVersion != nil, "Unable to find llvm version for toolchain \(toolchain.identifier). Used clang at path \(clangPath.str).")
+            #endif
         }
     }
 
@@ -140,7 +140,7 @@ import SWBMacro
             #expect(info.swiftTag == "swiftlang-5.9.0.106.53 clang-1500.0.13.6")
         }
 
-        try await withSpec(SwiftCompilerSpec.self, .result(status: .exit(0), stdout: Data("Swift version 5.10.1 (swift-5.10.1-RELEASE)\nTarget: aarch64-unknown-linux-gnu\n".utf8), stderr: Data())) {  (info: DiscoveredSwiftCompilerToolSpecInfo) in
+        try await withSpec(SwiftCompilerSpec.self, .result(status: .exit(0), stdout: Data("Swift version 5.10.1 (swift-5.10.1-RELEASE)\nTarget: aarch64-unknown-linux-gnu\n".utf8), stderr: Data())) { (info: DiscoveredSwiftCompilerToolSpecInfo) in
             #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
             #expect(info.swiftVersion == Version(5, 10, 1))
             #expect(info.swiftTag == "swift-5.10.1-RELEASE")
@@ -159,9 +159,9 @@ import SWBMacro
     }
 
     // Linker tool discovery is a bit more complex as it afffected by the ALTERNATE_LINKER build setting.
-    func ldMacroTable() async throws ->  MacroValueAssignmentTable {
-            let core = try await getCore()
-            return MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+    func ldMacroTable() async throws -> MacroValueAssignmentTable {
+        let core = try await getCore()
+        return MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
     }
 
     @Test
@@ -312,15 +312,19 @@ import SWBMacro
         }
     }
 
-    @Test(.skipHostOS(.windows)) // docc.exe is missing from the Swift toolchain distribution
+    @Test(.skipHostOS(.windows))  // docc.exe is missing from the Swift toolchain distribution
     func discoveredDoccSpecInfo() async throws {
         let core = try await getCore()
 
         // Once with the real tool
-        try await withSpec("com.apple.compilers.documentation", .deferred, { (info: DocumentationCompilerToolSpecInfo) in
-            #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "docc"))
-            #expect(info.toolVersion == nil)
-            #expect(info.toolFeatures.has(.diagnosticsFile))
-        })
+        try await withSpec(
+            "com.apple.compilers.documentation",
+            .deferred,
+            { (info: DocumentationCompilerToolSpecInfo) in
+                #expect(info.toolPath.basename == core.hostOperatingSystem.imageFormat.executableName(basename: "docc"))
+                #expect(info.toolVersion == nil)
+                #expect(info.toolFeatures.has(.diagnosticsFile))
+            }
+        )
     }
 }

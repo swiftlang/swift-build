@@ -24,5 +24,5 @@ public struct MacCatalystInfo {
     /// Name of the SDK variant used for the `SDK_VARIANT` build setting.
     public static let sdkVariantName = "iosmac"
 
-    private init() { }
+    private init() {}
 }

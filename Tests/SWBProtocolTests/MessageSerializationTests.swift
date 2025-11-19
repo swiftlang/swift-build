@@ -253,7 +253,7 @@ import Testing
     }
 }
 
-fileprivate func assertMsgPackRoundTrip<T>(_ objectExpression: @autoclosure () throws -> T, sourceLocation: SourceLocation = #_sourceLocation, body: ((T, T) throws -> Void)? = nil) rethrows where T : Equatable & Serializable {
+fileprivate func assertMsgPackRoundTrip<T>(_ objectExpression: @autoclosure () throws -> T, sourceLocation: SourceLocation = #_sourceLocation, body: ((T, T) throws -> Void)? = nil) rethrows where T: Equatable & Serializable {
     let object = try objectExpression()
     let serializer = MsgPackSerializer()
     serializer.serialize(object)
@@ -263,7 +263,7 @@ fileprivate func assertMsgPackRoundTrip<T>(_ objectExpression: @autoclosure () t
     }
 }
 
-fileprivate func assertMsgPackMessageRoundTrip<T>(_ objectExpression: @autoclosure () throws -> T, sourceLocation: SourceLocation = #_sourceLocation, body: ((T, T) throws -> Void)? = nil) rethrows where T : Message & Equatable & Serializable {
+fileprivate func assertMsgPackMessageRoundTrip<T>(_ objectExpression: @autoclosure () throws -> T, sourceLocation: SourceLocation = #_sourceLocation, body: ((T, T) throws -> Void)? = nil) rethrows where T: Message & Equatable & Serializable {
     try assertMsgPackRoundTrip(objectExpression(), sourceLocation: sourceLocation, body: body)
     let ipcObject = IPCMessage(try objectExpression())
     let ipcSerializer = MsgPackSerializer()

@@ -20,18 +20,18 @@ import SWBLibc
 
 /// Get the name of the build service executable
 public func buildServiceExecutableName() -> String {
-#if SWBBUILDSERVICE_USE_DEBUG_EXECUTABLE_SUFFIX
-    return "SWBBuildServiceDebug"
-#else
-    return "SWBBuildService"
-#endif
+    #if SWBBUILDSERVICE_USE_DEBUG_EXECUTABLE_SUFFIX
+        return "SWBBuildServiceDebug"
+    #else
+        return "SWBBuildService"
+    #endif
 }
 
 public func log(_ message: String, isError: Bool = false) {
     #if canImport(os)
-    if isError {
-        return OSLog.log(message)
-    }
+        if isError {
+            return OSLog.log(message)
+        }
     #endif
     NSLog(message)
 }
@@ -39,22 +39,22 @@ public func log(_ message: String, isError: Bool = false) {
 /// Get the path to the user cache directory.
 public func userCacheDir() -> Path {
     #if canImport(Darwin)
-    struct Static {
-        static let value = { () -> Path in
-            let len = confstr(_CS_DARWIN_USER_CACHE_DIR, nil, 0)
+        struct Static {
+            static let value = { () -> Path in
+                let len = confstr(_CS_DARWIN_USER_CACHE_DIR, nil, 0)
 
-            let tmp = UnsafeMutableBufferPointer(start: UnsafeMutablePointer<Int8>.allocate(capacity: len), count:len)
-            defer {
-                tmp.deallocate()
-            }
-            guard confstr(_CS_DARWIN_USER_CACHE_DIR, tmp.baseAddress, len) == len else { fatalError("unexpected confstr failure()") }
+                let tmp = UnsafeMutableBufferPointer(start: UnsafeMutablePointer<Int8>.allocate(capacity: len), count: len)
+                defer {
+                    tmp.deallocate()
+                }
+                guard confstr(_CS_DARWIN_USER_CACHE_DIR, tmp.baseAddress, len) == len else { fatalError("unexpected confstr failure()") }
 
-            return Path(String(cString: tmp.baseAddress!))
-        }()
-    }
-    return Static.value
+                return Path(String(cString: tmp.baseAddress!))
+            }()
+        }
+        return Static.value
     #else
-    return .temporaryDirectory
+        return .temporaryDirectory
     #endif
 }
 
@@ -66,26 +66,26 @@ public func parseUmbrellaHeaderName(_ string: String) -> String? {
 }
 
 #if canImport(Darwin)
-public import func Foundation.autoreleasepool
+    public import func Foundation.autoreleasepool
 #endif
 
 public func autoreleasepool<Result>(invoking body: () throws -> Result) rethrows -> Result {
     #if canImport(Darwin)
-    return try Foundation.autoreleasepool(invoking: body)
+        return try Foundation.autoreleasepool(invoking: body)
     #else
-    return try body()
+        return try body()
     #endif
 }
 
 #if !canImport(Darwin)
-public let NSEC_PER_SEC: UInt64 = 1000000000
-public let NSEC_PER_MSEC: UInt64 = 1000000
-public let USEC_PER_SEC: UInt64 = 1000000
-public let NSEC_PER_USEC: UInt64 = 1000
+    public let NSEC_PER_SEC: UInt64 = 1000000000
+    public let NSEC_PER_MSEC: UInt64 = 1000000
+    public let USEC_PER_SEC: UInt64 = 1000000
+    public let NSEC_PER_USEC: UInt64 = 1000
 #endif
 
 extension Date: Serializable {
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serialize(timeIntervalSinceReferenceDate)
     }
 

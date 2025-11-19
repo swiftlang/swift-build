@@ -21,12 +21,15 @@ import SWBCore
         let workspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            groupTree: TestGroup("root"),
-                            targets: [
-                                TestStandardTarget("testTarget", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    groupTree: TestGroup("root"),
+                    targets: [
+                        TestStandardTarget("testTarget", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let diff = workspace.diff(against: workspace)
 
@@ -37,17 +40,21 @@ import SWBCore
     func missingProject() async throws {
         let workspace = try await TestWorkspace(
             "testWorkspace",
-            projects: []).load(getCore())
+            projects: []
+        ).load(getCore())
 
         let otherWorkspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            groupTree: TestGroup("root"),
-                            targets: [
-                                TestStandardTarget("testTarget", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    groupTree: TestGroup("root"),
+                    targets: [
+                        TestStandardTarget("testTarget", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
 
@@ -61,16 +68,20 @@ import SWBCore
         let workspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            groupTree: TestGroup("root"),
-                            targets: [
-                                TestStandardTarget("testTarget", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    groupTree: TestGroup("root"),
+                    targets: [
+                        TestStandardTarget("testTarget", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let otherWorkspace = try await TestWorkspace(
             "testWorkspace",
-            projects: []).load(getCore())
+            projects: []
+        ).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
 
@@ -84,22 +95,28 @@ import SWBCore
         let workspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root"),
-                            targets: [])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root"),
+                    targets: []
+                )
+            ]
+        ).load(getCore())
 
         let otherWorkspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root"),
-                            targets: [
-                                TestStandardTarget("testTarget", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root"),
+                    targets: [
+                        TestStandardTarget("testTarget", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
 
@@ -115,22 +132,28 @@ import SWBCore
         let workspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root"),
-                            targets: [
-                                TestStandardTarget("testTarget", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root"),
+                    targets: [
+                        TestStandardTarget("testTarget", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let otherWorkspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root"),
-                            targets: [])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root"),
+                    targets: []
+                )
+            ]
+        ).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
 
@@ -146,29 +169,41 @@ import SWBCore
         let workspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("projectA",
-                            groupTree: TestGroup("whatever"),
-                            targets: [TestStandardTarget("targetA", type: .application)]),
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root"),
-                            targets: [
-                                TestStandardTarget("testTarget", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "projectA",
+                    groupTree: TestGroup("whatever"),
+                    targets: [TestStandardTarget("targetA", type: .application)]
+                ),
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root"),
+                    targets: [
+                        TestStandardTarget("testTarget", type: .application)
+                    ]
+                ),
+            ]
+        ).load(getCore())
 
         let otherWorkspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root"),
-                            targets: []),
-                TestProject("projectB",
-                            groupTree: TestGroup("whatever"),
-                            targets: [TestStandardTarget("targetB", type: .application),
-                                      TestStandardTarget("targetC", type: .application)])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root"),
+                    targets: []
+                ),
+                TestProject(
+                    "projectB",
+                    groupTree: TestGroup("whatever"),
+                    targets: [
+                        TestStandardTarget("targetB", type: .application),
+                        TestStandardTarget("targetC", type: .application),
+                    ]
+                ),
+            ]
+        ).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
 
@@ -188,26 +223,34 @@ import SWBCore
         let workspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root",
-                                                 guid: "G1234",
-                                                 children: [extraFile]),
-                            targets: [
-                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup(
+                        "root",
+                        guid: "G1234",
+                        children: [extraFile]
+                    ),
+                    targets: [
+                        TestStandardTarget("testTarget", guid: "efgh", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let otherWorkspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root", guid: "G1234"),
-                            targets: [
-                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root", guid: "G1234"),
+                    targets: [
+                        TestStandardTarget("testTarget", guid: "efgh", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
 
@@ -229,26 +272,34 @@ import SWBCore
         let workspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root", guid: "G1234"),
-                            targets: [
-                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup("root", guid: "G1234"),
+                    targets: [
+                        TestStandardTarget("testTarget", guid: "efgh", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let otherWorkspace = try await TestWorkspace(
             "testWorkspace",
             projects: [
-                TestProject("testProject",
-                            guid: "abcd",
-                            groupTree: TestGroup("root",
-                                                 guid: "G1234",
-                                                 children: [missingFile]),
-                            targets: [
-                                TestStandardTarget("testTarget", guid: "efgh", type: .application)
-                            ])
-            ]).load(getCore())
+                TestProject(
+                    "testProject",
+                    guid: "abcd",
+                    groupTree: TestGroup(
+                        "root",
+                        guid: "G1234",
+                        children: [missingFile]
+                    ),
+                    targets: [
+                        TestStandardTarget("testTarget", guid: "efgh", type: .application)
+                    ]
+                )
+            ]
+        ).load(getCore())
 
         let diff = workspace.diff(against: otherWorkspace)
 

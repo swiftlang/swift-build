@@ -16,9 +16,7 @@ public import SWBMacro
 
 // MARK: Build phase abstract class
 
-
-public class BuildPhase: ProjectModelItem, @unchecked Sendable
-{
+public class BuildPhase: ProjectModelItem, @unchecked Sendable {
     /// The name of the build phase, typically for reporting issues.
     public var name: String { fatalError("abstract \(type(of: self)) build phase asked for its name") }
 
@@ -78,29 +76,24 @@ public class BuildPhase: ProjectModelItem, @unchecked Sendable
         }
     }
 
-    public var description: String
-    {
+    public var description: String {
         return "\(type(of: self))<>"
     }
 }
 
-
 // MARK: Build phase with build files abstract class
 
-
-public class BuildPhaseWithBuildFiles: BuildPhase, @unchecked Sendable
-{
+public class BuildPhaseWithBuildFiles: BuildPhase, @unchecked Sendable {
     public let buildFiles: [BuildFile]
 
-    init(_ model: SWBProtocol.BuildPhaseWithBuildFiles, _ pifLoader: PIFLoader)
-    {
-        buildFiles = model.buildFiles.map{ BuildFile($0, pifLoader) }
+    init(_ model: SWBProtocol.BuildPhaseWithBuildFiles, _ pifLoader: PIFLoader) {
+        buildFiles = model.buildFiles.map { BuildFile($0, pifLoader) }
         super.init(model, pifLoader)
     }
 
     override init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
         // Build files are required.
-        self.buildFiles = try Self.parseValueForKeyAsArrayOfProjectModelItems(PIFKey_BuildPhase_buildFiles, pifDict: pifDict, pifLoader: pifLoader, construct: { try BuildFile(fromDictionary: $0, withPIFLoader: pifLoader) } )
+        self.buildFiles = try Self.parseValueForKeyAsArrayOfProjectModelItems(PIFKey_BuildPhase_buildFiles, pifDict: pifDict, pifLoader: pifLoader, construct: { try BuildFile(fromDictionary: $0, withPIFLoader: pifLoader) })
 
         try super.init(fromDictionary: pifDict, withPIFLoader: pifLoader)
     }
@@ -117,8 +110,7 @@ public class BuildPhaseWithBuildFiles: BuildPhase, @unchecked Sendable
         return buildFiles.filter({ platformFilter.matches($0.platformFilters) })
     }
 
-    override public var description: String
-    {
+    override public var description: String {
         return "\(type(of: self))<\(buildFiles.count) files>"
     }
 
@@ -130,48 +122,33 @@ public class BuildPhaseWithBuildFiles: BuildPhase, @unchecked Sendable
     }
 }
 
-
 // MARK: Sources build phase class
 
-
-public final class SourcesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class SourcesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Compile Sources" }
 }
 
-
 // MARK: Frameworks build phase class
 
-
-public final class FrameworksBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class FrameworksBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Link Binary" }
 }
 
-
 // MARK: Headers build phase class
 
-
-public final class HeadersBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class HeadersBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Copy Headers" }
 }
 
-
 // MARK: Resources build phase class
 
-
-public final class ResourcesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class ResourcesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Copy Bundle Resources" }
 }
 
-
 // MARK: Copy files build phase class
 
-
-public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Copy Files" }
 
     /// The destination subfolder to copy to.  This will commonly be a location relative to `$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)`, but can also be a special indicator such as `<absolute>` or `<builtProductsDir>`.
@@ -181,8 +158,7 @@ public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sen
     /// If `true` then the contents of this phase will only be copied when `$(DEPLOYMENT_POSTPROCESSING)` is enabled.
     public let runOnlyForDeploymentPostprocessing: Bool
 
-    init(_ model: SWBProtocol.CopyFilesBuildPhase, _ pifLoader: PIFLoader)
-    {
+    init(_ model: SWBProtocol.CopyFilesBuildPhase, _ pifLoader: PIFLoader) {
         var destinationSubfolder = model.destinationSubfolder
         var destinationSubpath = model.destinationSubpath
 
@@ -224,12 +200,9 @@ public final class CopyFilesBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sen
     }
 }
 
-
 // MARK: Shell script build phase class
 
-
-public final class ShellScriptBuildPhase: BuildPhase, @unchecked Sendable
-{
+public final class ShellScriptBuildPhase: BuildPhase, @unchecked Sendable {
     public override var name: String { return _name.isEmpty ? "Run Script" : _name }
 
     /// The name of the shell script phase.
@@ -279,17 +252,16 @@ public final class ShellScriptBuildPhase: BuildPhase, @unchecked Sendable
     /// Whether the script phase should also run for `installhdrs` and `installapi` builds, regardless of what `INSTALLHDRS_SCRIPT_PHASE` is set to.
     public let alwaysRunForInstallHdrs: Bool
 
-    init(_ model: SWBProtocol.ShellScriptBuildPhase, _ pifLoader: PIFLoader)
-    {
+    init(_ model: SWBProtocol.ShellScriptBuildPhase, _ pifLoader: PIFLoader) {
         _name = model.name
         // FIXME: This should be a string list, but this matches PBXBuild. Also, this shouldn't ever be a Path.
         shellPath = pifLoader.userNamespace.parseString(model.shellPath.str)
         scriptContents = model.scriptContents
         originalObjectID = model.originalObjectID
-        inputFilePaths = model.inputFilePaths.map{ pifLoader.userNamespace.parseString($0) }
-        inputFileListPaths = model.inputFileListPaths.map{ pifLoader.userNamespace.parseString($0) }
-        outputFilePaths = model.outputFilePaths.map{ pifLoader.userNamespace.parseString($0) }
-        outputFileListPaths = model.outputFileListPaths.map{ pifLoader.userNamespace.parseString($0) }
+        inputFilePaths = model.inputFilePaths.map { pifLoader.userNamespace.parseString($0) }
+        inputFileListPaths = model.inputFileListPaths.map { pifLoader.userNamespace.parseString($0) }
+        outputFilePaths = model.outputFilePaths.map { pifLoader.userNamespace.parseString($0) }
+        outputFileListPaths = model.outputFileListPaths.map { pifLoader.userNamespace.parseString($0) }
         emitEnvironment = model.emitEnvironment
         sandboxingOverride = model.sandboxingOverride
         runOnlyForDeploymentPostprocessing = model.runOnlyForDeploymentPostprocessing
@@ -374,29 +346,20 @@ public final class ShellScriptBuildPhase: BuildPhase, @unchecked Sendable
     }
 }
 
-
 // MARK: Rez build phase class
 
-
-public final class RezBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class RezBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Build Carbon Resources" }
 }
 
-
 // MARK: AppleScript build phase class
 
-
-public final class AppleScriptBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class AppleScriptBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Compile AppleScript Files" }
 }
 
-
 // MARK: Java archive build phase class
 
-
-public final class JavaArchiveBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable
-{
+public final class JavaArchiveBuildPhase: BuildPhaseWithBuildFiles, @unchecked Sendable {
     public override var name: String { return "Build Java Resources" }
 }

@@ -41,7 +41,7 @@ extension Diagnostic.Behavior {
         case .warning:
             self = .warning
         case .error,
-             .fatal:
+            .fatal:
             self = .error
         }
     }

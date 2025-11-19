@@ -57,7 +57,7 @@ public final class SwiftHeaderToolTaskAction: TaskAction {
                     return args
                 }
 
-                func setSingleOccurrence<T>(_ result: inout T?, _ getValue : @autoclosure () throws -> T) throws -> T {
+                func setSingleOccurrence<T>(_ result: inout T?, _ getValue: @autoclosure () throws -> T) throws -> T {
                     guard result == nil else { throw StubError.error("Failed to parse arguments: expected a single \(arg) argument") }
                     let newResult = try getValue()
                     result = newResult
@@ -135,7 +135,7 @@ public final class SwiftHeaderToolTaskAction: TaskAction {
                 ("armv7", "__ARM_ARCH_7A__", nil),
                 ("x86_64h", "__x86_64h__", "x86_64"),
                 ("x86_64", "__x86_64__", nil),
-                ("i386", "__i386__", nil)
+                ("i386", "__i386__", nil),
             ]
 
             let unknownArchs = Set(options.inputs.keys).subtracting(knownArchs.map { $0.0 })

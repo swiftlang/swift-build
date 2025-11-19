@@ -15,7 +15,6 @@ import Foundation
 
 // MARK: General planning operation messages
 
-
 /// Inform the client that a planning operation will start.
 public struct PlanningOperationWillStart: SessionMessage, Equatable {
     public static let name = "PLANNING_OPERATION_WILL_START"
@@ -67,7 +66,6 @@ public struct PlanningOperationDidFinish: SessionMessage, Equatable {
         }
     }
 }
-
 
 // MARK: Getting provisioning task inputs from the client
 
@@ -142,7 +140,7 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
         self.projectEntitlementsFile = try deserializer.deserialize()
         let projectEntitlementsBytes: [UInt8]? = try deserializer.deserialize()
         self.projectEntitlements = try projectEntitlementsBytes.map { try PropertyList.fromBytes($0) }
-        _ = try deserializer.deserialize() as Bool // Deprecated field, kept for compatibility
+        _ = try deserializer.deserialize() as Bool  // Deprecated field, kept for compatibility
         self.signingCertificateIdentifier = try deserializer.deserialize()
         self.signingRequiresTeam = try deserializer.deserialize()
         self.sdkRoot = try deserializer.deserialize()
@@ -157,7 +155,7 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
     public func serialize<T: Serializer>(to serializer: T) {
         serializer.serializeAggregate(21) {
             serializer.serialize(configurationName)
-            serializer.serialize(false) // Deprecated field, kept for compatibility
+            serializer.serialize(false)  // Deprecated field, kept for compatibility
             serializer.serialize(provisioningProfileSupport)
             serializer.serialize(provisioningProfileSpecifier)
             serializer.serialize(provisioningProfileUUID)
@@ -170,7 +168,7 @@ public struct ProvisioningTaskInputsSourceData: Serializable, Equatable, Sendabl
             serializer.serialize(projectEntitlementsFile)
             // FIXME: <rdar://problem/40036582> We have no way to handle any errors in PropertyListItem.asBytes() here.
             serializer.serialize(projectEntitlements.map { try? $0.asBytes(.binary) } ?? nil)
-            serializer.serialize(false) // Deprecated field, kept for compatibility
+            serializer.serialize(false)  // Deprecated field, kept for compatibility
             serializer.serialize(signingCertificateIdentifier)
             serializer.serialize(signingRequiresTeam)
             serializer.serialize(sdkRoot)
@@ -212,7 +210,7 @@ public struct GetProvisioningTaskInputsRequest: SessionMessage, Equatable {
         self.targetGUID = try deserializer.deserialize()
         self.configuredTargetHandle = try deserializer.deserialize()
         // This used to be the settingsHandle, but it hasn't been used for a long time.
-        _ =  try deserializer.deserialize() as String
+        _ = try deserializer.deserialize() as String
         self.sourceData = try deserializer.deserialize()
     }
 
@@ -261,7 +259,7 @@ public struct ProvisioningTaskInputsResponse: SessionMessage, RequestMessage, Eq
     public let errors: [[String: String]]
     public let warnings: [String]
 
-    public init(sessionHandle: String, planningOperationHandle: String, configuredTargetHandle: String, identityHash: String?, identitySerialNumber:String?, identityName: String?, profileName: String?, profileUUID: String?, profilePath: String?, designatedRequirements: String?, signedEntitlements: PropertyListItem?, simulatedEntitlements: PropertyListItem?, appIdentifierPrefix: String?, teamIdentifierPrefix: String?, isEnterpriseTeam: Bool?, useSigningTool: Bool?, signingToolKeyPath: String?, signingToolKeyID: String?, signingToolKeyIssuerID: String?, keychainPath: String?, errors: [[String: String]], warnings: [String]) {
+    public init(sessionHandle: String, planningOperationHandle: String, configuredTargetHandle: String, identityHash: String?, identitySerialNumber: String?, identityName: String?, profileName: String?, profileUUID: String?, profilePath: String?, designatedRequirements: String?, signedEntitlements: PropertyListItem?, simulatedEntitlements: PropertyListItem?, appIdentifierPrefix: String?, teamIdentifierPrefix: String?, isEnterpriseTeam: Bool?, useSigningTool: Bool?, signingToolKeyPath: String?, signingToolKeyID: String?, signingToolKeyIssuerID: String?, keychainPath: String?, errors: [[String: String]], warnings: [String]) {
         self.sessionHandle = sessionHandle
         self.planningOperationHandle = planningOperationHandle
         self.configuredTargetHandle = configuredTargetHandle
@@ -365,8 +363,6 @@ public struct ProvisioningTaskInputsResponse: SessionMessage, RequestMessage, Eq
         }
     }
 }
-
-
 
 let planningOperationMessageTypes: [any Message.Type] = [
     PlanningOperationWillStart.self,

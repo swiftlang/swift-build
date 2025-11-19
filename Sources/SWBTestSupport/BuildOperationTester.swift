@@ -59,7 +59,8 @@ extension BuildRequest {
             buildCommand: buildCommand,
             schemeCommand: schemeCommand,
             containerPath: containerPath,
-            jsonRepresentation: jsonRepresentation)
+            jsonRepresentation: jsonRepresentation
+        )
     }
 }
 
@@ -708,20 +709,15 @@ package final class BuildOperationTester {
                 for line in message.split(separator: "\n") {
                     if isInRawTrace {
                         rawTrace.append(String(line))
-                    }
-                    else if line.hasPrefix("Cycle in dependencies between targets") {
+                    } else if line.hasPrefix("Cycle in dependencies between targets") {
                         header = String(line)
-                    }
-                    else if line.hasPrefix("Cycle path") {
+                    } else if line.hasPrefix("Cycle path") {
                         path = String(line)
-                    }
-                    else if line == "Target build order preserved because “Build Order” is set to “Manual Order” in the scheme settings" {
+                    } else if line == "Target build order preserved because “Build Order” is set to “Manual Order” in the scheme settings" {
                         usingManualOrder = true
-                    }
-                    else if line.count > 2, line.hasPrefix("→ ") || line.hasPrefix("○ ") {
+                    } else if line.count > 2, line.hasPrefix("→ ") || line.hasPrefix("○ ") {
                         lines.append(String(line))
-                    }
-                    else if line.hasPrefix("Raw dependency cycle trace") {
+                    } else if line.hasPrefix("Raw dependency cycle trace") {
                         isInRawTrace = true
                     }
                 }
@@ -814,22 +810,26 @@ package final class BuildOperationTester {
 
         /// Check the output of a given task.
         package func checkTaskOutput(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation, body: (ByteString) throws -> Void) rethrows {
-            try body(events.compactMap{ (event: BuildOperationTester.BuildEvent) -> ByteString? in
-                if case .taskHadEvent(task, event: .hadOutput(let output)) = event {
-                    return output
-                }
-                return nil
-            }.reduce(.init(), +))
+            try body(
+                events.compactMap { (event: BuildOperationTester.BuildEvent) -> ByteString? in
+                    if case .taskHadEvent(task, event: .hadOutput(let output)) = event {
+                        return output
+                    }
+                    return nil
+                }.reduce(.init(), +)
+            )
         }
 
         /// Check the output of a given task.
         @_disfavoredOverload package func checkTaskOutput(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation, body: (ByteString) async throws -> Void) async rethrows {
-            try await body(events.compactMap{ (event: BuildOperationTester.BuildEvent) -> ByteString? in
-                if case .taskHadEvent(task, event: .hadOutput(let output)) = event {
-                    return output
-                }
-                return nil
-            }.reduce(.init(), +))
+            try await body(
+                events.compactMap { (event: BuildOperationTester.BuildEvent) -> ByteString? in
+                    if case .taskHadEvent(task, event: .hadOutput(let output)) = event {
+                        return output
+                    }
+                    return nil
+                }.reduce(.init(), +)
+            )
         }
 
         package func checkTaskResult(_ task: Task, expected result: TaskResult, sourceLocation: SourceLocation = #_sourceLocation) {
@@ -943,10 +943,12 @@ package final class BuildOperationTester {
             }
 
             let matchings = matchingTasksWithIdentifier(conditions)
-            guard try matchings.first(where: { identifier, matchingTask in
-                let edge = try dependencyEdge(from: task, to: matchingTask, using: taskDependencies, resolveDynamicTaskRequests: resolveDynamicTaskRequests)
-                return edge != .none
-            }) != nil else {
+            guard
+                try matchings.first(where: { identifier, matchingTask in
+                    let edge = try dependencyEdge(from: task, to: matchingTask, using: taskDependencies, resolveDynamicTaskRequests: resolveDynamicTaskRequests)
+                    return edge != .none
+                }) != nil
+            else {
                 Issue.record("Unable to find a dependency edge from \(task) to any of matching tasks \(matchings.map(\.task)).", sourceLocation: sourceLocation)
                 return
             }
@@ -1179,7 +1181,8 @@ package final class BuildOperationTester {
                 uid: 1234,
                 gid: 12345,
                 home: Path("/Users/exampleUser"),
-                environment: ["PATH": defaultPathEntries.joined(separator: String(Path.pathEnvironmentSeparator))].addingContents(of: ProcessInfo.processInfo.cleanEnvironment.filter(keys: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS", "XCODE_DEVELOPER_DIR_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "TEMP", "VCToolsInstallDir"])))
+                environment: ["PATH": defaultPathEntries.joined(separator: String(Path.pathEnvironmentSeparator))].addingContents(of: ProcessInfo.processInfo.cleanEnvironment.filter(keys: ["__XCODE_BUILT_PRODUCTS_DIR_PATHS", "XCODE_DEVELOPER_DIR_PATH", "DYLD_FRAMEWORK_PATH", "DYLD_LIBRARY_PATH", "TEMP", "VCToolsInstallDir"]))
+            )
         }
     }
 
@@ -1414,12 +1417,12 @@ package final class BuildOperationTester {
     }
 
     /// Construct the tasks for the given build parameters, and test the result.
-    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T) async throws -> T {
+    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String: String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T) async throws -> T {
         try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body, performBuild: { try await $0.buildWithTimeout() })
     }
 
     /// Construct the tasks for the given build parameters, and test the result.
-    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, operationBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T, performBuild: @escaping (any BuildSystemOperation) async throws -> Void) async throws -> T {
+    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, operationBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String: String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T, performBuild: @escaping (any BuildSystemOperation) async throws -> Void) async throws -> T {
         try await checkBuildDescription(parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate) { results throws in
             // Check that there are no duplicate task identifiers - it is a fatal error if there are, unless `continueBuildingAfterErrors` is set.
             var tasksByTaskIdentifier: [TaskIdentifier: Task] = [:]
@@ -1476,18 +1479,18 @@ package final class BuildOperationTester {
             // Check the results.
             let results = try BuildResults(core: core, workspace: workspace, buildDescriptionResults: results, tasksByTaskIdentifier: delegate.tasksByTaskIdentifier.merging(delegate.dynamicTasksByTaskIdentifier, uniquingKeysWith: { a, b in a }), fs: fs, events: events, dynamicTaskDependencies: dynamicDependencies, buildDatabasePath: persistent ? results.buildDescription.buildDatabasePath : nil)
 
-            /*@MainActor func addAttachments() {
-                // TODO: This `runActivity` call should be wider in scope, but this would significantly complicate the code flow due to threading requirements without having async/await.
-                XCTContext.runActivity(named: "Execute Build Operation" + (name.map({ " \"\($0)\"" }) ?? "")) { activity in
-                    // TODO: <rdar://59432231> Longer term, we should find a way to share code with CoreQualificationTester, which has a number of APIs for emitting build operation debug info.
-                    activity.attach(name: "Build Transcript", string: results.buildTranscript)
-                    if localFS.exists(results.buildDescription.packagePath) {
-                        activity.attach(name: "Build Description", from: results.buildDescription.packagePath)
-                    }
-                }
-            }
+            // @MainActor func addAttachments() {
+            //     // TODO: This `runActivity` call should be wider in scope, but this would significantly complicate the code flow due to threading requirements without having async/await.
+            //     XCTContext.runActivity(named: "Execute Build Operation" + (name.map({ " \"\($0)\"" }) ?? "")) { activity in
+            //         // TODO: <rdar://59432231> Longer term, we should find a way to share code with CoreQualificationTester, which has a number of APIs for emitting build operation debug info.
+            //         activity.attach(name: "Build Transcript", string: results.buildTranscript)
+            //         if localFS.exists(results.buildDescription.packagePath) {
+            //             activity.attach(name: "Build Description", from: results.buildDescription.packagePath)
+            //         }
+            //     }
+            // }
 
-            await addAttachments()*/
+            // await addAttachments()
 
             defer {
                 let validationResults = results.validate(sourceLocation: sourceLocation)
@@ -1671,13 +1674,13 @@ package final class BuildOperationTester {
 }
 
 @available(*, unavailable)
-extension BuildOperationTester: Sendable { }
+extension BuildOperationTester: Sendable {}
 
 @available(*, unavailable)
-extension BuildOperationTester.BuildResults: Sendable { }
+extension BuildOperationTester.BuildResults: Sendable {}
 
 @available(*, unavailable)
-extension BuildOperationTester.BuildDescriptionResults: Sendable { }
+extension BuildOperationTester.BuildDescriptionResults: Sendable {}
 
 package final class MockTestClientDelegate: ClientDelegate, Sendable {
     package init() {}
@@ -1696,7 +1699,7 @@ private extension Task {
 }
 
 private final class BuildOperationTesterDelegate: BuildOperationDelegate {
-    var aggregatedCounters: [BuildOperationMetrics.Counter : Int] = [:]
+    var aggregatedCounters: [BuildOperationMetrics.Counter: Int] = [:]
     var aggregatedTaskCounters: [String: [BuildOperationMetrics.TaskCounter: Int]] = [:]
 
     typealias DiagnosticKind = BuildOperationTester.DiagnosticKind
@@ -1760,15 +1763,20 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
         let diagnosticContext: DiagnosticContextData = .init(target: nil)
 
         func diagnosticsEngine(for target: ConfiguredTarget?) -> DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
-            .init(_diagnosticsEngines.withLock({ diagnosticsEngines in
-                diagnosticsEngines.getOrInsert(target, {
-                    let engine = DiagnosticsEngine()
-                    engine.addHandler { [weak self] diag in
-                        self?.log(target, diag)
-                    }
-                    return engine
+            .init(
+                _diagnosticsEngines.withLock({ diagnosticsEngines in
+                    diagnosticsEngines.getOrInsert(
+                        target,
+                        {
+                            let engine = DiagnosticsEngine()
+                            engine.addHandler { [weak self] diag in
+                                self?.log(target, diag)
+                            }
+                            return engine
+                        }
+                    )
                 })
-            }))
+            )
         }
 
         private func log(_ target: ConfiguredTarget?, _ diagnostic: Diagnostic) {
@@ -1791,9 +1799,8 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
             self.taskCounters[counter, default: 0] += amount
         }
 
-        var counters: [BuildOperationMetrics.Counter : Int] = [.clangCacheHits: 0, .clangCacheMisses: 0, .swiftCacheHits: 0, .swiftCacheMisses: 0]
-        var taskCounters: [BuildOperationMetrics.TaskCounter : Int] = [:]
-
+        var counters: [BuildOperationMetrics.Counter: Int] = [.clangCacheHits: 0, .clangCacheMisses: 0, .swiftCacheHits: 0, .swiftCacheMisses: 0]
+        var taskCounters: [BuildOperationMetrics.TaskCounter: Int] = [:]
 
         let startTime = Date()
         private let _diagnosticsEngine = DiagnosticsEngine()
@@ -1930,7 +1937,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
 
     // MARK: BuildOperationDelegate Implementation
 
-    func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String : String], generatedFilesPathMap: [String : String]) {
+    func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String: String], generatedFilesPathMap: [String: String]) {
         queue.async {
             self.events.append(.buildReportedPathMap(copiedPathMap: copiedPathMap, generatedFilesPathMap: generatedFilesPathMap))
         }
@@ -2069,7 +2076,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
         (delegate as? TesterTaskOutputDelegate)?.handleTaskCompletion()
         self.aggregatedCounters.merge(delegate.counters) { (a, b) in a + b }
         if !delegate.taskCounters.isEmpty {
-            self.aggregatedTaskCounters[task.ruleInfo[0], default: [:]].merge(delegate.taskCounters) { (a, b) in a+b }
+            self.aggregatedTaskCounters[task.ruleInfo[0], default: [:]].merge(delegate.taskCounters) { (a, b) in a + b }
         }
         queue.async {
             self.tasksByTaskIdentifier[taskIdentifier] = task

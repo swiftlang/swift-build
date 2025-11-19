@@ -24,7 +24,7 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
     public override func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
 
         let generator = task.commandLineAsStrings.makeIterator()
-        _ = generator.next() // consume program name
+        _ = generator.next()  // consume program name
 
         var xcframeworkPath: Path?
         var platform: String?
@@ -119,15 +119,13 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
             if skipSignatureValidation {
                 // NOTE: Always emit the warning when enabled as this can cause issues in other environments, such as CI.
                 outputDelegate.emitWarning("XCFramework signature validation is being skipped. Remove `DISABLE_XCFRAMEWORK_SIGNATURE_VALIDATION` to disable this warning.")
-            }
-            else if await !validateExpectedSignature(path, expectedSignatures: expectedSignatures, outputDelegate: outputDelegate) {
+            } else if await !validateExpectedSignature(path, expectedSignatures: expectedSignatures, outputDelegate: outputDelegate) {
                 return .failed
             }
 
             try xcframework.copy(library: library, from: path, to: target, fs: fs)
             return .succeeded
-        }
-        catch {
+        } catch {
             outputDelegate.emitError(error.localizedDescription)
             return .failed
         }
@@ -156,10 +154,15 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
 
             guard !signatures.isEmpty else {
                 // NOTE: This is likely an internal tooling error or adoption bring-up issue, so soft-error here.
-                let diagnostic = Diagnostic(behavior: .error, location: location, data: DiagnosticData("Expected signatures are malformed"), childDiagnostics: [
-                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Expected signatures: \(expectedSignatures.joined(separator: ","))")),
-                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Replace or remove the expected signature data.")),
-                ])
+                let diagnostic = Diagnostic(
+                    behavior: .error,
+                    location: location,
+                    data: DiagnosticData("Expected signatures are malformed"),
+                    childDiagnostics: [
+                        Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Expected signatures: \(expectedSignatures.joined(separator: ","))")),
+                        Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Replace or remove the expected signature data.")),
+                    ]
+                )
                 outputDelegate.emit(diagnostic)
                 return false
             }
@@ -185,8 +188,7 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
 
             outputDelegate.emit(diagnostic)
             return false
-        }
-        catch let CodeSignatureInfo.Error.codesignVerificationFailed(description, output) {
+        } catch let CodeSignatureInfo.Error.codesignVerificationFailed(description, output) {
             let childDiagnostics = [
                 Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(description)),
                 Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(output)),
@@ -196,8 +198,7 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
 
             outputDelegate.emit(diagnostic)
             return false
-        }
-        catch {
+        } catch {
             let childDiagnostics = [Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Unable to load signature information for '\(path.str)'. error=\(error.localizedDescription)"))]
             let message = "The signature of “\(path.basename)” cannot be validated and may have been compromised."
             let diagnostic = Diagnostic(behavior: .error, location: location, data: DiagnosticData(message), childDiagnostics: childDiagnostics)
@@ -218,7 +219,7 @@ public final class ProcessXCFrameworkTaskAction: TaskAction {
             let parts = s.split(separator: ":", maxSplits: 3).map { String($0) }
 
             guard let s = parts.first else { return nil }
-            guard let type =  CodeSignatureInfo.SignatureType(rawValue: s) else { return nil }
+            guard let type = CodeSignatureInfo.SignatureType(rawValue: s) else { return nil }
             signatureType = type
 
             guard parts.count >= 2 else { return nil }

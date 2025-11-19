@@ -24,12 +24,12 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func skipsDocumentationWhenTargetHasPlusPlusHeader() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
-            try await checkBuildWithPlusPlusHeader(targetType: .framework, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .public, shouldSkip: true) // Public headers are processed for all target types
+            try await checkBuildWithPlusPlusHeader(targetType: .framework, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .public, shouldSkip: true)  // Public headers are processed for all target types
             try await checkBuildWithPlusPlusHeader(targetType: .application, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .public, shouldSkip: true)
-            try await checkBuildWithPlusPlusHeader(targetType: .framework, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .private, shouldSkip: false) // Private headers aren't processed for frameworks
-            try await checkBuildWithPlusPlusHeader(targetType: .application, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .private, shouldSkip: true) // Private headers are processed for applications
-            try await checkBuildWithPlusPlusHeader(targetType: .framework, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .private, extraBuildSettings: ["DOCC_EXTRACT_SPI_DOCUMENTATION": "YES"], shouldSkip: true) // The private plus plus header is now configured to be processed.
-            try await checkBuildWithPlusPlusHeader(targetType: .application, withHeaderBuildPhase: false, plusPlusHeaderVisibility: .private, shouldSkip: true) // Private headers are processed for applications
+            try await checkBuildWithPlusPlusHeader(targetType: .framework, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .private, shouldSkip: false)  // Private headers aren't processed for frameworks
+            try await checkBuildWithPlusPlusHeader(targetType: .application, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .private, shouldSkip: true)  // Private headers are processed for applications
+            try await checkBuildWithPlusPlusHeader(targetType: .framework, withHeaderBuildPhase: true, plusPlusHeaderVisibility: .private, extraBuildSettings: ["DOCC_EXTRACT_SPI_DOCUMENTATION": "YES"], shouldSkip: true)  // The private plus plus header is now configured to be processed.
+            try await checkBuildWithPlusPlusHeader(targetType: .application, withHeaderBuildPhase: false, plusPlusHeaderVisibility: .private, shouldSkip: true)  // Private headers are processed for applications
         }
     }
 
@@ -45,7 +45,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
 
         for withPlusPlusFile in [false, true] {
             var headerBuildPhaseFiles = [
-                TestBuildFile("ObjCHeaderFilePublic.h", headerVisibility: .public),
+                TestBuildFile("ObjCHeaderFilePublic.h", headerVisibility: .public)
             ]
             if withPlusPlusFile {
                 headerBuildPhaseFiles.append(
@@ -90,7 +90,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"SomeFiles/Info.plist",
+                                    "INFOPLIST_FILE": "SomeFiles/Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
@@ -158,7 +158,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
 
                             results.checkTask(
                                 .matchTarget(target),
-                                .matchRule([ "ExtractAPI", SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile ])
+                                .matchRule(["ExtractAPI", SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile])
                             ) { task in
                                 // For testing clang extract-api, also check the proper
                                 // -x command line option is passed to clang
@@ -238,7 +238,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "DOCC_EXEC": doccToolPath.str,
                                 "LIBTOOL": libtoolPath.str,
-                                "INFOPLIST_FILE":"SomeFiles/Info.plist",
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                 "CURRENT_PROJECT_VERSION": "0.0.1",
@@ -286,7 +286,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile,
                             ])
                         )
 
@@ -310,52 +310,85 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                 "aProject",
                 // This is meant to represent a small but well organized cross platform app target
                 groupTree:
-                    TestGroup("Project", children: [
-                        TestGroup("iOS", children: [
-                            TestGroup("Feature 1", children: [
-                                TestFile("FeatureOneExtraInterfaceFile.h", guid: "FR_iOS_FeatureOneExtraInterfaceFile.h"),
-                                TestFile("FeatureOneSomething.h", guid: "FR_iOS_FeatureOneSomething.h"),
-                                TestFile("FeatureOneSomething.m", guid: "FR_iOS_FeatureOneSomething.m"),
-                            ]),
-                            TestGroup("Feature 2", children: [
-                                TestFile("FeatureTwoViewController.h", guid: "FR_iOS_FeatureTwoViewController.h"),
-                                TestFile("FeatureTwoViewController_Private.h", guid: "FR_iOS_FeatureTwoViewController_Private.h"),
-                                TestFile("FeatureTwoViewController.m", guid: "FR_iOS_FeatureTwoViewController.m"),
-                            ]),
-                            TestGroup("Feature 3", children: [
-                                TestFile("FeatureThreeSomething.h", guid: "FR_iOS_FeatureThreeSomething.h"),
-                                TestFile("FeatureThreeSomething.m", guid: "FR_iOS_FeatureThreeSomething.m"),
-                                TestFile("FeatureThreeSomething+Other.h", guid: "FR_iOS_FeatureThreeSomething+Other.h"),
-                                TestFile("FeatureThreeSomething+Other.m", guid: "FR_iOS_FeatureThreeSomething+Other.m"),
-                            ]),
-                            TestFile("Info.plist", guid: "FR_iOS_Info.plist"),
-                        ]),
-                        TestGroup("macOS", children: [
-                            TestGroup("Feature 1", children: [
-                                TestFile("FeatureOneExtraInterfaceFile.h", guid: "FR_macOS_FeatureOneExtraInterfaceFile.h"),
-                                TestFile("FeatureOneSomething.h", guid: "FR_macOS_FeatureOneSomething.h"),
-                                TestFile("FeatureOneSomething.m", guid: "FR_macOS_FeatureOneSomething.m"),
-                            ]),
-                            TestGroup("Feature 2", children: [
-                                TestFile("FeatureTwoViewController.h", guid: "FR_macOS_FeatureTwoViewController.h"),
-                                TestFile("FeatureTwoViewController_Private.h", guid: "FR_macOS_FeatureTwoViewController_Private.h"),
-                                TestFile("FeatureTwoViewController.m", guid: "FR_macOS_FeatureTwoViewController.m"),
-                            ]),
-                            TestGroup("Feature 3", children: [
-                                TestFile("FeatureThreeSomething.h", guid: "FR_macOS_FeatureThreeSomething.h"),
-                                TestFile("FeatureThreeSomething.m", guid: "FR_macOS_FeatureThreeSomething.m"),
-                                TestFile("FeatureThreeSomething+Other.h", guid: "FR_macOS_FeatureThreeSomething+Other.h"),
-                                TestFile("FeatureThreeSomething+Other.m", guid: "FR_macOS_FeatureThreeSomething+Other.m"),
-                            ]),
-                            TestFile("Info.plist", guid: "FR_macOS_Info.plist"),
-                        ]),
-                        TestGroup("Common", children: [
-                            TestGroup("Feature 1", children: [
-                                TestFile("FeatureOneSomethingCommon.h", guid: "FR_Common_FeatureOneSomethingCommon.h"),
-                                TestFile("FeatureOneSomethingCommon.m", guid: "FR_Common_FeatureOneSomethingCommon.m"),
-                            ]),
-                        ]),
-                    ]),
+                    TestGroup(
+                        "Project",
+                        children: [
+                            TestGroup(
+                                "iOS",
+                                children: [
+                                    TestGroup(
+                                        "Feature 1",
+                                        children: [
+                                            TestFile("FeatureOneExtraInterfaceFile.h", guid: "FR_iOS_FeatureOneExtraInterfaceFile.h"),
+                                            TestFile("FeatureOneSomething.h", guid: "FR_iOS_FeatureOneSomething.h"),
+                                            TestFile("FeatureOneSomething.m", guid: "FR_iOS_FeatureOneSomething.m"),
+                                        ]
+                                    ),
+                                    TestGroup(
+                                        "Feature 2",
+                                        children: [
+                                            TestFile("FeatureTwoViewController.h", guid: "FR_iOS_FeatureTwoViewController.h"),
+                                            TestFile("FeatureTwoViewController_Private.h", guid: "FR_iOS_FeatureTwoViewController_Private.h"),
+                                            TestFile("FeatureTwoViewController.m", guid: "FR_iOS_FeatureTwoViewController.m"),
+                                        ]
+                                    ),
+                                    TestGroup(
+                                        "Feature 3",
+                                        children: [
+                                            TestFile("FeatureThreeSomething.h", guid: "FR_iOS_FeatureThreeSomething.h"),
+                                            TestFile("FeatureThreeSomething.m", guid: "FR_iOS_FeatureThreeSomething.m"),
+                                            TestFile("FeatureThreeSomething+Other.h", guid: "FR_iOS_FeatureThreeSomething+Other.h"),
+                                            TestFile("FeatureThreeSomething+Other.m", guid: "FR_iOS_FeatureThreeSomething+Other.m"),
+                                        ]
+                                    ),
+                                    TestFile("Info.plist", guid: "FR_iOS_Info.plist"),
+                                ]
+                            ),
+                            TestGroup(
+                                "macOS",
+                                children: [
+                                    TestGroup(
+                                        "Feature 1",
+                                        children: [
+                                            TestFile("FeatureOneExtraInterfaceFile.h", guid: "FR_macOS_FeatureOneExtraInterfaceFile.h"),
+                                            TestFile("FeatureOneSomething.h", guid: "FR_macOS_FeatureOneSomething.h"),
+                                            TestFile("FeatureOneSomething.m", guid: "FR_macOS_FeatureOneSomething.m"),
+                                        ]
+                                    ),
+                                    TestGroup(
+                                        "Feature 2",
+                                        children: [
+                                            TestFile("FeatureTwoViewController.h", guid: "FR_macOS_FeatureTwoViewController.h"),
+                                            TestFile("FeatureTwoViewController_Private.h", guid: "FR_macOS_FeatureTwoViewController_Private.h"),
+                                            TestFile("FeatureTwoViewController.m", guid: "FR_macOS_FeatureTwoViewController.m"),
+                                        ]
+                                    ),
+                                    TestGroup(
+                                        "Feature 3",
+                                        children: [
+                                            TestFile("FeatureThreeSomething.h", guid: "FR_macOS_FeatureThreeSomething.h"),
+                                            TestFile("FeatureThreeSomething.m", guid: "FR_macOS_FeatureThreeSomething.m"),
+                                            TestFile("FeatureThreeSomething+Other.h", guid: "FR_macOS_FeatureThreeSomething+Other.h"),
+                                            TestFile("FeatureThreeSomething+Other.m", guid: "FR_macOS_FeatureThreeSomething+Other.m"),
+                                        ]
+                                    ),
+                                    TestFile("Info.plist", guid: "FR_macOS_Info.plist"),
+                                ]
+                            ),
+                            TestGroup(
+                                "Common",
+                                children: [
+                                    TestGroup(
+                                        "Feature 1",
+                                        children: [
+                                            TestFile("FeatureOneSomethingCommon.h", guid: "FR_Common_FeatureOneSomethingCommon.h"),
+                                            TestFile("FeatureOneSomethingCommon.m", guid: "FR_Common_FeatureOneSomethingCommon.m"),
+                                        ]
+                                    )
+                                ]
+                            ),
+                        ]
+                    ),
                 targets: [
                     TestStandardTarget(
                         "iOS App",
@@ -371,7 +404,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"iOS/Info.plist",
+                                    "INFOPLIST_FILE": "iOS/Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
@@ -403,7 +436,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"macOS/Info.plist",
+                                    "INFOPLIST_FILE": "macOS/Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
@@ -420,7 +453,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                 TestBuildFile(TestFile("FeatureOneSomethingCommon.m", guid: "FR_Common_FeatureOneSomethingCommon.m")),
                             ])
                         ]
-                    )
+                    ),
                 ]
             )
 
@@ -516,22 +549,24 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile,
                             ])
                         ) { task in
                             let headerTaskOrderingInputPaths = task.inputs
                                 .filter { $0.path.fileExtension == "h" }
                                 .map { $0.path.str }
 
-                            #expect(headerTaskOrderingInputPaths == [
-                                "/tmp/Test/aProject/macOS/Feature 1/FeatureOneExtraInterfaceFile.h",
-                                "/tmp/Test/aProject/macOS/Feature 1/FeatureOneSomething.h",
-                                "/tmp/Test/aProject/macOS/Feature 2/FeatureTwoViewController.h",
-                                "/tmp/Test/aProject/macOS/Feature 2/FeatureTwoViewController_Private.h",
-                                "/tmp/Test/aProject/macOS/Feature 3/FeatureThreeSomething.h",
-                                "/tmp/Test/aProject/macOS/Feature 3/FeatureThreeSomething+Other.h",
-                                "/tmp/Test/aProject/Common/Feature 1/FeatureOneSomethingCommon.h",
-                            ])
+                            #expect(
+                                headerTaskOrderingInputPaths == [
+                                    "/tmp/Test/aProject/macOS/Feature 1/FeatureOneExtraInterfaceFile.h",
+                                    "/tmp/Test/aProject/macOS/Feature 1/FeatureOneSomething.h",
+                                    "/tmp/Test/aProject/macOS/Feature 2/FeatureTwoViewController.h",
+                                    "/tmp/Test/aProject/macOS/Feature 2/FeatureTwoViewController_Private.h",
+                                    "/tmp/Test/aProject/macOS/Feature 3/FeatureThreeSomething.h",
+                                    "/tmp/Test/aProject/macOS/Feature 3/FeatureThreeSomething+Other.h",
+                                    "/tmp/Test/aProject/Common/Feature 1/FeatureOneSomethingCommon.h",
+                                ]
+                            )
                         }
                     }
                     // Since symbol information is extracted, there should also be a documentation built task.
@@ -551,22 +586,24 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile,
                             ])
                         ) { task in
                             let headerTaskOrderingInputPaths = task.inputs
                                 .filter { $0.path.fileExtension == "h" }
                                 .map { $0.path.str }
 
-                            #expect(headerTaskOrderingInputPaths == [
-                                "/tmp/Test/aProject/iOS/Feature 1/FeatureOneExtraInterfaceFile.h",
-                                "/tmp/Test/aProject/iOS/Feature 1/FeatureOneSomething.h",
-                                "/tmp/Test/aProject/iOS/Feature 2/FeatureTwoViewController.h",
-                                "/tmp/Test/aProject/iOS/Feature 2/FeatureTwoViewController_Private.h",
-                                "/tmp/Test/aProject/iOS/Feature 3/FeatureThreeSomething.h",
-                                "/tmp/Test/aProject/iOS/Feature 3/FeatureThreeSomething+Other.h",
-                                "/tmp/Test/aProject/Common/Feature 1/FeatureOneSomethingCommon.h",
-                            ])
+                            #expect(
+                                headerTaskOrderingInputPaths == [
+                                    "/tmp/Test/aProject/iOS/Feature 1/FeatureOneExtraInterfaceFile.h",
+                                    "/tmp/Test/aProject/iOS/Feature 1/FeatureOneSomething.h",
+                                    "/tmp/Test/aProject/iOS/Feature 2/FeatureTwoViewController.h",
+                                    "/tmp/Test/aProject/iOS/Feature 2/FeatureTwoViewController_Private.h",
+                                    "/tmp/Test/aProject/iOS/Feature 3/FeatureThreeSomething.h",
+                                    "/tmp/Test/aProject/iOS/Feature 3/FeatureThreeSomething+Other.h",
+                                    "/tmp/Test/aProject/Common/Feature 1/FeatureOneSomethingCommon.h",
+                                ]
+                            )
                         }
 
                         if !SWBFeatureFlag.enableClangExtractAPI.value {
@@ -589,19 +626,31 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                 "aProject",
                 // This is meant to represent a small but well organized cross platform app target
                 groupTree:
-                    TestGroup("Project", children: [
-                        TestGroup("Objective-C App", children: [
-                            TestFile("Something.h"),
-                            TestFile("Something.m"),
-                            TestFile("Info.plist"),
-                        ]),
-                        TestGroup("Swift Dependency", children: [
-                            TestFile("Dependency.swift"),
-                        ]),
-                        TestGroup("Swift Sub-Dependency", children: [
-                            TestFile("Sub-Dependency.swift"),
-                        ]),
-                    ]),
+                    TestGroup(
+                        "Project",
+                        children: [
+                            TestGroup(
+                                "Objective-C App",
+                                children: [
+                                    TestFile("Something.h"),
+                                    TestFile("Something.m"),
+                                    TestFile("Info.plist"),
+                                ]
+                            ),
+                            TestGroup(
+                                "Swift Dependency",
+                                children: [
+                                    TestFile("Dependency.swift")
+                                ]
+                            ),
+                            TestGroup(
+                                "Swift Sub-Dependency",
+                                children: [
+                                    TestFile("Sub-Dependency.swift")
+                                ]
+                            ),
+                        ]
+                    ),
                 targets: [
                     TestStandardTarget(
                         "SwiftSubDependency",
@@ -617,7 +666,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"Swift Sub-Dependency/Info.plist",
+                                    "INFOPLIST_FILE": "Swift Sub-Dependency/Info.plist",
                                     "DEFINES_MODULE": "YES",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.sub-dependency",
@@ -628,7 +677,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile(TestFile("Dependency.swift")),
+                                TestBuildFile(TestFile("Dependency.swift"))
                             ])
                         ]
                     ),
@@ -646,7 +695,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"Swift Dependency/Info.plist",
+                                    "INFOPLIST_FILE": "Swift Dependency/Info.plist",
                                     "DEFINES_MODULE": "YES",
                                     "MODULEMAP_PATH": "dependency_custom_module_map_file_path",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -658,7 +707,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile(TestFile("Dependency.swift")),
+                                TestBuildFile(TestFile("Dependency.swift"))
                             ])
                         ],
                         dependencies: [
@@ -677,7 +726,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"Objective-C App/Info.plist",
+                                    "INFOPLIST_FILE": "Objective-C App/Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.app",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
@@ -691,13 +740,13 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile(TestFile("Something.m")),
+                                TestBuildFile(TestFile("Something.m"))
                             ])
                         ],
                         dependencies: [
                             TestTargetDependency("SwiftDependency")
                         ]
-                    )
+                    ),
                 ]
             )
 
@@ -745,19 +794,20 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             .matchTarget(target),
                             .matchRule([
                                 "ExtractAPI",
-                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile
-                            ])) { task in
-                                task.checkCommandLineContains([
-                                    // Check custom MODULEMAP_PATH values. This would for example be the generated module map.
-                                    "-fmodule-map-file=/tmp/Test/aProject/dependency_custom_module_map_file_path",
-                                    // Check that module maps from dependencies' dependencies are also passed.
-                                    "-fmodule-map-file=/tmp/Test/aProject/build/Debug/SwiftSubDependency.framework/Versions/A/Modules/module.modulemap"
-                                ])
+                                SWBFeatureFlag.enableClangExtractAPI.value ? symbolGraphFile : sdkdbFile,
+                            ])
+                        ) { task in
+                            task.checkCommandLineContains([
+                                // Check custom MODULEMAP_PATH values. This would for example be the generated module map.
+                                "-fmodule-map-file=/tmp/Test/aProject/dependency_custom_module_map_file_path",
+                                // Check that module maps from dependencies' dependencies are also passed.
+                                "-fmodule-map-file=/tmp/Test/aProject/build/Debug/SwiftSubDependency.framework/Versions/A/Modules/module.modulemap",
+                            ])
 
-                                if SWBFeatureFlag.enableClangExtractAPI.value && clangFeatures.has(.extractAPIIgnores) {
-                                    task.checkCommandLineContains(["--extract-api-ignores=\(compatibilitySymbolsFile.str)"])
-                                }
+                            if SWBFeatureFlag.enableClangExtractAPI.value && clangFeatures.has(.extractAPIIgnores) {
+                                task.checkCommandLineContains(["--extract-api-ignores=\(compatibilitySymbolsFile.str)"])
                             }
+                        }
 
                         if !SWBFeatureFlag.enableClangExtractAPI.value {
                             results.checkTaskExists(.matchTarget(target), .matchRule(["ConvertSDKDBToSymbolGraph", sdkdbFile]))
@@ -804,24 +854,24 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "CC": clangCompilerPath.str,
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"Info.plist",
+                                    "INFOPLIST_FILE": "Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "CLANG_CXX_LANGUAGE_STANDARD": "c++23",
                                     "OTHER_CPLUSPLUSFLAGS": "-fchar8_t",
-                                    "DOCC_ENABLE_CXX_SUPPORT": "NO" // Disable C++ symbol graph generation
+                                    "DOCC_ENABLE_CXX_SUPPORT": "NO",  // Disable C++ symbol graph generation
                                 ]
                             )
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([
                                 TestBuildFile("ObjCHeaderFilePublic.h", headerVisibility: .public),
-                                TestBuildFile("ObjCXXHeaderFilePublic.hpp", headerVisibility: .public)
+                                TestBuildFile("ObjCXXHeaderFilePublic.hpp", headerVisibility: .public),
                             ]),
                             TestSourcesBuildPhase([
                                 TestBuildFile("ObjCXXSourceFile.cpp")
-                            ])
+                            ]),
                         ]
                     ),
                     TestStandardTarget(
@@ -838,13 +888,13 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                                     "CC": clangCompilerPath.str,
                                     "TAPI_EXEC": tapiToolPath.str,
                                     "DOCC_EXEC": doccToolPath.str,
-                                    "INFOPLIST_FILE":"Info.plist",
+                                    "INFOPLIST_FILE": "Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                     "CURRENT_PROJECT_VERSION": "0.0.1",
                                     "CLANG_CXX_LANGUAGE_STANDARD": "c++23",
                                     "OTHER_CPLUSPLUSFLAGS": "-fchar8_t",
-                                    "DOCC_ENABLE_CXX_SUPPORT": "NO" // Disable C++ symbol graph generation
+                                    "DOCC_ENABLE_CXX_SUPPORT": "NO",  // Disable C++ symbol graph generation
                                 ]
                             )
                         ],
@@ -854,9 +904,9 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
                             ]),
                             TestSourcesBuildPhase([
                                 TestBuildFile("ObjCXXSourceFile.cpp")
-                            ])
+                            ]),
                         ]
-                    )
+                    ),
                 ]
             )
 
@@ -883,7 +933,7 @@ fileprivate struct ObjectiveCSymbolExtractorTests: CoreBasedTests {
 
                         results.checkTask(
                             .matchTarget(target),
-                            .matchRule([ "ExtractAPI", symbolGraphFile.str])
+                            .matchRule(["ExtractAPI", symbolGraphFile.str])
                         ) { task in
                             task.checkCommandLineContainsUninterrupted(["-x", "objective-c-header"])
                             task.checkCommandLineMatches([.contains("ObjCHeaderFilePublic.h")])

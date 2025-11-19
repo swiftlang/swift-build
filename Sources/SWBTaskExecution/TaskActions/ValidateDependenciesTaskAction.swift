@@ -173,7 +173,8 @@ public final class ValidateDependenciesTaskAction: TaskAction {
                     outputPaths: [],
                     dependencies: dependencies
                 )
-            ], errors: []
+            ],
+            errors: []
         )
 
         let outputData = try JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(dependencyInfo)

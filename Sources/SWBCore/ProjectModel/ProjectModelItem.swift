@@ -14,15 +14,11 @@ public import Foundation
 import SWBProtocol
 public import SWBUtil
 
-
 // MARK: Type definitions
-
 
 public typealias ProjectModelItemPIF = [String: PropertyListItem]
 
-
 // MARK: ProjectModelItem protocol
-
 
 public protocol ProjectModelItem: AnyObject, CustomStringConvertible, Sendable {
 }
@@ -69,10 +65,8 @@ extension PIFParsingError: LocalizedError {
     }
 }
 
-extension ProjectModelItem
-{
+extension ProjectModelItem {
     // Static methods for parsing a property list to load a PIF.
-
 
     /// Parses the value for an optional key in a PIF dictionary as a String.
     /// - returns: A string value if the key is present, `nil` if it is absent.
@@ -157,12 +151,13 @@ extension ProjectModelItem
     // FIXME
     // @available(*, deprecated, message: "This is a shim method, and should be removed. It's used for the binary PIF representation used only by Swift Build's unit tests; we should transition everything to the JSON based API we currently use in production, and to a unified API at that (rather than one based on actual Swift types, one based on raw property lists, and different APIs for the public API and for the tests).")
     static func parseOptionalValueForKeyAsByteString(_ key: String, pifDict: ProjectModelItemPIF) throws -> ByteString? {
-        return try (parseOptionalValueForKeyAsArrayOfPropertyListItems(key, pifDict: pifDict)?.map { (plItem) -> UInt8 in
-            guard case .plInt(let value) = plItem, let byte = UInt8(exactly: value) else {
-                throw PIFParsingError.incorrectTypeInArray(keyName: key, objectType: self, expectedType: "UInt8")
-            }
-            return byte
-        }).map { ByteString($0) }
+        return try
+            (parseOptionalValueForKeyAsArrayOfPropertyListItems(key, pifDict: pifDict)?.map { (plItem) -> UInt8 in
+                guard case .plInt(let value) = plItem, let byte = UInt8(exactly: value) else {
+                    throw PIFParsingError.incorrectTypeInArray(keyName: key, objectType: self, expectedType: "UInt8")
+                }
+                return byte
+            }).map { ByteString($0) }
     }
 
     /// Parses the value for an optional key in a PIF dictionary as an Array of Strings.
@@ -203,7 +198,7 @@ extension ProjectModelItem
     }
 
     /// Parses the value for a required key in a PIF dictionary as an object of the appropriate concrete subclass of ProjectModelItem, and recursively parses any arrays or dictionaries appropriately.
-    @_spi(Testing) public static func parseValueForKeyAsProjectModelItem<T>( _ key: String, pifDict: ProjectModelItemPIF, pifLoader: PIFLoader, construct: (ProjectModelItemPIF) throws -> T) throws -> T {
+    @_spi(Testing) public static func parseValueForKeyAsProjectModelItem<T>(_ key: String, pifDict: ProjectModelItemPIF, pifLoader: PIFLoader, construct: (ProjectModelItemPIF) throws -> T) throws -> T {
         return try require(key) { try parseOptionalValueForKeyAsProjectModelItem(key, pifDict: pifDict, pifLoader: pifLoader, construct: construct) }
     }
 
@@ -231,17 +226,13 @@ extension ProjectModelItem
     }
 }
 
-
 // MARK: Wrapper for an unowned ProjectModelItem
 
-
 /// Wrapper for `ProjectModelItem`-conforming objects so they can be placed in arrays and dictionaries without creating string reference loops.
-struct UnownedProjectModelItem: Hashable
-{
+struct UnownedProjectModelItem: Hashable {
     unowned let value: any ProjectModelItem
 
-    init(_ value: any ProjectModelItem)
-    {
+    init(_ value: any ProjectModelItem) {
         self.value = value
     }
 
@@ -252,11 +243,9 @@ struct UnownedProjectModelItem: Hashable
 }
 
 /// Two `UnownedProjectModelItem`s are equal if their wrapped items are the same object.
-func ==(lhs: UnownedProjectModelItem, rhs: UnownedProjectModelItem) -> Bool
-{
+func == (lhs: UnownedProjectModelItem, rhs: UnownedProjectModelItem) -> Bool {
     return ObjectIdentifier(lhs.value) == ObjectIdentifier(rhs.value)
 }
-
 
 // MARK: PIF value constant definitions
 

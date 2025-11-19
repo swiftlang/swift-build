@@ -28,15 +28,17 @@ package final class TestBuildOperationDelegate: SWBPlanningOperationDelegate, SW
 
         let identity = provisioningSourceData.signingCertificateIdentifier
         if identity == "-" {
-            let signedEntitlements = provisioningSourceData.entitlementsDestination == "Signature"
+            let signedEntitlements =
+                provisioningSourceData.entitlementsDestination == "Signature"
                 ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
                 : [:]
 
-            let simulatedEntitlements = provisioningSourceData.entitlementsDestination == "__entitlements"
+            let simulatedEntitlements =
+                provisioningSourceData.entitlementsDestination == "__entitlements"
                 ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
                 : [:]
 
-            return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new  in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: nil, keychainPath: nil, errors: [], warnings: [])
+            return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: nil, keychainPath: nil, errors: [], warnings: [])
         } else if identity.isEmpty {
             return SWBProvisioningTaskInputs()
         } else {
@@ -44,10 +46,10 @@ package final class TestBuildOperationDelegate: SWBPlanningOperationDelegate, SW
         }
     }
 
-    package func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> SwiftBuild.SWBExternalToolResult {
+    package func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> SwiftBuild.SWBExternalToolResult {
         .deferred
     }
 }
 
 @available(*, unavailable)
-extension TestBuildOperationDelegate: Sendable { }
+extension TestBuildOperationDelegate: Sendable {}

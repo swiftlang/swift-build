@@ -35,7 +35,7 @@ public struct SwiftDriverJobTaskKey: Serializable, CustomDebugStringConvertible 
         self.casOptions = casOptions
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(8) {
             serializer.serialize(identifier)
             serializer.serialize(variant)
@@ -80,7 +80,7 @@ public struct SwiftDriverExplicitDependencyJobTaskKey: Serializable, CustomDebug
         self.casOptions = casOptions
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(5) {
             serializer.serialize(arch)
             serializer.serialize(driverJobKey)
@@ -125,7 +125,7 @@ struct SwiftDriverJobDynamicTaskPayload: TaskPayload {
         self.casOptions = try deserializer.deserialize()
     }
 
-    func serialize<T>(to serializer: T) where T : Serializer {
+    func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(4) {
             serializer.serialize(expectedOutputs)
             serializer.serialize(isUsingWholeModuleOptimization)
@@ -139,7 +139,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
     func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) throws -> any ExecutableTask {
         let commandLinePrefix: [ByteString] = [
             "builtin-swiftTaskExecution",
-            "--"
+            "--",
         ]
         var commandLine: [ByteString]
         let expectedOutputs: [Path]
@@ -150,59 +150,60 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
         let compilerLocation: LibSwiftDriver.CompilerLocation
         let casOpts: CASOptions?
         switch dynamicTask.taskKey {
-            case .swiftDriverJob(let key):
-                guard let job = try context.swiftModuleDependencyGraph.queryPlannedBuild(for: key.identifier).plannedTargetJob(for: key.driverJobKey)?.driverJob else {
-                    throw StubError.error("Failed to lookup Swift driver job \(key.driverJobKey) in build plan \(key.identifier)")
-                }
-                commandLine = commandLinePrefix + job.commandLine
-                expectedOutputs = job.outputs
-                ruleInfo = ["Swift\(job.ruleInfoType)", key.variant, key.arch, job.descriptionForLifecycle] + job.displayInputs.map(\.str)
-                forTarget = dynamicTask.target
-                descriptionForLifecycle = job.descriptionForLifecycle
-                isUsingWholeModuleOptimization = key.isUsingWholeModuleOptimization
-                compilerLocation = key.compilerLocation
-                casOpts = key.casOptions
-            case .swiftDriverExplicitDependencyJob(let key):
-                guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey)?.driverJob else {
-                    throw StubError.error("Failed to lookup explicit modules Swift driver job \(key.driverJobKey)")
-                }
-                commandLine = commandLinePrefix + job.commandLine
-                expectedOutputs = job.outputs
-                assert(expectedOutputs.count > 0, "Explicit modules job was expected to have at least one primary output")
-                ruleInfo = ["SwiftExplicitDependency\(job.ruleInfoType)", key.arch, expectedOutputs.first?.str ?? "<unknown>"]
-                forTarget = nil
-                descriptionForLifecycle = job.descriptionForLifecycle
-                // WMO doesn't apply to explicit module builds
-                isUsingWholeModuleOptimization = false
-                compilerLocation = key.compilerLocation
-                casOpts = key.casOptions
-            default:
-                fatalError("Unexpected dynamic task: \(dynamicTask)")
+        case .swiftDriverJob(let key):
+            guard let job = try context.swiftModuleDependencyGraph.queryPlannedBuild(for: key.identifier).plannedTargetJob(for: key.driverJobKey)?.driverJob else {
+                throw StubError.error("Failed to lookup Swift driver job \(key.driverJobKey) in build plan \(key.identifier)")
+            }
+            commandLine = commandLinePrefix + job.commandLine
+            expectedOutputs = job.outputs
+            ruleInfo = ["Swift\(job.ruleInfoType)", key.variant, key.arch, job.descriptionForLifecycle] + job.displayInputs.map(\.str)
+            forTarget = dynamicTask.target
+            descriptionForLifecycle = job.descriptionForLifecycle
+            isUsingWholeModuleOptimization = key.isUsingWholeModuleOptimization
+            compilerLocation = key.compilerLocation
+            casOpts = key.casOptions
+        case .swiftDriverExplicitDependencyJob(let key):
+            guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey)?.driverJob else {
+                throw StubError.error("Failed to lookup explicit modules Swift driver job \(key.driverJobKey)")
+            }
+            commandLine = commandLinePrefix + job.commandLine
+            expectedOutputs = job.outputs
+            assert(expectedOutputs.count > 0, "Explicit modules job was expected to have at least one primary output")
+            ruleInfo = ["SwiftExplicitDependency\(job.ruleInfoType)", key.arch, expectedOutputs.first?.str ?? "<unknown>"]
+            forTarget = nil
+            descriptionForLifecycle = job.descriptionForLifecycle
+            // WMO doesn't apply to explicit module builds
+            isUsingWholeModuleOptimization = false
+            compilerLocation = key.compilerLocation
+            casOpts = key.casOptions
+        default:
+            fatalError("Unexpected dynamic task: \(dynamicTask)")
         }
 
         if !supportsParseableOutput(for: ruleInfo) {
             commandLine = commandLine.filter({ $0 != "-frontend-parseable-output" })
         }
 
-        return Task(type: self,
-                    payload:
-                        SwiftDriverJobDynamicTaskPayload(
-                            expectedOutputs: expectedOutputs,
-                            isUsingWholeModuleOptimization: isUsingWholeModuleOptimization,
-                            compilerLocation: compilerLocation,
-                            casOptions: casOpts
-                        ),
-                    forTarget: forTarget,
-                    ruleInfo: ruleInfo,
-                    commandLine: commandLine.map { .literal($0) },
-                    environment: dynamicTask.environment,
-                    workingDirectory: dynamicTask.workingDirectory,
-                    showEnvironment: dynamicTask.showEnvironment,
-                    execDescription: descriptionForLifecycle,
-                    preparesForIndexing: true,
-                    showCommandLineInLog: false,
-                    isDynamic: true
-                )
+        return Task(
+            type: self,
+            payload:
+                SwiftDriverJobDynamicTaskPayload(
+                    expectedOutputs: expectedOutputs,
+                    isUsingWholeModuleOptimization: isUsingWholeModuleOptimization,
+                    compilerLocation: compilerLocation,
+                    casOptions: casOpts
+                ),
+            forTarget: forTarget,
+            ruleInfo: ruleInfo,
+            commandLine: commandLine.map { .literal($0) },
+            environment: dynamicTask.environment,
+            workingDirectory: dynamicTask.workingDirectory,
+            showEnvironment: dynamicTask.showEnvironment,
+            execDescription: descriptionForLifecycle,
+            preparesForIndexing: true,
+            showCommandLineInLog: false,
+            isDynamic: true
+        )
     }
 
     var payloadType: (any TaskPayload.Type)? {
@@ -217,12 +218,9 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
         if supportsParseableOutput(for: task.ruleInfo) {
             return SwiftCommandOutputParser.self
         } else {
-            return serializedDiagnosticsPaths(task).isEmpty ?
-                        GenericOutputParser.self :
-                        SerializedDiagnosticsOutputParser.self
+            return serializedDiagnosticsPaths(task).isEmpty ? GenericOutputParser.self : SerializedDiagnosticsOutputParser.self
         }
     }
-
 
     func serializedDiagnosticsPaths(_ task: any ExecutableTask) -> [Path] {
         if supportsParseableOutput(for: task.ruleInfo) {
@@ -252,19 +250,19 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
 
     func buildTaskAction(dynamicTaskKey: DynamicTaskKey, context: DynamicTaskOperationContext) throws -> TaskAction {
         switch dynamicTaskKey {
-            case .swiftDriverJob(let key):
+        case .swiftDriverJob(let key):
             guard let job = try context.swiftModuleDependencyGraph.queryPlannedBuild(for: key.identifier).plannedTargetJob(for: key.driverJobKey) else {
                 throw StubError.error("Failed to lookup Swift driver job \(key.driverJobKey) in build plan \(key.identifier)")
             }
             return SwiftDriverJobTaskAction(job, variant: key.variant, arch: key.arch, identifier: .targetCompile(key.identifier), isUsingWholeModuleOptimization: key.isUsingWholeModuleOptimization)
-            case .swiftDriverExplicitDependencyJob(let key):
-                // WMO doesn't apply to explicit module builds
-                guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey) else {
-                    throw StubError.error("Failed to lookup explicit module Swift driver job \(key.driverJobKey)")
-                }
+        case .swiftDriverExplicitDependencyJob(let key):
+            // WMO doesn't apply to explicit module builds
+            guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey) else {
+                throw StubError.error("Failed to lookup explicit module Swift driver job \(key.driverJobKey)")
+            }
             return SwiftDriverJobTaskAction(job, variant: nil, arch: key.arch, identifier: .explicitDependency, isUsingWholeModuleOptimization: false)
-            default:
-                fatalError("Unexpected dynamic task key: \(dynamicTaskKey)")
+        default:
+            fatalError("Unexpected dynamic task key: \(dynamicTaskKey)")
         }
     }
 }

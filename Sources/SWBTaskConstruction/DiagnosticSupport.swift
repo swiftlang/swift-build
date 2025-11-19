@@ -17,10 +17,10 @@ package import SWBUtil
 func auxiliaryFileCommand(_ path: Path) -> String {
     switch path.fileExtension {
     case "hmap":
-        break // Headermaps are per target, so we can't add any information here.
+        break  // Headermaps are per target, so we can't add any information here.
     case "LinkFileList":
         return "produces product '\(path.basenameWithoutSuffix)'"
-    case "modulemap", "yaml": // VFS or module overlay
+    case "modulemap", "yaml":  // VFS or module overlay
         if let moduleName = potentialModuleNameFromPath(path) {
             return "produces module '\(moduleName)'"
         }

@@ -26,7 +26,7 @@ fileprivate struct BuildCommandTests {
             "guid": "W1",
             "name": "aWorkspace",
             "path": .plString(basePath.join("aWorkspace.xcworkspace").join("contents.xcworkspacedata").str),
-            "projects": ["P1"]
+            "projects": ["P1"],
         ]
         let projectPIF: SWBPropertyListItem = [
             "guid": "P1",
@@ -37,7 +37,7 @@ fileprivate struct BuildCommandTests {
                 "type": "group",
                 "name": "SomeFiles",
                 "sourceTree": "PROJECT_DIR",
-                "path": .plString(basePath.join("SomeProject").join("SomeFiles").str)
+                "path": .plString(basePath.join("SomeProject").join("SomeFiles").str),
             ],
             "buildConfigurations": [
                 [
@@ -45,11 +45,11 @@ fileprivate struct BuildCommandTests {
                     "name": "Config1",
                     "buildSettings": [
                         "USER_PROJECT_SETTING": "USER_PROJECT_VALUE"
-                    ]
+                    ],
                 ]
             ],
             "defaultConfigurationName": "Config1",
-            "developmentRegion": "English"
+            "developmentRegion": "English",
         ]
         let targetPIF: SWBPropertyListItem = [
             "guid": "T1",
@@ -63,37 +63,37 @@ fileprivate struct BuildCommandTests {
                     "name": "Config1",
                     "buildSettings": [
                         "USER_PROJECT_SETTING": "USER_PROJECT_VALUE"
-                    ]
+                    ],
                 ]
             ],
             "dependencies": [],
             "productTypeIdentifier": "com.apple.product-type.tool",
             "productReference": [
                 "guid": "PR1",
-                "name": "aTarget"
-            ]
+                "name": "aTarget",
+            ],
         ]
         let topLevelPIF: SWBPropertyListItem = [
             [
                 "type": "workspace",
                 "signature": "W1",
-                "contents": workspacePIF
+                "contents": workspacePIF,
             ],
             [
                 "type": "project",
                 "signature": "P1",
-                "contents": projectPIF
+                "contents": projectPIF,
             ],
             [
                 "type": "target",
                 "signature": "T1",
-                "contents": targetPIF
-            ]
+                "contents": targetPIF,
+            ],
         ]
         return topLevelPIF
     }
 
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows))  // PTY not supported on Windows
     func buildCommandWithPIF() async throws {
         let supportedPIFFileExtensions = ["json", "pif"]
         for fileExtension in supportedPIFFileExtensions {
@@ -116,7 +116,7 @@ fileprivate struct BuildCommandTests {
         }
     }
 
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows))  // PTY not supported on Windows
     func buildCommandWithPIFRelativePath() async throws {
         let supportedPIFFileExtensions = ["json", "pif"]
         for fileExtension in supportedPIFFileExtensions {
@@ -143,7 +143,7 @@ fileprivate struct BuildCommandTests {
         }
     }
 
-    @Test(.skipHostOS(.windows)) // PTY not supported on Windows
+    @Test(.skipHostOS(.windows))  // PTY not supported on Windows
     func buildCommandWithPIFAndTargetOverride() async throws {
         let supportedPIFFileExtensions = ["json", "pif"]
         for fileExtension in supportedPIFFileExtensions {
@@ -166,10 +166,14 @@ fileprivate struct BuildCommandTests {
                     // for the build request _and_ the build request's targets,
                     // otherwise the targets will fall back to the default SYMROOT
                     // of $PROJECT_DIR/build
-                    #expect(!localFS.exists(tmp.join("build")),
-                            "unexpectedly built into the default SYMROOT instead of the build arena")
-                    #expect(localFS.exists(tmp.join(".buildData/Products/Config1\(SWBRunDestinationInfo.host.builtProductsDirSuffix)")),
-                            "could not find configuration build directory in build arena")
+                    #expect(
+                        !localFS.exists(tmp.join("build")),
+                        "unexpectedly built into the default SYMROOT instead of the build arena"
+                    )
+                    #expect(
+                        localFS.exists(tmp.join(".buildData/Products/Config1\(SWBRunDestinationInfo.host.builtProductsDirSuffix)")),
+                        "could not find configuration build directory in build arena"
+                    )
                 }
             }
         }
@@ -189,7 +193,7 @@ fileprivate struct BuildCommandTests {
         }
     }
 
-    @Test(.requireHostOS(.macOS)) // uses xcodebuild
+    @Test(.requireHostOS(.macOS))  // uses xcodebuild
     func buildCommandWithXcodeProject() async throws {
         let projectPath = try #require(Bundle.module.resourceURL)
             .appendingPathComponent("TestData")
@@ -209,7 +213,7 @@ fileprivate struct BuildCommandTests {
         }
     }
 
-    @Test(.requireHostOS(.macOS)) // uses xcodebuild
+    @Test(.requireHostOS(.macOS))  // uses xcodebuild
     func buildCommandWithXcodeWorkspace() async throws {
         let workspacePath = try #require(Bundle.module.resourceURL)
             .appendingPathComponent("TestData")
@@ -229,7 +233,7 @@ fileprivate struct BuildCommandTests {
         }
     }
 
-    @Test(.requireHostOS(.macOS)) // uses xcodebuild
+    @Test(.requireHostOS(.macOS))  // uses xcodebuild
     func buildCommandWithSwiftPackage() async throws {
         let packagePath = try #require(Bundle.module.resourceURL)
             .appendingPathComponent("TestData")

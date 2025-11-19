@@ -182,7 +182,7 @@ fileprivate struct AppleCommandLineSpecTests: CoreBasedTests {
         }
     }
 
-    @Test(.skipHostOS(.windows)) // xcstringstool is Apple-specific
+    @Test(.skipHostOS(.windows))  // xcstringstool is Apple-specific
     func stringCatalogCompilerOutputParser() async throws {
         let delegate = CapturingTaskParserDelegate()
         let task = OutputParserMockTask(basenames: [], exec: "xcstringstool")

@@ -69,11 +69,11 @@ struct QNXSDP: Sendable {
         case .windows:
             path.join("host").join("win64").join("x86_64")
         case .macOS:
-            path.join("host").join("darwin").join("x86_64") // only supported in QNX SDP 7
+            path.join("host").join("darwin").join("x86_64")  // only supported in QNX SDP 7
         case .linux:
             path.join("host").join("linux").join("x86_64")
         default:
-            nil // unsupported host
+            nil  // unsupported host
         }
     }
 

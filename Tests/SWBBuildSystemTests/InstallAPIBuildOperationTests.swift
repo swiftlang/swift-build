@@ -35,35 +35,46 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("main.c"), TestFile("Public.h"), TestFile("Private.h")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SUPPORTS_TEXT_BASED_API": "YES",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_OWNER": "",
-                                "DSTROOT": tmpDirPath.join("DSTROOT").str
-                            ]
-                        )],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SUPPORTS_TEXT_BASED_API": "YES",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_OWNER": "",
+                                    "DSTROOT": tmpDirPath.join("DSTROOT").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Dylib", type: .dynamicLibrary,
+                                "Dylib",
+                                type: .dynamicLibrary,
                                 buildPhases: [
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Public.h", headerVisibility: .public),
-                                        TestBuildFile("Private.h", headerVisibility: .private)
+                                        TestBuildFile("Private.h", headerVisibility: .private),
                                     ]),
-                                    TestSourcesBuildPhase(["main.c"])
-                                ])])])
+                                    TestSourcesBuildPhase(["main.c"]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"), body: {
-                $0 <<< """
-                    void f(void) {}
-                    void g(void) {}
-                    """
-            })
+            try await tester.fs.writeFileContents(
+                testWorkspace.sourceRoot.join("aProject/main.c"),
+                body: {
+                    $0 <<< """
+                        void f(void) {}
+                        void g(void) {}
+                        """
+                }
+            )
 
             for action in [BuildAction.build, BuildAction.install] {
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: { $0 <<< "void f(void);" })
@@ -112,35 +123,46 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("main.c"), TestFile("Public.h"), TestFile("Private.h")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SUPPORTS_TEXT_BASED_API": "YES",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_OWNER": "",
-                                "DSTROOT": tmpDirPath.join("DSTROOT").str
-                            ]
-                        )],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SUPPORTS_TEXT_BASED_API": "YES",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_OWNER": "",
+                                    "DSTROOT": tmpDirPath.join("DSTROOT").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Framework", type: .framework,
+                                "Framework",
+                                type: .framework,
                                 buildPhases: [
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Public.h", headerVisibility: .public),
-                                        TestBuildFile("Private.h", headerVisibility: .private)
+                                        TestBuildFile("Private.h", headerVisibility: .private),
                                     ]),
-                                    TestSourcesBuildPhase(["main.c"])
-                                ])])])
+                                    TestSourcesBuildPhase(["main.c"]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"), body: {
-                $0 <<< """
-                    void f(void) {}
-                    void g(void) {}
-                    """
-            })
+            try await tester.fs.writeFileContents(
+                testWorkspace.sourceRoot.join("aProject/main.c"),
+                body: {
+                    $0 <<< """
+                        void f(void) {}
+                        void g(void) {}
+                        """
+                }
+            )
 
             for action in [BuildAction.build, BuildAction.install] {
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: { $0 <<< "void f(void);" })
@@ -187,36 +209,47 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("main.c"), TestFile("Public.h"), TestFile("Private.h")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SUPPORTS_TEXT_BASED_API": "YES",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_OWNER": "",
-                                "DSTROOT": tmpDirPath.join("DSTROOT").str,
-                                "TAPI_VERIFY_MODE": "ErrorsOnly",
-                            ]
-                        )],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SUPPORTS_TEXT_BASED_API": "YES",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_OWNER": "",
+                                    "DSTROOT": tmpDirPath.join("DSTROOT").str,
+                                    "TAPI_VERIFY_MODE": "ErrorsOnly",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Framework", type: .framework,
+                                "Framework",
+                                type: .framework,
                                 buildPhases: [
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Public.h", headerVisibility: .public),
-                                        TestBuildFile("Private.h", headerVisibility: .private)
+                                        TestBuildFile("Private.h", headerVisibility: .private),
                                     ]),
-                                    TestSourcesBuildPhase(["main.c"])
-                                ])])])
+                                    TestSourcesBuildPhase(["main.c"]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"), body: {
-                $0 <<< """
-                    void f(void) {}
-                    void g(void) {}
-                    """
-            })
+            try await tester.fs.writeFileContents(
+                testWorkspace.sourceRoot.join("aProject/main.c"),
+                body: {
+                    $0 <<< """
+                        void f(void) {}
+                        void g(void) {}
+                        """
+                }
+            )
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: { $0 <<< "void f(void);" })
 
@@ -281,35 +314,46 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("main.c"), TestFile("Public.h"), TestFile("Private.h")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SUPPORTS_TEXT_BASED_API": "YES",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_OWNER": "",
-                                "DSTROOT": tmpDirPath.join("DSTROOT").str
-                            ]
-                        )],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SUPPORTS_TEXT_BASED_API": "YES",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_OWNER": "",
+                                    "DSTROOT": tmpDirPath.join("DSTROOT").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Framework", type: .framework,
+                                "Framework",
+                                type: .framework,
                                 buildPhases: [
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Public.h", headerVisibility: .public),
-                                        TestBuildFile("Private.h", headerVisibility: .private, platformFilters: PlatformFilter.iOSFilters)
+                                        TestBuildFile("Private.h", headerVisibility: .private, platformFilters: PlatformFilter.iOSFilters),
                                     ]),
-                                    TestSourcesBuildPhase(["main.c"])
-                                ])])])
+                                    TestSourcesBuildPhase(["main.c"]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"), body: {
-                $0 <<< """
-                    void f(void) {}
-                    void g(void) {}
-                    """
-            })
+            try await tester.fs.writeFileContents(
+                testWorkspace.sourceRoot.join("aProject/main.c"),
+                body: {
+                    $0 <<< """
+                        void f(void) {}
+                        void g(void) {}
+                        """
+                }
+            )
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: { $0 <<< "void f(void); void g(void);" })
 
@@ -343,56 +387,75 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                         TestProject(
                             "aProject",
                             groupTree: TestGroup("Sources", children: [TestFile("main.c"), TestFile("dep.c"), TestFile("Public.h")]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "CODE_SIGNING_ALLOWED": "NO",
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "SUPPORTS_TEXT_BASED_API": supportsInstallAPI,
-                                    "INSTALL_GROUP": "",
-                                    "INSTALL_OWNER": "",
-                                ]
-                            )],
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "CODE_SIGNING_ALLOWED": "NO",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SUPPORTS_TEXT_BASED_API": supportsInstallAPI,
+                                        "INSTALL_GROUP": "",
+                                        "INSTALL_OWNER": "",
+                                    ]
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
-                                    "Framework", type: .framework,
+                                    "Framework",
+                                    type: .framework,
                                     buildPhases: [
                                         TestSourcesBuildPhase(["main.c"]),
-                                        TestFrameworksBuildPhase(["Framework2.framework"])
-                                    ], dependencies: ["Framework2"]),
+                                        TestFrameworksBuildPhase(["Framework2.framework"]),
+                                    ],
+                                    dependencies: ["Framework2"]
+                                ),
                                 TestStandardTarget(
-                                    "Framework2", type: .framework,
+                                    "Framework2",
+                                    type: .framework,
                                     buildPhases: [
                                         TestHeadersBuildPhase([
-                                            TestBuildFile("Public.h", headerVisibility: .public),
+                                            TestBuildFile("Public.h", headerVisibility: .public)
                                         ]),
-                                        TestSourcesBuildPhase(["dep.c"])
-                                    ]),
-                            ])])
+                                        TestSourcesBuildPhase(["dep.c"]),
+                                    ]
+                                ),
+                            ]
+                        )
+                    ]
+                )
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
-                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"), body: {
-                    $0 <<< """
-                        static void f(void) {
+                try await tester.fs.writeFileContents(
+                    testWorkspace.sourceRoot.join("aProject/main.c"),
+                    body: {
+                        $0 <<< """
+                            static void f(void) {
 
-                        }
-                        """
-                })
+                            }
+                            """
+                    }
+                )
 
-                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: {
-                    $0 <<< """
-                        void g(void);
-                        """
-                })
+                try await tester.fs.writeFileContents(
+                    testWorkspace.sourceRoot.join("aProject/Public.h"),
+                    body: {
+                        $0 <<< """
+                            void g(void);
+                            """
+                    }
+                )
 
-                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/dep.c"), body: {
-                    $0 <<< """
-                        #include <stdio.h>
-                        void g(void) {
+                try await tester.fs.writeFileContents(
+                    testWorkspace.sourceRoot.join("aProject/dep.c"),
+                    body: {
+                        $0 <<< """
+                            #include <stdio.h>
+                            void g(void) {
 
-                        }
-                        """
-                })
+                            }
+                            """
+                    }
+                )
 
                 let parameters = BuildParameters(action: .build, configuration: "Debug")
                 try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
@@ -406,14 +469,17 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                 }
 
                 // Change the dependency without changing the list of exported symbols - the dependent should not relink.
-                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/dep.c"), body: {
-                    $0 <<< """
-                        #include <stdio.h>
-                        void g(void) {
-                        printf("foo");
-                        }
-                        """
-                })
+                try await tester.fs.writeFileContents(
+                    testWorkspace.sourceRoot.join("aProject/dep.c"),
+                    body: {
+                        $0 <<< """
+                            #include <stdio.h>
+                            void g(void) {
+                            printf("foo");
+                            }
+                            """
+                    }
+                )
 
                 try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkNoTask(.matchTargetName("Framework"), .matchRuleType("CompileC"))
@@ -426,20 +492,26 @@ fileprivate struct InstallAPIBuildOperationTests: CoreBasedTests {
                 }
 
                 // Change exported symbols in the dependency, the dependency should relink (but the dependency does not need to recompile).
-                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/dep.c"), body: {
-                    $0 <<< """
-                        #include <stdio.h>
-                        void h(void) {
-                        printf("foo");
-                        }
-                        """
-                })
+                try await tester.fs.writeFileContents(
+                    testWorkspace.sourceRoot.join("aProject/dep.c"),
+                    body: {
+                        $0 <<< """
+                            #include <stdio.h>
+                            void h(void) {
+                            printf("foo");
+                            }
+                            """
+                    }
+                )
 
-                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Public.h"), body: {
-                    $0 <<< """
-                        void h(void);
-                        """
-                })
+                try await tester.fs.writeFileContents(
+                    testWorkspace.sourceRoot.join("aProject/Public.h"),
+                    body: {
+                        $0 <<< """
+                            void h(void);
+                            """
+                    }
+                )
 
                 try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                     results.checkNoTask(.matchTargetName("Framework"), .matchRuleType("CompileC"))

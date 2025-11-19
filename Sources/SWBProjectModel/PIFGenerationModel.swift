@@ -102,7 +102,7 @@ public enum PIF {
         @discardableResult public func addAggregateTarget(id idOpt: String? = nil, name: String) -> AggregateTarget {
             let id = idOpt ?? nextTargetId
             precondition(!id.isEmpty)
-            precondition(!targets.contains{ $0.id == id })
+            precondition(!targets.contains { $0.id == id })
             precondition(!name.isEmpty)
             let target = AggregateTarget(id: id, name: name)
             targets.append(target)
@@ -112,7 +112,7 @@ public enum PIF {
         /// Creates and adds a new empty build configuration, i.e. one that does not initially have any build settings.  The name must not be empty and must not be equal to the name of any existing build configuration in the project.
         @discardableResult public func addBuildConfig(name: String, settings: BuildSettings = BuildSettings(), impartedBuildSettings: BuildSettings) -> BuildConfig {
             precondition(!name.isEmpty)
-            precondition(!buildConfigs.contains{ $0.name == name })
+            precondition(!buildConfigs.contains { $0.name == name })
             let id = "\(self.id)::BUILDCONFIG_\(buildConfigs.count)"
             let buildConfig = BuildConfig(id: id, name: name, settings: settings, impartedBuildSettings: impartedBuildSettings)
             buildConfigs.append(buildConfig)
@@ -164,7 +164,7 @@ public enum PIF {
     }
 
     /// A reference to a file system entity (a file, folder, etc).
-    public class FileReference : Reference {
+    public class FileReference: Reference {
         public var fileType: String?
         public var expectedSignature: String?
 
@@ -176,7 +176,7 @@ public enum PIF {
     }
 
     /// A group that can contain References (FileReferences and other Groups).  The resolved path of a group is used as the base path for any child references whose source tree type is GroupRelative.
-    public class Group : Reference {
+    public class Group: Reference {
         public var subitems = [Reference]()
 
         private var nextRefId: String {
@@ -224,7 +224,7 @@ public enum PIF {
         /// Creates and adds a new empty build configuration, i.e. one that does not initially have any build settings.  The name must not be empty and must not be equal to the name of any existing build configuration in the target.
         @discardableResult public func addBuildConfig(name: String, settings: BuildSettings = BuildSettings(), impartedBuildSettings: BuildSettings) -> BuildConfig {
             precondition(!name.isEmpty)
-            precondition(!buildConfigs.contains{ $0.name == name })
+            precondition(!buildConfigs.contains { $0.name == name })
             let id = "\(self.id)::BUILDCONFIG_\(buildConfigs.count)"
             let buildConfig = BuildConfig(id: id, name: name, settings: settings, impartedBuildSettings: impartedBuildSettings)
             buildConfigs.append(buildConfig)
@@ -260,20 +260,22 @@ public enum PIF {
                 PIFKey_type: "aggregate",
                 PIFKey_guid: id,
                 PIFKey_name: name,
-                PIFKey_Target_dependencies: dependencies.map { [
-                    PIFKey_guid: $0.targetId,
-                    PIFKey_platformFilters: $0.platformFilters.map{ $0.serialize(to: serializer) }
-                ] },
-                PIFKey_Target_buildRules: buildRules.map{ $0.serialize(to: serializer) },
-                PIFKey_Target_buildPhases: buildPhases.map{ ($0 as! (any PIFRepresentable)).serialize(to: serializer) },
+                PIFKey_Target_dependencies: dependencies.map {
+                    [
+                        PIFKey_guid: $0.targetId,
+                        PIFKey_platformFilters: $0.platformFilters.map { $0.serialize(to: serializer) },
+                    ]
+                },
+                PIFKey_Target_buildRules: buildRules.map { $0.serialize(to: serializer) },
+                PIFKey_Target_buildPhases: buildPhases.map { ($0 as! (any PIFRepresentable)).serialize(to: serializer) },
                 PIFKey_Target_customTasks: customTasks.map { $0.serialize(to: serializer) },
-                PIFKey_buildConfigurations: buildConfigs.map{ $0.serialize(to: serializer) },
+                PIFKey_buildConfigurations: buildConfigs.map { $0.serialize(to: serializer) },
             ]
         }
     }
 
     /// An Xcode target, representing a single entity to build.
-    public class Target : BaseTarget {
+    public class Target: BaseTarget {
         public var productName: String
         public var productType: ProductType
         public var productReference: FileReference?
@@ -338,10 +340,12 @@ public enum PIF {
 
         /// Adds a "copy files" build phase, i.e. one that copies files to an arbitrary location relative to the product.
         @discardableResult public func addCopyFilesBuildPhase(destinationSubfolder: CopyFilesBuildPhase.DestinationSubfolder, destinationSubpath: String = "", runOnlyForDeploymentPostprocessing: Bool = false) -> CopyFilesBuildPhase {
-            let phase = CopyFilesBuildPhase(id: nextBuildPhaseId,
-                                            destinationSubfolder: destinationSubfolder,
-                                            destinationSubpath: destinationSubpath,
-                                            runOnlyForDeploymentPostprocessing: runOnlyForDeploymentPostprocessing)
+            let phase = CopyFilesBuildPhase(
+                id: nextBuildPhaseId,
+                destinationSubfolder: destinationSubfolder,
+                destinationSubpath: destinationSubpath,
+                runOnlyForDeploymentPostprocessing: runOnlyForDeploymentPostprocessing
+            )
             buildPhases.append(phase)
             return phase
         }
@@ -375,7 +379,8 @@ public enum PIF {
                 alwaysOutOfDate: alwaysOutOfDate,
                 runOnlyForDeploymentPostprocessing: runOnlyForDeploymentPostprocessing,
                 originalObjectID: originalObjectID,
-                insertAtFront: insertAtFront)
+                insertAtFront: insertAtFront
+            )
         }
 
         /// Adds a "shell script" build phase, i.e. one that runs a custom shell script as part of the build.
@@ -405,7 +410,8 @@ public enum PIF {
                 runOnlyForDeploymentPostprocessing: runOnlyForDeploymentPostprocessing,
                 originalObjectID: originalObjectID,
                 sandboxingOverride: sandboxingOverride,
-                alwaysRunForInstallHdrs: alwaysRunForInstallHdrs)
+                alwaysRunForInstallHdrs: alwaysRunForInstallHdrs
+            )
             if insertAtFront {
                 buildPhases.insert(phase, at: 0)
             } else {
@@ -429,7 +435,7 @@ public enum PIF {
         public func addDependency(on targetId: String, platformFilters: Set<PlatformFilter>, linkProduct: Bool) {
             super.addDependency(on: targetId, platformFilters: platformFilters)
             if linkProduct {
-                let frameworksPhase = buildPhases.first{ $0 is FrameworksBuildPhase } ?? addFrameworksBuildPhase()
+                let frameworksPhase = buildPhases.first { $0 is FrameworksBuildPhase } ?? addFrameworksBuildPhase()
                 frameworksPhase.addBuildFile(productOf: targetId, platformFilters: platformFilters)
             }
         }
@@ -440,24 +446,24 @@ public enum PIF {
 
         /// Convenience function to add a file reference to the Headers build phase, after creating it if needed.
         @discardableResult public func addHeaderFile(ref: FileReference) -> BuildFile {
-            let headerPhase = buildPhases.first{ $0 is HeadersBuildPhase } ?? addHeadersBuildPhase()
+            let headerPhase = buildPhases.first { $0 is HeadersBuildPhase } ?? addHeadersBuildPhase()
             return headerPhase.addBuildFile(fileRef: ref)
         }
 
         /// Convenience function to add a file reference to the Sources build phase, after creating it if needed.
         @discardableResult public func addSourceFile(ref: FileReference, generatedCodeVisibility: BuildFile.GeneratedCodeVisibility?) -> BuildFile {
-            let sourcesPhase = buildPhases.first{ $0 is SourcesBuildPhase } ?? addSourcesBuildPhase()
+            let sourcesPhase = buildPhases.first { $0 is SourcesBuildPhase } ?? addSourcesBuildPhase()
             return sourcesPhase.addBuildFile(fileRef: ref, generatedCodeVisibility: generatedCodeVisibility)
         }
 
         @discardableResult public func addSourceFile(ref: FileReference) -> BuildFile {
-            let sourcesPhase = buildPhases.first{ $0 is SourcesBuildPhase } ?? addSourcesBuildPhase()
+            let sourcesPhase = buildPhases.first { $0 is SourcesBuildPhase } ?? addSourcesBuildPhase()
             return sourcesPhase.addBuildFile(fileRef: ref, generatedCodeVisibility: nil)
         }
 
         /// Convenience function to add a file reference to the Frameworks build phase, after creating it if needed.
         @discardableResult public func addLibrary(ref: FileReference, platformFilters: Set<PlatformFilter>, codeSignOnCopy: Bool = false, removeHeadersOnCopy: Bool = false) -> BuildFile {
-            let frameworksPhase = buildPhases.first{ $0 is FrameworksBuildPhase } ?? addFrameworksBuildPhase()
+            let frameworksPhase = buildPhases.first { $0 is FrameworksBuildPhase } ?? addFrameworksBuildPhase()
             return frameworksPhase.addBuildFile(fileRef: ref, platformFilters: platformFilters, codeSignOnCopy: codeSignOnCopy, removeHeadersOnCopy: removeHeadersOnCopy)
         }
 
@@ -470,7 +476,7 @@ public enum PIF {
         }
 
         @discardableResult public func addResourceFile(ref: FileReference, platformFilters: Set<PlatformFilter>, resourceRule: BuildFile.ResourceRule? = nil) -> BuildFile {
-            let resourcesPhase = buildPhases.first{ $0 is CopyBundleResourcesBuildPhase } ?? addCopyBundleResourcesBuildPhase()
+            let resourcesPhase = buildPhases.first { $0 is CopyBundleResourcesBuildPhase } ?? addCopyBundleResourcesBuildPhase()
             return resourcesPhase.addBuildFile(fileRef: ref, platformFilters: platformFilters, resourceRule: resourceRule)
         }
 
@@ -489,11 +495,13 @@ public enum PIF {
                     PIFKey_guid: id,
                     PIFKey_name: name,
                     PIFKey_Target_customTasks: customTasks.map { $0.serialize(to: serializer) },
-                    PIFKey_Target_dependencies: dependencies.map{ [
-                        PIFKey_guid: $0.targetId,
-                        PIFKey_platformFilters: $0.platformFilters.map{ $0.serialize(to: serializer) }
-                    ] },
-                    PIFKey_buildConfigurations: buildConfigs.map{ $0.serialize(to: serializer) },
+                    PIFKey_Target_dependencies: dependencies.map {
+                        [
+                            PIFKey_guid: $0.targetId,
+                            PIFKey_platformFilters: $0.platformFilters.map { $0.serialize(to: serializer) },
+                        ]
+                    },
+                    PIFKey_buildConfigurations: buildConfigs.map { $0.serialize(to: serializer) },
                 ]
                 // Add the framework build phase, if present.
                 if let phase = buildPhases.first as? PIF.FrameworksBuildPhase {
@@ -509,17 +517,17 @@ public enum PIF {
                 PIFKey_type: "standard",
                 PIFKey_guid: id,
                 PIFKey_name: name,
-                PIFKey_Target_dependencies: dependencies.map{ ["guid": $0.targetId, "platformFilters": $0.platformFilters.map{ $0.serialize(to: serializer) }] },
+                PIFKey_Target_dependencies: dependencies.map { ["guid": $0.targetId, "platformFilters": $0.platformFilters.map { $0.serialize(to: serializer) }] },
                 PIFKey_Target_productTypeIdentifier: productType.asString,
                 PIFKey_Target_productReference: [
                     PIFKey_type: "file",
                     PIFKey_guid: "PRODUCTREF-\(id)",
                     PIFKey_name: productName,
                 ],
-                PIFKey_Target_buildRules: buildRules.map{ $0.serialize(to: serializer) },
-                PIFKey_Target_buildPhases: buildPhases.map{ ($0 as! (any PIFRepresentable)).serialize(to: serializer) },
+                PIFKey_Target_buildRules: buildRules.map { $0.serialize(to: serializer) },
+                PIFKey_Target_buildPhases: buildPhases.map { ($0 as! (any PIFRepresentable)).serialize(to: serializer) },
                 PIFKey_Target_customTasks: customTasks.map { $0.serialize(to: serializer) },
-                PIFKey_buildConfigurations: buildConfigs.map{ $0.serialize(to: serializer) },
+                PIFKey_buildConfigurations: buildConfigs.map { $0.serialize(to: serializer) },
             ]
             if let dynamicTargetVariant {
                 result[PIFKey_Target_dynamicTargetVariantGuid] = dynamicTargetVariant.id
@@ -581,28 +589,28 @@ public enum PIF {
     }
 
     /// A "headers" build phase, i.e. one that copies headers into a directory of the product, after suitable processing.
-    public class HeadersBuildPhase : BuildPhase {
+    public class HeadersBuildPhase: BuildPhase {
         public override init(id: String) {
             super.init(id: id)
         }
     }
 
     /// A "sources" build phase, i.e. one that compiles sources and provides them to be linked into the executable code of the product.
-    public class SourcesBuildPhase : BuildPhase {
+    public class SourcesBuildPhase: BuildPhase {
         public override init(id: String) {
             super.init(id: id)
         }
     }
 
     /// A "frameworks" build phase, i.e. one that links compiled code and libraries into the executable of the product.
-    public class FrameworksBuildPhase : BuildPhase {
+    public class FrameworksBuildPhase: BuildPhase {
         public override init(id: String) {
             super.init(id: id)
         }
     }
 
     /// A "copy files" build phase, i.e. one that copies files to an arbitrary location relative to the product.
-    public class CopyFilesBuildPhase : BuildPhase {
+    public class CopyFilesBuildPhase: BuildPhase {
         public let destinationSubfolder: DestinationSubfolder
         public let destinationSubpath: String
         public let runOnlyForDeploymentPostprocessing: Bool
@@ -642,7 +650,7 @@ public enum PIF {
     }
 
     /// A "shell script" build phase, i.e. one that runs a custom shell script.
-    public class ShellScriptBuildPhase : BuildPhase {
+    public class ShellScriptBuildPhase: BuildPhase {
         public var name: String
         public var scriptContents: String
         public var shellPath: String
@@ -693,7 +701,7 @@ public enum PIF {
         }
     }
 
-    public class CopyBundleResourcesBuildPhase : BuildPhase {
+    public class CopyBundleResourcesBuildPhase: BuildPhase {
         public override init(id: String) {
             super.init(id: id)
         }
@@ -1049,7 +1057,7 @@ public enum PIF {
         public var WATCHOS_DEPLOYMENT_TARGET: String?
 
         @available(*, deprecated, renamed: "GENERATE_PRELINK_OBJECT_FILE")
-        public var GENERATE_MASTER_OBJECT_FILE: String? // ignore-unacceptable-language
+        public var GENERATE_MASTER_OBJECT_FILE: String?  // ignore-unacceptable-language
     }
 }
 

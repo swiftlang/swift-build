@@ -19,8 +19,7 @@ public import SWBUtil
 public import SWBMacro
 
 /// Concrete implementation of task for processing product entitlements.
-public final class ProcessProductEntitlementsTaskAction: TaskAction
-{
+public final class ProcessProductEntitlementsTaskAction: TaskAction {
     /// The merged entitlements.
     let entitlements: PropertyListItem
 
@@ -45,8 +44,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
     /// The timestamp of the latest modification of the entitlements on `init`
     let entitlementsModificationTimestamp: Result<Date, StubError>?
 
-    public init(fs: any FSProxy, entitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?)
-    {
+    public init(fs: any FSProxy, entitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?) {
         self.entitlements = entitlements
         self.entitlementsVariant = entitlementsVariant
         self.allowEntitlementsModification = allowEntitlementsModification
@@ -72,11 +70,9 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
     }
 
     /// The parsed command line options.
-    private struct Options
-    {
+    private struct Options {
         /// The output format of the task.
-        enum FormatKind: String
-        {
+        enum FormatKind: String {
             /// Preserve the format of the input file.
             case sameAsInput = "none"
             /// Convert to binary.
@@ -86,8 +82,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
 
             // Note that Foundation no longer supports writing the OpenStep plist format.
 
-            init?(name: String)
-            {
+            init?(name: String) {
                 switch name
                 {
                 case "openstep":
@@ -96,23 +91,18 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
 
                 default:
                     // Otherwise we initialize from the raw value, if possible.
-                    if let value = FormatKind(rawValue: name)
-                    {
+                    if let value = FormatKind(rawValue: name) {
                         self = value
                         return
-                    }
-                    else
-                    {
+                    } else {
                         return nil
                     }
                 }
             }
         }
 
-        static func emitUsage(_ name: String, _ outputDelegate: any TaskOutputDelegate)
-        {
-            outputDelegate.emitOutput
-            { stream in
+        static func emitUsage(_ name: String, _ outputDelegate: any TaskOutputDelegate) {
+            outputDelegate.emitOutput { stream in
                 stream <<< "usage: \(name) -entitlements [-format <name>] <input-file> -o <output-path>\n"
                 stream <<< "  -entitlements\n"
                 stream <<< "      Handle entitlements in the input file.  This option is required.\n"
@@ -135,16 +125,14 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
         /// The path to the output file.
         let outputPath: Path
 
-        init?(_ commandLine: AnySequence<String>, _ outputDelegate: any TaskOutputDelegate)
-        {
+        init?(_ commandLine: AnySequence<String>, _ outputDelegate: any TaskOutputDelegate) {
             var format = FormatKind.sameAsInput
             var processEntitlements = false
             var inputPath: Path? = nil
             var foundOutputPathOption = false
             var outputPath: Path? = nil
             var hadErrors = false
-            func error(_ message: String)
-            {
+            func error(_ message: String) {
                 outputDelegate.emitError(message)
                 hadErrors = true
             }
@@ -153,9 +141,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
             let generator = commandLine.makeIterator()
             // Skip the executable.
             let programName = generator.next() ?? "<<missing program name>>"
-        argumentParsing:
-            while let arg = generator.next()
-            {
+            argumentParsing: while let arg = generator.next() {
                 switch arg
                 {
                 case "-entitlements":
@@ -164,13 +150,11 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
 
                 case "-format":
                     // The '-format' option takes a single argument: 'xml', 'binary', 'openstep' or 'none'.
-                    guard let name = generator.next() else
-                    {
+                    guard let name = generator.next() else {
                         error("missing argument for option: \(arg)")
                         continue
                     }
-                    guard let kind = FormatKind(name: name) else
-                    {
+                    guard let kind = FormatKind(name: name) else {
                         error("failed to parse option: \(arg) \(name)")
                         continue
                     }
@@ -179,8 +163,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
                 case "-o":
                     // The '-o' argument take a single parameter: the output path.
                     foundOutputPathOption = true
-                    guard let value = generator.next() else
-                    {
+                    guard let value = generator.next() else {
                         error("missing argument for option: \(arg)")
                         continue
                     }
@@ -202,21 +185,18 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
             }
 
             // Diagnose missing -entitlements option.
-            if !processEntitlements
-            {
+            if !processEntitlements {
                 error("missing required option: -entitlements")
             }
 
             // Diagnose missing output path option.
-            if outputPath == nil && !foundOutputPathOption
-            {
+            if outputPath == nil && !foundOutputPathOption {
                 error("missing required option: -o")
                 outputPath = Path("<<error>>")
             }
 
             // If there were errors, emit the usage and return an error.
-            if hadErrors
-            {
+            if hadErrors {
                 outputDelegate.emitOutput("\n")
                 Options.emitUsage(programName, outputDelegate)
                 return nil
@@ -230,13 +210,11 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
         }
     }
 
-    public override class var toolIdentifier: String
-    {
+    public override class var toolIdentifier: String {
         return "process-product-entitlements"
     }
 
-    public override func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString
-    {
+    public override func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString {
         // If the scheme command changes then our signature changes so we have to re-run.
         return super.getSignature(task, executionDelegate: executionDelegate) + ByteString(encodingAsUTF8: executionDelegate.schemeCommand?.description ?? "<nil>")
     }
@@ -254,7 +232,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
         }
 
         // Make paths absolute.
-//        let input = task.workingDirectory.join(options.inputPath)     // Not presently used
+        //        let input = task.workingDirectory.join(options.inputPath)     // Not presently used
         let output = task.workingDirectory.join(options.outputPath)
 
         // Updating entitlements is not something that is actively encouraged or supported, however, this is a compatibility pain point for certain projects that we need to maintain some ability to do this. A better approach is to plumb this through the system so that we can track this as a proper dependency mechanism, potentially through our virtual task producers... however, until then, we enable this functionality for those existing clients.
@@ -285,8 +263,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
                 if !self.allowEntitlementsModification {
                     outputDelegate.emitError("Entitlements file \"\(entitlementsFilePath.basename)\" was modified during the build, which is not supported. You can disable this error by setting 'CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION' to 'YES', however this may cause the built product's code signature or provisioning profile to contain incorrect entitlements.")
                     return .failed
-                }
-                else {
+                } else {
                     let plist: PropertyListItem
                     do {
                         plist = try PropertyList.fromBytes(executionDelegate.fs.read(entitlementsFilePath).bytes)
@@ -309,8 +286,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
 
         do {
             try executionDelegate.fs.write(output, contents: ByteString(effectiveEntitlements.asBytes(.xml)))
-        }
-        catch let error as NSError {
+        } catch let error as NSError {
             outputDelegate.emitError("could not write entitlements file '\(output.str)': \(error.localizedDescription)")
             return .failed
         }
@@ -344,9 +320,11 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
         }
 
         static var allEntitlements: [String: PropertyListItem] {
-            return Dictionary(uniqueKeysWithValues: allCases.map { entitlement in
-                return (entitlement.key, entitlement.value)
-            })
+            return Dictionary(
+                uniqueKeysWithValues: allCases.map { entitlement in
+                    return (entitlement.key, entitlement.value)
+                }
+            )
         }
     }
 
@@ -388,14 +366,10 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
         return .plDict(augmentedDict)
     }
 
-
     // Serialization
 
-
-    public override func serialize<T: Serializer>(to serializer: T)
-    {
-        serializer.serializeAggregate(8)
-        {
+    public override func serialize<T: Serializer>(to serializer: T) {
+        serializer.serializeAggregate(8) {
             // FIXME: <rdar://problem/40036582> We have no way to handle any errors in PropertyListItem.asBytes() here.
             serializer.serialize(try? entitlements.asBytes(.binary))
             serializer.serialize(entitlementsVariant)
@@ -408,8 +382,7 @@ public final class ProcessProductEntitlementsTaskAction: TaskAction
         }
     }
 
-    public required init(from deserializer: any Deserializer) throws
-    {
+    public required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(8)
         self.entitlements = try PropertyList.fromBytes(try deserializer.deserialize())
         self.entitlementsVariant = try deserializer.deserialize()

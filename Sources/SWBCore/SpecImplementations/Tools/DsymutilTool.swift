@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBMacro
 
-public final class DsymutilToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class DsymutilToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.dsymutil"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

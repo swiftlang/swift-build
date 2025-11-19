@@ -15,9 +15,9 @@
 import PackageDescription
 
 #if canImport(Darwin)
-let appleOS = true
+    let appleOS = true
 #else
-let appleOS = false
+    let appleOS = false
 #endif
 
 let isStaticBuild = Context.environment["SWIFTBUILD_STATIC_LINK"] != nil
@@ -91,24 +91,27 @@ let package = Package(
             name: "swbuild",
             dependencies: [
                 "SwiftBuild",
-                "SWBBuildServiceBundle", // the CLI needs to launch the service bundle
+                "SWBBuildServiceBundle",  // the CLI needs to launch the service bundle
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .executableTarget(
             name: "SWBBuildServiceBundle",
             dependencies: [
                 "SWBBuildService", "SWBBuildSystem", "SWBServiceCore", "SWBUtil", "SWBCore",
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
 
         // Libraries
         .target(
             name: "SwiftBuild",
             dependencies: ["SWBCSupport", "SWBCore", "SWBProtocol", "SWBUtil", "SWBProjectModel"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v5)
+        ),
         .target(
             name: "SWBBuildService",
             dependencies: [
@@ -118,12 +121,14 @@ let package = Package(
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v5)
+        ),
         .target(
             name: "SWBBuildSystem",
             dependencies: ["SWBCore", "SWBTaskConstruction", "SWBTaskExecution"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v5)
+        ),
         .target(
             name: "SWBCore",
             dependencies: [
@@ -137,7 +142,8 @@ let package = Package(
             ],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v5)
+        ),
         .target(
             name: "SWBCSupport",
             exclude: ["empty.swift"],
@@ -146,27 +152,34 @@ let package = Package(
                 .define("_CRT_SECURE_NO_WARNINGS", .when(platforms: [.windows])),
                 .define("_CRT_NONSTDC_NO_WARNINGS", .when(platforms: [.windows])),
             ],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBCLibc",
             exclude: ["CMakeLists.txt", "README.md"],
             publicHeadersPath: ".",
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBLibc",
             dependencies: ["SWBCLibc"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBLLBuild",
             dependencies: [
                 "SWBUtil"
-            ] + (useLLBuildFramework ? [] : [
-                .product(name: "libllbuild", package: useLocalDependencies ? "llbuild" : "swift-llbuild"),
-                .product(name: "llbuildSwift", package: useLocalDependencies ? "llbuild" : "swift-llbuild"),
-            ]),
+            ]
+                + (useLLBuildFramework
+                    ? []
+                    : [
+                        .product(name: "libllbuild", package: useLocalDependencies ? "llbuild" : "swift-llbuild"),
+                        .product(name: "llbuildSwift", package: useLocalDependencies ? "llbuild" : "swift-llbuild"),
+                    ]),
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBMacro",
             dependencies: [
@@ -174,36 +187,42 @@ let package = Package(
                 .product(name: "SwiftDriver", package: "swift-driver"),
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBProjectModel",
             dependencies: ["SWBProtocol"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBProtocol",
             dependencies: ["SWBUtil"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBServiceCore",
             dependencies: ["SWBProtocol"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBTaskConstruction",
             dependencies: [
                 "SWBCore",
                 "SWBUtil",
-                .product(name: "SwiftDriver", package: "swift-driver")
+                .product(name: "SwiftDriver", package: "swift-driver"),
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v5)
+        ),
         .target(
             name: "SWBTaskExecution",
             dependencies: ["SWBCore", "SWBUtil", "SWBCAS", "SWBLLBuild", "SWBTaskConstruction"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v5)
+        ),
         .target(
             name: "SWBUtil",
             dependencies: [
@@ -214,37 +233,43 @@ let package = Package(
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
             ],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBCAS",
             dependencies: ["SWBUtil", "SWBCSupport"],
             exclude: ["CMakeLists.txt"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
 
         .target(
             name: "SWBAndroidPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBApplePlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil", "SWBTaskConstruction"],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBGenericUnixPlatform",
             dependencies: ["SWBCore", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBQNXPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBUniversalPlatform",
             dependencies: [
@@ -257,180 +282,220 @@ let package = Package(
             ],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBWebAssemblyPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBWindowsPlatform",
             dependencies: ["SWBCore", "SWBMacro", "SWBUtil"],
             exclude: ["CMakeLists.txt", "README.md"],
             resources: [.process("Specs")],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
 
         // Test support
         .target(
             name: "SwiftBuildTestSupport",
             dependencies: ["SwiftBuild", "SWBTestSupport", "SWBUtil"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .target(
             name: "SWBTestSupport",
             dependencies: ["SwiftBuild", "SWBBuildSystem", "SWBCore", "SWBTaskConstruction", "SWBTaskExecution", "SWBUtil", "SWBLLBuild", "SWBMacro"],
-            swiftSettings: swiftSettings(languageMode: .v5)),
+            swiftSettings: swiftSettings(languageMode: .v5)
+        ),
 
         // Tests
         .testTarget(
             name: "SWBAndroidPlatformTests",
             dependencies: ["SWBAndroidPlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBApplePlatformTests",
             dependencies: ["SWBApplePlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBGenericUnixPlatformTests",
             dependencies: ["SWBGenericUnixPlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBQNXPlatformTests",
             dependencies: ["SWBQNXPlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBUniversalPlatformTests",
             dependencies: ["SWBUniversalPlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBWebAssemblyPlatformTests",
             dependencies: ["SWBWebAssemblyPlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBWindowsPlatformTests",
             dependencies: ["SWBWindowsPlatform", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SwiftBuildTests",
             dependencies: ["SwiftBuild", "SWBBuildService", "SwiftBuildTestSupport"],
             resources: [
                 .copy("TestData")
             ],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBProjectModelTests",
             dependencies: ["SWBProjectModel"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBProtocolTests",
             dependencies: ["SWBProtocol", "SWBUtil"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBUtilTests",
             dependencies: ["SWBTestSupport", "SWBUtil"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBCASTests",
             dependencies: ["SWBTestSupport", "SWBCAS", "SWBUtil"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBMacroTests",
             dependencies: ["SWBTestSupport", "SWBMacro"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBServiceCoreTests",
             dependencies: ["SWBServiceCore"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBCoreTests",
             dependencies: ["SWBCore", "SWBTestSupport", "SWBUtil", "SWBLLBuild"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBTaskConstructionTests",
             dependencies: ["SWBTaskConstruction", "SWBCore", "SWBTestSupport", "SWBProtocol", "SWBUtil"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBTaskExecutionTests",
             dependencies: ["SWBTaskExecution", "SWBTestSupport"],
             resources: [
                 .copy("TestData")
             ],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBLLBuildTests",
             dependencies: ["SWBLLBuild", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBBuildSystemTests",
             dependencies: ["SWBBuildService", "SWBBuildSystem", "SwiftBuildTestSupport", "SWBTestSupport"],
             resources: [
                 .copy("TestData")
             ],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBBuildServiceTests",
             dependencies: ["SwiftBuild", "SWBBuildService", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBTestSupportTests",
             dependencies: ["SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
 
         // Perf tests
         .testTarget(
             name: "SWBBuildSystemPerfTests",
             dependencies: ["SWBBuildSystem", "SWBTestSupport", "SwiftBuildTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBCASPerfTests",
             dependencies: ["SWBCAS", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBCorePerfTests",
             dependencies: ["SWBCore", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBTaskConstructionPerfTests",
             dependencies: ["SWBTaskConstruction", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SWBUtilPerfTests",
             dependencies: ["SWBUtil", "SWBTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
         .testTarget(
             name: "SwiftBuildPerfTests",
             dependencies: ["SwiftBuild", "SWBTestSupport", "SwiftBuildTestSupport"],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v6)
+        ),
 
         // Commands
         .plugin(
             name: "launch-xcode",
-            capability: .command(intent: .custom(
-                verb: "launch-xcode",
-                description: "Launch the currently selected Xcode configured to use the just-built build service"
-            ))
+            capability: .command(
+                intent: .custom(
+                    verb: "launch-xcode",
+                    description: "Launch the currently selected Xcode configured to use the just-built build service"
+                )
+            )
         ),
         .plugin(
             name: "run-xcodebuild",
-            capability: .command(intent: .custom(
-                verb: "run-xcodebuild",
-                description: "Run xcodebuild from the currently selected Xcode configured to use the just-built build service"
-            ))
+            capability: .command(
+                intent: .custom(
+                    verb: "run-xcodebuild",
+                    description: "Run xcodebuild from the currently selected Xcode configured to use the just-built build service"
+                )
+            )
         ),
         .plugin(
             name: "cmake-smoke-test",
-            capability: .command(intent: .custom(
-                verb: "cmake-smoke-test",
-                description: "Build Swift Build using CMake for validation purposes"
-            ))
+            capability: .command(
+                intent: .custom(
+                    verb: "cmake-smoke-test",
+                    description: "Build Swift Build using CMake for validation purposes"
+                )
+            )
         ),
         .plugin(
             name: "generate-windows-installer-component-groups",
-            capability: .command(intent: .custom(
-                verb: "generate-windows-installer-component-groups",
-                description: "Generate XML fragments for cli.wxs in swift-installer-scripts"
-            ))
-        )
+            capability: .command(
+                intent: .custom(
+                    verb: "generate-windows-installer-component-groups",
+                    description: "Generate XML fragments for cli.wxs in swift-installer-scripts"
+                )
+            )
+        ),
     ],
     swiftLanguageModes: [.v5, .v6],
     cxxLanguageStandard: .cxx20
@@ -467,7 +532,7 @@ if useLocalDependencies {
         .package(path: "../swift-argument-parser"),
     ]
     if !useLLBuildFramework {
-        package.dependencies +=  [.package(path: "../llbuild"),]
+        package.dependencies += [.package(path: "../llbuild")]
     }
 } else {
     package.dependencies += [
@@ -476,6 +541,6 @@ if useLocalDependencies {
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
     ]
     if !useLLBuildFramework {
-        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "main"),]
+        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "main")]
     }
 }

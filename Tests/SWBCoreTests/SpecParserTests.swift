@@ -28,7 +28,7 @@ fileprivate final class MockSpecType: SpecType {
 }
 
 @Suite fileprivate struct SpecParserTests {
-    final class TestDataDelegate : SpecParserDelegate {
+    final class TestDataDelegate: SpecParserDelegate {
         final class MockSpecRegistryDelegate: SpecRegistryDelegate, Sendable {
             private let _diagnosticsEngine: DiagnosticsEngine
 
@@ -100,9 +100,9 @@ fileprivate final class MockSpecType: SpecType {
         let data: [String: PropertyListItem] = [
             "False0": "no", "False1": "No", "False2": "NO", "False3": "0",
             "True0": "yes", "True1": "Yes", "True2": "YES", "True3": "1",
-            "Other0": "BOGUS", "Other1": ["x"]
+            "Other0": "BOGUS", "Other1": ["x"],
         ]
-        let (_,warnings,errors) = await parserForTestData(data) { parser in
+        let (_, warnings, errors) = await parserForTestData(data) { parser in
             #expect(!parser.parseRequiredBool("False0"))
             #expect(!parser.parseRequiredBool("False1"))
             #expect(!parser.parseRequiredBool("False2"))
@@ -130,7 +130,7 @@ fileprivate final class MockSpecType: SpecType {
             "B": "bValue",
             "C": ["x"],
         ]
-        let (_,warnings,errors) = await parserForTestData(data) { parser in
+        let (_, warnings, errors) = await parserForTestData(data) { parser in
             #expect(parser.parseString("A")! == "aValue")
             #expect(parser.parseRequiredString("B") == "bValue")
             #expect(parser.parseString("C") == nil)
@@ -147,10 +147,10 @@ fileprivate final class MockSpecType: SpecType {
     func stringList() async {
         let data: [String: PropertyListItem] = [
             "A": ["a", "b", "c"],
-            "B": ["a", ["b":"c"], "d"],
-            "C": "x"
+            "B": ["a", ["b": "c"], "d"],
+            "C": "x",
         ]
-        let (_,warnings,errors) = await parserForTestData(data) { parser in
+        let (_, warnings, errors) = await parserForTestData(data) { parser in
             #expect(parser.parseStringList("A")! == ["a", "b", "c"])
             #expect(parser.parseRequiredStringList("B") == ["a", "<invalid>", "d"])
             #expect(parser.parseStringList("C") == nil)
@@ -171,7 +171,7 @@ fileprivate final class MockSpecType: SpecType {
             "B": "a b c",
             "C": ["bad": "bad"],
         ]
-        let (_,warnings,errors) = await parserForTestData(data) { parser in
+        let (_, warnings, errors) = await parserForTestData(data) { parser in
             #expect(parser.parseCommandLineString("A")! == ["a", "b", "c"])
             #expect(parser.parseCommandLineString("B")! == ["a", "b", "c"])
             #expect(parser.parseCommandLineString("C") == nil)
@@ -185,8 +185,8 @@ fileprivate final class MockSpecType: SpecType {
 
     @Test
     func extraKeys() async {
-        let data: [String: PropertyListItem] = [ "A": "a", "B": "b" ]
-        let (_,warnings,errors) = await parserForTestData(data) { parser in
+        let data: [String: PropertyListItem] = ["A": "a", "B": "b"]
+        let (_, warnings, errors) = await parserForTestData(data) { parser in
             #expect(parser.parseString("A") == "a")
         }
         #expect(warnings == ["unused key 'B'"])
@@ -205,12 +205,12 @@ fileprivate final class MockSpecType: SpecType {
                 "NAME4[sdk=iphoneos*][arch=arm7]": "iphoneos arm7",
             ] as PropertyListItem,
             "BAD0": ["NAME2": "$(BAD"] as PropertyListItem,
-            "BAD1": ["BAD": ["BAD":"BAD"]] as PropertyListItem,
+            "BAD1": ["BAD": ["BAD": "BAD"]] as PropertyListItem,
             "BAD2": ["BAD": ["OK", ["BAD"]] as PropertyListItem] as PropertyListItem,
             "BAD3": ["BAD": ["$(BAD"]] as PropertyListItem,
-            "BAD4": ["BAD[sdk=": "bad"] as PropertyListItem
+            "BAD4": ["BAD[sdk=": "bad"] as PropertyListItem,
         ]
-        let (_,warnings,errors) = await parserForTestData(data) { parser in
+        let (_, warnings, errors) = await parserForTestData(data) { parser in
             let settings = parser.parseRequiredBuildSettings("A")
             let NAME1 = settings.namespace.lookupMacroDeclaration("NAME1")!
             #expect(settings.lookupMacro(NAME1)?.expression.stringRep == "VALUE")
@@ -219,14 +219,18 @@ fileprivate final class MockSpecType: SpecType {
             let NAME4 = settings.namespace.lookupMacroDeclaration("NAME4")!
             let macro4 = settings.lookupMacro(NAME4)
             #expect(macro4?.expression.stringRep == "macos")
-            #expect(macro4?.conditions?.conditions == [
-                MacroCondition(parameter: settings.namespace.lookupConditionParameter("sdk")!, valuePattern: "macos*"),
-            ])
+            #expect(
+                macro4?.conditions?.conditions == [
+                    MacroCondition(parameter: settings.namespace.lookupConditionParameter("sdk")!, valuePattern: "macos*")
+                ]
+            )
             #expect(macro4?.next?.expression.stringRep == "iphoneos arm7")
-            #expect(macro4?.next?.conditions?.conditions == [
-                MacroCondition(parameter: settings.namespace.lookupConditionParameter("sdk")!, valuePattern: "iphoneos*"),
-                MacroCondition(parameter: settings.namespace.lookupConditionParameter("arch")!, valuePattern: "arm7"),
-            ])
+            #expect(
+                macro4?.next?.conditions?.conditions == [
+                    MacroCondition(parameter: settings.namespace.lookupConditionParameter("sdk")!, valuePattern: "iphoneos*"),
+                    MacroCondition(parameter: settings.namespace.lookupConditionParameter("arch")!, valuePattern: "arm7"),
+                ]
+            )
             #expect(macro4?.next?.next?.expression.stringRep == "base")
             #expect(macro4?.next?.next?.conditions?.conditions == nil)
 
@@ -239,15 +243,18 @@ fileprivate final class MockSpecType: SpecType {
         }
         #expect(warnings == [])
         #expect(errors.count == 7)
-        XCTAssertMatch(errors, [
-            .prefix("macro parsing error for build setting 'NAME2': warning:DeprecatedMacroRefSyntax"),
-            .prefix("macro parsing error for build setting 'NAME2': error:UnterminatedMacroSubexpression"),
-            "inconsistentMacroDefinition(name: \"BAD\", type: SWBMacro.MacroType.userDefined, value: PLDict<[\"BAD\": \"BAD\"]>)",
-            "unexpected value for build setting \'BAD\' while parsing 'BAD2'",
-            .prefix("macro parsing error for build setting 'BAD'"),
-            "invalid setting name: 'BAD[sdk='",
-            "missing required value for key: 'MISSING'"
-        ])
+        XCTAssertMatch(
+            errors,
+            [
+                .prefix("macro parsing error for build setting 'NAME2': warning:DeprecatedMacroRefSyntax"),
+                .prefix("macro parsing error for build setting 'NAME2': error:UnterminatedMacroSubexpression"),
+                "inconsistentMacroDefinition(name: \"BAD\", type: SWBMacro.MacroType.userDefined, value: PLDict<[\"BAD\": \"BAD\"]>)",
+                "unexpected value for build setting \'BAD\' while parsing 'BAD2'",
+                .prefix("macro parsing error for build setting 'BAD'"),
+                "invalid setting name: 'BAD[sdk='",
+                "missing required value for key: 'MISSING'",
+            ]
+        )
     }
 
     /// Arrays of dictionaries are a common idiom in .xcspec files. Usually the dictionaries in question represent objects. It’s common to allow single-element arrays to instead be represented as just the single unwrapped element. Similarly, it’s common to allow a dictionary to be represented by just a flat value, which is treated the same as a dictionary with just the value for the "signature" key.  Examples include the build options array, the values array for each build option, the input-file-types array, etc.
@@ -266,34 +273,42 @@ fileprivate final class MockSpecType: SpecType {
                 "e",
             ],
             "E": [
-                ["1", "2", "3"],
+                ["1", "2", "3"]
             ],
         ]
         // Create a test parser and do some test lookups.
-        let (_,warnings,errors) = await parserForTestData(data) { parser in
+        let (_, warnings, errors) = await parserForTestData(data) { parser in
             // Check that we’re able to deal with various wrapped and unwrapped combinations.
-            #expect(parser.parseArrayOfDicts("A"){ (dict: PropertyListItem) -> (String?) in
-                guard case .plDict(let dict) = dict else { return nil }
-                return dict.keys.sorted(by: <).reduce(""){ "\($0!)\($1)," }
-            }! == ["a,", "b,", "c,d,e,"])
-            #expect(parser.parseArrayOfDicts("B", allowUnarrayedElement: true){ (dict: PropertyListItem) -> (String?) in
-                guard case .plDict(let dict) = dict else { return nil }
-                return dict.keys.sorted(by: <).reduce(""){ "\($0!)\($1)," }
-            }! == ["b,"])
-            #expect(parser.parseArrayOfDicts("C", allowUnarrayedElement: true, impliedElementKey: "key"){ (dict: PropertyListItem) -> (String?) in
-                guard case .plDict(let dict) = dict else { return nil }
-                return dict.keys.sorted(by: <).reduce(""){ "\($0!)\($1)," }
-            }! == ["key,"])
-            #expect(parser.parseArrayOfDicts("D", allowUnarrayedElement: true, impliedElementKey: "key"){ (dict: PropertyListItem) -> (String?) in
-                guard case .plDict(let dict) = dict else { return nil }
-                return dict.keys.sorted(by: <).reduce(""){ "\($0!)\($1)," }
-            }! == ["key,", "key,"])
+            #expect(
+                parser.parseArrayOfDicts("A") { (dict: PropertyListItem) -> (String?) in
+                    guard case .plDict(let dict) = dict else { return nil }
+                    return dict.keys.sorted(by: <).reduce("") { "\($0!)\($1)," }
+                }! == ["a,", "b,", "c,d,e,"]
+            )
+            #expect(
+                parser.parseArrayOfDicts("B", allowUnarrayedElement: true) { (dict: PropertyListItem) -> (String?) in
+                    guard case .plDict(let dict) = dict else { return nil }
+                    return dict.keys.sorted(by: <).reduce("") { "\($0!)\($1)," }
+                }! == ["b,"]
+            )
+            #expect(
+                parser.parseArrayOfDicts("C", allowUnarrayedElement: true, impliedElementKey: "key") { (dict: PropertyListItem) -> (String?) in
+                    guard case .plDict(let dict) = dict else { return nil }
+                    return dict.keys.sorted(by: <).reduce("") { "\($0!)\($1)," }
+                }! == ["key,"]
+            )
+            #expect(
+                parser.parseArrayOfDicts("D", allowUnarrayedElement: true, impliedElementKey: "key") { (dict: PropertyListItem) -> (String?) in
+                    guard case .plDict(let dict) = dict else { return nil }
+                    return dict.keys.sorted(by: <).reduce("") { "\($0!)\($1)," }
+                }! == ["key,", "key,"]
+            )
 
             // Check the looking up missing keys returns nil.
             #expect(parser.parseArrayOfDicts("MISSING") { return $0.description } == nil)
 
             // Check that trying to look up unwrapped values without enabling them returns an empty array.
-            #expect(parser.parseArrayOfDicts("E"){ return $0.description }! == [])
+            #expect(parser.parseArrayOfDicts("E") { return $0.description }! == [])
         }
         #expect(warnings == [])
         #expect(errors.count == 1)

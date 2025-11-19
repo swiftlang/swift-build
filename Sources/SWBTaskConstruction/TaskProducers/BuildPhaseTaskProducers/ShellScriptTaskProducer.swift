@@ -46,7 +46,8 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
             }
 
             // Get all of the paths from the xcfilelist; we'll process them later.
-            let groups: [[Path]] = xcfilelistPaths
+            let groups: [[Path]] =
+                xcfilelistPaths
                 .map { xcfilelist in
                     let outputs: [Path]
                     do {
@@ -168,7 +169,6 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
         // Lastly, we need to inspect the contents of the file lists and append their paths accordingly.
         await handleFileLists(&tasks, &inputs, &outputs, &environment, scope, inputFileLists, outputFileLists)
 
-
         let enabledIndexBuildArena = scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)
         let disableScriptExecutionForIndexBuild = scope.evaluate(BuiltinMacros.INDEX_DISABLE_SCRIPT_EXECUTION)
         let forceScriptExecutionForIndexBuild = scope.evaluate(BuiltinMacros.INDEX_FORCE_SCRIPT_EXECUTION)
@@ -214,7 +214,7 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
             isSandboxingEnabled = ShellScriptTaskProducer.isSandboxingEnabled(context, shellScriptBuildPhase)
         }
 
-        inputs.append(scriptFileNode)       // The generated script file is also an input.
+        inputs.append(scriptFileNode)  // The generated script file is also an input.
 
         // Determine if the shell script should always be run. NOTE!! This must come before the virtual output node creation.
         let alwaysExecuteTask = outputs.isEmpty || self.shellScriptBuildPhase.alwaysOutOfDate
@@ -263,8 +263,8 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
                 dependencyData = .dependencyInfo(path)
 
             case .makefiles(let paths):
-                let paths = paths.map{ context.makeAbsolute(Path(scope.evaluate($0))).normalize() }
-                outputs.append(contentsOf: paths.map{ context.createNode($0) })
+                let paths = paths.map { context.makeAbsolute(Path(scope.evaluate($0))).normalize() }
+                outputs.append(contentsOf: paths.map { context.createNode($0) })
                 dependencyData = .makefiles(paths)
             }
         } else {
@@ -302,8 +302,6 @@ final class ShellScriptTaskProducer: PhasedTaskProducer, TaskProducer, ShellBase
 
         return tasks
     }
-
-
 
     /// Construct the tasks for an individual shell-script build rule.
     ///

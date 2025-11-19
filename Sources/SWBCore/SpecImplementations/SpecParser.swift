@@ -50,7 +50,7 @@ public class SpecParser {
     }
 
     /// The set of keys which are parsed by the proxy machinery, and shouldn't count as unused.
-    private static let keysParsedByProxy = Set<String>([ "Class", "Domain", "_Domain", "Identifier", "Type", "BasedOn" ])
+    private static let keysParsedByProxy = Set<String>(["Class", "Domain", "_Domain", "Identifier", "Type", "BasedOn"])
 
     @_spi(Testing) public func complete() {
         for key in proxy.data.keys {
@@ -111,7 +111,7 @@ public class SpecParser {
         return parseItemAsStringList(key, value)
     }
 
-    func parseItemAsStringList(_ key:String, _ value: PropertyListItem) -> [String]? {
+    func parseItemAsStringList(_ key: String, _ value: PropertyListItem) -> [String]? {
         // Extract the value.
         guard case .plArray(let arrayValue) = value else {
             error("unexpected item: \(value) while parsing key \(key) (expected array of strings)")
@@ -174,9 +174,9 @@ public class SpecParser {
         return parseItemAsBuildSettings(key, value, baseSettings: baseSettings)
     }
 
-    func parseItemAsBuildSettings(_ key:String, _ value: PropertyListItem, baseSettings: MacroValueAssignmentTable? = nil) -> MacroValueAssignmentTable? {
+    func parseItemAsBuildSettings(_ key: String, _ value: PropertyListItem, baseSettings: MacroValueAssignmentTable? = nil) -> MacroValueAssignmentTable? {
         // This holds our "last-in-wins" values for our macro assignments.
-        var values: [String:(macro:MacroDeclaration, conditions:MacroConditionSet?, expression:MacroExpression)] = [:]
+        var values: [String: (macro: MacroDeclaration, conditions: MacroConditionSet?, expression: MacroExpression)] = [:]
 
         // A helper function to populate the `values` table correctly based on the macro/conditions set.
         func setBuildSetting(macro: MacroDeclaration, conditions: MacroConditionSet?, expr: MacroExpression) {
@@ -210,9 +210,8 @@ public class SpecParser {
 
             let conditionSet: MacroConditionSet?
             if let conditions {
-                conditionSet = MacroConditionSet(conditions: conditions.map{ MacroCondition(parameter: namespace.declareConditionParameter($0.0), valuePattern: $0.1) })
-            }
-            else {
+                conditionSet = MacroConditionSet(conditions: conditions.map { MacroCondition(parameter: namespace.declareConditionParameter($0.0), valuePattern: $0.1) })
+            } else {
                 conditionSet = nil
             }
 
@@ -226,22 +225,22 @@ public class SpecParser {
                     case (.path, .plString(_)):
                         return try namespace.declarePathMacro(macroName)
                     case (.pathList, .plString(_)),
-                         (.pathList, .plArray(_)):
+                        (.pathList, .plArray(_)):
                         return try namespace.declarePathListMacro(macroName)
-                    case (.boolean, .plString(_)), // builtin boolean macro + OpenStep plist string => boolean
-                         (.boolean, .plBool(_)),
-                         (nil, .plBool(_)):
+                    case (.boolean, .plString(_)),  // builtin boolean macro + OpenStep plist string => boolean
+                        (.boolean, .plBool(_)),
+                        (nil, .plBool(_)):
                         return try namespace.declareBooleanMacro(macroName)
                     case (.string, .plString(_)),
-                         (nil, .plString(_)):
+                        (nil, .plString(_)):
                         // Both StringMacroDeclaration and EnumMacroDeclaration use the string macro type, but are represented by different classes. If the existing declaration is an enum, it was defined in BuiltinMacros, so prefer it.
                         if let existingDeclaration, existingDeclaration is AnyEnumMacroDeclaration {
                             return existingDeclaration
                         }
                         return try namespace.declareStringMacro(macroName)
-                    case (.stringList, .plString(_)), // some string lists are declared as strings in xcspecs
-                         (.stringList, .plArray(_)),
-                         (nil, .plArray(_)):
+                    case (.stringList, .plString(_)),  // some string lists are declared as strings in xcspecs
+                        (.stringList, .plArray(_)),
+                        (nil, .plArray(_)):
                         return try namespace.declareStringListMacro(macroName)
                     case let (macroType, _):
                         // Using .userDefined here in the nil case is not strictly correct since we're not actually attempting to register a user defined macro, but close enough (we just need _some_ value for the error) - if a plist value was a dictionary for example we'd get an error about the 'dictionary' type being inconsistent with the user defined macro type.
@@ -344,11 +343,11 @@ public class SpecParser {
         }
         // If we have an array we traverse its entries.
         if case .plArray(let entries) = value {
-            return try entries.compactMap{ try callBlock($0) }
+            return try entries.compactMap { try callBlock($0) }
         }
         // Otherwise, if we are asked to allow a single unarrayed element, we just invoke the block once.
         else if allowUnarrayedElement {
-            return try [value].compactMap{ try callBlock($0) }
+            return try [value].compactMap { try callBlock($0) }
         }
         // Otherwise, we have an unexpected item.
         else {

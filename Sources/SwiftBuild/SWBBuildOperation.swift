@@ -56,22 +56,22 @@ public final class SWBBuildOperation: Sendable {
     /// The state of the operation.
     public private(set) var state: SWBBuildOperationState {
         get {
-            return lockedState.withLock{$0}
+            return lockedState.withLock { $0 }
         }
         set {
-            lockedState.withLock{$0 = newValue}
+            lockedState.withLock { $0 = newValue }
         }
     }
 
-#if DEBUG
-    /// The set of active targets, for assertion purposes.
-    private var activeTargets = Set<Int>()
-#endif
+    #if DEBUG
+        /// The set of active targets, for assertion purposes.
+        private var activeTargets = Set<Int>()
+    #endif
 
-#if DEBUG
-    /// The set of active tasks, for assertion purposes.
-    private var activeTasks = Set<Int>()
-#endif
+    #if DEBUG
+        /// The set of active tasks, for assertion purposes.
+        private var activeTasks = Set<Int>()
+    #endif
 
     init(session: SWBBuildServiceSession, delegate: (any SWBPlanningOperationDelegate)?, request: SWBBuildRequest, onlyCreateBuildDescription: Bool, retainBuildDescription: Bool) async throws {
         self.session = session
@@ -157,44 +157,44 @@ public final class SWBBuildOperation: Sendable {
             self.completion.signal()
         case let message as BuildOperationTargetStarted:
             assert(state == .running, "invalid state: \(state)")
-#if DEBUG
-            do {
-                let inserted = activeTargets.insert(message.id).inserted
-                assert(inserted)
-            }
-#endif
+            #if DEBUG
+                do {
+                    let inserted = activeTargets.insert(message.id).inserted
+                    assert(inserted)
+                }
+            #endif
             continuation.yield(.init(message))
         case let message as BuildOperationTargetUpToDate:
             assert(state == .running, "invalid state: \(state)")
             continuation.yield(.targetUpToDate(.init(guid: message.guid)))
         case let message as BuildOperationTargetEnded:
             assert(state == .running, "invalid state: \(state)")
-#if DEBUG
-            guard activeTargets.remove(message.id) != nil else {
-                fatalError("unexpected target message")
-            }
-#endif
+            #if DEBUG
+                guard activeTargets.remove(message.id) != nil else {
+                    fatalError("unexpected target message")
+                }
+            #endif
             continuation.yield(.init(message))
         case let message as BuildOperationTaskUpToDate:
             continuation.yield(.init(message))
         case let message as BuildOperationTaskStarted:
             assert(state == .requested || state == .running, "invalid state: \(state)")
-#if DEBUG
-            do {
-                let inserted = activeTasks.insert(message.id).inserted
-                assert(inserted)
-            }
-#endif
+            #if DEBUG
+                do {
+                    let inserted = activeTasks.insert(message.id).inserted
+                    assert(inserted)
+                }
+            #endif
             continuation.yield(.init(message))
         case let message as BuildOperationTaskEnded:
             assert(state == .requested || state == .running, "invalid state: \(state)")
-#if DEBUG
-            do {
-                guard activeTasks.remove(message.id) != nil else {
-                    fatalError("unexpected target message")
+            #if DEBUG
+                do {
+                    guard activeTasks.remove(message.id) != nil else {
+                        fatalError("unexpected target message")
+                    }
                 }
-            }
-#endif
+            #endif
             continuation.yield(.init(message))
         case let message as BuildOperationTargetPreparedForIndex:
             assert(state == .running, "invalid state: \(state)")

@@ -32,14 +32,20 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("CFile.c"), TestFile("SwiftFile.swift"), TestFile("ObjCFile.m")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                                            "SWIFT_VERSION": swiftVersion])],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "aLibrary", type: .staticLibrary,
+                                "aLibrary",
+                                type: .staticLibrary,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [TestSourcesBuildPhase(["CFile.c", "SwiftFile.swift", "ObjCFile.m"])]
                             )
@@ -75,7 +81,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling \(swiftFile.basename)", swiftFile.str]))
                 results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for aLibrary"]))
                 if runDestination == .linux {  // FIXME: This needs to be investigated... We should be able to use core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap to test for this, but on Windows using this causes the test to fail as the SwiftModuleWrap does not seem to be added.
-                    results.checkTaskExists(.matchRule(["SwiftModuleWrap", "normal", results.runDestinationTargetArchitecture,  "Wrapping Swift module aLibrary"]))
+                    results.checkTaskExists(.matchRule(["SwiftModuleWrap", "normal", results.runDestinationTargetArchitecture, "Wrapping Swift module aLibrary"]))
                 }
                 results.checkNoTask()
             }
@@ -114,23 +120,29 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
             var targets: [any TestTarget] = [
                 TestAggregateTarget("All", dependencies: ["aFramework"] + (multipleTargets ? ["bFramework"] : [])),
                 TestStandardTarget(
-                    "aFramework", type: .framework,
+                    "aFramework",
+                    type: .framework,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile(fileName)
-                        ]),
-                    ])
+                        ])
+                    ]
+                ),
             ]
             if multipleTargets {
-                targets.append(TestStandardTarget(
-                    "bFramework", type: .framework,
-                    buildConfigurations: [TestBuildConfiguration("Debug")],
-                    buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile(fileName)
-                        ]),
-                    ]))
+                targets.append(
+                    TestStandardTarget(
+                        "bFramework",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile(fileName)
+                            ])
+                        ]
+                    )
+                )
             }
             let testWorkspace = TestWorkspace(
                 "Test",
@@ -138,14 +150,22 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile(fileName, fileType: fileType),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
-                        targets: targets)
-                ])
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile(fileName, fileType: fileType)
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]
+                            )
+                        ],
+                        targets: targets
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input file.
@@ -270,28 +290,40 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     projects: [
                         TestProject(
                             "aProject",
-                            groupTree: TestGroup("Sources", children: [
-                                TestFile("CFile.c"),
-                            ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("CFile.c")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
-                                    "aLibrary", type: .staticLibrary,
+                                    "aLibrary",
+                                    type: .staticLibrary,
                                     buildConfigurations: [TestBuildConfiguration("Debug")],
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["CFile.c"]),
+                                        TestSourcesBuildPhase(["CFile.c"])
                                     ],
-                                    dependencies: ["aLibraryDep"]),
+                                    dependencies: ["aLibraryDep"]
+                                ),
                                 TestStandardTarget(
-                                    "aLibraryDep", type: .staticLibrary,
+                                    "aLibraryDep",
+                                    type: .staticLibrary,
                                     buildConfigurations: [TestBuildConfiguration("Debug")],
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["CFile.c"]),
-                                    ])
-                            ])
-                    ])
+                                        TestSourcesBuildPhase(["CFile.c"])
+                                    ]
+                                ),
+                            ]
+                        )
+                    ]
+                )
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
                 // Create the input files.
@@ -334,15 +366,21 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("Metal.metal")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                                            "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
-                                            "SWIFT_VERSION": swiftVersion])],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                    "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "aLibrary", type: .staticLibrary,
+                                "aLibrary",
+                                type: .staticLibrary,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [TestSourcesBuildPhase(["Metal.metal"])]
                             )

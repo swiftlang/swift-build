@@ -30,11 +30,14 @@ final class FileSystemSignatureBasedCache<Value: Sendable>: Sendable {
 
     /// Gets the object with the given path and signature, creating it if necessary.
     public func get(at path: Path, filesSignature: FilesSignature) throws -> Value {
-        return try cache.getOrInsert(Key(path: path, filesSignature: filesSignature), body: { () -> Result<Value, any Error> in
-            return Result<Value, any Error> {
-                try block(path)
+        return try cache.getOrInsert(
+            Key(path: path, filesSignature: filesSignature),
+            body: { () -> Result<Value, any Error> in
+                return Result<Value, any Error> {
+                    try block(path)
+                }
             }
-        }).get()
+        ).get()
     }
 }
 

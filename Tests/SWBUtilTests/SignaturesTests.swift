@@ -62,12 +62,14 @@ fileprivate struct SignaturesTests {
                 Issue.record("Expected an error to be thrown, but it was not.")
             } catch let CodeSignatureInfo.Error.codesignVerificationFailed(description, output) {
                 #expect(description == "A sealed resource is missing or invalid")
-                #expect(try output.split(separator: "\n").filter { line in
-                    try #/--(prepared|validated):/.+/Contents/Frameworks/libclang_rt\.(asan|tsan|ubsan)_osx_dynamic\.dylib/#.wholeMatch(in: line) == nil
-                } == [
-                    "\(bundlePath.str): a sealed resource is missing or invalid",
-                    "file added: \(bundlePath.str)/Info-Copy.plist"
-                ])
+                #expect(
+                    try output.split(separator: "\n").filter { line in
+                        try #/--(prepared|validated):/.+/Contents/Frameworks/libclang_rt\.(asan|tsan|ubsan)_osx_dynamic\.dylib/#.wholeMatch(in: line) == nil
+                    } == [
+                        "\(bundlePath.str): a sealed resource is missing or invalid",
+                        "file added: \(bundlePath.str)/Info-Copy.plist",
+                    ]
+                )
             } catch {
                 Issue.record(error)
             }

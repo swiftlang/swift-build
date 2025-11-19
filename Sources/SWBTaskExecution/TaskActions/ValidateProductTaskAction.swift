@@ -65,52 +65,51 @@ public final class ValidateProductTaskAction: TaskAction {
             let generator = commandLine.makeIterator()
             // Skip the executable.
             let programName = generator.next() ?? "<<missing program name>>"
-            argumentParsing:
-                while let arg = generator.next() {
-                    switch arg {
-// Presently these options are disabled; they are only used for "offline store validation", which was disabled in the original XCWorkQueueCommandBuiltinInvocation_validationUtility and is not yet implemented here.
-// When & if they are reenabled, they should be documented in emitUsage().
-/*
-                    case "-verbose":
-                        verbose = true
+            argumentParsing: while let arg = generator.next() {
+                switch arg {
+                // Presently these options are disabled; they are only used for "offline store validation", which was disabled in the original XCWorkQueueCommandBuiltinInvocation_validationUtility and is not yet implemented here.
+                // When & if they are reenabled, they should be documented in emitUsage().
 
-                    case "-warnings":
-                        storeIssueTreatment = .treatAsWarnings
+                // case "-verbose":
+                //     verbose = true
 
-                    case "-errors":
-                        storeIssueTreatment = .treatAsErrors
-*/
-                    case "-validate-for-store":
-                        validateForStore = true
+                // case "-warnings":
+                //     storeIssueTreatment = .treatAsWarnings
 
-                    // The default is yes, so we only need an opt-out for now. This also prevents us from having to pass in `-validate-extension` everywhere, even though that is the default behavior.
-                    case "-no-validate-extension":
-                        validateExtension = false
+                // case "-errors":
+                //     storeIssueTreatment = .treatAsErrors
 
-                    case "-no-validate-embedded-frameworks":
-                        validateEmbeddedFrameworks = false
+                case "-validate-for-store":
+                    validateForStore = true
 
-                    case "-shallow-bundle":
-                        isShallowBundle = true
+                // The default is yes, so we only need an opt-out for now. This also prevents us from having to pass in `-validate-extension` everywhere, even though that is the default behavior.
+                case "-no-validate-extension":
+                    validateExtension = false
 
-                    case "-infoplist-subpath":
-                        guard let path = generator.next() else {
-                            error("missing argument for option: \(arg)")
-                            continue
-                        }
-                        infoplistSubpath = path
+                case "-no-validate-embedded-frameworks":
+                    validateEmbeddedFrameworks = false
 
-                    case _ where arg.hasPrefix("-"):
-                        error("unrecognized option: \(arg)")
+                case "-shallow-bundle":
+                    isShallowBundle = true
 
-                    case _ where applicationPath == nil:
-                        // Any other option is considered to be the application path.
-                        applicationPath = Path(arg)
-
-                    default:
-                        // But we can only have one application path.
-                        error("multiple application paths specified")
+                case "-infoplist-subpath":
+                    guard let path = generator.next() else {
+                        error("missing argument for option: \(arg)")
+                        continue
                     }
+                    infoplistSubpath = path
+
+                case _ where arg.hasPrefix("-"):
+                    error("unrecognized option: \(arg)")
+
+                case _ where applicationPath == nil:
+                    // Any other option is considered to be the application path.
+                    applicationPath = Path(arg)
+
+                default:
+                    // But we can only have one application path.
+                    error("multiple application paths specified")
+                }
             }
 
             // Diagnose missing inputs.
@@ -126,8 +125,7 @@ public final class ValidateProductTaskAction: TaskAction {
             let ext = applicationPath.fileExtension.lowercased()
             if ext == "ipa" {
                 validatingArchive = true
-            }
-            else if ext != "app" {
+            } else if ext != "app" {
                 if validateExtension {
                     error("unknown application extension '.\(ext): expected '.app' or '.ipa'")
                 }
@@ -175,8 +173,7 @@ public final class ValidateProductTaskAction: TaskAction {
         let infoPlistItem: PropertyListItem
         do {
             infoPlistItem = try PropertyList.fromPath(applicationPath.join(options.infoplistSubpath), fs: executionDelegate.fs)
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("Failed to read Info.plist of app \(applicationPath.str): \(error.localizedDescription)")
             return .failed
         }
@@ -245,8 +242,7 @@ public final class ValidateProductTaskAction: TaskAction {
             let infoPlistItem: PropertyListItem
             do {
                 infoPlistItem = try PropertyList.fromPath(infoPlistPath, fs: fs)
-            }
-            catch let error {
+            } catch let error {
                 outputDelegate.emitError("Failed to read Info.plist of framework \(frameworkPath.str): \(error)")
                 hasErrors = true
                 continue

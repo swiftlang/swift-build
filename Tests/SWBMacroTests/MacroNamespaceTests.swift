@@ -44,11 +44,14 @@ import SWBMacro
         let tableData: [String: PropertyListItem] = ["CUSTOM_SETTING": .plString("foo value")]
 
         // user defined not allowed
-        #expect(performing: {
-            try namespace.parseTable(tableData, allowUserDefined: false)
-        }, throws: { error in
-            error as? MacroDeclarationError == .unknownMacroDeclarationType(name: "CUSTOM_SETTING")
-        })
+        #expect(
+            performing: {
+                try namespace.parseTable(tableData, allowUserDefined: false)
+            },
+            throws: { error in
+                error as? MacroDeclarationError == .unknownMacroDeclarationType(name: "CUSTOM_SETTING")
+            }
+        )
 
         // allow user defined
         _ = try namespace.parseTable(tableData, allowUserDefined: true)
@@ -57,11 +60,14 @@ import SWBMacro
         // attempt to overwrite user-defined type with known type
         let tableDataMismatched: [String: PropertyListItem] = ["USER_DEFINED_STRING": .plString("foo value")]
         _ = try namespace.parseTable(tableDataMismatched, allowUserDefined: true)
-        #expect(performing: {
-            try namespace.declareStringMacro("USER_DEFINED_STRING")
-        }, throws: { error in
-            error as? MacroDeclarationError == .conflictingMacroDeclarationType(type: .string, previousType: .userDefined, name: "USER_DEFINED_STRING")
-        })
+        #expect(
+            performing: {
+                try namespace.declareStringMacro("USER_DEFINED_STRING")
+            },
+            throws: { error in
+                error as? MacroDeclarationError == .conflictingMacroDeclarationType(type: .string, previousType: .userDefined, name: "USER_DEFINED_STRING")
+            }
+        )
 
         // use associated types to type-map specific macros that would be otherwise user-defined (note these aren't actually treated as user-defined, so we'll set that to false)
         let associatedTypesForKeysMatching: [String: MacroType] = ["_DEFINED_STRING_SETTING": .string]
@@ -82,17 +88,22 @@ import SWBMacro
         // deterministically during serialization, the creation of the MacroValueAssignment linked list
         // must also be deterministic from the input dictionary to ensure they are written deterministically
         // as well.
-        let table = try namespace.parseTable([
-            "SETTING[sdk=macosx*]": "value",
-            "SETTING[sdk=iphoneos*]": "value",
-            "SETTING[sdk=appletvos*]": "value",
-            "SETTING[sdk=watchos*]": "value",
-            "SETTING[sdk=driverkit*]": "value",
-        ], allowUserDefined: true)
+        let table = try namespace.parseTable(
+            [
+                "SETTING[sdk=macosx*]": "value",
+                "SETTING[sdk=iphoneos*]": "value",
+                "SETTING[sdk=appletvos*]": "value",
+                "SETTING[sdk=watchos*]": "value",
+                "SETTING[sdk=driverkit*]": "value",
+            ],
+            allowUserDefined: true
+        )
 
-        #expect(table.dump() == """
-            'SETTING' := [sdk=watchos*]'value' -> [sdk=macosx*]'value' -> [sdk=iphoneos*]'value' -> [sdk=driverkit*]'value' -> [sdk=appletvos*]'value' (type: userDefined)
+        #expect(
+            table.dump() == """
+                'SETTING' := [sdk=watchos*]'value' -> [sdk=macosx*]'value' -> [sdk=iphoneos*]'value' -> [sdk=driverkit*]'value' -> [sdk=appletvos*]'value' (type: userDefined)
 
-            """)
+                """
+        )
     }
 }

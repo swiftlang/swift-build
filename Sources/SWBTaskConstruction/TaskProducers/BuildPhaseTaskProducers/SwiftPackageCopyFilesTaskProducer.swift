@@ -115,7 +115,7 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
                 }
 
             case .unknown(_):
-                return false // Embedding unknown files will likely only end up tripping up validation, so we should not do that.
+                return false  // Embedding unknown files will likely only end up tripping up validation, so we should not do that.
             }
         }
 
@@ -161,13 +161,13 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
                 let platformFilters = buildFiles.map { $0.platformFilters }
                 let aggregatedPlatformFilters: Set<PlatformFilter>
                 if platformFilters.contains(where: { $0.isEmpty }) {
-                    aggregatedPlatformFilters = [] // If any build file supports all platforms, we embed for all platforms.
+                    aggregatedPlatformFilters = []  // If any build file supports all platforms, we embed for all platforms.
                 } else {
                     aggregatedPlatformFilters = platformFilters.reduce([]) { $0.union($1) }
                 }
 
                 let target: Target
-                if case .targetProduct(let guid) = firstBuildFile.buildableItem, let _target = context.workspaceContext.workspace.target(for: guid)  {
+                if case .targetProduct(let guid) = firstBuildFile.buildableItem, let _target = context.workspaceContext.workspace.target(for: guid) {
                     target = _target
                 } else {
                     // If this isn't a target product reference, it has to be a `binaryTarget` which does not support platform filters by definition, so we can return the first build file instead.
@@ -187,7 +187,7 @@ final class SwiftPackageCopyFilesTaskProducer: CopyFilesTaskProducer {
     private let generatedBuildPhase: CopyFilesBuildPhase
 
     init(_ context: TargetTaskProducerContext, phaseStartNodes: [any PlannedNode], phaseEndNode: any PlannedNode, phaseEndTask: any PlannedTask, frameworksBuildPhase: FrameworksBuildPhase?) {
-        let configuredTarget = context.configuredTarget! // We assume a `TargetTaskProducerContext` always has an associated configured target.
+        let configuredTarget = context.configuredTarget!  // We assume a `TargetTaskProducerContext` always has an associated configured target.
 
         let guid = "\(configuredTarget.target.guid)-package-copy-files-phase"
         let buildFiles = Self.buildFilesForPackages(context: context, frameworksBuildPhase: frameworksBuildPhase)

@@ -29,17 +29,21 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "CLANG_USE_RESPONSE_FILE": "NO",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -47,7 +51,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -55,8 +59,9 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                         TestCopyFilesBuildPhase(["Support.xcframework"], destinationSubfolder: .frameworks),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -66,10 +71,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
@@ -81,12 +89,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/Support.framework"),
                     .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support.framework/Support"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -121,17 +129,21 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
-                    "DEAD_CODE_STRIPPING": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "CLANG_USE_RESPONSE_FILE": "NO",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
+                        "DEAD_CODE_STRIPPING": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -139,7 +151,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -152,18 +164,22 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "Driver",
                     type: .driverExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "CODE_SIGN_IDENTITY": "Apple Development",
-                            "SDKROOT": "driverkit"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGN_IDENTITY": "Apple Development",
+                                "SDKROOT": "driverkit",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
                         TestFrameworksBuildPhase(["Support.xcframework"]),
                         TestCopyFilesBuildPhase(["Support.xcframework"], destinationSubfolder: .frameworks),
                     ]
-                )
-            ])
+                ),
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -174,10 +190,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
         try fs.writeSimulatedProvisioningProfile(uuid: "8db0e92c-592c-4f06-bfed-9d945841b78d")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", supportedPlatform: "driverkit", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", supportedPlatform: "driverkit", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
@@ -192,12 +211,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                     task.checkInputs([
                         .path("\(SRCROOT)/Support.xcframework"),
-                        .path("\(SRCROOT)/build/Debug")
+                        .path("\(SRCROOT)/build/Debug"),
                     ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/Support.framework"),
                         .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                        .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                        .path("\(SRCROOT)/build/Debug/Support.framework/Support"),
                     ])
                     processSupportXCFrameworkTask = task
                 }
@@ -227,12 +246,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "driverkit", "--target-path", "\(SRCROOT)/build/Debug-driverkit"])
                     task.checkInputs([
                         .path("\(SRCROOT)/Support.xcframework"),
-                        .path("\(SRCROOT)/build/Debug-driverkit")
+                        .path("\(SRCROOT)/build/Debug-driverkit"),
                     ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug-driverkit/Support.framework"),
                         .path("\(SRCROOT)/build/Debug-driverkit/Support.framework/Info.plist"),
-                        .path("\(SRCROOT)/build/Debug-driverkit/Support.framework/Support")
+                        .path("\(SRCROOT)/build/Debug-driverkit/Support.framework/Support"),
                     ])
                     processSupportXCFrameworkTask = task
                 }
@@ -242,9 +261,11 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     // There needs to be a strong dependency on the XCFramework processing.
                     results.checkTaskFollows(task, antecedent: try #require(processSupportXCFrameworkTask))
 
-                    task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.driverKit).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-project-headers.hmap",
-                                           "-I\(SRCROOT)/build/Debug-driverkit/include",
-                                           "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources", "-F\(SRCROOT)/build/Debug-driverkit", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.o"])
+                    task.checkCommandLine([
+                        "clang", "-x", "c", "-target", "x86_64-apple-driverkit\(core.loadSDK(.driverKit).defaultDeploymentTarget)", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-float-conversion", "-Wno-non-literal-null-conversion", "-Wno-objc-literal-conversion", "-Wshorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-isysroot", core.loadSDK(.driverKit).path.str, "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-g", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-comma", "-Wno-block-capture-autoreleasing", "-Wno-strict-prototypes", "-Wno-semicolon-before-method-body", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-generated-files.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-own-target-headers.hmap", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-all-target-headers.hmap", "-iquote", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Driver-project-headers.hmap",
+                        "-I\(SRCROOT)/build/Debug-driverkit/include",
+                        "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources-normal/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources/x86_64", "-I\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/DerivedSources", "-F\(SRCROOT)/build/Debug-driverkit", "-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.d", "--serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.dia", "-c", "\(SRCROOT)/file.c", "-o", "\(SRCROOT)/build/aProject.build/Debug-driverkit/Driver.build/Objects-normal/x86_64/file.o",
+                    ])
                 }
 
                 // Validate that we are getting the "-framework Support" flag added an no unexpected parameters.
@@ -269,17 +290,21 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "CLANG_USE_RESPONSE_FILE": "NO",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -287,7 +312,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release"),
+                        TestBuildConfiguration("Release")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -295,8 +320,9 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                         TestCopyFilesBuildPhase(["Support.xcframework"], destinationSubfolder: .frameworks),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -306,10 +332,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
@@ -321,12 +350,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Release"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Release")
+                    .path("\(SRCROOT)/build/Release"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Release/Support.framework"),
                     .path("\(SRCROOT)/build/Release/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Release/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Release/Support.framework/Support"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -364,19 +393,23 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.swift"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                    "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
-                    "SWIFT_VERSION": "5",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
+                        "SWIFT_VERSION": "5",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -384,15 +417,16 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
                         TestFrameworksBuildPhase(["Support.xcframework"]),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -401,10 +435,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("main.swift"), contents: "func f() -> Int { return 0 }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
@@ -416,12 +453,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/Support.framework"),
                     .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support.framework/Support"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -468,17 +505,21 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
-                    "DEAD_CODE_STRIPPING": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
+                        "DEAD_CODE_STRIPPING": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -490,7 +531,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -502,10 +543,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "AppTests",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "BUNDLE_LOADER": "$(TEST_HOST)",
-                            "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/App.app/Contents/MacOS/App",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/App.app/Contents/MacOS/App",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -518,11 +562,14 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "AppUITests",
                     type: .uiTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "BUNDLE_LOADER": "$(TEST_HOST)",
-                            "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/App.app/Contents/MacOS/App",
-                            "USES_XCTRUNNER": "YES", // default
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/App.app/Contents/MacOS/App",
+                                "USES_XCTRUNNER": "YES",  // default
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -530,8 +577,9 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                         TestCopyFilesBuildPhase(["Support.xcframework"], destinationSubfolder: .frameworks),
                     ],
                     dependencies: ["App"]
-                )
-            ])
+                ),
+            ]
+        )
 
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -543,9 +591,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         let xctrunnerPath = core.developerPath.path.join("Platforms/MacOSX.platform/Developer/Library/Xcode/Agents/XCTRunner.app")
         try await fs.writeXCTRunnerApp(xctrunnerPath, archs: ["arm64", "arm64e", "x86_64"], platform: .macOS, infoLookup: core)
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil)
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
@@ -556,12 +607,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/Support.framework"),
                     .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support.framework/Support"),
                 ])
             }
 
@@ -579,15 +630,19 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -595,15 +650,16 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
                         TestCopyFilesBuildPhase(["Support.xcframework"], destinationSubfolder: .builtProductsDir, destinationSubpath: "MyFrameworks/more/subpaths", onlyForDeployment: false),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -613,10 +669,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
@@ -628,12 +687,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/Support.framework"),
                     .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support.framework/Support"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -660,18 +719,22 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "HEADER_SEARCH_PATHS": "hp1 hp2",
-                    "CLANG_USE_RESPONSE_FILE": "NO",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GCC_WARN_64_TO_32_BIT_CONVERSION": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "HEADER_SEARCH_PATHS": "hp1 hp2",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -679,15 +742,16 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
                         TestFrameworksBuildPhase(["Support.xcframework"]),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -697,10 +761,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsupport.a"), binaryPath: Path("libsupport.a"), headersPath: Path("Headers")),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsupport.a"), binaryPath: Path("libsupport.a"), headersPath: Path("Headers")),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsupport.a"), binaryPath: Path("libsupport.a"), headersPath: Path("Headers")),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsupport.a"), binaryPath: Path("libsupport.a"), headersPath: Path("Headers")),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
@@ -729,7 +796,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/include/Header1.h"),
@@ -773,17 +840,21 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     TestFile("Support.xcframework"),
                     TestFile("Other.xcframework"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "HEADER_SEARCH_PATHS": "hp1 hp2",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5.0",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "HEADER_SEARCH_PATHS": "hp1 hp2",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "5.0",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -791,15 +862,16 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.swift"]),
                         TestFrameworksBuildPhase(["Support.xcframework", "Other.xcframework"]),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -809,19 +881,25 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("support.framework"), binaryPath: Path("support.framework/Versions/A/support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("support.framework"), binaryPath: Path("support.framework/support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("support.framework"), binaryPath: Path("support.framework/Versions/A/support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("support.framework"), binaryPath: Path("support.framework/support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
-        let otherXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("other.dylib"), binaryPath: Path("other.dylib"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("other.dylib"), binaryPath: Path("other.dylib"), headersPath: nil),
-        ])
+        let otherXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("other.dylib"), binaryPath: Path("other.dylib"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("other.dylib"), binaryPath: Path("other.dylib"), headersPath: nil),
+            ]
+        )
         let otherXCFrameworkPath = Path(SRCROOT).join("Other.xcframework")
         try fs.createDirectory(otherXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(otherXCFramework, fs: fs, path: otherXCFrameworkPath, infoLookup: infoLookup)
@@ -839,12 +917,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Support.xcframework", "\(SRCROOT)/build/Debug/support.framework", "macos"])) { task in
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/support.framework"),
                     .path("\(SRCROOT)/build/Debug/support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/support.framework/support")
+                    .path("\(SRCROOT)/build/Debug/support.framework/support"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -853,7 +931,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRule(["ProcessXCFramework", "\(SRCROOT)/Other.xcframework", "\(SRCROOT)/build/Debug/other.dylib", "macos"])) { task in
                 task.checkInputs([
                     .path("\(SRCROOT)/Other.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/other.dylib"),
@@ -903,18 +981,22 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
                     TestFile("Extras.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS[sdk=iphoneos*]": "arm64",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
-                    "SDKROOT": "iphoneos",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "CODE_SIGN_IDENTITY": "Apple Development",
-                    "CODE_SIGN_ENTITLEMENTS": "codesign.entitlements",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS[sdk=iphoneos*]": "arm64",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
+                        "SDKROOT": "iphoneos",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "CODE_SIGN_IDENTITY": "Apple Development",
+                        "CODE_SIGN_ENTITLEMENTS": "codesign.entitlements",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -922,15 +1004,16 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
                         TestFrameworksBuildPhase(["Support.xcframework", "Extras.xcframework"]),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -939,19 +1022,25 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
-        let extrasXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Extras"), headersPath: nil),
-        ])
+        let extrasXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Extras"), headersPath: nil),
+            ]
+        )
         let extrasXCFrameworkPath = Path(SRCROOT).join("Extras.xcframework")
         try fs.createDirectory(extrasXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(extrasXCFramework, fs: fs, path: extrasXCFrameworkPath, infoLookup: infoLookup)
@@ -966,12 +1055,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "ios", "--target-path", "\(SRCROOT)/build/Debug-iphoneos"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Extras.xcframework"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos")
+                    .path("\(SRCROOT)/build/Debug-iphoneos"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug-iphoneos/Extras.framework"),
                     .path("\(SRCROOT)/build/Debug-iphoneos/Extras.framework/Extras"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras.framework/Info.plist")
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Extras.framework/Info.plist"),
                 ])
                 processExtrasXCFrameworkTask = task
             }
@@ -981,12 +1070,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "ios", "--target-path", "\(SRCROOT)/build/Debug-iphoneos"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos")
+                    .path("\(SRCROOT)/build/Debug-iphoneos"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug-iphoneos/Support.framework"),
                     .path("\(SRCROOT)/build/Debug-iphoneos/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug-iphoneos/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug-iphoneos/Support.framework/Support"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -1017,14 +1106,18 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     TestFile("lib1.c"),
                     TestFile("Support.xcframework"),
                     TestFile("Extras.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "INFOPLIST_FILE": "Info.plist",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "INFOPLIST_FILE": "Info.plist",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -1032,7 +1125,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -1045,7 +1138,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "lib1",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["lib1.c"]),
@@ -1057,10 +1150,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "lib2",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "SDKROOT": "appletvos"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "SDKROOT": "appletvos",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["lib1.c"]),
@@ -1072,10 +1168,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App2",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ARCHS": "x86_64h",
-                            "VALID_ARCHS": "$(inherited) x86_64h",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": "x86_64h",
+                                "VALID_ARCHS": "$(inherited) x86_64h",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["lib1.c"]),
@@ -1083,7 +1182,8 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     ],
                     dependencies: []
                 ),
-            ])
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -1094,19 +1194,25 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
         try fs.write(Path(SRCROOT).join("lib1.c"), contents: "int l() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()
         try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
 
-        let extrasXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Extras"), headersPath: nil),
-        ])
+        let extrasXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Versions/A/Extras"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Extras.framework"), binaryPath: Path("Extras.framework/Extras"), headersPath: nil),
+            ]
+        )
         let extrasXCFrameworkPath = Path(SRCROOT).join("Extras.xcframework")
         try fs.createDirectory(extrasXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(extrasXCFramework, fs: fs, path: extrasXCFrameworkPath, infoLookup: infoLookup)
@@ -1117,12 +1223,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Support.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/Support.framework"),
                     .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                    .path("\(SRCROOT)/build/Debug/Support.framework/Support"),
                 ])
                 processSupportXCFrameworkTask = task
             }
@@ -1132,12 +1238,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                 task.checkInputs([
                     .path("\(SRCROOT)/Extras.xcframework"),
-                    .path("\(SRCROOT)/build/Debug")
+                    .path("\(SRCROOT)/build/Debug"),
                 ])
                 task.checkOutputs([
                     .path("\(SRCROOT)/build/Debug/Extras.framework"),
                     .path("\(SRCROOT)/build/Debug/Extras.framework/Extras"),
-                    .path("\(SRCROOT)/build/Debug/Extras.framework/Info.plist")
+                    .path("\(SRCROOT)/build/Debug/Extras.framework/Info.plist"),
                 ])
                 processExtrasXCFrameworkTask = task
             }
@@ -1181,12 +1287,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Support.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                     task.checkInputs([
                         .path("\(SRCROOT)/Support.xcframework"),
-                        .path("\(SRCROOT)/build/Debug")
+                        .path("\(SRCROOT)/build/Debug"),
                     ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/Support.framework"),
                         .path("\(SRCROOT)/build/Debug/Support.framework/Info.plist"),
-                        .path("\(SRCROOT)/build/Debug/Support.framework/Support")
+                        .path("\(SRCROOT)/build/Debug/Support.framework/Support"),
                     ])
                     processSupportXCFrameworkTask = task
                 }
@@ -1196,12 +1302,12 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine(["builtin-process-xcframework", "--xcframework", "\(SRCROOT)/Extras.xcframework", "--platform", "macos", "--target-path", "\(SRCROOT)/build/Debug"])
                     task.checkInputs([
                         .path("\(SRCROOT)/Extras.xcframework"),
-                        .path("\(SRCROOT)/build/Debug")
+                        .path("\(SRCROOT)/build/Debug"),
                     ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/Extras.framework"),
                         .path("\(SRCROOT)/build/Debug/Extras.framework/Extras"),
-                        .path("\(SRCROOT)/build/Debug/Extras.framework/Info.plist")
+                        .path("\(SRCROOT)/build/Debug/Extras.framework/Info.plist"),
                     ])
                     processExtrasXCFrameworkTask = task
                 }
@@ -1231,15 +1337,19 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("file.c"),
                     TestFile("Support.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "INFOPLIST_FILE": "Info.plist",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "INFOPLIST_FILE": "Info.plist",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -1247,7 +1357,7 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -1255,8 +1365,9 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
                         TestCopyFilesBuildPhase(["Support.xcframework"], destinationSubfolder: .frameworks),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -1266,10 +1377,13 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
 
         // Purposefully write this out to the wrong path.
         let supportXCFrameworkPath = Path(SRCROOT).join("Support_wrongpath.xcframework")

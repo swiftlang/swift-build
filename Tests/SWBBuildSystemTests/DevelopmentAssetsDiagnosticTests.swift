@@ -27,25 +27,36 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDirPath,
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage1.jpg"),
-                                                    TestFile("ExampleImage2.png")
-                                                  ])
-                                     ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage1.jpg"),
+                                TestFile("ExampleImage2.png"),
+                            ]
+                        )
+                    ]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Release")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Release",
-                                                                                    buildSettings: [
-                                                                                        "CODE_SIGNING_ALLOWED": "NO",
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
-                                                                                    ])],
-                                       buildPhases: [])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Release",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
+                                ]
+                            )
+                        ],
+                        buildPhases: []
+                    )
+                ]
+            )
 
             let parameters = BuildParameters(action: .install, configuration: "Release")
             try await BuildOperationTester(getCore(), testProject, simulated: false).checkBuild(parameters: parameters, runDestination: .macOS) { results in
@@ -68,25 +79,36 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDirPath,
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
-                                                    TestFile("ExampleImage2.png", path: "ExampleImage2.jpg")
-                                                  ])
-                                     ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
+                                TestFile("ExampleImage2.png", path: "ExampleImage2.jpg"),
+                            ]
+                        )
+                    ]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Release")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Release",
-                                                                                    buildSettings: [
-                                                                                        "CODE_SIGNING_ALLOWED": "NO",
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
-                                                                                    ])],
-                                       buildPhases: [TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Release",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
+                                ]
+                            )
+                        ],
+                        buildPhases: [TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)]
+                    )
+                ]
+            )
 
             let fs = localFS
             try fs.createDirectory(Path("\(tmpDirPath.str)/Preview Assets"), recursive: true)
@@ -111,25 +133,36 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDirPath,
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
-                                                    TestFile("ExampleImage2.png", path: "ExampleImage2.jpg")
-                                                  ])
-                                     ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
+                                TestFile("ExampleImage2.png", path: "ExampleImage2.jpg"),
+                            ]
+                        )
+                    ]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Debug")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                                    buildSettings: [
-                                                                                        "CODE_SIGNING_ALLOWED": "NO",
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
-                                                                                    ])],
-                                       buildPhases: [TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
+                                ]
+                            )
+                        ],
+                        buildPhases: [TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)]
+                    )
+                ]
+            )
 
             let fs = localFS
             try fs.createDirectory(Path("\(tmpDirPath.str)/Preview Assets"), recursive: true)
@@ -154,26 +187,38 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDirPath,
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
-                                                    TestFile("ExampleImage2.png", path: "ExampleImage2.jpg")
-                                                  ])
-                                     ]),
-                buildConfigurations: [TestBuildConfiguration("Release", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "DSTROOT": tmpDirPath.join("dstroot").str,
-                ])],
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
+                                TestFile("ExampleImage2.png", path: "ExampleImage2.jpg"),
+                            ]
+                        )
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Release",
+                        buildSettings: [
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "DSTROOT": tmpDirPath.join("dstroot").str,
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Release")],
-                                       buildPhases: [
-                                        TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)
-                                       ])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [TestBuildConfiguration("Release")],
+                        buildPhases: [
+                            TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        ]
+                    )
+                ]
+            )
 
             let parameters = BuildParameters(action: .install, configuration: "Release")
 
@@ -202,27 +247,38 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDirPath,
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
-                                                    TestFile("ExampleImage2.png", path: "ExampleImage2.jpg")
-                                                  ])
-                                     ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
+                                TestFile("ExampleImage2.png", path: "ExampleImage2.jpg"),
+                            ]
+                        )
+                    ]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Debug")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                                    buildSettings: [
-                                                                                        "CODE_SIGNING_ALLOWED": "NO",
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
-                                                                                    ])],
-                                       buildPhases: [
-                                        TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)
-                                       ])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
+                                ]
+                            )
+                        ],
+                        buildPhases: [
+                            TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        ]
+                    )
+                ]
+            )
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
 
@@ -251,18 +307,27 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDirPath,
-                groupTree: TestGroup("AppTarget",
-                                     children: [ TestGroup("Preview Assets") ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [TestGroup("Preview Assets")]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Debug")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                                    buildSettings: [
-                                                                                        "CODE_SIGNING_ALLOWED": "NO",
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
-                                                                                    ])])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let parameters = BuildParameters(action: .install, configuration: "Debug")
 
@@ -291,46 +356,68 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath in
             let testProject = TestProject(
                 "aProject",
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage1.jpg"),
-                                                    TestFile("ExampleImage2.png")
-                                                  ])
-                                     ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage1.jpg"),
+                                TestFile("ExampleImage2.png"),
+                            ]
+                        )
+                    ]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Release")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Release",
-                                                                                    buildSettings: [
-                                                                                        "CODE_SIGNING_ALLOWED": "NO",
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
-                                                                                    ])],
-                                       buildPhases: [])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Release",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
+                                ]
+                            )
+                        ],
+                        buildPhases: []
+                    )
+                ]
+            )
 
             let testProject2 = TestProject(
                 "aProject",
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage3.jpg"),
-                                                    TestFile("ExampleImage4.png")
-                                                  ])
-                                     ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage3.jpg"),
+                                TestFile("ExampleImage4.png"),
+                            ]
+                        )
+                    ]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Release")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Release",
-                                                                                    buildSettings: [
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
-                                                                                    ])],
-                                       buildPhases: [])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Release",
+                                buildSettings: [
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'"
+                                ]
+                            )
+                        ],
+                        buildPhases: []
+                    )
+                ]
+            )
 
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject, testProject2])
             let parameters = BuildParameters(action: .install, configuration: "Release")
@@ -350,26 +437,37 @@ fileprivate struct DevelopmentAssetsDiagnosticTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 sourceRoot: tmpDirPath,
-                groupTree: TestGroup("AppTarget",
-                                     children: [
-                                        TestGroup("Preview Assets",
-                                                  children: [
-                                                    TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
-                                                    TestFile("ExampleImage2.png", path: "ExampleImage2.jpg")
-                                                  ])
-                                     ]),
+                groupTree: TestGroup(
+                    "AppTarget",
+                    children: [
+                        TestGroup(
+                            "Preview Assets",
+                            children: [
+                                TestFile("ExampleImage1.jpg", path: "ExampleImage1.jpg"),
+                                TestFile("ExampleImage2.png", path: "ExampleImage2.jpg"),
+                            ]
+                        )
+                    ]
+                ),
                 buildConfigurations: [TestBuildConfiguration("Release")],
                 targets: [
-                    TestStandardTarget("AppTarget",
-                                       type: .commandLineTool,
-                                       buildConfigurations: [TestBuildConfiguration("Release",
-                                                                                    buildSettings: [
-                                                                                        "CODE_SIGNING_ALLOWED": "NO",
-                                                                                        "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
-                                                                                        "SRCROOT": "Sources"
-                                                                                    ])],
-                                       buildPhases: [TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)])
-                ])
+                    TestStandardTarget(
+                        "AppTarget",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Release",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "DEVELOPMENT_ASSET_PATHS": "'Preview Assets'",
+                                    "SRCROOT": "Sources",
+                                ]
+                            )
+                        ],
+                        buildPhases: [TestCopyFilesBuildPhase(["ExampleImage1.jpg", "ExampleImage2.png"], destinationSubfolder: .frameworks, onlyForDeployment: false)]
+                    )
+                ]
+            )
 
             let fs = localFS
             try fs.createDirectory(Path("\(tmpDirPath.str)/Preview Assets"), recursive: true)

@@ -32,18 +32,22 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         TestFile("main.c"),
                         TestFile("dynamic.c"),
                         TestFile("static.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": arch,
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "android.ndk",
-                        "SUPPORTED_PLATFORMS": "android",
-                        "ANDROID_DEPLOYMENT_TARGET": "22.0",
-                        "ANDROID_DEPLOYMENT_TARGET[arch=riscv64]": "35.0",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": arch,
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "android.ndk",
+                            "SUPPORTED_PLATFORMS": "android",
+                            "ANDROID_DEPLOYMENT_TARGET": "22.0",
+                            "ANDROID_DEPLOYMENT_TARGET[arch=riscv64]": "35.0",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -57,7 +61,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("dynamiclib")),
                                 TestBuildFile(.target("staticlib")),
-                            ])
+                            ]),
                         ],
                         dependencies: [
                             "dynamiclib",
@@ -68,15 +72,18 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "dynamiclib",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic.c"]),
+                            TestSourcesBuildPhase(["dynamic.c"])
                         ],
                         productReferenceName: "libdynamiclib.so"
                     ),
@@ -84,21 +91,25 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         "staticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib"
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.c"]),
+                            TestSourcesBuildPhase(["static.c"])
                         ]
                     ),
-                ])
+                ]
+            )
             let core = try await getCore()
             let androidExtension = try #require(core.pluginManager.extensions(of: SDKRegistryExtensionPoint.self).compactMap { $0 as? AndroidSDKRegistryExtension }.only)
             let (_, androidNdk) = try #require(await androidExtension.plugin.effectiveInstallation(host: core.hostOperatingSystem))
             if androidNdk.version < Version(27) && arch == "riscv64" {
-                return // riscv64 support was introduced in NDK r27
+                return  // riscv64 support was introduced in NDK r27
             }
 
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
@@ -137,7 +148,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-android")),
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
                         "-Xlinker", "-soname", "-Xlinker", "$ORIGIN/libdynamiclib.so",
-                        "-o", .path(tmpDir.join("build/Debug-android/libdynamiclib.so"))
+                        "-o", .path(tmpDir.join("build/Debug-android/libdynamiclib.so")),
                     ])
                 }
 
@@ -152,7 +163,7 @@ fileprivate struct AndroidBuildOperationTests: CoreBasedTests {
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-android/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
                         "-ldynamiclib",
                         "-lstaticlib",
-                        "-o", .path(tmpDir.join("build/Debug-android/tool"))
+                        "-o", .path(tmpDir.join("build/Debug-android/tool")),
                     ])
                 }
 

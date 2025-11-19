@@ -89,7 +89,7 @@ extension AsyncSequence where Self.Element: RandomAccessCollection, Element.Elem
     }
 }
 
-extension AsyncFlatteningSequence: Sendable where Base: Sendable { }
+extension AsyncFlatteningSequence: Sendable where Base: Sendable {}
 
 @available(*, unavailable)
-extension AsyncFlatteningSequence.AsyncIterator: Sendable { }
+extension AsyncFlatteningSequence.AsyncIterator: Sendable {}

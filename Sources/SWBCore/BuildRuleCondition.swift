@@ -78,14 +78,12 @@ public final class BuildRuleFileTypeCondition: BuildRuleCondition {
     public var description: String {
         if fileTypes.count == 1, let fileType = fileTypes.first {
             return "<\(type(of: self)):\(fileType)>"
-        }
-        else {
+        } else {
             let allFileTypes = fileTypes.map({ $0.identifier }).joined(separator: ":")
             return "<\(type(of: self)):\(allFileTypes)>"
         }
     }
 }
-
 
 /// A condition of a build rule that uses file name pattern as the match criterion.
 public final class BuildRuleFileNameCondition: BuildRuleCondition {

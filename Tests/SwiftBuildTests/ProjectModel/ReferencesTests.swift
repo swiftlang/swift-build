@@ -49,6 +49,7 @@ extension ProjectModel.Group {
             name: "group",
             subitems: [
                 .file(.example)
-            ])
+            ]
+        )
     }
 }

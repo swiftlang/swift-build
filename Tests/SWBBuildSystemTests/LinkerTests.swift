@@ -33,10 +33,12 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift")
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
-                        "testTarget", type: .framework,
+                        "testTarget",
+                        type: .framework,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -45,14 +47,16 @@ fileprivate struct LinkerTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "OTHER_LDFLAGS": "-not-a-real-flag",
-                                    "ARCHS" : "x86_64 aarch64"
-                                ])
+                                    "ARCHS": "x86_64 aarch64",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
             let projectDir = tester.workspace.projects[0].sourceRoot
@@ -81,10 +85,12 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     children: [
                         TestFile("source.swift"),
                         TestFile("source.mm"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
-                        "testTarget", type: .application,
+                        "testTarget",
+                        type: .application,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -92,7 +98,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
-                                ])
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["source.mm"])
@@ -100,7 +107,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                         dependencies: [TestTargetDependency("testFramework")]
                     ),
                     TestStandardTarget(
-                        "testFramework", type: .framework,
+                        "testFramework",
+                        type: .framework,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -109,13 +117,15 @@ fileprivate struct LinkerTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "SWIFT_OBJC_INTEROP_MODE": enableInterop ? "objcxx" : "objc",
-                                ])
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["source.swift"])
                         ]
                     ),
-                ])
+                ]
+            )
         }
 
         try await withTemporaryDirectory { tmpDir in
@@ -195,7 +205,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     children: [
                         TestFile("main.swift"),
                         TestFile("library.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -204,7 +215,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "CODE_SIGNING_ALLOWED": "NO",
                             "OTHER_LDFLAGS": "-v",  // This will add the -v to the clang linking invocation so we can see what linker will be called.
-                        ])
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -225,7 +237,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                             ])
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let projectDir = tester.workspace.projects[0].sourceRoot
             try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
@@ -344,7 +357,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                 try await tester.checkBuild(parameters: parameters, runDestination: .host) { results in
                     results.checkTask(.matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(["-fuse-ld=link"])
-                         results.checkTaskOutput(task) { output in
+                        results.checkTaskOutput(task) { output in
                             // Expect that the 'link' linker is called by clang
                             if runDestination == .windows && Architecture.hostStringValue == "aarch64" {
                                 // rdar://145868953 - On windows aarch64 'clang' picks the wrong host architecture for link.exe, choosing "MSVC\14.41.34120\bin\Hostx86\x64\link.exe"
@@ -354,7 +367,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
                             } else {
                                 #expect(output.asString.replacingOccurrences(of: "\\\\", with: "\\").contains(linkLinkerPathAarch64.str))
                             }
-                         }
+                        }
                     }
                     results.checkNoDiagnostics()
                 }
@@ -373,10 +386,12 @@ fileprivate struct LinkerTests: CoreBasedTests {
                     children: [
                         TestFile("main.c"),
                         TestFile("lib.c"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
-                        "cli", type: .commandLineTool,
+                        "cli",
+                        type: .commandLineTool,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -386,29 +401,33 @@ fileprivate struct LinkerTests: CoreBasedTests {
                                     "GENERATE_PRELINK_OBJECT_FILE": "YES",
                                     "GCC_SYMBOLS_PRIVATE_EXTERN": "NO",
                                     "MACOSX_DEPLOYMENT_TARGET": "13.0",
-                                ])
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["main.c"]),
-                            TestFrameworksBuildPhase([TestBuildFile(.target("lib"))])
+                            TestFrameworksBuildPhase([TestBuildFile(.target("lib"))]),
                         ],
                         dependencies: [TestTargetDependency("lib")]
                     ),
                     TestStandardTarget(
-                        "lib", type: .staticLibrary,
+                        "lib",
+                        type: .staticLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "MACOSX_DEPLOYMENT_TARGET": "13.0",
-                                ])
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["lib.c"])
                         ]
                     ),
-                ])
+                ]
+            )
         }
 
         try await withTemporaryDirectory { tmpDir in

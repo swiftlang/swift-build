@@ -28,7 +28,7 @@ public final class ClangModuleVerifierInputGeneratorTaskAction: TaskAction {
 
         init?(commandLine: some Sequence<String>, outputDelegate: any TaskOutputDelegate) {
             var iterator = commandLine.makeIterator()
-            _ = iterator.next() // Skip argv[0]
+            _ = iterator.next()  // Skip argv[0]
             guard let inputFramework = iterator.next().map(Path.init) else {
                 outputDelegate.emitError("no input framework specified")
                 return nil
@@ -138,9 +138,14 @@ public final class ClangModuleVerifierInputGeneratorTaskAction: TaskAction {
         }
 
         do {
-            try fs.write(options.mainOutput, contents: ByteString(encodingAsUTF8: """
-            \(options.language.includeStatement) <Test/Test.h>
-            """))
+            try fs.write(
+                options.mainOutput,
+                contents: ByteString(
+                    encodingAsUTF8: """
+                        \(options.language.includeStatement) <Test/Test.h>
+                        """
+                )
+            )
         } catch {
             outputDelegate.emitError("failed to write \(options.mainOutput): \(error)")
             return .failed
@@ -154,10 +159,12 @@ public final class ClangModuleVerifierInputGeneratorTaskAction: TaskAction {
                 if !output.isEmpty {
                     output += "\n";
                 }
-                output += ByteString(encodingAsUTF8: """
-                // Private
-                \(framework.allModularPrivateHeaderIncludes(language: options.language))
-                """)
+                output += ByteString(
+                    encodingAsUTF8: """
+                        // Private
+                        \(framework.allModularPrivateHeaderIncludes(language: options.language))
+                        """
+                )
             }
 
             try fs.write(options.headerOutput, contents: output)
@@ -166,14 +173,17 @@ public final class ClangModuleVerifierInputGeneratorTaskAction: TaskAction {
             return .failed
         }
         do {
-            try fs.write(options.moduleMapOutput, contents: """
-            framework module Test {
-                umbrella header "Test.h"
+            try fs.write(
+                options.moduleMapOutput,
+                contents: """
+                    framework module Test {
+                        umbrella header "Test.h"
 
-                export *
-                module * { export * }
-            }
-            """)
+                        export *
+                        module * { export * }
+                    }
+                    """
+            )
         } catch {
             outputDelegate.emitError("failed to write \(options.moduleMapOutput): \(error)")
             return .failed

@@ -121,7 +121,7 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
 
         guard context.fs.exists(libraryPath) else {
             if sanitizer.errorForMissingLibrary(on: context.settings.platform) {
-                context.error("Unable to copy \(sanitizerName) Sanitizer library: Could not determine where it lives." )
+                context.error("Unable to copy \(sanitizerName) Sanitizer library: Could not determine where it lives.")
             }
             return
         }

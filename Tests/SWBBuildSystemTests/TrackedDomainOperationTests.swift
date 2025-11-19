@@ -73,7 +73,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                             TestAggregateTarget(
                                 "All",
                                 dependencies: [
-                                    "App",
+                                    "App"
                                 ]
                             ),
                             TestStandardTarget(
@@ -86,7 +86,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                             "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
                                             "AGGREGATE_TRACKED_DOMAINS": "YES",
                                         ]
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -95,13 +95,17 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                     TestFrameworksBuildPhase([
                                         "Framework.framework"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "PrivacyInfo.xcprivacy",
-                                        "Framework.framework",
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "PrivacyInfo.xcprivacy",
+                                            "Framework.framework",
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: [
-                                    "Framework",
+                                    "Framework"
                                 ]
                             ),
                             TestStandardTarget(
@@ -110,7 +114,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -120,13 +124,21 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                         "SubFramework.framework",
                                         "SubFrameworkEmpty.framework",
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SubFramework.framework",
-                                        "SubFrameworkEmpty.framework",
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false),
-                                    TestCopyFilesBuildPhase([
-                                        "Fmk/PrivacyInfo.xcprivacy"
-                                    ], destinationSubfolder: .resources, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SubFramework.framework",
+                                            "SubFrameworkEmpty.framework",
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "Fmk/PrivacyInfo.xcprivacy"
+                                        ],
+                                        destinationSubfolder: .resources,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: [
                                     "SubFramework",
@@ -139,15 +151,19 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "SubFrameworkSource.swift"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SubFmk/PrivacyInfo.xcprivacy"
-                                    ], destinationSubfolder: .resources, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SubFmk/PrivacyInfo.xcprivacy"
+                                        ],
+                                        destinationSubfolder: .resources,
+                                        onlyForDeployment: false
+                                    ),
                                 ]
                             ),
                             TestStandardTarget(
@@ -156,20 +172,25 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "SubFrameworkSource.swift"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SubFmkEmpty/PrivacyInfo.xcprivacy"
-                                    ], destinationSubfolder: .resources, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SubFmkEmpty/PrivacyInfo.xcprivacy"
+                                        ],
+                                        destinationSubfolder: .resources,
+                                        onlyForDeployment: false
+                                    ),
                                 ]
-                            )
+                            ),
                         ]
                     )
-                ])
+                ]
+            )
 
             // Create a tester for driving the build.
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
@@ -210,116 +231,148 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
             }
 
             // Write a barebones Info.plist file.
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.apple.com",
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.apple.com"
+                    ],
+                ])
+            )
 
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.best.com",
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.best.com"
+                    ],
+                ])
+            )
 
             try tester.fs.createDirectory(testWorkspace.sourceRoot.join("TestProject/Fwk"), recursive: true)
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.frameworka.com",
-                    "internal.frameworka.com",
-                    "www.allframeworks.com",
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.frameworka.com",
+                        "internal.frameworka.com",
+                        "www.allframeworks.com",
+                    ],
+                ])
+            )
 
             try tester.fs.createDirectory(testWorkspace.sourceRoot.join("TestProject/SubFwk"), recursive: true)
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/SubFmk/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.frameworkb.com",
-                    "internal.frameworkb.com",
-                    "www.allframeworks.com",
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/SubFmk/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.frameworkb.com",
+                        "internal.frameworkb.com",
+                        "www.allframeworks.com",
+                    ],
+                ])
+            )
 
             try tester.fs.createDirectory(testWorkspace.sourceRoot.join("TestProject/SubFwkEmpty"), recursive: true)
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/SubFmkEmpty/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    // empty
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/SubFmkEmpty/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        // empty
+                    ],
+                ])
+            )
 
             // Do an initial build. It's a clean build, so we expect all the tasks to run.
             let parameters = BuildParameters(action: .build, configuration: "Debug")
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
-               try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in
-                   task.checkCommandLineContains([
-                       "-scanforprivacyfile",
-                       "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework"
-                   ])
+                try results.checkTask(
+                    .matchRuleType("ProcessInfoPlistFile"),
+                    .matchTargetName("App"),
+                    body: { task in
+                        task.checkCommandLineContains([
+                            "-scanforprivacyfile",
+                            "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework",
+                        ])
 
-                   let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
-                   let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
-                   let plistDict = try #require(privacyPlist.dictValue)
-                   let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
+                        let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
+                        let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
+                        let plistDict = try #require(privacyPlist.dictValue)
+                        let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
 
-                   // Nested frameworks are not currently supported. rdar://105200261
-//                   XCTAssertEqualSequences(trackedDomains, [
-//                        "internal.frameworka.com",
-//                        "internal.frameworkb.com",
-//                        // There should be no duplicates
-//                        "www.allframeworks.com",
-//                        "www.apple.com",
-//                        "www.frameworka.com",
-//                        "www.frameworkb.com",
-//                   ])
+                        // Nested frameworks are not currently supported. rdar://105200261
+                        //                   XCTAssertEqualSequences(trackedDomains, [
+                        //                        "internal.frameworka.com",
+                        //                        "internal.frameworkb.com",
+                        //                        // There should be no duplicates
+                        //                        "www.allframeworks.com",
+                        //                        "www.apple.com",
+                        //                        "www.frameworka.com",
+                        //                        "www.frameworkb.com",
+                        //                   ])
 
-                   XCTAssertEqualSequences(trackedDomains, [
-                        "internal.frameworka.com",
-                        // There should be no duplicates
-                        "www.allframeworks.com",
-                        "www.apple.com",
-                        "www.best.com",
-                        "www.frameworka.com",
-                   ])
-                })
+                        XCTAssertEqualSequences(
+                            trackedDomains,
+                            [
+                                "internal.frameworka.com",
+                                // There should be no duplicates
+                                "www.allframeworks.com",
+                                "www.apple.com",
+                                "www.best.com",
+                                "www.frameworka.com",
+                            ]
+                        )
+                    }
+                )
             }
 
             // Update the frameworks's tracked domains and check that this causes a re-scan.
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.additional.com",
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.additional.com"
+                    ],
+                ])
+            )
 
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
-               try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in
-                   task.checkCommandLineContains([
-                       "-scanforprivacyfile",
-                       "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework"
-                   ])
+                try results.checkTask(
+                    .matchRuleType("ProcessInfoPlistFile"),
+                    .matchTargetName("App"),
+                    body: { task in
+                        task.checkCommandLineContains([
+                            "-scanforprivacyfile",
+                            "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework",
+                        ])
 
-                   let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
-                   let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
-                   let plistDict = try #require(privacyPlist.dictValue)
-                   let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
+                        let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
+                        let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
+                        let plistDict = try #require(privacyPlist.dictValue)
+                        let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
 
-                   XCTAssertEqualSequences(trackedDomains, [
-                        "www.additional.com",
-                        "www.apple.com",
-                        "www.best.com",
-                   ])
-                })
+                        XCTAssertEqualSequences(
+                            trackedDomains,
+                            [
+                                "www.additional.com",
+                                "www.apple.com",
+                                "www.best.com",
+                            ]
+                        )
+                    }
+                )
             }
         }
     }
@@ -370,7 +423,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                             TestAggregateTarget(
                                 "All",
                                 dependencies: [
-                                    "App",
+                                    "App"
                                 ]
                             ),
                             TestStandardTarget(
@@ -383,7 +436,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                             "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
                                             "AGGREGATE_TRACKED_DOMAINS": "YES",
                                         ]
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -392,12 +445,16 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                     TestFrameworksBuildPhase([
                                         "Framework.framework"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "Framework.framework",
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "Framework.framework"
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: [
-                                    "Framework",
+                                    "Framework"
                                 ]
                             ),
                             TestStandardTarget(
@@ -406,7 +463,7 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -416,13 +473,21 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                         "SubFramework.framework",
                                         "SubFrameworkEmpty.framework",
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SubFramework.framework",
-                                        "SubFrameworkEmpty.framework",
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false),
-                                    TestCopyFilesBuildPhase([
-                                        "Fmk/PrivacyInfo.xcprivacy"
-                                    ], destinationSubfolder: .resources, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SubFramework.framework",
+                                            "SubFrameworkEmpty.framework",
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "Fmk/PrivacyInfo.xcprivacy"
+                                        ],
+                                        destinationSubfolder: .resources,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: [
                                     "SubFramework",
@@ -435,15 +500,19 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "SubFrameworkSource.swift"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SubFmk/PrivacyInfo.xcprivacy"
-                                    ], destinationSubfolder: .resources, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SubFmk/PrivacyInfo.xcprivacy"
+                                        ],
+                                        destinationSubfolder: .resources,
+                                        onlyForDeployment: false
+                                    ),
                                 ]
                             ),
                             TestStandardTarget(
@@ -452,20 +521,25 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "SubFrameworkSource.swift"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SubFmkEmpty/PrivacyInfo.xcprivacy"
-                                    ], destinationSubfolder: .resources, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SubFmkEmpty/PrivacyInfo.xcprivacy"
+                                        ],
+                                        destinationSubfolder: .resources,
+                                        onlyForDeployment: false
+                                    ),
                                 ]
-                            )
+                            ),
                         ]
                     )
-                ])
+                ]
+            )
 
             // Create a tester for driving the build.
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
@@ -506,87 +580,116 @@ fileprivate struct TrackedDomainOperationTests: CoreBasedTests {
             }
 
             // Write a barebones Info.plist file.
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    // empty
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        // empty
+                    ],
+                ])
+            )
 
             try tester.fs.createDirectory(testWorkspace.sourceRoot.join("TestProject/Fwk"), recursive: true)
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    // empty
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        // empty
+                    ],
+                ])
+            )
 
             try tester.fs.createDirectory(testWorkspace.sourceRoot.join("TestProject/SubFwk"), recursive: true)
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/SubFmk/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    // empty
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/SubFmk/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        // empty
+                    ],
+                ])
+            )
 
             try tester.fs.createDirectory(testWorkspace.sourceRoot.join("TestProject/SubFwkEmpty"), recursive: true)
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/SubFmkEmpty/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    // empty
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/SubFmkEmpty/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        // empty
+                    ],
+                ])
+            )
 
             // Do an initial build. It's a clean build, so we expect all the tasks to run.
             let parameters = BuildParameters(action: .build, configuration: "Debug")
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
-               try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in
-                   task.checkCommandLineContains([
-                       "-scanforprivacyfile",
-                       "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework"
-                   ])
+                try results.checkTask(
+                    .matchRuleType("ProcessInfoPlistFile"),
+                    .matchTargetName("App"),
+                    body: { task in
+                        task.checkCommandLineContains([
+                            "-scanforprivacyfile",
+                            "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework",
+                        ])
 
-                   let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
-                   let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
-                   let plistDict = try #require(privacyPlist.dictValue)
-                   let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
+                        let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
+                        let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
+                        let plistDict = try #require(privacyPlist.dictValue)
+                        let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
 
-                   XCTAssertEqualSequences(trackedDomains, [
-                    // empty
-                   ])
-                })
+                        XCTAssertEqualSequences(
+                            trackedDomains,
+                            [
+                                // empty
+                            ]
+                        )
+                    }
+                )
             }
 
             // Update the frameworks's tracked domains and check that this causes a re-scan.
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"), .plDict([
-                "NSPrivacyTracking": "YES",
-                "NSPrivacyTrackingDomains": [
-                    "www.additional.com",
-                ]
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Fmk/PrivacyInfo.xcprivacy"),
+                .plDict([
+                    "NSPrivacyTracking": "YES",
+                    "NSPrivacyTrackingDomains": [
+                        "www.additional.com"
+                    ],
+                ])
+            )
 
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 let buildDir = tmpDirPath.join(Path("Test/TestProject/build/\(parameters.configuration!)"))
 
-               try results.checkTask(.matchRuleType("ProcessInfoPlistFile"), .matchTargetName("App"), body: { task in
-                   task.checkCommandLineContains([
-                       "-scanforprivacyfile",
-                       "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework"
-                   ])
+                try results.checkTask(
+                    .matchRuleType("ProcessInfoPlistFile"),
+                    .matchTargetName("App"),
+                    body: { task in
+                        task.checkCommandLineContains([
+                            "-scanforprivacyfile",
+                            "\(buildDir.str)/App.app/Contents/Frameworks/Framework.framework",
+                        ])
 
-                   let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
-                   let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
-                   let plistDict = try #require(privacyPlist.dictValue)
-                   let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
+                        let contentsData = try tester.fs.read(buildDir.join("App.app/Contents/Info.plist"))
+                        let (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
+                        let plistDict = try #require(privacyPlist.dictValue)
+                        let trackedDomains = try #require(plistDict["NSPrivacyTrackingDomains"]?.arrayValue).compactMap { $0.stringValue }
 
-                   XCTAssertEqualSequences(trackedDomains, [
-                        "www.additional.com",
-                   ])
-                })
+                        XCTAssertEqualSequences(
+                            trackedDomains,
+                            [
+                                "www.additional.com"
+                            ]
+                        )
+                    }
+                )
             }
         }
     }

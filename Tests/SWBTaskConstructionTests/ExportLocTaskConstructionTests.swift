@@ -28,7 +28,7 @@ fileprivate struct ExportLocTaskConstructionTests: CoreBasedTests {
                 "SomeFiles",
                 children: [
                     TestFile("test.swift"),
-                    TestFile("AppTarget/Info.plist")
+                    TestFile("AppTarget/Info.plist"),
                 ]
             ),
             buildConfigurations: [

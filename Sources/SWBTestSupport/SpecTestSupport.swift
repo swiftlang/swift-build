@@ -24,7 +24,7 @@ package class CapturingTaskParserDelegate: TaskOutputParserDelegate {
     package func skippedSubtask(signature: ByteString) {}
     package func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate { fatalError() }
     package func emitOutput(_ data: ByteString) { output <<< data }
-    package func taskCompleted(exitStatus: Processes.ExitStatus) { }
+    package func taskCompleted(exitStatus: Processes.ExitStatus) {}
     package func close() {}
 }
 

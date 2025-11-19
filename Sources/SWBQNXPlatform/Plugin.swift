@@ -44,7 +44,7 @@ struct QNXPlatformSpecsExtension: SpecificationsExtension {
 struct QNXEnvironmentExtension: EnvironmentExtension {
     let plugin: QNXPlugin
 
-    func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String : String] {
+    func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String: String] {
         if let latest = try? await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first {
             return .init(latest.environment)
         }
@@ -55,15 +55,18 @@ struct QNXEnvironmentExtension: EnvironmentExtension {
 struct QNXPlatformExtension: PlatformInfoExtension {
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
-            (.root, [
-                "Type": .plString("Platform"),
-                "Name": .plString("qnx"),
-                "Identifier": .plString("qnx"),
-                "Description": .plString("qnx"),
-                "FamilyName": .plString("QNX"),
-                "FamilyIdentifier": .plString("qnx"),
-                "IsDeploymentPlatform": .plString("YES"),
-            ])
+            (
+                .root,
+                [
+                    "Type": .plString("Platform"),
+                    "Name": .plString("qnx"),
+                    "Identifier": .plString("qnx"),
+                    "Description": .plString("qnx"),
+                    "FamilyName": .plString("QNX"),
+                    "FamilyIdentifier": .plString("qnx"),
+                    "IsDeploymentPlatform": .plString("YES"),
+                ]
+            )
         ]
     }
 }
@@ -71,7 +74,7 @@ struct QNXPlatformExtension: PlatformInfoExtension {
 struct QNXSDKRegistryExtension: SDKRegistryExtension {
     let plugin: QNXPlugin
 
-    func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String : PropertyListItem])] {
+    func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
         guard let qnxPlatform = context.platformRegistry.lookup(name: "qnx") else {
             return []
         }
@@ -105,34 +108,41 @@ struct QNXSDKRegistryExtension: SDKRegistryExtension {
             "LINKER_DRIVER": "qcc",
         ]
 
-        return [(qnxSdk.sysroot, qnxPlatform, [
-            "Type": .plString("SDK"),
-            "Version": .plString(qnxSdk.version?.description ?? "0.0.0"),
-            "CanonicalName": .plString("qnx"),
-            "IsBaseSDK": .plBool(true),
-            "DefaultProperties": .plDict([
-                "PLATFORM_NAME": .plString("qnx"),
-                "QNX_TARGET": .plString(qnxSdk.path.str),
-                "QNX_HOST": .plString(qnxSdk.hostPath?.str ?? ""),
-            ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-            "CustomProperties": .plDict([
-                // Unlike most platforms, the QNX version goes on the environment field rather than the system field
-                // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
-                "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("nto"),
-                "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-qnx"),
-            ]),
-            "SupportedTargets": .plDict([
-                "qnx": .plDict([
-                    "Archs": .plArray([.plString("aarch64"), .plString("x86_64")]),
-                    "LLVMTargetTripleEnvironment": .plString("qnx\(qnxSdk.version?.description ?? "0.0.0")"),
-                    "LLVMTargetTripleSys": .plString("nto"),
-                    "LLVMTargetTripleVendor": .plString("unknown"), // FIXME: pc for x86_64!
-                ])
-            ]),
-            "Toolchains": .plArray([
-                .plString("qnx")
-            ])
-        ])]
+        return [
+            (
+                qnxSdk.sysroot, qnxPlatform,
+                [
+                    "Type": .plString("SDK"),
+                    "Version": .plString(qnxSdk.version?.description ?? "0.0.0"),
+                    "CanonicalName": .plString("qnx"),
+                    "IsBaseSDK": .plBool(true),
+                    "DefaultProperties": .plDict(
+                        [
+                            "PLATFORM_NAME": .plString("qnx"),
+                            "QNX_TARGET": .plString(qnxSdk.path.str),
+                            "QNX_HOST": .plString(qnxSdk.hostPath?.str ?? ""),
+                        ].merging(defaultProperties, uniquingKeysWith: { _, new in new })
+                    ),
+                    "CustomProperties": .plDict([
+                        // Unlike most platforms, the QNX version goes on the environment field rather than the system field
+                        // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
+                        "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("nto"),
+                        "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-qnx"),
+                    ]),
+                    "SupportedTargets": .plDict([
+                        "qnx": .plDict([
+                            "Archs": .plArray([.plString("aarch64"), .plString("x86_64")]),
+                            "LLVMTargetTripleEnvironment": .plString("qnx\(qnxSdk.version?.description ?? "0.0.0")"),
+                            "LLVMTargetTripleSys": .plString("nto"),
+                            "LLVMTargetTripleVendor": .plString("unknown"),  // FIXME: pc for x86_64!
+                        ])
+                    ]),
+                    "Toolchains": .plArray([
+                        .plString("qnx")
+                    ]),
+                ]
+            )
+        ]
     }
 }
 
@@ -158,7 +168,8 @@ struct QNXToolchainRegistryExtension: ToolchainRegistryExtension {
                 defaultSettingsWhenPrimary: [:],
                 executableSearchPaths: [toolchainPath.join("usr").join("bin")],
                 testingLibraryPlatformNames: [],
-                fs: context.fs)
+                fs: context.fs
+            )
         ]
     }
 }

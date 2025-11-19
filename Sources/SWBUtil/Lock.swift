@@ -11,79 +11,79 @@
 //===----------------------------------------------------------------------===//
 
 #if canImport(os)
-public import os
+    public import os
 #elseif os(Windows)
-public import WinSDK
+    public import WinSDK
 #else
-public import SWBLibc
+    public import SWBLibc
 #endif
 
 // FIXME: Replace the contents of this file with the Swift standard library's Mutex type once it's available everywhere we deploy.
 
 /// A more efficient lock than a DispatchQueue (esp. under contention).
 #if canImport(os)
-public typealias Lock = OSAllocatedUnfairLock
+    public typealias Lock = OSAllocatedUnfairLock
 #else
-public final class Lock: @unchecked Sendable {
-    #if os(Windows)
-    @usableFromInline
-    let mutex: UnsafeMutablePointer<SRWLOCK> = UnsafeMutablePointer.allocate(capacity: 1)
-    #elseif os(FreeBSD) || os(OpenBSD)
-    @usableFromInline
-    let mutex: UnsafeMutablePointer<pthread_mutex_t?> = UnsafeMutablePointer.allocate(capacity: 1)
-    #else
-    @usableFromInline
-    let mutex: UnsafeMutablePointer<pthread_mutex_t> = UnsafeMutablePointer.allocate(capacity: 1)
-    #endif
-
-    public init() {
+    public final class Lock: @unchecked Sendable {
         #if os(Windows)
-        InitializeSRWLock(self.mutex)
+            @usableFromInline
+            let mutex: UnsafeMutablePointer<SRWLOCK> = UnsafeMutablePointer.allocate(capacity: 1)
+        #elseif os(FreeBSD) || os(OpenBSD)
+            @usableFromInline
+            let mutex: UnsafeMutablePointer<pthread_mutex_t?> = UnsafeMutablePointer.allocate(capacity: 1)
         #else
-        let err = pthread_mutex_init(self.mutex, nil)
-        precondition(err == 0)
+            @usableFromInline
+            let mutex: UnsafeMutablePointer<pthread_mutex_t> = UnsafeMutablePointer.allocate(capacity: 1)
         #endif
-    }
 
-    deinit {
-        #if os(Windows)
-        // SRWLOCK does not need to be freed
-        #else
-        let err = pthread_mutex_destroy(self.mutex)
-        precondition(err == 0)
-        #endif
-        mutex.deallocate()
-    }
-
-    @usableFromInline
-    func lock() {
-        #if os(Windows)
-        AcquireSRWLockExclusive(self.mutex)
-        #else
-        let err = pthread_mutex_lock(self.mutex)
-        precondition(err == 0)
-        #endif
-    }
-
-    @usableFromInline
-    func unlock() {
-        #if os(Windows)
-        ReleaseSRWLockExclusive(self.mutex)
-        #else
-        let err = pthread_mutex_unlock(self.mutex)
-        precondition(err == 0)
-        #endif
-    }
-
-    @inlinable
-    public func withLock<T>(_ body: () throws -> T) rethrows -> T {
-        self.lock()
-        defer {
-            self.unlock()
+        public init() {
+            #if os(Windows)
+                InitializeSRWLock(self.mutex)
+            #else
+                let err = pthread_mutex_init(self.mutex, nil)
+                precondition(err == 0)
+            #endif
         }
-        return try body()
+
+        deinit {
+            #if os(Windows)
+                // SRWLOCK does not need to be freed
+            #else
+                let err = pthread_mutex_destroy(self.mutex)
+                precondition(err == 0)
+            #endif
+            mutex.deallocate()
+        }
+
+        @usableFromInline
+        func lock() {
+            #if os(Windows)
+                AcquireSRWLockExclusive(self.mutex)
+            #else
+                let err = pthread_mutex_lock(self.mutex)
+                precondition(err == 0)
+            #endif
+        }
+
+        @usableFromInline
+        func unlock() {
+            #if os(Windows)
+                ReleaseSRWLockExclusive(self.mutex)
+            #else
+                let err = pthread_mutex_unlock(self.mutex)
+                precondition(err == 0)
+            #endif
+        }
+
+        @inlinable
+        public func withLock<T>(_ body: () throws -> T) rethrows -> T {
+            self.lock()
+            defer {
+                self.unlock()
+            }
+            return try body()
+        }
     }
-}
 #endif
 
 /// Small wrapper to provide only locked access to its value.
@@ -122,15 +122,15 @@ extension LockedValue where Value: Sendable {
 }
 
 #if canImport(Darwin)
-@available(macOS, deprecated: 15.0, renamed: "Synchronization.Mutex")
-@available(iOS, deprecated: 18.0, renamed: "Synchronization.Mutex")
-@available(tvOS, deprecated: 18.0, renamed: "Synchronization.Mutex")
-@available(watchOS, deprecated: 11.0, renamed: "Synchronization.Mutex")
-@available(visionOS, deprecated: 2.0, renamed: "Synchronization.Mutex")
-public typealias SWBMutex = LockedValue
+    @available(macOS, deprecated: 15.0, renamed: "Synchronization.Mutex")
+    @available(iOS, deprecated: 18.0, renamed: "Synchronization.Mutex")
+    @available(tvOS, deprecated: 18.0, renamed: "Synchronization.Mutex")
+    @available(watchOS, deprecated: 11.0, renamed: "Synchronization.Mutex")
+    @available(visionOS, deprecated: 2.0, renamed: "Synchronization.Mutex")
+    public typealias SWBMutex = LockedValue
 #else
-public import Synchronization
-public typealias SWBMutex = Mutex
+    public import Synchronization
+    public typealias SWBMutex = Mutex
 #endif
 
 extension SWBMutex where Value: ~Copyable, Value == Void {

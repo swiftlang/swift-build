@@ -13,7 +13,7 @@
 public import SWBUtil
 import SWBMacro
 
-public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class CopyToolSpec: CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.pbxcp"
 
     /// Construct a `Copy` task to copy a source file to a destination with default behaviors.
@@ -25,12 +25,18 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
 
     /// Construct a `Copy` task to copy a source file to a destination.
     public func constructCopyTasks(
-        _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate,
-        ruleName: String? = nil, executionDescription: String? = nil,
-        removeHeaderDirectories: Bool = false, removeStaticExecutables: Bool = false,
-        excludeSubpaths: [String] = [], includeOnlySubpaths: [String] = [],
-        stripUnsignedBinaries: Bool? = nil, stripSubpaths: [String] = [],
-        stripBitcode: Bool = false, skipCopyIfContentsEqual: Bool = false,
+        _ cbc: CommandBuildContext,
+        _ delegate: any TaskGenerationDelegate,
+        ruleName: String? = nil,
+        executionDescription: String? = nil,
+        removeHeaderDirectories: Bool = false,
+        removeStaticExecutables: Bool = false,
+        excludeSubpaths: [String] = [],
+        includeOnlySubpaths: [String] = [],
+        stripUnsignedBinaries: Bool? = nil,
+        stripSubpaths: [String] = [],
+        stripBitcode: Bool = false,
+        skipCopyIfContentsEqual: Bool = false,
         additionalFilesToRemove: [String]? = nil,
         additionalPresumedOutputs: [any PlannedNode] = [],
         ignoreMissingInputs: Bool = false,
@@ -154,15 +160,21 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
 
         // Note that the order of rule info here is against the usual conventions.
         let action = delegate.taskActionCreationDelegate.createFileCopyTaskAction(FileCopyTaskActionContext(cbc))
-        let inputs: [any PlannedNode] = cbc.inputs.map{ delegate.createDirectoryTreeNode($0.absolutePath) } + cbc.commandOrderingInputs
+        let inputs: [any PlannedNode] = cbc.inputs.map { delegate.createDirectoryTreeNode($0.absolutePath) } + cbc.commandOrderingInputs
         let outputs: [any PlannedNode] = [delegate.createNode(outputPath)] + additionalPresumedOutputs + cbc.commandOrderingOutputs
         delegate.createTask(
-            type: self, payload: payload, ruleInfo: ruleInfo,
-            commandLine: commandLine, environment: environmentFromSpec(cbc, delegate),
+            type: self,
+            payload: payload,
+            ruleInfo: ruleInfo,
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
-            inputs: inputs, outputs: outputs, action: action,
+            inputs: inputs,
+            outputs: outputs,
+            action: action,
             execDescription: executionDescription ?? resolveExecutionDescription(cbc, delegate),
-            preparesForIndexing: cbc.preparesForIndexing, enableSandboxing: enableSandboxing,
+            preparesForIndexing: cbc.preparesForIndexing,
+            enableSandboxing: enableSandboxing,
             additionalTaskOrderingOptions: additionalTaskOrderingOptions,
             repairViaOwnershipAnalysis: repairViaOwnershipAnalysis
         )

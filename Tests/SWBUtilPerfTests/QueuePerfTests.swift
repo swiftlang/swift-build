@@ -26,15 +26,15 @@ fileprivate struct QueuePerfTests: PerfTests {
         #expect(halfN * 2 == N)
 
         await measure {
-            for _ in 0 ..< numIterations {
+            for _ in 0..<numIterations {
                 var q = Queue<Int>()
 
-                for i in 0 ..< N {
+                for i in 0..<N {
                     q.append(i)
                     q.append(i)
                     if q.popFirst() != i / 2 { fatalError() }
                 }
-                for i in 0 ..< N {
+                for i in 0..<N {
                     if q.popFirst() != halfN + i / 2 { fatalError() }
                 }
             }

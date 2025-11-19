@@ -41,19 +41,22 @@ private struct TestAssetCatalog {
             if fs.exists(path) { try fs.removeDirectory(path) }
             try fs.createDirectory(path)
 
-            try await fs.writeJSON(path.join("Contents.json"), [
-                "info": ["version": 1, "author": "xcode"] as PropertyListItem,
-                "data": [
-                    [
-                        "idiom": "universal",
-                        "filename": "x",
-                        "universal-type-identifier": "public.data",
+            try await fs.writeJSON(
+                path.join("Contents.json"),
+                [
+                    "info": ["version": 1, "author": "xcode"] as PropertyListItem,
+                    "data": [
+                        [
+                            "idiom": "universal",
+                            "filename": "x",
+                            "universal-type-identifier": "public.data",
+                        ]
                     ],
-                ],
-                "properties": [
-                    "on-demand-resource-tags": assetTags.sorted(),
-                ],
-            ])
+                    "properties": [
+                        "on-demand-resource-tags": assetTags.sorted()
+                    ],
+                ]
+            )
 
             try fs.write(path.join("x"), contents: bytes)
         }
@@ -79,33 +82,36 @@ private extension AssetPackManifestPlist {
             throw StubError.error("expected {\"resources\": [...]} in \(plist)")
         }
 
-        try self.init(resources: Set(array.map { itemPlist in
-            guard let item = itemPlist.dictValue else { throw StubError.error("expected dictionary in \(itemPlist)") }
+        try self.init(
+            resources: Set(
+                array.map { itemPlist in
+                    guard let item = itemPlist.dictValue else { throw StubError.error("expected dictionary in \(itemPlist)") }
 
-            guard let identifier = item["bundleKey"]?.stringValue else { throw StubError.error("expected bundleKey String in \(item)") }
-            guard let isStreamable = item["isStreamable"]?.boolValue else { throw StubError.error("expected isStreamable Bool in \(item)") }
-            guard let url = item["URL"]?.stringValue else { throw StubError.error("expected URL String in \(item)") }
+                    guard let identifier = item["bundleKey"]?.stringValue else { throw StubError.error("expected bundleKey String in \(item)") }
+                    guard let isStreamable = item["isStreamable"]?.boolValue else { throw StubError.error("expected isStreamable Bool in \(item)") }
+                    guard let url = item["URL"]?.stringValue else { throw StubError.error("expected URL String in \(item)") }
 
-            let priority: Double?
-            if let priorityItem = item["downloadPriority"] {
-                guard let p = priorityItem.floatValue else { throw StubError.error("expected downloadPriority Double in \(item)") }
-                priority = p
-            }
-            else {
-                priority = nil
-            }
+                    let priority: Double?
+                    if let priorityItem = item["downloadPriority"] {
+                        guard let p = priorityItem.floatValue else { throw StubError.error("expected downloadPriority Double in \(item)") }
+                        priority = p
+                    } else {
+                        priority = nil
+                    }
 
-            guard let uncompressedSize = item["uncompressedSize"]?.intValue else { throw StubError.error("expected uncompressedSize Int in \(item)") }
+                    guard let uncompressedSize = item["uncompressedSize"]?.intValue else { throw StubError.error("expected uncompressedSize Int in \(item)") }
 
-            guard let contentHash = item["primaryContentHash"]?.dictValue else { throw StubError.error("expected primaryContentHash Dictionary in \(item)") }
-            guard let contentHashStrategy = contentHash["strategy"]?.stringValue else { throw StubError.error("expected strategy String in \(contentHash)") }
-            guard contentHashStrategy == "modtime" else { throw StubError.error("expected modtime in \(contentHashStrategy)") }
+                    guard let contentHash = item["primaryContentHash"]?.dictValue else { throw StubError.error("expected primaryContentHash Dictionary in \(item)") }
+                    guard let contentHashStrategy = contentHash["strategy"]?.stringValue else { throw StubError.error("expected strategy String in \(contentHash)") }
+                    guard contentHashStrategy == "modtime" else { throw StubError.error("expected modtime in \(contentHashStrategy)") }
 
-            guard let modDateString = contentHash["hash"]?.stringValue else { throw StubError.error("expected hash String in \(contentHash)") }
-            guard let parsedDate = try? AssetPackManifestPlist.Resource.PrimaryContentHash.modtimeFormatStyle.parse(modDateString) else { throw StubError.error("failed to parse date from \(modDateString)") }
+                    guard let modDateString = contentHash["hash"]?.stringValue else { throw StubError.error("expected hash String in \(contentHash)") }
+                    guard let parsedDate = try? AssetPackManifestPlist.Resource.PrimaryContentHash.modtimeFormatStyle.parse(modDateString) else { throw StubError.error("failed to parse date from \(modDateString)") }
 
-            return AssetPackManifestPlist.Resource(assetPackBundleIdentifier: identifier, isStreamable: isStreamable, primaryContentHash: AssetPackManifestPlist.Resource.PrimaryContentHash.modtime(parsedDate), uncompressedSize: uncompressedSize, url: url, downloadPriority: priority)
-        }))
+                    return AssetPackManifestPlist.Resource(assetPackBundleIdentifier: identifier, isStreamable: isStreamable, primaryContentHash: AssetPackManifestPlist.Resource.PrimaryContentHash.modtime(parsedDate), uncompressedSize: uncompressedSize, url: url, downloadPriority: priority)
+                }
+            )
+        )
     }
 }
 
@@ -144,11 +150,11 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
         let expected: PropertyListItem = [
             "NSBundleResourceRequestTags": [
-                "t0": [ "NSAssetPacks": ["a0i"] ],
-                "t1": [ "NSAssetPacks": ["a0i", "a1i"] ],
+                "t0": ["NSAssetPacks": ["a0i"]],
+                "t1": ["NSAssetPacks": ["a0i", "a1i"]],
             ],
             "NSBundleResourceRequestAssetPacks": [
-                "a0i": ["x", "y"],
+                "a0i": ["x", "y"]
             ],
         ]
 
@@ -159,7 +165,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func assetPackManifestPlist() async throws {
         let date0 = Date(timeIntervalSince1970: 0)
-        let date1 = Date(timeIntervalSince1970: 60*60)
+        let date1 = Date(timeIntervalSince1970: 60 * 60)
 
         let resources = [
             AssetPackManifestPlist.Resource(assetPackBundleIdentifier: "a0i", isStreamable: true, primaryContentHash: .modtime(date0), uncompressedSize: 1, url: "http://test=a0i", downloadPriority: nil),
@@ -191,7 +197,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                     "uncompressedSize": 2,
                     "downloadPriority": 0.5,
                 ] as [String: PropertyListItem],
-            ],
+            ]
         ]
 
         #expect(model.propertyListItem == expected)
@@ -214,12 +220,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             [
                 "bundle-id": "a0i",
                 "bundle-path": "/tmp/a0.assetpack",
-                "tags": [ "t0", "t1" ],
+                "tags": ["t0", "t1"],
             ] as [String: PropertyListItem],
             [
                 "bundle-id": "a1i",
                 "bundle-path": "/tmp/a1.assetpack",
-                "tags": [ "t1" ],
+                "tags": ["t1"],
             ] as [String: PropertyListItem],
         ]
 
@@ -235,10 +241,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("A.dat"),
-                    ]),
+                        TestFile("A.dat")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -249,7 +257,8 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "WRAP_ASSET_PACKS_IN_SEPARATE_DIRECTORIES": "YES",
                             "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -257,16 +266,18 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                TestBuildFile("A.dat", assetTags: Set(["foo"])),
-                            ]),
+                                TestBuildFile("A.dat", assetTags: Set(["foo"]))
+                            ])
                         ],
-                        dependencies: ["Framework"]),
+                        dependencies: ["Framework"]
+                    ),
                     TestStandardTarget("Framework", type: .framework),
-                ])
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false, continueBuildingAfterErrors: false)
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             // ODR is by default enabled on the app product type. If we enable it universally, we expect to see an error because the framework target should not support ODR.
@@ -289,11 +300,13 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("A.dat"),
                         TestFile("Assets.xcassets"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -303,8 +316,9 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                            "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
-                        ]),
+                            "CODESIGN": "/usr/bin/true",  // we use "Apple Development" identity, so this test will never succeed with the real codesign
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -314,9 +328,11 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             TestResourcesBuildPhase([
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),
                                 "Assets.xcassets",
-                            ]),
-                        ]),
-                ])
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let fs = tester.fs
@@ -328,12 +344,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             let assetCatalogPath = srcRoot.join("Sources/Assets.xcassets")
             let assetCatalog0 = TestAssetCatalog(entries: [
-                "acA": TestAssetCatalog.Entry(bytes: ByteString([0]), assetTags: Set(["foo"])),
+                "acA": TestAssetCatalog.Entry(bytes: ByteString([0]), assetTags: Set(["foo"]))
             ])
             try await assetCatalog0.write(fs, assetCatalogPath)
 
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", overrides: ["ENABLE_ON_DEMAND_RESOURCES": "NO"]), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
@@ -353,20 +369,21 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
     // MARK: Utility methods for testing ODR functionality
 
-
     /// Create a test project and return a tester for that project.
     private func createODRProjectAndTester(_ srcRoot: Path) async throws -> BuildOperationTester {
         let testProject = TestProject(
             "aProject",
             sourceRoot: srcRoot,
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("A.dat"),
                     TestFile("B.dat"),
                     TestFile("de.lproj/C.dat", regionVariantName: "de"),
                     TestFile("Assets.xcassets"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -378,8 +395,9 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                         "ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS": "foo",
                         "ON_DEMAND_RESOURCES_PREFETCH_ORDER": "baz",
                         "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                        "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
-                    ]),
+                        "CODESIGN": "/usr/bin/true",  // we use "Apple Development" identity, so this test will never succeed with the real codesign
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -391,9 +409,11 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             TestBuildFile("B.dat", assetTags: Set(["foo"])),
                             TestBuildFile("de.lproj/C.dat", assetTags: Set(["foo", "bar"])),
                             "Assets.xcassets",
-                        ]),
-                    ]),
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
         let fs = tester.fs
@@ -486,8 +506,10 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 try results.checkTask(.matchRule(["CreateAssetPackManifest", assetPackManifestPlistPath.str])) { createAssetPackManifestTask in
                     /// All tasks which contribute to asset packs should have finished before createAssetPackManifestTask started
                     for precedingTask in precedingTasks {
-                        results.check(event:    .taskHadEvent(precedingTask,                event: .completed),
-                                      precedes: .taskHadEvent(createAssetPackManifestTask,  event: .started))
+                        results.check(
+                            event: .taskHadEvent(precedingTask, event: .completed),
+                            precedes: .taskHadEvent(createAssetPackManifestTask, event: .started)
+                        )
                     }
 
                     // Content
@@ -517,7 +539,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             // Perform a build and check the results.
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             let buildStartDate0 = Date()
@@ -550,15 +572,17 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 try results.checkTask(.matchRule(["WriteAuxiliaryFile", assetPackInfoPlistPath.str])) { task in
                     let data = try PropertyList.fromBytes(auxFileTaskContents(task).bytes)
 
-                    let expected: PropertyListItem = .init(allAssetPacks0
-                        .sorted { $0.identifier < $1.identifier }
-                        .map { assetPack in
-                            PropertyListItem([
-                                "bundle-id": .plString(assetPack.identifier),
-                                "tags": PropertyListItem(assetPack.tags.sorted()),
-                                "bundle-path": .plString(assetPack.path.str),
-                            ])
-                        })
+                    let expected: PropertyListItem = .init(
+                        allAssetPacks0
+                            .sorted { $0.identifier < $1.identifier }
+                            .map { assetPack in
+                                PropertyListItem([
+                                    "bundle-id": .plString(assetPack.identifier),
+                                    "tags": PropertyListItem(assetPack.tags.sorted()),
+                                    "bundle-path": .plString(assetPack.path.str),
+                                ])
+                            }
+                    )
 
                     #expect(expected == data)
                 }
@@ -569,7 +593,8 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                         StringPattern.anySequence,
                         StringPattern.equal("--asset-pack-output-specifications"),
                         StringPattern.equal(assetPackInfoPlistPath.str),
-                        StringPattern.anySequence])
+                        StringPattern.anySequence,
+                    ])
                     return task
                 }
 
@@ -596,7 +621,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             // Perform a build for macCatalyst and check the results.
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
             let overrides = [
                 "SDKROOT": "macosx",
@@ -648,10 +673,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("A.dat"),
-                    ]),
+                        TestFile("A.dat")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -663,8 +690,9 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             "ASSET_PACK_FOLDER_PATH": odrRoot.str,
                             "EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE": "NO",
                             "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                            "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
-                        ]),
+                            "CODESIGN": "/usr/bin/true",  // we use "Apple Development" identity, so this test will never succeed with the real codesign
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -672,10 +700,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                TestBuildFile("A.dat", assetTags: Set(["foo"])),
-                            ]),
-                        ]),
-                ])
+                                TestBuildFile("A.dat", assetTags: Set(["foo"]))
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let fs = tester.fs
@@ -690,7 +720,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             let assetPacks = [assetPackFoo]
 
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
@@ -712,80 +742,79 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
     }
 
     // rdar://108165577 (Swift-frontend crashes due to heap corruption when compiling Swift Build)
-    /*
-     /// Allow users to point at a custom asset pack server using ASSET_PACK_MANIFEST_URL_PREFIX
-     func testAssetPackManifestURLPrefix() async throws {
-     try await XCTSkipUnlessSDKs(.iOS)
-     try await withTemporaryDirectory { tmpDirPath in
-     let srcRoot = tmpDirPath.join("srcroot")
+    //  /// Allow users to point at a custom asset pack server using ASSET_PACK_MANIFEST_URL_PREFIX
+    //  func testAssetPackManifestURLPrefix() async throws {
+    //  try await XCTSkipUnlessSDKs(.iOS)
+    //  try await withTemporaryDirectory { tmpDirPath in
+    //  let srcRoot = tmpDirPath.join("srcroot")
 
-     let expectedURLPrefix = "https://example.com/packs"
+    //  let expectedURLPrefix = "https://example.com/packs"
 
-     let testProject = TestProject(
-     "aProject",
-     sourceRoot: srcRoot,
-     groupTree: TestGroup(
-     "SomeFiles", path: "Sources",
-     children: [
-     TestFile("A.dat"),
-     ]),
-     buildConfigurations: [
-     TestBuildConfiguration(
-     "Debug",
-     buildSettings: [
-     "INFOPLIST_FILE": "Info.plist",
-     "PRODUCT_BUNDLE_IDENTIFIER": "com.company.$(TARGET_NAME)",
-     "PRODUCT_NAME": "$(TARGET_NAME)",
-     "SDKROOT": "iphoneos",
-     "ASSET_PACK_MANIFEST_URL_PREFIX": expectedURLPrefix,
-     "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-     "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
-     ]),
-     ],
-     targets: [
-     TestStandardTarget(
-     "App",
-     buildPhases: [
-     TestResourcesBuildPhase([
-     TestBuildFile("A.dat", assetTags: Set(["foo"])),
-     ]),
-     ]),
-     ])
+    //  let testProject = TestProject(
+    //  "aProject",
+    //  sourceRoot: srcRoot,
+    //  groupTree: TestGroup(
+    //  "SomeFiles", path: "Sources",
+    //  children: [
+    //  TestFile("A.dat"),
+    //  ]),
+    //  buildConfigurations: [
+    //  TestBuildConfiguration(
+    //  "Debug",
+    //  buildSettings: [
+    //  "INFOPLIST_FILE": "Info.plist",
+    //  "PRODUCT_BUNDLE_IDENTIFIER": "com.company.$(TARGET_NAME)",
+    //  "PRODUCT_NAME": "$(TARGET_NAME)",
+    //  "SDKROOT": "iphoneos",
+    //  "ASSET_PACK_MANIFEST_URL_PREFIX": expectedURLPrefix,
+    //  "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
+    //  "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
+    //  ]),
+    //  ],
+    //  targets: [
+    //  TestStandardTarget(
+    //  "App",
+    //  buildPhases: [
+    //  TestResourcesBuildPhase([
+    //  TestBuildFile("A.dat", assetTags: Set(["foo"])),
+    //  ]),
+    //  ]),
+    //  ])
 
-     let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
-     let fs = tester.fs
+    //  let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
+    //  let fs = tester.fs
 
-     try fs.createDirectory(srcRoot.join("Sources"), recursive: true)
-     try fs.write(srcRoot.join("Sources/A.dat"), contents: ByteString([0]))
+    //  try fs.createDirectory(srcRoot.join("Sources"), recursive: true)
+    //  try fs.write(srcRoot.join("Sources/A.dat"), contents: ByteString([0]))
 
-     try fs.write(srcRoot.join("Info.plist"), contents: "<dict/>")
-     try fs.write(srcRoot.join("App.entitlements"), contents: "")
+    //  try fs.write(srcRoot.join("Info.plist"), contents: "<dict/>")
+    //  try fs.write(srcRoot.join("App.entitlements"), contents: "")
 
-     let assetPackFoo = ODRAssetPackInfo(identifier: "com.company.App.asset-pack-acbd18db4cc2f85cedef654fccc4a4d8", tags: Set(["foo"]), path: srcRoot.join("build/Debug-iphoneos/OnDemandResources/com.company.App.foo-acbd18db4cc2f85cedef654fccc4a4d8.assetpack"), priority: 1)
-     let assetPacks = [assetPackFoo]
+    //  let assetPackFoo = ODRAssetPackInfo(identifier: "com.company.App.asset-pack-acbd18db4cc2f85cedef654fccc4a4d8", tags: Set(["foo"]), path: srcRoot.join("build/Debug-iphoneos/OnDemandResources/com.company.App.foo-acbd18db4cc2f85cedef654fccc4a4d8.assetpack"), priority: 1)
+    //  let assetPacks = [assetPackFoo]
 
-     let provisioningInputs = [
-     "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
-     ]
+    //  let provisioningInputs = [
+    //  "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+    //  ]
 
-     try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
-     results.checkNoDiagnostics()
+    //  try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", activeRunDestination: .iOS), signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+    //  results.checkNoDiagnostics()
 
-     let assetPackManifestPlistPath = srcRoot.join("build/Debug-iphoneos/App.app/AssetPackManifest.plist")
-     try results.checkTask(.matchRule(["CreateAssetPackManifest", assetPackManifestPlistPath.str])) { createAssetPackManifestTask in
-     let manifest = try AssetPackManifestPlist(PropertyList.fromBytes(fs.read(assetPackManifestPlistPath).bytes))
-     XCTAssertEqual(assetPacks.count, manifest.resources.count)
+    //  let assetPackManifestPlistPath = srcRoot.join("build/Debug-iphoneos/App.app/AssetPackManifest.plist")
+    //  try results.checkTask(.matchRule(["CreateAssetPackManifest", assetPackManifestPlistPath.str])) { createAssetPackManifestTask in
+    //  let manifest = try AssetPackManifestPlist(PropertyList.fromBytes(fs.read(assetPackManifestPlistPath).bytes))
+    //  XCTAssertEqual(assetPacks.count, manifest.resources.count)
 
-     for assetPack in assetPacks {
-     guard let item = (manifest.resources.first { $0.assetPackBundleIdentifier == assetPack.identifier }) else { XCTFail(); return }
-     let suffixStr = assetPack.path.basename
-     XCTAssertEqual(item.url, "\(expectedURLPrefix)\(suffixStr)")
-     }
-     }
-     }
-     }
-     }
-     */
+    //  for assetPack in assetPacks {
+    //  guard let item = (manifest.resources.first { $0.assetPackBundleIdentifier == assetPack.identifier }) else { XCTFail(); return }
+    //  let suffixStr = assetPack.path.basename
+    //  XCTAssertEqual(item.url, "\(expectedURLPrefix)\(suffixStr)")
+    //  }
+    //  }
+    //  }
+    //  }
+    //  }
+
     @Test(.requireSDKs(.iOS))
     func assetPackManifestEmbedding() async throws {
         try await withTemporaryDirectory { tmpDirPath in
@@ -795,10 +824,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("A.dat"),
-                    ]),
+                        TestFile("A.dat")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -809,8 +840,9 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE": "YES",
                             "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                            "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
-                        ]),
+                            "CODESIGN": "/usr/bin/true",  // we use "Apple Development" identity, so this test will never succeed with the real codesign
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -818,10 +850,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                TestBuildFile("A.dat", assetTags: Set(["foo"])),
-                            ]),
-                        ]),
-                ])
+                                TestBuildFile("A.dat", assetTags: Set(["foo"]))
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let fs = tester.fs
@@ -833,7 +867,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             try fs.write(srcRoot.join("App.entitlements"), contents: "")
 
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .iOS, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
@@ -862,11 +896,13 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("A.dat"),
                         TestFile("AssetPackManifest.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -876,8 +912,9 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                            "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
-                        ]),
+                            "CODESIGN": "/usr/bin/true",  // we use "Apple Development" identity, so this test will never succeed with the real codesign
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -887,9 +924,11 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             TestResourcesBuildPhase([
                                 TestBuildFile("AssetPackManifest.plist"),
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),
-                            ]),
-                        ]),
-                ])
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let fs = tester.fs
@@ -902,7 +941,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             try fs.write(srcRoot.join("App.entitlements"), contents: "")
 
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             let assetPackFoo = ODRAssetPackInfo(identifier: "com.company.App.asset-pack-acbd18db4cc2f85cedef654fccc4a4d8", tags: Set(["foo"]), path: srcRoot.join("build/Debug-iphoneos/OnDemandResources/com.company.App.foo-acbd18db4cc2f85cedef654fccc4a4d8.assetpack"), priority: nil)
@@ -930,10 +969,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("Assets.xcassets"),
-                    ]),
+                        TestFile("Assets.xcassets")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -944,8 +985,9 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                            "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
-                        ]),
+                            "CODESIGN": "/usr/bin/true",  // we use "Apple Development" identity, so this test will never succeed with the real codesign
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -953,10 +995,12 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                "Assets.xcassets",
-                            ]),
-                        ]),
-                ])
+                                "Assets.xcassets"
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let fs = tester.fs
@@ -965,7 +1009,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
 
             let assetCatalogPath = srcRoot.join("Sources/Assets.xcassets")
             let assetCatalog0 = TestAssetCatalog(entries: [
-                "acA": TestAssetCatalog.Entry(bytes: ByteString([0]), assetTags: Set(["foo"])),
+                "acA": TestAssetCatalog.Entry(bytes: ByteString([0]), assetTags: Set(["foo"]))
             ])
             try await assetCatalog0.write(fs, assetCatalogPath)
 
@@ -975,7 +1019,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             try fs.write(srcRoot.join("App.entitlements"), contents: "")
 
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             // Base build
@@ -988,7 +1032,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             // Update the asset catalog
 
             let assetCatalog1 = TestAssetCatalog(entries: [
-                "acA": TestAssetCatalog.Entry(bytes: ByteString([0]), assetTags: Set(["foo", "bar"])),
+                "acA": TestAssetCatalog.Entry(bytes: ByteString([0]), assetTags: Set(["foo", "bar"]))
             ])
             try await assetCatalog1.write(fs, assetCatalogPath)
 
@@ -1011,11 +1055,13 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("A.dat"),
                         TestFile("B.dat"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1025,12 +1071,13 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "CODE_SIGN_ENTITLEMENTS": "App.entitlements",
-                            "CODESIGN": "/usr/bin/true", // we use "Apple Development" identity, so this test will never succeed with the real codesign
+                            "CODESIGN": "/usr/bin/true",  // we use "Apple Development" identity, so this test will never succeed with the real codesign
 
                             // NOTE: THIS IS THE IMPORTANT SETTING! Ensure that opt-in is on, regardless of the default value.
                             "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
                             "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1040,9 +1087,11 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
                             TestResourcesBuildPhase([
                                 TestBuildFile("A.dat", assetTags: Set(["foo"])),
                                 TestBuildFile("B.dat", assetTags: Set(["bar"])),
-                            ]),
-                        ]),
-                ])
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let fs = tester.fs
@@ -1061,7 +1110,7 @@ fileprivate struct OnDemandResourcesTests: CoreBasedTests {
             try fs.write(srcRoot.join("App.entitlements"), contents: "")
 
             let provisioningInputs = [
-                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "App": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             // Base build

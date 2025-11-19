@@ -14,7 +14,7 @@ import SWBUtil
 import SWBCore
 import SWBMacro
 
-final class LexCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
+final class LexCompilerSpec: CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.lex"
 
     static let extensionMappings = [
@@ -22,7 +22,8 @@ final class LexCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Senda
         ".lmm": ".mm", ".LMM": ".MM",
         ".lp": ".cp", ".LP": ".CP",
         ".lpp": ".cpp", ".LPP": ".CPP",
-        ".lxx": ".cxx", ".LXX": ".CXX"]
+        ".lxx": ".cxx", ".LXX": ".CXX",
+    ]
 
     override var toolBasenameAliases: [String] {
         return ["flex"]
@@ -36,7 +37,7 @@ final class LexCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Senda
         // Compute the input and output path.
         let input = cbc.input
         let inputBasename = input.absolutePath.basename
-        let (inputPrefix,inputExt) = Path(inputBasename).splitext()
+        let (inputPrefix, inputExt) = Path(inputBasename).splitext()
         let outputExt = LexCompilerSpec.extensionMappings[inputExt] ?? ".c"
         let outputPath = cbc.scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR).join(inputPrefix + ".yy" + outputExt)
         let lexFlags = cbc.scope.evaluate(BuiltinMacros.LEXFLAGS)

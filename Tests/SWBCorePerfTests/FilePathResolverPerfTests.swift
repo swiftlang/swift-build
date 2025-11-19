@@ -55,8 +55,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
-            for _ in 1...100000
-            {
+            for _ in 1...100000 {
                 // Create a new resolver each time because we don't want to hit the cache in this test.
                 let resolver = FilePathResolver(scope: self.scope)
 
@@ -74,8 +73,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
-            for _ in 1...100000
-            {
+            for _ in 1...100000 {
                 // Resolve the path using the resolver property so that all but the first resolution uses its file group cache.
                 let resolvedPath = self.resolver.resolveAbsolutePath(rootGroup)
                 #expect(resolvedPath == Path("/tmp/SomeProject"))
@@ -90,8 +88,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
-            for _ in 1...100000
-            {
+            for _ in 1...100000 {
                 // Create a new resolver each time because we don't want to hit the cache in this test.
                 let resolver = FilePathResolver(scope: self.scope)
 
@@ -104,15 +101,18 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
 
     @Test
     func groupRelativeSourceTree_1Level_X100000() async throws {
-        let model = try TestGroup("SomeProject", path: "/tmp/SomeProject", sourceTree: .absolute,
-                                  children: [TestGroup("AllFiles")]).toProtocol()
+        let model = try TestGroup(
+            "SomeProject",
+            path: "/tmp/SomeProject",
+            sourceTree: .absolute,
+            children: [TestGroup("AllFiles")]
+        ).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
-            for _ in 1...100000
-            {
+            for _ in 1...100000 {
                 // Create a new resolver each time because we don't want to hit the cache in this test.
                 let resolver = FilePathResolver(scope: self.scope)
 
@@ -125,17 +125,24 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
 
     @Test
     func groupRelativeSourceTree_2Levels_X100000() async throws {
-        let model = try TestGroup("SomeProject", path: "/tmp/SomeProject", sourceTree: .absolute,
-                                  children: [TestGroup("AllFiles",
-                                                       children: [TestGroup("SomeFiles")])]).toProtocol()
+        let model = try TestGroup(
+            "SomeProject",
+            path: "/tmp/SomeProject",
+            sourceTree: .absolute,
+            children: [
+                TestGroup(
+                    "AllFiles",
+                    children: [TestGroup("SomeFiles")]
+                )
+            ]
+        ).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
         let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
-            for _ in 1...100000
-            {
+            for _ in 1...100000 {
                 // Create a new resolver each time because we don't want to hit the cache in this test.
                 let resolver = FilePathResolver(scope: self.scope)
 
@@ -148,17 +155,24 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
 
     @Test
     func groupRelativeSourceTree_2Levels_Cached_X100000() async throws {
-        let model = try TestGroup("SomeProject", path: "/tmp/SomeProject", sourceTree: .absolute,
-                                  children: [TestGroup("AllFiles",
-                                                       children: [TestGroup("SomeFiles")])]).toProtocol()
+        let model = try TestGroup(
+            "SomeProject",
+            path: "/tmp/SomeProject",
+            sourceTree: .absolute,
+            children: [
+                TestGroup(
+                    "AllFiles",
+                    children: [TestGroup("SomeFiles")]
+                )
+            ]
+        ).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
         let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
 
         await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
-            for _ in 1...100000
-            {
+            for _ in 1...100000 {
                 // Resolve the path using the resolver property so that all but the first resolution uses its file group cache.
                 let resolvedPath = self.resolver.resolveAbsolutePath(grandchildGroup)
                 #expect(resolvedPath == Path("/tmp/SomeProject/AllFiles/SomeFiles"))

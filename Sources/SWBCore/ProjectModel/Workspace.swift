@@ -55,14 +55,13 @@ extension WorkspaceErrors: CustomStringConvertible {
     }
 }
 
-public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContext, Encodable
-{
+public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContext, Encodable {
     static func referencedObjects(for data: EncodedPIFValue) throws -> [PIFObjectReference] {
         switch data {
         case .json(let data):
             // The only direct references are to projects.
             guard case let .plArray(projects)? = data["projects"] else { return [] }
-            return projects.compactMap{
+            return projects.compactMap {
                 guard case let .plString(signature) = $0 else { return nil }
                 return PIFObjectReference(signature: signature, type: .project)
             }
@@ -73,7 +72,7 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
             // FIXME: This sucks, we are doing the protocol decode twice: <rdar://problem/31097863> Don't require duplicate binary PIF decode in incremental PIF transfer
             let deserializer = MsgPackDeserializer(data)
             let model: SWBProtocol.Workspace = try deserializer.deserialize()
-            return model.projectSignatures.map{ PIFObjectReference(signature: $0, type: .project) }
+            return model.projectSignatures.map { PIFObjectReference(signature: $0, type: .project) }
         }
     }
 
@@ -147,7 +146,7 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
         self.guid = model.guid
         self.name = model.name
         self.path = model.path
-        self.projects = try model.projectSignatures.map{ try pifLoader.loadReference(signature: $0, type: Project.self) }
+        self.projects = try model.projectSignatures.map { try pifLoader.loadReference(signature: $0, type: Project.self) }
 
         // The PIFLoader creates the user namespace which is used during loading, but the workspace ultimately owns it.
         self.userNamespace = pifLoader.userNamespace
@@ -180,8 +179,7 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
     }
 
     /// Create the workspace from a PIF property list.
-    @_spi(Testing) public init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader) throws
-    {
+    @_spi(Testing) public init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader) throws {
         self.signature = signature
 
         // The PIFLoader creates the user namespace which is used during loading, but the workspace ultimately owns it.
@@ -227,7 +225,7 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
     ///
     /// The targets will appear in the order they are within each nested project.
     public var allTargets: AnySequence<Target> {
-        return AnySequence(projects.lazy.flatMap{ $0.targets })
+        return AnySequence(projects.lazy.flatMap { $0.targets })
     }
 
     /// Find project with the given project GUID.
@@ -255,8 +253,10 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
     ///
     /// - Precondition: workspace.contains(target)
     public func project(for target: Target) -> Project {
-        guard let project = projectsByTarget[target]
-                ?? (self.target(for: target.guid).map({ projectsByTarget[$0] }) ?? nil) else {
+        guard
+            let project = projectsByTarget[target]
+                ?? (self.target(for: target.guid).map({ projectsByTarget[$0] }) ?? nil)
+        else {
             preconditionFailure("workspace '\(name)' does not contain target '\(target.name)'")
         }
         return project
@@ -326,7 +326,7 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
     /// Resolve the reference for the given GUID.
     //
     // FIXME: This is fairly unfortunate, from a performance perspective, we could have pre-bound these things at load time; except that we reuse loaded objects during incremental PIF loading, so we need to guarantee that they are self-contained and don't contain external references. For now, we manage this by deferring the lookup until runtime. See:
-    public func lookupReference(for guid: String ) -> Reference? {
+    public func lookupReference(for guid: String) -> Reference? {
         return referencesByGUID[guid]
     }
 
@@ -349,15 +349,11 @@ public final class Workspace: ProjectModelItem, PIFObject, ReferenceLookupContex
     }
 }
 
-
-extension Workspace: CustomStringConvertible
-{
-    public var description: String
-    {
+extension Workspace: CustomStringConvertible {
+    public var description: String {
         return "\(type(of: self))<\(guid):\(name):\(path.str):\(projects.count) projects>"
     }
 }
-
 
 public struct WorkspaceDiff: CustomStringConvertible, Sendable {
     public var leftProjects: [Project] = []
@@ -370,25 +366,20 @@ public struct WorkspaceDiff: CustomStringConvertible, Sendable {
     public var rightReferences: [Reference] = []
 
     public var hasChanges: Bool {
-        return !leftProjects.isEmpty ||
-            !rightProjects.isEmpty ||
-            !leftTargets.isEmpty ||
-            !rightTargets.isEmpty ||
-            !leftReferences.isEmpty ||
-            !rightReferences.isEmpty
+        return !leftProjects.isEmpty || !rightProjects.isEmpty || !leftTargets.isEmpty || !rightTargets.isEmpty || !leftReferences.isEmpty || !rightReferences.isEmpty
     }
 
     public var description: String {
         return """
-        \(type(of: self))<
-            leftProjects: \(leftProjects),
-            rightProjects: \(rightProjects),
-            leftTargets: \(leftTargets),
-            rightTargets: \(rightTargets),
-            leftReferences: \(leftReferences),
-            rightReferences: \(rightReferences)
-        >
-        """
+            \(type(of: self))<
+                leftProjects: \(leftProjects),
+                rightProjects: \(rightProjects),
+                leftTargets: \(leftTargets),
+                rightTargets: \(rightTargets),
+                leftReferences: \(leftReferences),
+                rightReferences: \(rightReferences)
+            >
+            """
     }
 }
 

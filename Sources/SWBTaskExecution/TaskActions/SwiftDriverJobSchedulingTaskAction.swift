@@ -23,26 +23,25 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
         return ""
     }
 
+    private enum State {
+        /// The action is in it's initial state, and has not yet performed any work
+        case initial
+        /// The action is waiting for execution inputs to be produced. Execution inputs include everything that would be considered an input to a standalone invocation of the driver (source files, output file map, gate tasks, etc.).
+        case waitingForExecutionInputs(openExecutionInputIDs: Set<UInt>, jobTaskIDBase: UInt)
+        /// The action has requested a planning task for a target, and is waiting for the resulting planned build.
+        case planning(jobTaskIDBase: UInt)
+        /// A planned build is available, and the action is requesting and running tasks for individual jobs.
+        case requestingDriverJobs(primaryJobsTaskIDs: Set<UInt>, secondaryJobTaskIDs: Set<UInt>, discoveredJobTaskIDs: Set<UInt>, jobTaskIDBase: UInt)
 
-     private enum State {
-         /// The action is in it's initial state, and has not yet performed any work
-         case initial
-         /// The action is waiting for execution inputs to be produced. Execution inputs include everything that would be considered an input to a standalone invocation of the driver (source files, output file map, gate tasks, etc.).
-         case waitingForExecutionInputs(openExecutionInputIDs: Set<UInt>, jobTaskIDBase: UInt)
-         /// The action has requested a planning task for a target, and is waiting for the resulting planned build.
-         case planning(jobTaskIDBase: UInt)
-         /// A planned build is available, and the action is requesting and running tasks for individual jobs.
-         case requestingDriverJobs(primaryJobsTaskIDs: Set<UInt>, secondaryJobTaskIDs: Set<UInt>, discoveredJobTaskIDs: Set<UInt>, jobTaskIDBase: UInt)
+        /// A dependency of the action failed.
+        case failedDependencies
+        /// The action failed internally
+        case executionError(any Error)
 
-         /// A dependency of the action failed.
-         case failedDependencies
-         /// The action failed internally
-         case executionError(any Error)
-
-         mutating func reset() {
-             self = .initial
-         }
-     }
+        mutating func reset() {
+            self = .initial
+        }
+    }
 
     private var state = State.initial
 
@@ -92,16 +91,18 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             }
             // If all execution inputs are now available, request the driver planning task and move to the `planning` state.
             if openExecutionInputIDs.isEmpty {
-                dynamicExecutionDelegate.requestDynamicTask(toolIdentifier: SwiftDriverTaskAction.toolIdentifier,
-                                                            taskKey: .swiftDriverPlanning(.init(swiftPayload: payload)),
-                                                            taskID: jobTaskIDBase - 1,
-                                                            singleUse: true,
-                                                            workingDirectory: task.workingDirectory,
-                                                            environment: task.environment,
-                                                            forTarget: task.forTarget,
-                                                            priority: .unblocksDownstreamTasks,
-                                                            showEnvironment: task.showEnvironment,
-                                                            reason: .wasScheduledBySwiftDriver)
+                dynamicExecutionDelegate.requestDynamicTask(
+                    toolIdentifier: SwiftDriverTaskAction.toolIdentifier,
+                    taskKey: .swiftDriverPlanning(.init(swiftPayload: payload)),
+                    taskID: jobTaskIDBase - 1,
+                    singleUse: true,
+                    workingDirectory: task.workingDirectory,
+                    environment: task.environment,
+                    forTarget: task.forTarget,
+                    priority: .unblocksDownstreamTasks,
+                    showEnvironment: task.showEnvironment,
+                    reason: .wasScheduledBySwiftDriver
+                )
                 state = .planning(jobTaskIDBase: jobTaskIDBase)
             }
             return
@@ -260,7 +261,6 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
         return .succeeded
     }
 
-
     open func primaryJobs(for plannedBuild: LibSwiftDriver.PlannedBuild, driverPayload: SwiftDriverPayload) -> ArraySlice<LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob> {
         assertionFailure("Subclass responsibility")
         return []
@@ -299,26 +299,34 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
         }
     }
 
-    internal func constructDriverJobTaskKey(driverPayload: SwiftDriverPayload,
-                                            plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob) -> DynamicTaskKey {
+    internal func constructDriverJobTaskKey(
+        driverPayload: SwiftDriverPayload,
+        plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob
+    ) -> DynamicTaskKey {
         let key: DynamicTaskKey
         if plannedJob.driverJob.categorizer.isExplicitDependencyBuild {
-            key = .swiftDriverExplicitDependencyJob(SwiftDriverExplicitDependencyJobTaskKey(
-                arch: driverPayload.architecture,
-                driverJobKey: plannedJob.key,
-                driverJobSignature: plannedJob.signature,
-                compilerLocation: driverPayload.compilerLocation,
-                casOptions: driverPayload.casOptions))
+            key = .swiftDriverExplicitDependencyJob(
+                SwiftDriverExplicitDependencyJobTaskKey(
+                    arch: driverPayload.architecture,
+                    driverJobKey: plannedJob.key,
+                    driverJobSignature: plannedJob.signature,
+                    compilerLocation: driverPayload.compilerLocation,
+                    casOptions: driverPayload.casOptions
+                )
+            )
         } else {
-            key = .swiftDriverJob(SwiftDriverJobTaskKey(
-                identifier: driverPayload.uniqueID,
-                variant: driverPayload.variant,
-                arch: driverPayload.architecture,
-                driverJobKey: plannedJob.key,
-                driverJobSignature: plannedJob.signature,
-                isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization,
-                compilerLocation: driverPayload.compilerLocation,
-                casOptions: driverPayload.casOptions))
+            key = .swiftDriverJob(
+                SwiftDriverJobTaskKey(
+                    identifier: driverPayload.uniqueID,
+                    variant: driverPayload.variant,
+                    arch: driverPayload.architecture,
+                    driverJobKey: plannedJob.key,
+                    driverJobSignature: plannedJob.signature,
+                    isUsingWholeModuleOptimization: driverPayload.isUsingWholeModuleOptimization,
+                    compilerLocation: driverPayload.compilerLocation,
+                    casOptions: driverPayload.casOptions
+                )
+            )
         }
         return key
     }
@@ -328,10 +336,10 @@ open class SwiftDriverJobSchedulingTaskAction: TaskAction {
             let isExplicitDependencyBuildJob = plannedJob.driverJob.categorizer.isExplicitDependencyBuild
             let taskID: UInt
             switch plannedJob.key {
-                case .targetJob(let index):
-                    taskID = UInt(index) + jobTaskIDBase
-                case .explicitDependencyJob(let index):
-                    taskID = UInt(index) + jobTaskIDBase + UInt(plannedBuild.targetBuildJobCount)
+            case .targetJob(let index):
+                taskID = UInt(index) + jobTaskIDBase
+            case .explicitDependencyJob(let index):
+                taskID = UInt(index) + jobTaskIDBase + UInt(plannedBuild.targetBuildJobCount)
             }
             cacheTaskID?(taskID)
             let taskKey = constructDriverJobTaskKey(driverPayload: driverPayload, plannedJob: plannedJob)

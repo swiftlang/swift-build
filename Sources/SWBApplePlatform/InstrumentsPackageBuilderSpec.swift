@@ -22,9 +22,11 @@ public final class InstrumentsPackageBuilderSpec: GenericCompilerSpec, SpecIdent
         // Copy the cbc with an additional virtual node as an output for postprocessing mutating tasks to use to find this task.
         var orderingOutputs: [any PlannedNode] = []
 
-        orderingOutputs.append(contentsOf: evaluatedOutputs(cbc, delegate)?.map({ output in
-            delegate.createVirtualNode("BuildInstrumentsPackage \(output.path.str)")
-        }) ?? [])
+        orderingOutputs.append(
+            contentsOf: evaluatedOutputs(cbc, delegate)?.map({ output in
+                delegate.createVirtualNode("BuildInstrumentsPackage \(output.path.str)")
+            }) ?? []
+        )
 
         let dependencyData: DependencyDataStyle?
         let infoFilePath = cbc.scope.evaluate(BuiltinMacros.INSTRUMENTS_PACKAGE_BUILDER_DEPENDENCY_INFO_FILE)

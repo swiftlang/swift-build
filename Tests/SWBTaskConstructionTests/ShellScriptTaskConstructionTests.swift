@@ -65,7 +65,9 @@ fileprivate struct ShellScriptTaskConstructionTests: CoreBasedTests {
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CODE_SIGNING_ALLOWED": "NO",
-                        ])],
+                        ]
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "MyFramework",
@@ -129,7 +131,9 @@ extension CoreBasedTests {
                         "TVOS_DEPLOYMENT_TARGET": "13.0",
                         "WATCHOS_DEPLOYMENT_TARGET": "6.0",
                         "DRIVERKIT_DEPLOYMENT_TARGET": "19.0",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",

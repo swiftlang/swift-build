@@ -43,19 +43,22 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                 TestFile("main.m"),
                                 TestFile("fwk.swift"),
                                 TestFile("AppTarget.xcdatamodel"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])],
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug"),
+                                    TestBuildConfiguration("Debug")
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -63,25 +66,33 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                         "AppTarget.xcdatamodel",
                                     ]),
                                     TestFrameworksBuildPhase([
-                                        "FwkTarget.framework"])
+                                        "FwkTarget.framework"
+                                    ]),
                                 ],
-                                dependencies: ["FwkTarget"]),
+                                dependencies: ["FwkTarget"]
+                            ),
                             TestStandardTarget(
                                 "FwkTarget",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug",
-                                                           buildSettings: [
-                                                            "VERSIONING_SYSTEM": "apple-generic",
-                                                            "SWIFT_VERSION": swiftVersion,
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "VERSIONING_SYSTEM": "apple-generic",
+                                            "SWIFT_VERSION": swiftVersion,
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "fwk.swift",
-                                    ])]
+                                        "fwk.swift"
+                                    ])
+                                ]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -95,7 +106,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             try tester.fs.writeCoreDataModel(testWorkspace.sourceRoot.join("aProject/AppTarget.xcdatamodel"), language: .objectiveC, .entity("AppTarget"))
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
-            let buildTargets = tester.workspace.allTargets.map{ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
+            let buildTargets = tester.workspace.allTargets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false))
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(Self.excludedStartTaskTypes)
@@ -142,7 +153,6 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 // Response files
                 results.checkTaskExists(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp"]))
                 results.checkTaskExists(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/e6072d4f65d7061329687fe24e3d63a7-common-args.resp"]))
-
 
                 // Mkdir
                 results.checkTask(.matchRule(["MkDir", "\(tmpDirPath.str)/Test/aProject/build/Debug/AppTarget.app"])) { _ in }
@@ -194,7 +204,8 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                 TestFile("base.c"),
                                 TestFile("foo.swift"),
                                 TestFile("bar.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -204,7 +215,9 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "DEFINES_MODULE": "YES",
                                     "USE_HEADERMAP": "NO",
-                                ])],
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "base",
@@ -212,27 +225,33 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["base.c"]),
-                                    TestHeadersBuildPhase([TestBuildFile("base.h", headerVisibility: .public)])
-                                ]),
+                                    TestHeadersBuildPhase([TestBuildFile("base.h", headerVisibility: .public)]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "bar",
                                 type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["bar.swift"]),
-                                    TestFrameworksBuildPhase(["base.framework"])
+                                    TestFrameworksBuildPhase(["base.framework"]),
                                 ],
-                                dependencies: ["base"]),
+                                dependencies: ["base"]
+                            ),
                             TestStandardTarget(
                                 "foo",
                                 type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["foo.swift"]),
-                                    TestFrameworksBuildPhase(["bar.framework"])
+                                    TestFrameworksBuildPhase(["bar.framework"]),
                                 ],
-                                dependencies: ["bar"]),
-                        ])])
+                                dependencies: ["bar"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -253,7 +272,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             }
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
-            let buildTargets = tester.workspace.allTargets.map{ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
+            let buildTargets = tester.workspace.allTargets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
             let request = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false))
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, buildRequest: request, persistent: true) { results in
                 results.check(contains: .buildCompleted)
@@ -261,14 +280,14 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .skipDeveloperDirectoryWithEqualSign) // mig will fail on CAS mounts due to rdar://137363780 (env can't handle commands with = signs in the filename)
+    @Test(.requireSDKs(.macOS), .skipDeveloperDirectoryWithEqualSign)  // mig will fail on CAS mounts due to rdar://137363780 (env can't handle commands with = signs in the filename)
     func preparingForIndexingOnlyTheseTargets() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let appTarget = TestStandardTarget(
                 "AppTarget",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug"),
+                    TestBuildConfiguration("Debug")
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
@@ -277,27 +296,36 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                         "mig.defs",
                     ]),
                     TestFrameworksBuildPhase([
-                        "FwkTarget.framework"])
+                        "FwkTarget.framework"
+                    ]),
                 ],
-                dependencies: ["FwkTarget"])
+                dependencies: ["FwkTarget"]
+            )
 
             let fwkTarget = try await TestStandardTarget(
                 "FwkTarget",
                 type: .framework,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "VERSIONING_SYSTEM": "apple-generic",
-                                            "SWIFT_VERSION": swiftVersion,
-                                           ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "VERSIONING_SYSTEM": "apple-generic",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "fwk.swift",
+                        "fwk.swift"
                     ]),
-                    TestCopyFilesBuildPhase([
-                        TestBuildFile("head.h"),
-                    ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(PRIVATE_HEADERS_FOLDER_PATH)/Internal", onlyForDeployment: false),
+                    TestCopyFilesBuildPhase(
+                        [
+                            TestBuildFile("head.h")
+                        ],
+                        destinationSubfolder: .builtProductsDir,
+                        destinationSubpath: "$(PRIVATE_HEADERS_FOLDER_PATH)/Internal",
+                        onlyForDeployment: false
+                    ),
                 ]
             )
 
@@ -315,7 +343,8 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                 TestFile("fwk.swift"),
                                 TestFile("AppTarget.xcdatamodel"),
                                 TestFile("mig.defs"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -323,11 +352,16 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "DEFINES_MODULE": "YES",
-                                ])],
+                                ]
+                            )
+                        ],
                         targets: [
                             appTarget,
                             fwkTarget,
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -422,7 +456,6 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                         results.checkTaskExists(.matchRule(["WriteAuxiliaryFile", "\(intermediatesRoot)/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp"]))
                     }
 
-
                     // SymLink
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/Headers", "Versions/Current/Headers"]))
                     results.checkTaskExists(.matchRule(["SymLink", "\(productsRoot)/Debug/FwkTarget.framework/PrivateHeaders", "Versions/Current/PrivateHeaders"]))
@@ -466,17 +499,21 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "AppTarget",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "iphonesimulator",
-                        "SUPPORTED_PLATFORMS": "iphonesimulator",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "iphonesimulator",
+                            "SUPPORTED_PLATFORMS": "iphonesimulator",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "main.m",
-                    ]),
+                        "main.m"
+                    ])
                 ],
-                dependencies: ["FwkTarget"])
+                dependencies: ["FwkTarget"]
+            )
 
             let testWorkspace = TestWorkspace(
                 "Test",
@@ -487,17 +524,23 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "SomeFiles",
                             children: [
-                                TestFile("main.m"),
-                            ]),
+                                TestFile("main.m")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])],
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
-                            appTarget,
-                        ])])
+                            appTarget
+                        ]
+                    )
+                ]
+            )
 
             func checkBuild(prepareTargets: [String], runDestination: RunDestinationInfo) async throws {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -554,10 +597,11 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "Metal.metal",
-                    ]),
+                        "Metal.metal"
+                    ])
                 ],
-                dependencies: [])
+                dependencies: []
+            )
 
             let testWorkspace = TestWorkspace(
                 "Test",
@@ -568,17 +612,23 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "SomeFiles",
                             children: [
-                                TestFile("Metal.metal"),
-                            ]),
+                                TestFile("Metal.metal")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])],
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
-                            appTarget,
-                        ])])
+                            appTarget
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -616,71 +666,95 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
     func preparingForIndexingPackages() async throws {
 
         try await withTemporaryDirectory { tmpDirPath in
-            let packageLib = try await TestStandardTarget("PackageLib", type: .objectFile, buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "PackageLib",
-                    "SDKROOT": "auto",
-                    "SDK_VARIANT": "auto",
-                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    "SWIFT_VERSION": swiftVersion,
-                ])
-            ], buildPhases: [TestSourcesBuildPhase(["test.swift"])])
-
-            let package = try await TestPackageProject("aPackage", groupTree: TestGroup("Package", children: [TestFile("test.swift")]), targets: [
-                TestPackageProductTarget(
-                    "PackageLibProduct",
-                    frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("PackageLib"))]),
-                    buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
+            let packageLib = try await TestStandardTarget(
+                "PackageLib",
+                type: .objectFile,
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "PackageLib",
                             "SDKROOT": "auto",
                             "SDK_VARIANT": "auto",
                             "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                             "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
+                ],
+                buildPhases: [TestSourcesBuildPhase(["test.swift"])]
+            )
+
+            let package = try await TestPackageProject(
+                "aPackage",
+                groupTree: TestGroup("Package", children: [TestFile("test.swift")]),
+                targets: [
+                    TestPackageProductTarget(
+                        "PackageLibProduct",
+                        frameworksBuildPhase: TestFrameworksBuildPhase([
+                            TestBuildFile(.target("PackageLib"))
                         ]),
-                    ],
-                    dependencies: ["PackageLib"]
-                ),
-                packageLib,
-            ])
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": "auto",
+                                    "SDK_VARIANT": "auto",
+                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
+                        dependencies: ["PackageLib"]
+                    ),
+                    packageLib,
+                ]
+            )
 
             let macAppTarget = TestStandardTarget(
                 "macAppTarget",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "mac-main.swift",
+                        "mac-main.swift"
                     ]),
                     TestFrameworksBuildPhase([
                         TestBuildFile(.target("PackageLibProduct"))
                     ]),
                 ],
-                dependencies: ["PackageLibProduct"])
+                dependencies: ["PackageLibProduct"]
+            )
 
             let iosAppTarget = TestStandardTarget(
                 "iOSAppTarget",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "iphonesimulator",
-                        "SUPPORTED_PLATFORMS": "iphonesimulator",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "iphonesimulator",
+                            "SUPPORTED_PLATFORMS": "iphonesimulator",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "ios-main.swift",
+                        "ios-main.swift"
                     ]),
                     TestFrameworksBuildPhase([
                         TestBuildFile(.target("PackageLibProduct"))
                     ]),
                 ],
-                dependencies: ["PackageLibProduct"])
+                dependencies: ["PackageLibProduct"]
+            )
 
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -693,18 +767,24 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("mac-main.swift"),
                                 TestFile("ios-main.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
-                                ])],
+                                ]
+                            )
+                        ],
                         targets: [
                             macAppTarget,
                             iosAppTarget,
-                        ]), package])
+                        ]
+                    ), package,
+                ]
+            )
 
             func getTargetRuleInfosForBuildDir(intermediatesRoot: String, configurationName: String) -> [[String]] {
                 // accumulating because a big list literal hurts compile time.
@@ -746,7 +826,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 for ruleInfo in osxTargetRuleInfos {
                     results.checkTask(.matchRule(ruleInfo)) { _ in }
                 }
-                results.checkTasks(.matchRulePattern(["WriteAuxiliaryFile", .suffix("all-product-headers.yaml")])) { _ in}
+                results.checkTasks(.matchRulePattern(["WriteAuxiliaryFile", .suffix("all-product-headers.yaml")])) { _ in }
                 results.checkNoTask()
             }
 
@@ -757,7 +837,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 for ruleInfo in iosTargetRuleInfos {
                     results.checkTask(.matchRule(ruleInfo)) { _ in }
                 }
-                results.checkTasks(.matchRulePattern(["WriteAuxiliaryFile", .suffix("all-product-headers.yaml")])) { _ in}
+                results.checkTasks(.matchRulePattern(["WriteAuxiliaryFile", .suffix("all-product-headers.yaml")])) { _ in }
                 results.checkNoTask()
             }
         }
@@ -770,15 +850,18 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "AppTarget1",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "main.m",
-                    ]),
+                        "main.m"
+                    ])
                 ],
                 dependencies: [
                     "FwkTarget1",
@@ -786,38 +869,46 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                     "script3",
                     "scriptNoOutForced",
                     "scriptSrcOutForced",
-                ])
+                ]
+            )
 
             let appTarget2 = TestStandardTarget(
                 "AppTarget2",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "main.m",
-                    ]),
+                        "main.m"
+                    ])
                 ],
                 dependencies: [
                     "FwkTarget2",
                     "script2",
                     "scriptNoOut",
                     "scriptSrcOut",
-                ])
+                ]
+            )
 
             let fwkTarget1 = try await TestStandardTarget(
                 "FwkTarget1",
                 type: .framework,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                        "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
@@ -835,12 +926,15 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "FwkTarget2",
                 type: .framework,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                        "SWIFT_VERSION": swiftVersion,
-                        "INDEX_DISABLE_SCRIPT_EXECUTION": "YES",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "SWIFT_VERSION": swiftVersion,
+                            "INDEX_DISABLE_SCRIPT_EXECUTION": "YES",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
@@ -856,24 +950,28 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let scriptTarget1 = TestAggregateTarget(
                 "script1",
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "OBJROOT": tmpDirPath.join("objs").str,
-                        "SYMROOT": tmpDirPath.join("syms").str,
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "OBJROOT": tmpDirPath.join("objs").str,
+                            "SYMROOT": tmpDirPath.join("syms").str,
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestShellScriptBuildPhase(
                         name: "Script1",
                         originalObjectID: "Script1",
                         contents: """
-                                  echo Script1Derived > \"${DERIVED_FILE_DIR}/script1-derived\"
-                                  echo Script1Temp > \"${TARGET_TEMP_DIR}/script1-temp\"
-                                  """,
+                            echo Script1Derived > \"${DERIVED_FILE_DIR}/script1-derived\"
+                            echo Script1Temp > \"${TARGET_TEMP_DIR}/script1-temp\"
+                            """,
                         inputs: [],
                         outputs: [
                             "$(DERIVED_FILE_DIR)/script1-derived",
                             "$(TARGET_TEMP_DIR)/script1-temp",
-                        ])
+                        ]
+                    )
                 ]
             )
 
@@ -881,15 +979,23 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let scriptTarget2 = TestAggregateTarget(
                 "script2",
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "INDEX_DISABLE_SCRIPT_EXECUTION": "YES",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "INDEX_DISABLE_SCRIPT_EXECUTION": "YES"
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestShellScriptBuildPhase(
-                        name: "Script2", originalObjectID: "Script2", contents: "echo Script2 > \"${DERIVED_FILE_DIR}/script2-output\"", inputs: [], outputs: [
+                        name: "Script2",
+                        originalObjectID: "Script2",
+                        contents: "echo Script2 > \"${DERIVED_FILE_DIR}/script2-output\"",
+                        inputs: [],
+                        outputs: [
                             "$(DERIVED_FILE_DIR)/script2-output"
-                        ])
+                        ]
+                    )
                 ]
             )
 
@@ -898,7 +1004,13 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "script3",
                 buildPhases: [
                     TestShellScriptBuildPhase(
-                        name: "Script3", originalObjectID: "Script3", contents: "set -e\ncat \"$SCRIPT_INPUT_FILE_LIST_0\"\ncat \"$SCRIPT_OUTPUT_FILE_LIST_0\"\ntouch $TARGET_BUILD_DIR/Tool.app/out3.txt", inputs: [], inputFileLists: ["$(SRCROOT)/in3.xcfilelist"], outputs: [], outputFileLists: ["$(SRCROOT)/out3.xcfilelist"]
+                        name: "Script3",
+                        originalObjectID: "Script3",
+                        contents: "set -e\ncat \"$SCRIPT_INPUT_FILE_LIST_0\"\ncat \"$SCRIPT_OUTPUT_FILE_LIST_0\"\ntouch $TARGET_BUILD_DIR/Tool.app/out3.txt",
+                        inputs: [],
+                        inputFileLists: ["$(SRCROOT)/in3.xcfilelist"],
+                        outputs: [],
+                        outputFileLists: ["$(SRCROOT)/out3.xcfilelist"]
                     )
                 ]
             )
@@ -908,7 +1020,12 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "scriptNoOut",
                 buildPhases: [
                     TestShellScriptBuildPhase(
-                        name: "ScriptNoOut", originalObjectID: "ScriptNoOut", contents: "echo hello", inputs: [], outputs: [])
+                        name: "ScriptNoOut",
+                        originalObjectID: "ScriptNoOut",
+                        contents: "echo hello",
+                        inputs: [],
+                        outputs: []
+                    )
                 ]
             )
 
@@ -916,13 +1033,21 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let scriptTargetNoOutForced = TestAggregateTarget(
                 "scriptNoOutForced",
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "INDEX_FORCE_SCRIPT_EXECUTION": "YES",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "INDEX_FORCE_SCRIPT_EXECUTION": "YES"
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestShellScriptBuildPhase(
-                        name: "ScriptNoOutForced", originalObjectID: "ScriptNoOutForced", contents: "echo hello", inputs: [], outputs: [])
+                        name: "ScriptNoOutForced",
+                        originalObjectID: "ScriptNoOutForced",
+                        contents: "echo hello",
+                        inputs: [],
+                        outputs: []
+                    )
                 ]
             )
 
@@ -931,7 +1056,12 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "scriptSrcOut",
                 buildPhases: [
                     TestShellScriptBuildPhase(
-                        name: "ScriptSrcOut", originalObjectID: "ScriptSrcOut", contents: "touch $SRCROOT/srcOut", inputs: [], outputs: ["$(SRCROOT)/srcOut"])
+                        name: "ScriptSrcOut",
+                        originalObjectID: "ScriptSrcOut",
+                        contents: "touch $SRCROOT/srcOut",
+                        inputs: [],
+                        outputs: ["$(SRCROOT)/srcOut"]
+                    )
                 ]
             )
 
@@ -939,13 +1069,21 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let scriptTargetSrcOutForced = TestAggregateTarget(
                 "scriptSrcOutForced",
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "INDEX_FORCE_SCRIPT_EXECUTION": "YES",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "INDEX_FORCE_SCRIPT_EXECUTION": "YES"
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestShellScriptBuildPhase(
-                        name: "ScriptSrcOutForced", originalObjectID: "ScriptSrcOutForced", contents: "touch $SRCROOT/srcOutForced", inputs: [], outputs: ["$(SRCROOT)/srcOutForced"])
+                        name: "ScriptSrcOutForced",
+                        originalObjectID: "ScriptSrcOutForced",
+                        contents: "touch $SRCROOT/srcOutForced",
+                        inputs: [],
+                        outputs: ["$(SRCROOT)/srcOutForced"]
+                    )
                 ]
             )
 
@@ -964,12 +1102,17 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                                 TestFile("generated2.swift.fake-customrule"),
                                 TestFile("in3.xcfilelist"),
                                 TestFile("out3.xcfilelist"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "OTHER_SWIFT_FLAGS": "$(inherited) -disallow-use-new-driver", // FIXME: remove when rdar://75754282 is fixed.
-                            ])],
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "OTHER_SWIFT_FLAGS": "$(inherited) -disallow-use-new-driver",  // FIXME: remove when rdar://75754282 is fixed.
+                                ]
+                            )
+                        ],
                         targets: [
                             appTarget1,
                             appTarget2,
@@ -982,7 +1125,10 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                             scriptTargetNoOutForced,
                             scriptTargetSrcOut,
                             scriptTargetSrcOutForced,
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             func checkBuild(prepareTargets: [String], runDestination: RunDestinationInfo = .macOS, body: (BuildOperationTester.BuildResults) throws -> Void) async throws {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -1026,41 +1172,57 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
     func prepareForIndexResultInfo() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let superframeTarget = TestStandardTarget(
-                "SuperFrame", type: .framework,
+                "SuperFrame",
+                type: .framework,
                 buildPhases: [
                     TestSourcesBuildPhase([TestBuildFile("superframe.swift")]),
                     TestShellScriptBuildPhase(
-                        name: "Script1", originalObjectID: "Script1", contents: "exit 1", inputs: [], outputs: [
+                        name: "Script1",
+                        originalObjectID: "Script1",
+                        contents: "exit 1",
+                        inputs: [],
+                        outputs: [
                             "$(DERIVED_FILE_DIR)/script1-output"
-                        ])
-                ])
+                        ]
+                    ),
+                ]
+            )
             let frameTarget = TestStandardTarget(
-                "Frame", type: .framework,
+                "Frame",
+                type: .framework,
                 buildPhases: [
                     TestSourcesBuildPhase([TestBuildFile("frame.swift")]),
                     TestFrameworksBuildPhase(["SuperFrame.framework"]),
-                ])
+                ]
+            )
             let headerFrame = TestStandardTarget(
-                "HeaderFrame", type: .framework,
+                "HeaderFrame",
+                type: .framework,
                 buildPhases: [
                     TestSourcesBuildPhase(["header.c"]),
-                    TestHeadersBuildPhase([TestBuildFile("header.h", headerVisibility: .public)])
-                ])
+                    TestHeadersBuildPhase([TestBuildFile("header.h", headerVisibility: .public)]),
+                ]
+            )
             let toolTarget = TestStandardTarget(
-                "Tool", type: .commandLineTool,
+                "Tool",
+                type: .commandLineTool,
                 buildPhases: [
                     TestSourcesBuildPhase([TestBuildFile("tool.swift")]),
                     TestFrameworksBuildPhase(["Frame.framework", "HeaderFrame.framework"]),
-                ])
+                ]
+            )
             let testProject = TestProject(
                 "aProject",
-                groupTree: TestGroup("Files", children: [
-                    TestFile("superframe.swift"),
-                    TestFile("frame.swift"),
-                    TestFile("header.c"),
-                    TestFile("header.h"),
-                    TestFile("tool.swift")
-                ]),
+                groupTree: TestGroup(
+                    "Files",
+                    children: [
+                        TestFile("superframe.swift"),
+                        TestFile("frame.swift"),
+                        TestFile("header.c"),
+                        TestFile("header.h"),
+                        TestFile("tool.swift"),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1069,12 +1231,16 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_VERSION": "5",
                             "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        ])],
-                targets: [superframeTarget, frameTarget, headerFrame, toolTarget])
+                        ]
+                    )
+                ],
+                targets: [superframeTarget, frameTarget, headerFrame, toolTarget]
+            )
             let testWorkspace = TestWorkspace(
                 "aWorkspace",
                 sourceRoot: tmpDirPath.join("Test"),
-                projects: [testProject])
+                projects: [testProject]
+            )
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -1180,63 +1346,79 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "conflictApp",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 buildPhases: [
-                    TestSourcesBuildPhase(["main.m"]),
+                    TestSourcesBuildPhase(["main.m"])
                 ],
                 dependencies: [
-                    "FwkTarget",
-                ])
+                    "FwkTarget"
+                ]
+            )
 
             let conflictTarget2 = TestStandardTarget(
                 "conflictApp",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 buildPhases: [
-                    TestSourcesBuildPhase(["main.m"]),
+                    TestSourcesBuildPhase(["main.m"])
                 ],
                 dependencies: [
-                    "FwkTarget",
-                ])
+                    "FwkTarget"
+                ]
+            )
 
             let fwkTarget = try await TestStandardTarget(
                 "FwkTarget",
                 type: .framework,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                        "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase(["fwk.swift"])
-                ])
+                ]
+            )
 
             let toolTarget = TestStandardTarget(
                 "ToolTarget",
                 type: .commandLineTool,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 buildPhases: [
-                    TestSourcesBuildPhase(["main.m"]),
+                    TestSourcesBuildPhase(["main.m"])
                 ],
                 dependencies: [
-                    "FwkTarget",
-                ])
+                    "FwkTarget"
+                ]
+            )
 
             let testWorkspace = TestWorkspace(
                 "Test",
@@ -1246,28 +1428,36 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                         "aProject1",
                         groupTree: TestGroup(
                             "SomeFiles",
-                            children: [
-                            ]),
+                            children: []
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
-                            conflictTarget1,
+                            conflictTarget1
                         ]
                     ),
                     TestProject(
                         "aProject2",
                         groupTree: TestGroup(
                             "SomeFiles",
-                            children: [
-                            ]),
+                            children: []
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
-                            conflictTarget2,
+                            conflictTarget2
                         ]
                     ),
                     TestProject(
@@ -1277,11 +1467,16 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("main.m"),
                                 TestFile("fwk.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
                             fwkTarget,
                             toolTarget,
@@ -1313,23 +1508,32 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "leafTarget",
                 type: .framework,
                 buildPhases: [
-                    TestSourcesBuildPhase(["leaf.swift"]),
+                    TestSourcesBuildPhase(["leaf.swift"])
                 ],
                 dependencies: [
-                    "FwkTarget",
-                ])
+                    "FwkTarget"
+                ]
+            )
             let fwkTarget = TestStandardTarget(
                 "FwkTarget",
                 type: .framework,
                 buildConfigurations: [
                     // Explicitly testing tasks from different platforms producing the same output file, force script execution since otherwise these tasks won't be run.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "INDEX_FORCE_SCRIPT_EXECUTION": "YES",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "INDEX_FORCE_SCRIPT_EXECUTION": "YES"
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestShellScriptBuildPhase(
-                        name: "Script1", originalObjectID: "Script1", contents: "echo let foo = 0 > \"${SRCROOT}/gen.swift\"", inputs: [], outputs: ["$(SRCROOT)/gen.swift"]),
+                        name: "Script1",
+                        originalObjectID: "Script1",
+                        contents: "echo let foo = 0 > \"${SRCROOT}/gen.swift\"",
+                        inputs: [],
+                        outputs: ["$(SRCROOT)/gen.swift"]
+                    ),
                     TestSourcesBuildPhase([
                         "gen.swift",
                         "gen2.swift.fake-customrule",
@@ -1342,13 +1546,16 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             )
             let testProject = try await TestProject(
                 "aProject",
-                groupTree: TestGroup("Files", children: [
-                    TestFile("leaf.swift"),
-                    TestFile("gen.swift"),
-                    TestFile("gen2.swift"),
-                    TestFile("fwk.swift"),
-                    TestFile("gen2.swift.fake-customrule"),
-                ]),
+                groupTree: TestGroup(
+                    "Files",
+                    children: [
+                        TestFile("leaf.swift"),
+                        TestFile("gen.swift"),
+                        TestFile("gen2.swift"),
+                        TestFile("fwk.swift"),
+                        TestFile("gen2.swift.fake-customrule"),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1359,12 +1566,16 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        ])],
-                targets: [leafTarget, fwkTarget])
+                        ]
+                    )
+                ],
+                targets: [leafTarget, fwkTarget]
+            )
             let testWorkspace = TestWorkspace(
                 "aWorkspace",
                 sourceRoot: tmpDirPath.join("Test"),
-                projects: [testProject])
+                projects: [testProject]
+            )
 
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -1409,65 +1620,79 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let leafA = TestAggregateTarget(
                 "LeafA",
                 dependencies: [
-                    "FirstFrameworkA",
+                    "FirstFrameworkA"
                 ]
             )
             let leafB = TestAggregateTarget(
                 "LeafB",
                 dependencies: [
-                    "FirstFrameworkB",
+                    "FirstFrameworkB"
                 ]
             )
             let macosFramework = TestStandardTarget(
                 "FirstFrameworkA",
                 type: .framework,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "RenamedFramework",
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                        "DEFINES_MODULE": "Yes",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "RenamedFramework",
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                            "DEFINES_MODULE": "Yes",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "fwk.swift",
-                    ]),
+                        "fwk.swift"
+                    ])
                 ]
             )
             let iosFramework = TestStandardTarget(
                 "FirstFrameworkB",
                 type: .framework,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "RenamedFramework",
-                        "SDKROOT": "iphoneos",
-                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                        "DEFINES_MODULE": "Yes",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "RenamedFramework",
+                            "SDKROOT": "iphoneos",
+                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            "DEFINES_MODULE": "Yes",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "fwk.swift",
-                    ]),
+                        "fwk.swift"
+                    ])
                 ]
             )
-            let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                TestProject(
-                    "aProject",
-                    groupTree: TestGroup("Files", children: [
-                        TestFile("fwk.swift"),
-                    ]),
-                    buildConfigurations: [
-                        TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                            ])
-                    ],
-                    targets: [leafA, leafB, macosFramework, iosFramework]
-                )]
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir,
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Files",
+                            children: [
+                                TestFile("fwk.swift")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
+                        targets: [leafA, leafB, macosFramework, iosFramework]
+                    )
+                ]
             )
 
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
@@ -1506,60 +1731,74 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
             let core = try await getCore()
 
             let precompiledPCHTarget = TestStandardTarget(
-                "Foo", guid: "Foo", type: .staticLibrary,
+                "Foo",
+                guid: "Foo",
+                type: .staticLibrary,
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "GCC_PREFIX_HEADER": "prefix.h",
-                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES"
-                        ])
+                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "foo.c",
+                        "foo.c"
                     ])
-                ])
+                ]
+            )
 
             let regularTarget = TestStandardTarget(
-                "Bar", guid: "Bar", type: .staticLibrary,
+                "Bar",
+                guid: "Bar",
+                type: .staticLibrary,
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "GCC_PREFIX_HEADER": "prefix.h"
-                        ])
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase([
-                        "foo.c",
+                        "foo.c"
                     ])
-                ])
+                ]
+            )
 
-            let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                TestProject(
-                    "aProject",
-                    groupTree: TestGroup(
-                        "Files",
-                        children: [
-                            TestFile("foo.c"),
-                            TestFile("prefix.h"),
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir,
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Files",
+                            children: [
+                                TestFile("foo.c"),
+                                TestFile("prefix.h"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "COMPILER_INDEX_STORE_ENABLE": "YES",
+                                    "INDEX_ENABLE_DATA_STORE": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                ]
+                            )
+                        ],
+                        targets: [
+                            precompiledPCHTarget, regularTarget,
                         ]
-                    ),
-                    buildConfigurations: [
-                        TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "COMPILER_INDEX_STORE_ENABLE": "YES",
-                                "INDEX_ENABLE_DATA_STORE": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
-                            ])
-                    ],
-                    targets: [
-                        precompiledPCHTarget, regularTarget
-                    ])
-            ])
+                    )
+                ]
+            )
 
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
@@ -1590,7 +1829,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "App",
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug"),
+                    TestBuildConfiguration("Debug")
                 ],
                 buildPhases: [
                     TestSourcesBuildPhase(["test.swift"]),
@@ -1600,34 +1839,46 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 dependencies: []
             )
 
-            let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                TestProject(
-                    "aProject",
-                    groupTree: TestGroup(
-                        "SomeFiles",
-                        children: [
-                            TestFile("test.swift"),
-                            TestFile("Support.xcframework"),
-                        ]),
-                    buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
-                            "SWIFT_VERSION": swiftVersion,
-                        ]),
-                    ],
-                    targets: [app])
-            ])
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir,
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "SomeFiles",
+                            children: [
+                                TestFile("test.swift"),
+                                TestFile("Support.xcframework"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
+                        targets: [app]
+                    )
+                ]
+            )
 
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(SRCROOT.join("test.swift")) { $0 <<< "// test.swift" }
-            let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)-simulator", supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: "simulator", libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-            ])
+            let supportXCFramework = try XCFramework(
+                version: Version(1, 0),
+                libraries: [
+                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)-simulator", supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: "simulator", libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                ]
+            )
             let supportXCFrameworkPath = SRCROOT.join("Support.xcframework")
             try tester.fs.createDirectory(supportXCFrameworkPath, recursive: true)
             try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: tester.fs, path: supportXCFrameworkPath, infoLookup: core)
@@ -1658,32 +1909,41 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 "App",
                 type: .commandLineTool,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug"),
+                    TestBuildConfiguration("Debug")
                 ],
                 buildPhases: [
-                    TestSourcesBuildPhase(["test.swift"]),
+                    TestSourcesBuildPhase(["test.swift"])
                 ],
                 dependencies: []
             )
 
-            let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                TestProject(
-                    "aProject",
-                    groupTree: TestGroup(
-                        "SomeFiles",
-                        children: [
-                            TestFile("test.swift"),
-                        ]),
-                    buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                            "SWIFT_VERSION": swiftVersion,
-                        ]),
-                    ],
-                    targets: [app])
-            ])
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir,
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "SomeFiles",
+                            children: [
+                                TestFile("test.swift")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "macosx",
+                                    "SUPPORTED_PLATFORMS": "macosx",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
+                        targets: [app]
+                    )
+                ]
+            )
 
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)

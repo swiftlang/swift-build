@@ -112,64 +112,85 @@ public final class ToolchainCAS: @unchecked Sendable, CASProtocol, ActionCachePr
     public func cache(objectID: ToolchainDataID, forKeyID key: ToolchainDataID) async throws {
         let keyDigest = api.llcas_objectid_get_digest(cCas, key.id)
         let cancellationHandler = CancellationHandler(api: api)
-        try await withTaskCancellationHandler(operation: {
-            try await withCheckedThrowingContinuation { continuation in
-                let box = ContextBox<Void, any Error>(continuation: continuation, llcas_string_dispose: api.llcas_string_dispose)
-                var cancellationToken: llcas_cancellable_t? = nil
-                api.llcas_actioncache_put_for_digest_async(cCas, keyDigest, objectID.id, false, Unmanaged.passRetained(box).toOpaque(), { ctx, failed, error in
-                    let context = Unmanaged<ContextBox<Void, any Error>>.fromOpaque(ctx!).takeRetainedValue()
-                    if failed {
-                        var detailedError: String?
-                        if let error = error {
-                            detailedError = String(cString: error)
-                            context.llcas_string_dispose(error)
-                        }
-                        context.continuation.resume(throwing: ToolchainCASPluginError.cacheInsertionFailed(detailedError))
-                    } else {
-                        context.continuation.resume(returning: ())
+        try await withTaskCancellationHandler(
+            operation: {
+                try await withCheckedThrowingContinuation { continuation in
+                    let box = ContextBox<Void, any Error>(continuation: continuation, llcas_string_dispose: api.llcas_string_dispose)
+                    var cancellationToken: llcas_cancellable_t? = nil
+                    api.llcas_actioncache_put_for_digest_async(
+                        cCas,
+                        keyDigest,
+                        objectID.id,
+                        false,
+                        Unmanaged.passRetained(box).toOpaque(),
+                        { ctx, failed, error in
+                            let context = Unmanaged<ContextBox<Void, any Error>>.fromOpaque(ctx!).takeRetainedValue()
+                            if failed {
+                                var detailedError: String?
+                                if let error = error {
+                                    detailedError = String(cString: error)
+                                    context.llcas_string_dispose(error)
+                                }
+                                context.continuation.resume(throwing: ToolchainCASPluginError.cacheInsertionFailed(detailedError))
+                            } else {
+                                context.continuation.resume(returning: ())
+                            }
+                        },
+                        &cancellationToken
+                    )
+                    if let cancellationToken {
+                        cancellationHandler.registerCancellationToken(cancellationToken)
                     }
-                }, &cancellationToken)
-                if let cancellationToken {
-                    cancellationHandler.registerCancellationToken(cancellationToken)
                 }
+            },
+            onCancel: {
+                cancellationHandler.cancel()
             }
-        }, onCancel: {
-            cancellationHandler.cancel()
-        })
+        )
     }
 
     public func lookupCachedObject(for keyID: ToolchainDataID) async throws -> ToolchainDataID? {
         let keyDigest = api.llcas_objectid_get_digest(cCas, keyID.id)
         let cancellationHandler = CancellationHandler(api: api)
-        return try await withTaskCancellationHandler(operation: {
-            return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolchainDataID?, Error>) in
-                let box = ContextBox<ToolchainDataID?, any Error>(continuation: continuation, llcas_string_dispose: api.llcas_string_dispose)
-                var cancellationToken: llcas_cancellable_t? = nil
-                api.llcas_actioncache_get_for_digest_async(cCas, keyDigest, false, Unmanaged.passRetained(box).toOpaque(), { ctx, lookupResult, objectID, error in
-                    let context = Unmanaged<ContextBox<ToolchainDataID?, any Error>>.fromOpaque(ctx!).takeRetainedValue()
-                    switch lookupResult {
-                    case LLCAS_LOOKUP_RESULT_SUCCESS:
-                        context.continuation.resume(returning: ToolchainDataID(id: objectID))
-                    case LLCAS_LOOKUP_RESULT_NOTFOUND:
-                        context.continuation.resume(returning: nil)
-                    case LLCAS_LOOKUP_RESULT_ERROR:
-                        var detailedError: String?
-                        if let error {
-                            detailedError = String(cString: error)
-                            context.llcas_string_dispose(error)
-                        }
-                        context.continuation.resume(throwing: ToolchainCASPluginError.cacheLookupFailed(detailedError))
-                    default:
-                        context.continuation.resume(throwing: ToolchainCASPluginError.cacheLookupFailed(nil))
+        return try await withTaskCancellationHandler(
+            operation: {
+                return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ToolchainDataID?, Error>) in
+                    let box = ContextBox<ToolchainDataID?, any Error>(continuation: continuation, llcas_string_dispose: api.llcas_string_dispose)
+                    var cancellationToken: llcas_cancellable_t? = nil
+                    api.llcas_actioncache_get_for_digest_async(
+                        cCas,
+                        keyDigest,
+                        false,
+                        Unmanaged.passRetained(box).toOpaque(),
+                        { ctx, lookupResult, objectID, error in
+                            let context = Unmanaged<ContextBox<ToolchainDataID?, any Error>>.fromOpaque(ctx!).takeRetainedValue()
+                            switch lookupResult {
+                            case LLCAS_LOOKUP_RESULT_SUCCESS:
+                                context.continuation.resume(returning: ToolchainDataID(id: objectID))
+                            case LLCAS_LOOKUP_RESULT_NOTFOUND:
+                                context.continuation.resume(returning: nil)
+                            case LLCAS_LOOKUP_RESULT_ERROR:
+                                var detailedError: String?
+                                if let error {
+                                    detailedError = String(cString: error)
+                                    context.llcas_string_dispose(error)
+                                }
+                                context.continuation.resume(throwing: ToolchainCASPluginError.cacheLookupFailed(detailedError))
+                            default:
+                                context.continuation.resume(throwing: ToolchainCASPluginError.cacheLookupFailed(nil))
+                            }
+                        },
+                        &cancellationToken
+                    )
+                    if let cancellationToken {
+                        cancellationHandler.registerCancellationToken(cancellationToken)
                     }
-                }, &cancellationToken)
-                if let cancellationToken {
-                    cancellationHandler.registerCancellationToken(cancellationToken)
                 }
+            },
+            onCancel: {
+                cancellationHandler.cancel()
             }
-        }, onCancel: {
-            cancellationHandler.cancel()
-        })
+        )
     }
 
     public func getOnDiskSize() throws -> Int64 {
@@ -195,7 +216,7 @@ public final class ToolchainCAS: @unchecked Sendable, CASProtocol, ActionCachePr
 
     public func setOnDiskSizeLimit(_ limit: Int64) throws {
         var error: UnsafeMutablePointer<CChar>? = nil
-        guard let  llcas_cas_set_ondisk_size_limit = api.llcas_cas_set_ondisk_size_limit else {
+        guard let llcas_cas_set_ondisk_size_limit = api.llcas_cas_set_ondisk_size_limit else {
             throw ToolchainCASPluginError.casSizeOperationUnsupported
         }
         if llcas_cas_set_ondisk_size_limit(cCas, limit, &error) {

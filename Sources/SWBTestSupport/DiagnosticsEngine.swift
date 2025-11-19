@@ -70,7 +70,7 @@ final package class DiagnosticsEngineResult {
 }
 
 @available(*, unavailable)
-extension DiagnosticsEngineResult: Sendable { }
+extension DiagnosticsEngineResult: Sendable {}
 
 package enum StringCheck: ExpressibleByStringLiteral, Sendable {
     case equal(String)

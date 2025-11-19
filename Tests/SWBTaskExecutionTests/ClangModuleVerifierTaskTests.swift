@@ -105,71 +105,92 @@ fileprivate struct ClangModuleVerifierTaskTests: CoreBasedTests {
             try localFS.createDirectory(tmp.join("A.framework/Headers"), recursive: true)
             try localFS.write(tmp.join("A.framework/Headers/A.h"), contents: "")
             try localFS.write(tmp.join("A.framework/Headers/B.h"), contents: "")
-            try localFS.write(tmp.join("A.framework/Modules/module.modulemap"), contents: """
-            framework module A {
-                umbrella header "A.h"
-            }
-            """)
+            try localFS.write(
+                tmp.join("A.framework/Modules/module.modulemap"),
+                contents: """
+                    framework module A {
+                        umbrella header "A.h"
+                    }
+                    """
+            )
 
             do {
-                let (result, outputDelegate) = try await generateInput(fs: localFS, commandLine: [
-                    "exe",
-                    tmp.join("A.framework").str,
-                    "--language", "c",
-                    "--main-output", tmp.join("Test.c").str,
-                    "--header-output", tmp.join("Test.h").str,
-                    "--module-map-output", tmp.join("Test.modulemap").str
-                ])
+                let (result, outputDelegate) = try await generateInput(
+                    fs: localFS,
+                    commandLine: [
+                        "exe",
+                        tmp.join("A.framework").str,
+                        "--language", "c",
+                        "--main-output", tmp.join("Test.c").str,
+                        "--header-output", tmp.join("Test.h").str,
+                        "--module-map-output", tmp.join("Test.modulemap").str,
+                    ]
+                )
 
                 #expect(result == .succeeded)
                 #expect(outputDelegate.messages == [])
 
-                #expect(try localFS.read(tmp.join("Test.c")) == """
-                #include <Test/Test.h>
-                """)
-                #expect(try localFS.read(tmp.join("Test.h")) == """
-                #include <A/A.h>
-                #include <A/B.h>
+                #expect(
+                    try localFS.read(tmp.join("Test.c")) == """
+                        #include <Test/Test.h>
+                        """
+                )
+                #expect(
+                    try localFS.read(tmp.join("Test.h")) == """
+                        #include <A/A.h>
+                        #include <A/B.h>
 
-                """)
-                #expect(try localFS.read(tmp.join("Test.modulemap")) == """
-                framework module Test {
-                    umbrella header "Test.h"
+                        """
+                )
+                #expect(
+                    try localFS.read(tmp.join("Test.modulemap")) == """
+                        framework module Test {
+                            umbrella header "Test.h"
 
-                    export *
-                    module * { export * }
-                }
-                """)
+                            export *
+                            module * { export * }
+                        }
+                        """
+                )
             }
             do {
-                let (result, outputDelegate) = try await generateInput(fs: localFS, commandLine: [
-                    "exe",
-                    tmp.join("A.framework").str,
-                    "--language", "objective-c++",
-                    "--main-output", tmp.join("Test.c").str,
-                    "--header-output", tmp.join("Test.h").str,
-                    "--module-map-output", tmp.join("Test.modulemap").str
-                ])
+                let (result, outputDelegate) = try await generateInput(
+                    fs: localFS,
+                    commandLine: [
+                        "exe",
+                        tmp.join("A.framework").str,
+                        "--language", "objective-c++",
+                        "--main-output", tmp.join("Test.c").str,
+                        "--header-output", tmp.join("Test.h").str,
+                        "--module-map-output", tmp.join("Test.modulemap").str,
+                    ]
+                )
 
                 #expect(result == .succeeded)
                 #expect(outputDelegate.messages == [])
 
-                #expect(try localFS.read(tmp.join("Test.c")) == """
-                #import <Test/Test.h>
-                """)
-                #expect(try localFS.read(tmp.join("Test.h")) == """
-                #import <A/A.h>
-                #import <A/B.h>
+                #expect(
+                    try localFS.read(tmp.join("Test.c")) == """
+                        #import <Test/Test.h>
+                        """
+                )
+                #expect(
+                    try localFS.read(tmp.join("Test.h")) == """
+                        #import <A/A.h>
+                        #import <A/B.h>
 
-                """)
-                #expect(try localFS.read(tmp.join("Test.modulemap")) == """
-                framework module Test {
-                    umbrella header "Test.h"
+                        """
+                )
+                #expect(
+                    try localFS.read(tmp.join("Test.modulemap")) == """
+                        framework module Test {
+                            umbrella header "Test.h"
 
-                    export *
-                    module * { export * }
-                }
-                """)
+                            export *
+                            module * { export * }
+                        }
+                        """
+                )
             }
         }
     }
@@ -182,47 +203,62 @@ fileprivate struct ClangModuleVerifierTaskTests: CoreBasedTests {
             try localFS.createDirectory(tmp.join("A.framework/PrivateHeaders"), recursive: true)
             try localFS.write(tmp.join("A.framework/Headers/A.h"), contents: "")
             try localFS.write(tmp.join("A.framework/PrivateHeaders/B.h"), contents: "")
-            try localFS.write(tmp.join("A.framework/Modules/module.modulemap"), contents: """
-            framework module A {
-                header "A.h"
-            }
-            """)
-            try localFS.write(tmp.join("A.framework/Modules/module.private.modulemap"), contents: """
-            framework module A_Private {
-                header "B.h"
-            }
-            """)
+            try localFS.write(
+                tmp.join("A.framework/Modules/module.modulemap"),
+                contents: """
+                    framework module A {
+                        header "A.h"
+                    }
+                    """
+            )
+            try localFS.write(
+                tmp.join("A.framework/Modules/module.private.modulemap"),
+                contents: """
+                    framework module A_Private {
+                        header "B.h"
+                    }
+                    """
+            )
 
-            let (result, outputDelegate) = try await generateInput(fs: localFS, commandLine: [
-                "exe",
-                tmp.join("A.framework").str,
-                "--language", "c",
-                "--main-output", tmp.join("Test.c").str,
-                "--header-output", tmp.join("Test.h").str,
-                "--module-map-output", tmp.join("Test.modulemap").str
-            ])
+            let (result, outputDelegate) = try await generateInput(
+                fs: localFS,
+                commandLine: [
+                    "exe",
+                    tmp.join("A.framework").str,
+                    "--language", "c",
+                    "--main-output", tmp.join("Test.c").str,
+                    "--header-output", tmp.join("Test.h").str,
+                    "--module-map-output", tmp.join("Test.modulemap").str,
+                ]
+            )
 
             #expect(result == .succeeded)
             #expect(outputDelegate.messages == [])
 
-            #expect(try localFS.read(tmp.join("Test.c")) == """
-            #include <Test/Test.h>
-            """)
-            #expect(try localFS.read(tmp.join("Test.h")) == """
-            #include <A/A.h>
+            #expect(
+                try localFS.read(tmp.join("Test.c")) == """
+                    #include <Test/Test.h>
+                    """
+            )
+            #expect(
+                try localFS.read(tmp.join("Test.h")) == """
+                    #include <A/A.h>
 
-            // Private
-            #include <A/B.h>
+                    // Private
+                    #include <A/B.h>
 
-            """)
-            #expect(try localFS.read(tmp.join("Test.modulemap")) == """
-            framework module Test {
-                umbrella header "Test.h"
+                    """
+            )
+            #expect(
+                try localFS.read(tmp.join("Test.modulemap")) == """
+                    framework module Test {
+                        umbrella header "Test.h"
 
-                export *
-                module * { export * }
-            }
-            """)
+                        export *
+                        module * { export * }
+                    }
+                    """
+            )
         }
     }
 
@@ -234,29 +270,39 @@ fileprivate struct ClangModuleVerifierTaskTests: CoreBasedTests {
             try localFS.createDirectory(tmp.join("A.framework/PrivateHeaders"), recursive: true)
             try localFS.write(tmp.join("A.framework/Headers/A.h"), contents: "")
             try localFS.write(tmp.join("A.framework/PrivateHeaders/B.h"), contents: "")
-            try localFS.write(tmp.join("A.framework/Modules/module.modulemap"), contents: """
-            framework module A {
-                header "A.h"
-            }
-            """)
+            try localFS.write(
+                tmp.join("A.framework/Modules/module.modulemap"),
+                contents: """
+                    framework module A {
+                        header "A.h"
+                    }
+                    """
+            )
 
-            let (result, outputDelegate) = try await generateInput(fs: localFS, commandLine: [
-                "exe",
-                tmp.join("A.framework").str,
-                "--language", "c",
-                "--main-output", tmp.join("Test.c").str,
-                "--header-output", tmp.join("Test.h").str,
-                "--module-map-output", tmp.join("Test.modulemap").str
-            ])
+            let (result, outputDelegate) = try await generateInput(
+                fs: localFS,
+                commandLine: [
+                    "exe",
+                    tmp.join("A.framework").str,
+                    "--language", "c",
+                    "--main-output", tmp.join("Test.c").str,
+                    "--header-output", tmp.join("Test.h").str,
+                    "--module-map-output", tmp.join("Test.modulemap").str,
+                ]
+            )
 
             #expect(result == .succeeded)
-            #expect(try localFS.read(tmp.join("Test.h")) == """
-                #include <A/A.h>
+            #expect(
+                try localFS.read(tmp.join("Test.h")) == """
+                    #include <A/A.h>
 
-                """)
-            #expect(outputDelegate.warnings == [
-                "warning: \(tmp.join("A.framework/Modules/module.private.modulemap").str): module map is missing; there are private headers but no module map"
-            ])
+                    """
+            )
+            #expect(
+                outputDelegate.warnings == [
+                    "warning: \(tmp.join("A.framework/Modules/module.private.modulemap").str): module map is missing; there are private headers but no module map"
+                ]
+            )
         }
     }
 
@@ -268,30 +314,40 @@ fileprivate struct ClangModuleVerifierTaskTests: CoreBasedTests {
             try localFS.createDirectory(tmp.join("A.framework/PrivateHeaders"), recursive: true)
             try localFS.write(tmp.join("A.framework/Headers/A.h"), contents: "")
             try localFS.write(tmp.join("A.framework/PrivateHeaders/B.h"), contents: "")
-            try localFS.write(tmp.join("A.framework/Modules/module.private.modulemap"), contents: """
-                framework module A_Private {
-                  header "B.h"
-                }
-                """)
+            try localFS.write(
+                tmp.join("A.framework/Modules/module.private.modulemap"),
+                contents: """
+                    framework module A_Private {
+                      header "B.h"
+                    }
+                    """
+            )
 
-            let (result, outputDelegate) = try await generateInput(fs: localFS, commandLine: [
-                "exe",
-                tmp.join("A.framework").str,
-                "--language", "c",
-                "--main-output", tmp.join("Test.c").str,
-                "--header-output", tmp.join("Test.h").str,
-                "--module-map-output", tmp.join("Test.modulemap").str
-            ])
+            let (result, outputDelegate) = try await generateInput(
+                fs: localFS,
+                commandLine: [
+                    "exe",
+                    tmp.join("A.framework").str,
+                    "--language", "c",
+                    "--main-output", tmp.join("Test.c").str,
+                    "--header-output", tmp.join("Test.h").str,
+                    "--module-map-output", tmp.join("Test.modulemap").str,
+                ]
+            )
 
             #expect(result == .succeeded)
-            #expect(try localFS.read(tmp.join("Test.h")) == """
-                // Private
-                #include <A/B.h>
+            #expect(
+                try localFS.read(tmp.join("Test.h")) == """
+                    // Private
+                    #include <A/B.h>
 
-                """)
-            #expect(outputDelegate.warnings == [
-                "warning: \(tmp.join("A.framework/Modules/module.modulemap").str): module map is missing; there are public headers but no module map"
-            ])
+                    """
+            )
+            #expect(
+                outputDelegate.warnings == [
+                    "warning: \(tmp.join("A.framework/Modules/module.modulemap").str): module map is missing; there are public headers but no module map"
+                ]
+            )
         }
     }
 
@@ -303,50 +359,68 @@ fileprivate struct ClangModuleVerifierTaskTests: CoreBasedTests {
             try localFS.createDirectory(tmp.join("A.framework/PrivateHeaders"), recursive: true)
             try localFS.write(tmp.join("A.framework/Headers/A.h"), contents: "")
             try localFS.write(tmp.join("A.framework/PrivateHeaders/Priv.h"), contents: "")
-            try localFS.write(tmp.join("A.framework/Modules/module.modulemap"), contents: """
-            framework module A {
-            }
-            """)
+            try localFS.write(
+                tmp.join("A.framework/Modules/module.modulemap"),
+                contents: """
+                    framework module A {
+                    }
+                    """
+            )
 
-            let (result, outputDelegate) = try await generateInput(fs: localFS, commandLine: [
-                "exe",
-                tmp.join("A.framework").str,
-                "--language", "c",
-                "--main-output", tmp.join("Test.c").str,
-                "--header-output", tmp.join("Test.h").str,
-                "--module-map-output", tmp.join("Test.modulemap").str
-            ])
+            let (result, outputDelegate) = try await generateInput(
+                fs: localFS,
+                commandLine: [
+                    "exe",
+                    tmp.join("A.framework").str,
+                    "--language", "c",
+                    "--main-output", tmp.join("Test.c").str,
+                    "--header-output", tmp.join("Test.h").str,
+                    "--module-map-output", tmp.join("Test.modulemap").str,
+                ]
+            )
 
             #expect(result == .failed)
-            #expect(outputDelegate.errors == [
-                "error: \(tmp.join("A.framework/Modules/module.modulemap").str): module map does not declare a module"
-            ])
-            #expect(outputDelegate.warnings == [
-                "warning: \(tmp.join("A.framework/Modules/module.private.modulemap").str): module map is missing; there are private headers but no module map"
-            ])
+            #expect(
+                outputDelegate.errors == [
+                    "error: \(tmp.join("A.framework/Modules/module.modulemap").str): module map does not declare a module"
+                ]
+            )
+            #expect(
+                outputDelegate.warnings == [
+                    "warning: \(tmp.join("A.framework/Modules/module.private.modulemap").str): module map is missing; there are private headers but no module map"
+                ]
+            )
         }
         try await withTemporaryDirectory(fs: localFS) { tmp in
             try localFS.createDirectory(tmp.join("A.framework/Modules"), recursive: true)
             try localFS.createDirectory(tmp.join("A.framework/Headers"), recursive: true)
-            try localFS.write(tmp.join("A.framework/Modules/module.private.modulemap"), contents: """
-            framework module A {
-                module Sub {}
-            }
-            """)
+            try localFS.write(
+                tmp.join("A.framework/Modules/module.private.modulemap"),
+                contents: """
+                    framework module A {
+                        module Sub {}
+                    }
+                    """
+            )
 
-            let (result, outputDelegate) = try await generateInput(fs: localFS, commandLine: [
-                "exe",
-                tmp.join("A.framework").str,
-                "--language", "c",
-                "--main-output", tmp.join("Test.c").str,
-                "--header-output", tmp.join("Test.h").str,
-                "--module-map-output", tmp.join("Test.modulemap").str
-            ])
+            let (result, outputDelegate) = try await generateInput(
+                fs: localFS,
+                commandLine: [
+                    "exe",
+                    tmp.join("A.framework").str,
+                    "--language", "c",
+                    "--main-output", tmp.join("Test.c").str,
+                    "--header-output", tmp.join("Test.h").str,
+                    "--module-map-output", tmp.join("Test.modulemap").str,
+                ]
+            )
 
             #expect(result == .failed)
-            #expect(outputDelegate.errors == [
-                "error: \(tmp.join("A.framework/Modules/module.private.modulemap").str): private module exists but no private headers"
-            ])
+            #expect(
+                outputDelegate.errors == [
+                    "error: \(tmp.join("A.framework/Modules/module.private.modulemap").str): private module exists but no private headers"
+                ]
+            )
             #expect(outputDelegate.warnings == [])
         }
     }

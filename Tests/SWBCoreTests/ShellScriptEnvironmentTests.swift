@@ -23,23 +23,31 @@ import SWBProtocol
         let core = try await getCore()
         let testWorkspace = try TestWorkspace(
             "Workspace",
-            projects: [TestProject(
-                "aProject",
-                groupTree: TestGroup("SomeFiles", children: [TestFile("main.swift")]),
-                targets: [
-                    TestStandardTarget(
-                        "Target1",
-                        guid: nil,
-                        type: .application,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": "arm64",
-                                "BUILD_VARIANTS": "normal",
-                                "PRODUCT_NAME": "Target1",
-                            ])],
-                        buildPhases: [TestSourcesBuildPhase(["main.swift"])])
-                ])
-            ]).load(core)
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles", children: [TestFile("main.swift")]),
+                    targets: [
+                        TestStandardTarget(
+                            "Target1",
+                            guid: nil,
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "ARCHS": "arm64",
+                                        "BUILD_VARIANTS": "normal",
+                                        "PRODUCT_NAME": "Target1",
+                                    ]
+                                )
+                            ],
+                            buildPhases: [TestSourcesBuildPhase(["main.swift"])]
+                        )
+                    ]
+                )
+            ]
+        ).load(core)
         let context = try await contextForTestData(testWorkspace)
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
         let testProject = context.workspace.projects[0]
@@ -51,7 +59,7 @@ import SWBProtocol
 
         let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context, allDeploymentTargetMacroNames: [])
 
-        let expected: [String: String] =         [
+        let expected: [String: String] = [
             "ACTION": "build",
             "ALWAYS_SEARCH_USER_PATHS": "YES",
             "BUILD_DIR": srcroot.join("build").str,
@@ -167,40 +175,51 @@ import SWBProtocol
             let toolchainDirPath = tmpDirPath.join("Toolchains")
             let toolchainPath = toolchainDirPath.join("Extra.xctoolchain")
             try fs.createDirectory(toolchainPath, recursive: true)
-            try await fs.writePlist(toolchainPath.join("ToolchainInfo.plist"), [
-                "CFBundleIdentifier": "com.apple.ExtraToolchain",
-                "DefaultBuildSettings": [
-                    "TOOLCHAIN_DEFAULT_BUILD_SETTING_FOO" : "bar",
-                ],
-                "OverrideBuildSettings": [
-                    "TOOLCHAIN_OVERRIDE_BUILD_SETTING_BAZ": "quux",
-                ],
-            ])
+            try await fs.writePlist(
+                toolchainPath.join("ToolchainInfo.plist"),
+                [
+                    "CFBundleIdentifier": "com.apple.ExtraToolchain",
+                    "DefaultBuildSettings": [
+                        "TOOLCHAIN_DEFAULT_BUILD_SETTING_FOO": "bar"
+                    ],
+                    "OverrideBuildSettings": [
+                        "TOOLCHAIN_OVERRIDE_BUILD_SETTING_BAZ": "quux"
+                    ],
+                ]
+            )
 
             // Configure the test data.
             let environment: Environment = [.externalToolchainsDir: toolchainDirPath.str]
             let core = try await Self.makeCore(environment: .init(environment))
             let testWorkspace = try TestWorkspace(
                 "Workspace",
-                projects: [TestProject(
-                    "aProject",
-                    groupTree: TestGroup("SomeFiles", children: [TestFile("main.swift")]),
-                    targets: [
-                        TestStandardTarget(
-                            "Target1",
-                            guid: nil,
-                            type: .application,
-                            buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [
-                                    "ARCHS": "arm64",
-                                    "BUILD_VARIANTS": "normal",
-                                    "PRODUCT_NAME": "Target1",
-                                ])],
-                            buildPhases: [TestSourcesBuildPhase(["main.swift"])
-                                         ]
-                        )
-                    ])
-                ]).load(core)
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("SomeFiles", children: [TestFile("main.swift")]),
+                        targets: [
+                            TestStandardTarget(
+                                "Target1",
+                                guid: nil,
+                                type: .application,
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "ARCHS": "arm64",
+                                            "BUILD_VARIANTS": "normal",
+                                            "PRODUCT_NAME": "Target1",
+                                        ]
+                                    )
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.swift"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            ).load(core)
             let context = try await contextForTestData(testWorkspace, core: core, environment: .init(environment))
             let buildRequestContext = BuildRequestContext(workspaceContext: context)
             let testProject = context.workspace.projects[0]
@@ -213,7 +232,7 @@ import SWBProtocol
 
             // Check that all of the settings defined as expected in the dictionary above appear as described.
             let expected: [String: String] = [
-                "TOOLCHAIN_DEFAULT_BUILD_SETTING_FOO" : "bar",
+                "TOOLCHAIN_DEFAULT_BUILD_SETTING_FOO": "bar",
                 "TOOLCHAIN_OVERRIDE_BUILD_SETTING_BAZ": "quux",
             ]
 
@@ -231,24 +250,32 @@ import SWBProtocol
     func ensureEnvironmentIsMissingValues() async throws {
         let testWorkspace = try await TestWorkspace(
             "Workspace",
-            projects: [TestProject(
-                "aProject",
-                groupTree: TestGroup("SomeFiles", children: [TestFile("main.swift")]),
-                targets: [
-                    TestStandardTarget(
-                        "Target1",
-                        guid: nil,
-                        type: .application,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": "arm64",
-                                "BUILD_VARIANTS": "normal",
-                                "PRODUCT_NAME": "Target1",
-                                "BUILD_DESCRIPTION_CACHE_DIR": "/var/should/not/export"
-                            ])],
-                        buildPhases: [TestSourcesBuildPhase(["main.swift"])])
-                ])
-            ]).load(getCore())
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles", children: [TestFile("main.swift")]),
+                    targets: [
+                        TestStandardTarget(
+                            "Target1",
+                            guid: nil,
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "ARCHS": "arm64",
+                                        "BUILD_VARIANTS": "normal",
+                                        "PRODUCT_NAME": "Target1",
+                                        "BUILD_DESCRIPTION_CACHE_DIR": "/var/should/not/export",
+                                    ]
+                                )
+                            ],
+                            buildPhases: [TestSourcesBuildPhase(["main.swift"])]
+                        )
+                    ]
+                )
+            ]
+        ).load(getCore())
         let context = try await contextForTestData(testWorkspace)
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
         let testProject = context.workspace.projects[0]
@@ -260,7 +287,7 @@ import SWBProtocol
         let env = SWBCore.computeScriptEnvironment(.shellScriptPhase, scope: settings.globalScope, settings: settings, workspaceContext: context, allDeploymentTargetMacroNames: [])
 
         let shouldNotBeExported = [
-            "BUILD_DESCRIPTION_CACHE_DIR",
+            "BUILD_DESCRIPTION_CACHE_DIR"
         ]
 
         for setting in shouldNotBeExported {

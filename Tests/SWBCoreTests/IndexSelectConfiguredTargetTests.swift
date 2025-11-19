@@ -26,15 +26,19 @@ import SWBUtil
             "appTarget",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "macosx iphonesimulator iphoneos watchsimulator watchos",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx iphonesimulator iphoneos watchsimulator watchos",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
-            ])
+                TestSourcesBuildPhase(["main.swift"])
+            ]
+        )
 
         let workspace = try await TestWorkspace(
             "Test",
@@ -44,18 +48,24 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_VERSION": swiftVersion,
-                            ])],
+                            ]
+                        )
+                    ],
                     targets: [
                         appTarget
-                    ])])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         try await tester.checkIndexBuildGraph(targets: [appTarget], workspaceOperation: true) { results in

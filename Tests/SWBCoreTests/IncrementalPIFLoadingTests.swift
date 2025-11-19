@@ -26,7 +26,8 @@ import SWBProtocol
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup("Sources"),
-            targets: [testTarget])
+            targets: [testTarget]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let testWorkspace2 = TestWorkspace("bWorkspace", projects: [testProject])
 
@@ -46,25 +47,25 @@ import SWBProtocol
 
             // Initiate a loading session.
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace.signature)
-            #expect(session.missingObjects.map{ $0.signature } == [testWorkspace.signature])
+            #expect(session.missingObjects.map { $0.signature } == [testWorkspace.signature])
 
             // Add the workspace data.
             try session.add(object: workspaceObject)
-            #expect(session.missingObjects.map{ $0.signature } == [testProject.signature])
+            #expect(session.missingObjects.map { $0.signature } == [testProject.signature])
 
             // Add the project data.
             try session.add(object: projectObject)
-            #expect(session.missingObjects.map{ $0.signature } == [testTarget.signature])
+            #expect(session.missingObjects.map { $0.signature } == [testTarget.signature])
 
             // Add the target data.
             try session.add(object: targetObject)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
 
             // Load the workspace.
             let workspace = try session.load()
 
             #expect(workspace.name == "aWorkspace")
-            #expect(workspace.projects.map{ $0.name } == ["aProject"])
+            #expect(workspace.projects.map { $0.name } == ["aProject"])
 
             #expect(IncrementalPIFLoader.loadsRequested.value == 1)
             #expect(IncrementalPIFLoader.objectsLoaded.value == 3)
@@ -82,23 +83,23 @@ import SWBProtocol
 
             // Initiate a loading session.
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace2.signature)
-            #expect(session.missingObjects.map{ $0.signature } == [testWorkspace2.signature])
+            #expect(session.missingObjects.map { $0.signature } == [testWorkspace2.signature])
 
             // Add the workspace data, which should complete all the necessary objects.
             try session.add(object: workspaceObject)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
 
             // Check we error out if we try to add something that isn't required.
             #expect(throws: (any Error).self) {
                 try session.add(object: workspaceObject)
             }
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
 
             // Load the workspace.
             let workspace = try session.load()
 
             #expect(workspace.name == "bWorkspace")
-            #expect(workspace.projects.map{ $0.name } == ["aProject"])
+            #expect(workspace.projects.map { $0.name } == ["aProject"])
 
             #expect(IncrementalPIFLoader.loadsRequested.value == 1)
             #expect(IncrementalPIFLoader.objectsLoaded.value == 1)
@@ -112,7 +113,8 @@ import SWBProtocol
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup("Sources"),
-            targets: [testTarget])
+            targets: [testTarget]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let fs = PseudoFS()
         let cachePath = Path.root.join("tmp")
@@ -127,11 +129,11 @@ import SWBProtocol
         // Load the pif.
         do {
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace.signature)
-            #expect(session.missingObjects.map{$0}.count == 1)
+            #expect(session.missingObjects.map { $0 }.count == 1)
             try session.add(object: workspaceObject)
             try session.add(object: projectObject)
             try session.add(object: targetObject)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
             #expect(workspace.name == "aWorkspace")
         }
@@ -139,7 +141,7 @@ import SWBProtocol
         // We should not get any missing object when we load again.
         do {
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace.signature)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
             #expect(workspace.name == "aWorkspace")
         }
@@ -155,11 +157,11 @@ import SWBProtocol
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace.signature)
             // We should have missingObjects.
             #expect(incrementalLoader.loadedObjectCount == 2)
-            #expect(session.missingObjects.map{$0}.count == 1)
+            #expect(session.missingObjects.map { $0 }.count == 1)
 
             // Add the workspace object back.
             try session.add(object: workspaceObject)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
             #expect(workspace.name == "aWorkspace")
         }
@@ -170,13 +172,13 @@ import SWBProtocol
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace.signature)
             // We should have missingObjects.
             #expect(incrementalLoader.loadedObjectCount == 2)
-            #expect(session.missingObjects.map{$0}.count == 1)
+            #expect(session.missingObjects.map { $0 }.count == 1)
 
             // Add the objects back.
             try session.add(object: workspaceObject)
             try session.add(object: projectObject)
             try session.add(object: targetObject)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
             #expect(workspace.name == "aWorkspace")
         }
@@ -188,7 +190,8 @@ import SWBProtocol
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup("Sources"),
-            targets: [testTarget])
+            targets: [testTarget]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let testWorkspace2 = TestWorkspace("bWorkspace", projects: [testProject])
 
@@ -208,7 +211,7 @@ import SWBProtocol
             try session.add(object: workspaceObject)
             try session.add(object: projectObject)
             try session.add(object: targetObject)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
             #expect(workspace.name == "aWorkspace")
 
@@ -225,7 +228,7 @@ import SWBProtocol
             let pifObjects = try testWorkspace.toObjects()
             #expect(pifObjects.count == 3)
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace.signature)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
             #expect(workspace.name == "aWorkspace")
 
@@ -244,7 +247,7 @@ import SWBProtocol
             let workspaceObject = pifObjects[0]
             let session = incrementalLoader.startLoading(workspaceSignature: testWorkspace2.signature)
             try session.add(object: workspaceObject)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
             #expect(workspace.name == "bWorkspace")
 
@@ -260,15 +263,18 @@ import SWBProtocol
         let testTargetA = TestStandardTarget(
             "aTarget",
             type: .application,
-            buildPhases: [TestSourcesBuildPhase(["foo.c"])])
+            buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+        )
         let testTargetB = TestStandardTarget(
             "bTarget",
             type: .application,
-            buildPhases: [TestSourcesBuildPhase(["bar.c"])])
+            buildPhases: [TestSourcesBuildPhase(["bar.c"])]
+        )
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup("Sources", children: [TestFile("foo.c"), TestFile("bar.c"), TestFile("baz.c")]),
-            targets: [testTargetA, testTargetB])
+            targets: [testTargetA, testTargetB]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
 
         let incrementalLoader = IncrementalPIFLoader(internalNamespace: BuiltinMacros.namespace, cachePath: nil)
@@ -290,12 +296,12 @@ import SWBProtocol
             try session.add(object: projectObject)
             try session.add(object: targetObjectA)
             try session.add(object: targetObjectB)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
 
             #expect(workspace.name == "aWorkspace")
-            #expect(workspace.projects.map{ $0.name } == ["aProject"])
-            #expect(workspace.projects.flatMap{ $0.targets }.map{ $0.name } == ["aTarget", "bTarget"])
+            #expect(workspace.projects.map { $0.name } == ["aProject"])
+            #expect(workspace.projects.flatMap { $0.targets }.map { $0.name } == ["aTarget", "bTarget"])
 
             #expect(IncrementalPIFLoader.loadsRequested.value == 1)
             #expect(IncrementalPIFLoader.objectsLoaded.value == 4)
@@ -309,11 +315,13 @@ import SWBProtocol
         let testTargetB2 = TestStandardTarget(
             "bTarget",
             type: .application,
-            buildPhases: [TestSourcesBuildPhase(["baz.c"])])
+            buildPhases: [TestSourcesBuildPhase(["baz.c"])]
+        )
         let testProject2 = TestProject(
             "aProject",
             groupTree: TestGroup("Sources", children: [TestFile("foo.c"), TestFile("bar.c"), TestFile("baz.c")]),
-            targets: [testTargetA, testTargetB2])
+            targets: [testTargetA, testTargetB2]
+        )
         let testWorkspace2 = TestWorkspace("aWorkspace", projects: [testProject2])
 
         // Load a second workspace with the new target.
@@ -329,12 +337,12 @@ import SWBProtocol
             try session.add(object: workspaceObject)
             try session.add(object: projectObject)
             try session.add(object: targetObjectB)
-            #expect(session.missingObjects.map{ $0.signature } == [])
+            #expect(session.missingObjects.map { $0.signature } == [])
             let workspace = try session.load()
 
             #expect(workspace.name == "aWorkspace")
-            #expect(workspace.projects.map{ $0.name } == ["aProject"])
-            #expect(workspace.projects.flatMap{ $0.targets }.map{ $0.name } == ["aTarget", "bTarget"])
+            #expect(workspace.projects.map { $0.name } == ["aProject"])
+            #expect(workspace.projects.flatMap { $0.targets }.map { $0.name } == ["aTarget", "bTarget"])
 
             #expect(IncrementalPIFLoader.loadsRequested.value == 1)
             #expect(IncrementalPIFLoader.objectsLoaded.value == 3)
@@ -374,4 +382,3 @@ import SWBProtocol
         }
     }
 }
-

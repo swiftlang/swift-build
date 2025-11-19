@@ -20,10 +20,8 @@ import class Foundation.PropertyListSerialization
 import class Foundation.NSError
 
 /// Concrete implementation of the Info.plist processor in-process task.
-public final class InfoPlistProcessorTaskAction: TaskAction
-{
-    public override class var toolIdentifier: String
-    {
+public final class InfoPlistProcessorTaskAction: TaskAction {
+    public override class var toolIdentifier: String {
         return "info-plist-processor"
     }
 
@@ -45,8 +43,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
     private var requiredArchitecture: String? = nil
     private var outputFormat: PropertyListSerialization.PropertyListFormat? = nil
 
-    public init(_ contextPath: Path)
-    {
+    public init(_ contextPath: Path) {
         self.contextPath = contextPath
         super.init()
     }
@@ -77,8 +74,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         let productType = context.productType
         let platform = context.platform
         // Parse the arguments and cache them.  We only have to do this the first time the task is run, since the task won't change from run to run, and it cannot be run multiple times in parallel in the same process.
-        if configParsingResult == nil
-        {
+        if configParsingResult == nil {
             // The compiler won't let us just do a tuple assignment of the method return value here.  c.f <rdar://problem/24317727>
             let (result, messages) = parseConfiguration(task, context: context)
             configParsingResult = result
@@ -86,8 +82,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         }
         // We do, however, have to emit the messages and handle a bad exit code on each run.
         configParsingMessages?.emitMessages(outputDelegate)
-        if configParsingResult! != .succeeded
-        {
+        if configParsingResult! != .succeeded {
             return configParsingResult!
         }
 
@@ -110,31 +105,22 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         // Read the property list from the file.  We assume this method will emit any appropriate messages during reading.
         // We will modify the plist in place throughout the course of the tool until we finally have the contents we want to write out.
         let contentsData: ByteString
-        do
-        {
+        do {
             contentsData = try executionDelegate.fs.read(inputPath)
-        }
-        catch let e
-        {
+        } catch let e {
             outputDelegate.emitError("unable to read input file '\(inputPath.str)': \(e.localizedDescription)")
             return .failed
         }
         var (plist, inputFormat): (PropertyListItem, PropertyListSerialization.PropertyListFormat)
-        do
-        {
+        do {
             (plist, inputFormat) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
-        }
-        catch let error as NSError
-        {
+        } catch let error as NSError {
             outputDelegate.emitError("unable to read property list from file: \(inputPath.str): \(error.localizedDescription)")
             return .failed
-        }
-        catch
-        {
+        } catch {
             outputDelegate.emitError("unable to read property list from file: \(inputPath.str): unknown error")
             return .failed
         }
-
 
         // Confirm that the property list is a dictionary.
         guard case let .plDict(plistDict) = plist else { outputDelegate.emitError("contents of file is not a dictionary: \(inputPath.str)"); return .failed }
@@ -148,31 +134,25 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                     return .failed
                 }
                 plist = .plDict(plistDict.addingContents(of: infoPlistFileContentsDict))
-            }
-            catch {
+            } catch {
                 outputDelegate.emitError("unable to create property list from string '\(infoPlistFileContents)': \(error.localizedDescription)")
                 return .failed
             }
         }
 
-
         // Load the additional content files, if any, and merge their content into the input plist.
-        for path in additionalContentFilePaths
-        {
+        for path in additionalContentFilePaths {
             let additionalContentResult = addAdditionalContent(from: path, &plist, context: context, executionDelegate, outputDelegate)
-            guard additionalContentResult == .succeeded else
-            {
+            guard additionalContentResult == .succeeded else {
                 // addAdditionalContent() will have emitted any issues as it executed.
                 return additionalContentResult
             }
         }
 
-        for path in privacyFileContentFilePaths
-        {
+        for path in privacyFileContentFilePaths {
             if let privacyFile = scanForPrivacyFile(at: path, fs: executionDelegate.fs) {
                 let additionalPrivacyContentResult = addAppPrivacyContent(from: privacyFile, &plist, executionDelegate, outputDelegate)
-                guard additionalPrivacyContentResult == .succeeded else
-                {
+                guard additionalPrivacyContentResult == .succeeded else {
                     // addAppPrivacyContent() will have emitted any issues as it executed.
                     return additionalPrivacyContentResult
                 }
@@ -180,19 +160,16 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         }
 
         // If we were passed any required architecture, then we apply it to the value of the 'UIRequiredDeviceCapabilities' key, by setting it and removing any others.
-        if requiredArchitecture != nil
-        {
+        if requiredArchitecture != nil {
             let result = setRequiredDeviceCapabilities(&plist, context: context, outputDelegate: outputDelegate)
-            if result != .succeeded
-            {
+            if result != .succeeded {
                 return result
             }
         }
 
         // Add the data from the additional info property in the platform to the plist.
         let additionalInfoResult = addAdditionalEntriesFromPlatform(&plist, context: context, outputDelegate: outputDelegate)
-        if additionalInfoResult != .succeeded
-        {
+        if additionalInfoResult != .succeeded {
             // addAdditionalEntriesFromPlatform() will have emitted any issues as it executed.
             return additionalInfoResult
         }
@@ -230,34 +207,36 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         }
 
         // Elide any empty string values for a specific set of keys (bad things happen in the system if an Info.plist has an empty value for any of these keys).
-        plist = plist.byElidingRecursivelyEmptyStringValuesInDictionaries(Set<String>([
-            "CFBundleDevelopmentRegion",
-            "CFBundleExecutable",
-            "CFBundleGetInfoString",
-            "CFBundleIconFile",
-            "CFBundleIdentifier",
-            "CFBundleName",
-            "CFBundlePackageType",
-            "CFBundleResourceSpecification",
-            "CFBundleShortVersionString",
-            "CFBundleSignature",
-            "CFBundleTypeIconFile",
-            "CFBundleTypeRole",
-            "CFBundleVersion",
-            "NSDocumentClass",
-            "NSHelpFile",
-            "NSHumanReadableCopyright",
-            "NSMainNibFile",
-            "NSPrincipalClass",
-            "NSStickerSharingLevel",
+        plist = plist.byElidingRecursivelyEmptyStringValuesInDictionaries(
+            Set<String>([
+                "CFBundleDevelopmentRegion",
+                "CFBundleExecutable",
+                "CFBundleGetInfoString",
+                "CFBundleIconFile",
+                "CFBundleIdentifier",
+                "CFBundleName",
+                "CFBundlePackageType",
+                "CFBundleResourceSpecification",
+                "CFBundleShortVersionString",
+                "CFBundleSignature",
+                "CFBundleTypeIconFile",
+                "CFBundleTypeRole",
+                "CFBundleVersion",
+                "NSDocumentClass",
+                "NSHelpFile",
+                "NSHumanReadableCopyright",
+                "NSMainNibFile",
+                "NSPrincipalClass",
+                "NSStickerSharingLevel",
 
-            // These aren't harmful to the system if they're empty, but will cause App Store submission to fail, so elide them as well.
-            "BuildMachineOSBuild",
-            "DTSwiftPlaygroundsBuild",
-            "DTSwiftPlaygroundsVersion",
-            "DTXcode",
-            "DTXcodeBuild",
-        ]))
+                // These aren't harmful to the system if they're empty, but will cause App Store submission to fail, so elide them as well.
+                "BuildMachineOSBuild",
+                "DTSwiftPlaygroundsBuild",
+                "DTSwiftPlaygroundsVersion",
+                "DTXcode",
+                "DTXcodeBuild",
+            ])
+        )
 
         // Convert the PropertyListItem to a Dictionary so we can inject content
         guard case .plDict(var plistDict) = plist else {
@@ -273,8 +252,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         let deploymentTarget: Version?
         if let deploymentTargetMacro = platform?.deploymentTargetMacro {
             deploymentTarget = try? Version(scope.evaluate(deploymentTargetMacro))
-        }
-        else {
+        } else {
             deploymentTarget = nil
         }
 
@@ -325,8 +303,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             if numDocumentTypes > 0, plistDict["LSSupportsOpeningDocumentsInPlace"] == nil, plistDict["UISupportsDocumentBrowser"] == nil {
                 outputDelegate.emitWarning("The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support.")
             }
-        }
-        else if platform?.familyName == "macOS", !disableInfoPlistPlatformEditing {
+        } else if platform?.familyName == "macOS", !disableInfoPlistPlatformEditing {
             if numDocumentTypes > 0, let sodip = plistDict["LSSupportsOpeningDocumentsInPlace"], sodip.boolValue == false {
                 outputDelegate.emitError("'LSSupportsOpeningDocumentsInPlace = NO' is not supported on macOS. Either remove the entry or set it to YES, and also ensure that the application does open documents in place on macOS.")
                 return .failed
@@ -371,49 +348,35 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         return .succeeded
     }
 
-
     // MARK: Parsing the configuration
 
-
-    private func parseConfiguration(_ task: any ExecutableTask, context: InfoPlistProcessorTaskActionContext) -> (CommandResult, TaskActionMessageCollection)
-    {
+    private func parseConfiguration(_ task: any ExecutableTask, context: InfoPlistProcessorTaskActionContext) -> (CommandResult, TaskActionMessageCollection) {
         let messages = TaskActionMessageCollection()
         let commandLine = [String](task.commandLineAsStrings)
 
-        var i = 1                     // Skip over the tool name
-        while i < commandLine.count
-        {
+        var i = 1  // Skip over the tool name
+        while i < commandLine.count {
             let option = commandLine[i]
             switch option
             {
             case "-format":
                 // The '-format' option takes a single argument: 'openstep', 'xml', or 'binary'.
-                if commandLine.count > i+1
-                {
+                if commandLine.count > i + 1 {
                     // The argument is the format in which to write the output.
                     i += 1
                     let arg = commandLine[i]
-                    if arg == "openstep"
-                    {
+                    if arg == "openstep" {
                         outputFormat = .openStep
-                    }
-                    else if arg == "xml"
-                    {
+                    } else if arg == "xml" {
                         outputFormat = .xml
-                    }
-                    else if arg == "binary"
-                    {
+                    } else if arg == "binary" {
                         outputFormat = .binary
-                    }
-                    else
-                    {
+                    } else {
                         // Unrecognized argument to -format.
                         messages.addMessage(.error("unrecognized argument to \(option): '\(arg)' (use 'openstep', 'xml', or 'binary')"))
                         return (.failed, messages)
                     }
-                }
-                else
-                {
+                } else {
                     // No argument to -format.
                     messages.addMessage(.error("missing argument for \(option) (use 'openstep', 'xml', or 'binary')"))
                     return (.failed, messages)
@@ -421,25 +384,19 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             case "-genpkginfo":
                 // The '-pkginfo' option takes a single argument: the path of the pkginfo file to generate.
-                if commandLine.count > i+1
-                {
+                if commandLine.count > i + 1 {
                     // The argument is the output path.
                     i += 1
                     let arg = commandLine[i]
-                    if pkgInfoPath == nil
-                    {
+                    if pkgInfoPath == nil {
                         // We don't already have a pkginfo path; we do now.
                         pkgInfoPath = Path(arg)
-                    }
-                    else
-                    {
+                    } else {
                         // We already have a pkginfo path.
                         messages.addMessage(.error("multiple pkginfo paths specified"))
                         return (.failed, messages)
                     }
-                }
-                else
-                {
+                } else {
                     // No argument to -genpkginfo.
                     messages.addMessage(.error("missing argument for \(option)"))
                     return (.failed, messages)
@@ -466,32 +423,25 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             case "-platform":
                 // The '-platform' option takes a single argument: the name of the platform for which the Info.plist is being generated.
-                if commandLine.count > i+1
-                {
+                if commandLine.count > i + 1 {
                     // The argument is the platform name.
                     i += 1
                     let arg = commandLine[i]
-                    if platformName == nil
-                    {
+                    if platformName == nil {
                         // We don't already have a platform name; we do now.
                         platformName = arg
 
                         // If the platform name we were passed differs from the platform we were configured with, then emit an error.
-                        if platformName! != context.platform?.name
-                        {
+                        if platformName! != context.platform?.name {
                             messages.addMessage(.error("argument to -platform '\(platformName!)' differs from platform being targeted '\(context.platform?.name ?? "")'"))
                             return (.failed, messages)
                         }
-                    }
-                    else
-                    {
+                    } else {
                         // We already have a pkginfo path.
                         messages.addMessage(.error("multiple platform names specified"))
                         return (.failed, messages)
                     }
-                }
-                else
-                {
+                } else {
                     // No argument to -platform.
                     messages.addMessage(.error("missing argument for \(option)"))
                     return (.failed, messages)
@@ -507,25 +457,19 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             case "-resourcerulesfile":
                 // The '-resourcerulesfile' option takes a single argument: the name (or path) of the resource rules file.
-                if commandLine.count > i+1
-                {
+                if commandLine.count > i + 1 {
                     // The argument is the resource rules file.
                     i += 1
                     let arg = commandLine[i]
-                    if resourceRulesFileName == nil
-                    {
+                    if resourceRulesFileName == nil {
                         // We don't already have a resource rules file; we do now.
                         resourceRulesFileName = Path(arg)
-                    }
-                    else
-                    {
+                    } else {
                         // We already have a pkginfo path.
                         messages.addMessage(.error("multiple resource rules files specified"))
                         return (.failed, messages)
                     }
-                }
-                else
-                {
+                } else {
                     // No argument to -resourcerulesfile.
                     messages.addMessage(.error("missing argument for \(option)"))
                     return (.failed, messages)
@@ -533,15 +477,12 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             case "-additionalcontentfile":
                 // The '-additionalcontentfile' option takes a single argument: the name of the additional content file.  There may be more than one such file passed.
-                if commandLine.count > i+1
-                {
+                if commandLine.count > i + 1 {
                     // The argument is the additional content file.
                     i += 1
                     let arg = commandLine[i]
                     additionalContentFilePaths.append(Path(arg))
-                }
-                else
-                {
+                } else {
                     // No argument to -additionalcontentfile.
                     messages.addMessage(.error("missing argument for \(option)"))
                     return (.failed, messages)
@@ -549,14 +490,11 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             case "-scanforprivacyfile":
                 // The '-scanforprivacyfile' option takes a single argument: the path of the path to scan for an `PrivacyInfo.xcprivacy` file.  There may be more than one such path passed.
-                if commandLine.count > i+1
-                {
+                if commandLine.count > i + 1 {
                     i += 1
                     let arg = commandLine[i]
                     privacyFileContentFilePaths.append(Path(arg))
-                }
-                else
-                {
+                } else {
                     // No argument to -scanforprivacyfile.
                     messages.addMessage(.error("missing argument for \(option)"))
                     return (.failed, messages)
@@ -570,7 +508,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                     return (.failed, messages)
                 }
 
-                guard commandLine.count > i+1 else {
+                guard commandLine.count > i + 1 else {
                     messages.addMessage(.error("missing argument for \(option)"))
                     return (.failed, messages)
                 }
@@ -582,44 +520,33 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
             case "-o":
                 // The '-o' option takes a single argument: the output path.
-                if commandLine.count > i+1
-                {
+                if commandLine.count > i + 1 {
                     // The argument is the resource rules file.
                     i += 1
                     let arg = commandLine[i]
-                    if outputPath == nil
-                    {
+                    if outputPath == nil {
                         // We don't already have a resource rules file; we do now.
                         outputPath = Path(arg)
-                    }
-                    else
-                    {
+                    } else {
                         // We already have a pkginfo path.
                         messages.addMessage(.error("multiple output files specified"))
                         return (.failed, messages)
                     }
-                }
-                else
-                {
+                } else {
                     // No argument to -o.
                     messages.addMessage(.error("missing argument for \(option)"))
                     return (.failed, messages)
                 }
 
             default:
-                if option.hasPrefix("-")
-                {
+                if option.hasPrefix("-") {
                     // Unknown option.
                     messages.addMessage(.error("unrecognized option: \(option)"))
                     return (.failed, messages)
-                }
-                else if inputPath == nil
-                {
+                } else if inputPath == nil {
                     // If we don't already have an input path, then we use this as the input path.
                     inputPath = Path(option)
-                }
-                else
-                {
+                } else {
                     // It's an input path and we already have one; that's not allowed.
                     messages.addMessage(.error("multiple input files specified"))
                     return (.failed, messages)
@@ -692,8 +619,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
     /// Produce a collection of default Info.plist keys based on content in the project, taking platform and product type into account.
     /// Could be done through InfoPlistAdditions properties in product types, but that would result in more duplication at this point
-    private func defaultInfoPlistContent(scope: MacroEvaluationScope, platform: Platform?, productType: ProductTypeSpec?) -> [String: PropertyListItem]
-    {
+    private func defaultInfoPlistContent(scope: MacroEvaluationScope, platform: Platform?, productType: ProductTypeSpec?) -> [String: PropertyListItem] {
         var content: [String: PropertyListItem] = [:]
 
         // The general theory of this method is that we now have a bunch of INFOPLIST_KEY-prefixed build settings that are used to define sufficiently simple Info.plist content, and we go to those (which will either have appropriate backstops set as necessary, or be empty) to determine the content to generate.
@@ -701,8 +627,10 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         /// Get the macro name corresponding to the given Info.plist key name.
         /// This accommodates platform-specific override names like UISomething~ipad, which may use proper capitalization in the build setting.
         func macroNameForInfoPlistKey(key: String, prefix: String) -> String {
-            let replacements = [ "~iphone": "_iPhone",
-                                 "~ipad": "_iPad" ]
+            let replacements = [
+                "~iphone": "_iPhone",
+                "~ipad": "_iPad",
+            ]
             var adjustedKey = key
             for (infoPlistPart, macroNamePart) in replacements {
                 adjustedKey = adjustedKey.replacingOccurrences(of: infoPlistPart, with: macroNamePart)
@@ -738,69 +666,70 @@ public final class InfoPlistProcessorTaskAction: TaskAction
 
         // Note that for flexibility, instead of rigidly assigning only some values for some platforms, we (mostly) rely on the templates to specify the right values for the platforms involved, and to leave values they don't care about unspecified.
 
-        let generatedInfoPlistKeys: [String] = [
-            // General
+        let generatedInfoPlistKeys: [String] =
+            [
+                // General
 
-            "CFBundleDisplayName",
-            "LSApplicationCategoryType",
-            "NSHumanReadableCopyright",
-            "NSPrincipalClass",
-            "ITSAppUsesNonExemptEncryption",
-            "ITSEncryptionExportComplianceCode",
-            "NSLocationTemporaryUsageDescriptionDictionary",
+                "CFBundleDisplayName",
+                "LSApplicationCategoryType",
+                "NSHumanReadableCopyright",
+                "NSPrincipalClass",
+                "ITSAppUsesNonExemptEncryption",
+                "ITSEncryptionExportComplianceCode",
+                "NSLocationTemporaryUsageDescriptionDictionary",
 
-            // macOS
+                // macOS
 
-            "LSBackgroundOnly",
-            "LSUIElement",
-            "NSMainNibFile",
-            "NSMainStoryboardFile",
+                "LSBackgroundOnly",
+                "LSUIElement",
+                "NSMainNibFile",
+                "NSMainStoryboardFile",
 
-            // iOS and Derived
+                // iOS and Derived
 
-            "UILaunchStoryboardName",
-            "UIMainStoryboardFile",
-            "UIRequiredDeviceCapabilities",
-            "UISupportedInterfaceOrientations",
-            "UIUserInterfaceStyle",
+                "UILaunchStoryboardName",
+                "UIMainStoryboardFile",
+                "UIRequiredDeviceCapabilities",
+                "UISupportedInterfaceOrientations",
+                "UIUserInterfaceStyle",
 
-            // iOS
+                // iOS
 
-            "LSSupportsOpeningDocumentsInPlace",
-            "NSSensorKitPrivacyPolicyURL",
-            "NSSupportsLiveActivities",
-            "NSSupportsLiveActivitiesFrequentUpdates",
-            "UIApplicationSupportsIndirectInputEvents",
-            "UIRequiresFullScreen",
-            "UIStatusBarHidden",
-            "UIStatusBarStyle",
-            "UISupportedInterfaceOrientations~ipad",
-            "UISupportedInterfaceOrientations~iphone",
-            "UISupportsDocumentBrowser",
+                "LSSupportsOpeningDocumentsInPlace",
+                "NSSensorKitPrivacyPolicyURL",
+                "NSSupportsLiveActivities",
+                "NSSupportsLiveActivitiesFrequentUpdates",
+                "UIApplicationSupportsIndirectInputEvents",
+                "UIRequiresFullScreen",
+                "UIStatusBarHidden",
+                "UIStatusBarStyle",
+                "UISupportedInterfaceOrientations~ipad",
+                "UISupportedInterfaceOrientations~iphone",
+                "UISupportsDocumentBrowser",
 
-            // watchOS
+                // watchOS
 
-            "CLKComplicationPrincipalClass",
-            "WKApplication",
-            "WKCompanionAppBundleIdentifier",
-            "WKExtensionDelegateClassName",
-            "WKRunsIndependentlyOfCompanionApp",
-            "WKWatchOnly",
-            "WKSupportsLiveActivityLaunchAttributeTypes",
+                "CLKComplicationPrincipalClass",
+                "WKApplication",
+                "WKCompanionAppBundleIdentifier",
+                "WKExtensionDelegateClassName",
+                "WKRunsIndependentlyOfCompanionApp",
+                "WKWatchOnly",
+                "WKSupportsLiveActivityLaunchAttributeTypes",
 
-            // Metal
+                // Metal
 
-            "MetalCaptureEnabled",
+                "MetalCaptureEnabled",
 
-            // Game Controller and Game Mode
+                // Game Controller and Game Mode
 
-            "GCSupportsControllerUserInteraction",
-            "GCSupportsGameMode",
+                "GCSupportsControllerUserInteraction",
+                "GCSupportsGameMode",
 
-            // Sticker Packs
+                // Sticker Packs
 
-            "NSStickerSharingLevel",
-        ] + usageDescriptionStringKeys
+                "NSStickerSharingLevel",
+            ] + usageDescriptionStringKeys
 
         for key in generatedInfoPlistKeys {
             updateContentWithInfoPlistKeyMacroValue(&content, key)
@@ -824,7 +753,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         updateContent(&content, key: "CFBundlePackageType", buildSetting: BuiltinMacros.PRODUCT_BUNDLE_PACKAGE_TYPE.name)
         updateContent(&content, key: "CFBundleShortVersionString", buildSetting: BuiltinMacros.MARKETING_VERSION.name)
 
-        content["CFBundleInfoDictionaryVersion"] = .plString("6.0") // TODO: consider removing this since it likely isn't needed
+        content["CFBundleInfoDictionaryVersion"] = .plString("6.0")  // TODO: consider removing this since it likely isn't needed
 
         // iOS and Derived Platforms - Special Cases
 
@@ -869,36 +798,26 @@ public final class InfoPlistProcessorTaskAction: TaskAction
     }
 
     /// Add the keys from the `AdditionalInfo` dictionary in the platform to the Info.plist.  Only keys which do not exist in the input plist will be added.  This will modify the  input `plist` in place.
-    private func addAdditionalEntriesFromPlatform(_ plist: inout PropertyListItem, context: InfoPlistProcessorTaskActionContext, outputDelegate: any TaskOutputDelegate) -> CommandResult
-    {
+    private func addAdditionalEntriesFromPlatform(_ plist: inout PropertyListItem, context: InfoPlistProcessorTaskActionContext, outputDelegate: any TaskOutputDelegate) -> CommandResult {
         // If we were passed a platform with -platform, then we use its additional info.
-        if platformName != nil
-        {
+        if platformName != nil {
             // Only do anything if the platform's additional info is not empty.
-            if context.platform?.additionalInfoPlistEntries.count > 0
-            {
+            if context.platform?.additionalInfoPlistEntries.count > 0 {
                 guard case .plDict(let dict) = plist else { outputDelegate.emitError("Info.plist contents are not a dictionary prior to adding additional entries from platform"); return .failed }
                 var plistDict = dict
 
                 // Go through the additional entries from the platform and add them to the plist dictionary.  But only if they're not already present in the plist.
-                for (key, plValue) in context.platform?.additionalInfoPlistEntries ?? [:] where plistDict[key] == nil
-                {
-                    if case .plString(let value) = plValue
-                    {
+                for (key, plValue) in context.platform?.additionalInfoPlistEntries ?? [:] where plistDict[key] == nil {
+                    if case .plString(let value) = plValue {
                         // In the past, the <some string> convention was used to indicate that the value for this key should be the value in the platform's properties.  It looks like no platform circa Xcode 9.0 uses this convention anymore, so we no longer support it and we warn if we find such a key - we should encourage platforms to use actual build setting evaluation instead.
-                        if value.hasPrefix("<")  &&  value.hasSuffix(">")  &&  value.count > 2
-                        {
+                        if value.hasPrefix("<") && value.hasSuffix(">") && value.count > 2 {
                             outputDelegate.emitWarning("key '\(key)' in 'AdditionalInfo' dictionary for platform \(context.platform?.displayName ?? "") uses unsupported bracket evaluation convention for its value '\(value)'")
                             plistDict[key] = plValue
-                        }
-                        else
-                        {
+                        } else {
                             // String values which aren't surrounded by <>.
                             plistDict[key] = plValue
                         }
-                    }
-                    else
-                    {
+                    } else {
                         // Non-string values.
                         plistDict[key] = plValue
                     }
@@ -917,20 +836,17 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         let contentsData: ByteString
         do {
             contentsData = try executionDelegate.fs.read(path)
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("unable to read additional content file '\(path.str)': \(error.localizedDescription)")
             return .failed
         }
         let additionalPlist: PropertyListItem
         do {
             (additionalPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
-        }
-        catch let error as NSError {
+        } catch let error as NSError {
             outputDelegate.emitError("unable to read property list from additional content file: \(path.str): \(error.localizedDescription)")
             return .failed
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("unable to read property list from additional content file: \(path.str): unknown error")
             return .failed
         }
@@ -953,8 +869,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             if key == "UIRequiredDeviceCapabilities" {
                 if let mergedCapabilitiesResult = mergeUIRequiredDeviceCapabilities(valueToMerge, from: path, into: workingValue, from: inputPath!, outputDelegate) {
                     plistDict[key] = mergedCapabilitiesResult
-                }
-                else {
+                } else {
                     return .failed
                 }
             } else if (key == "CFBundleIcons" || key.hasPrefix("CFBundleIcons~")) && context.scope.evaluate(BuiltinMacros.INFOPLIST_ENABLE_CFBUNDLEICONS_MERGE) {
@@ -990,8 +905,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                         outputDelegate.emitError("tried to merge \(valueToMerge.typeDisplayString) value for key '\(key)' onto \(workingValue.typeDisplayString) value")
                         return .failed
                     }
-                }
-                else {
+                } else {
                     // If the key isn't defined, then we can just set it.
                     plistDict[key] = valueToMerge
                 }
@@ -1011,20 +925,17 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         let contentsData: ByteString
         do {
             contentsData = try executionDelegate.fs.read(path)
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("unable to read privacy file '\(path.str)': \(error.localizedDescription)")
             return .failed
         }
         let privacyPlist: PropertyListItem
         do {
             (privacyPlist, _) = try PropertyList.fromBytesWithFormat(contentsData.bytes)
-        }
-        catch let error as NSError {
+        } catch let error as NSError {
             outputDelegate.emitError("unable to read property list from privacy file: \(path.str): \(error.localizedDescription)")
             return .failed
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("unable to read property list from privacy file: \(path.str): unknown error")
             return .failed
         }
@@ -1042,8 +953,8 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         var trackedDomains = plistDict[trackedDomainsKey]?.arrayValue ?? []
         if let additionalTrackedDomains = privacyDict[trackedDomainsKey]?.arrayValue {
             // It's import to both remove duplicates and sort the items to ensure stable file contents.
-            var set = Set<String>(trackedDomains.compactMap( { $0.stringValue }))
-            for domain in additionalTrackedDomains.compactMap( { $0.stringValue }) {
+            var set = Set<String>(trackedDomains.compactMap({ $0.stringValue }))
+            for domain in additionalTrackedDomains.compactMap({ $0.stringValue }) {
                 set.insert(domain)
             }
             trackedDomains = set.sorted().map { PropertyListItem.plString($0) }
@@ -1099,7 +1010,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 if plistDict["UIDeviceFamily"] != nil {
                     outputDelegate.emitWarning("User supplied UIDeviceFamily key in the Info.plist will be overwritten. Please use the build setting TARGETED_DEVICE_FAMILY and remove UIDeviceFamily from your Info.plist.")
                 }
-                plistDict["UIDeviceFamily"] = .plArray(effectiveDevices.sorted().map{ .plInt($0) })
+                plistDict["UIDeviceFamily"] = .plArray(effectiveDevices.sorted().map { .plInt($0) })
             }
         }
 
@@ -1141,22 +1052,22 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         /// Mapping of all keys known to not be supported on some platforms to the info about which platforms they are or aren't supported on.
         let keyPlatformSupport: [String: PlatformFamilySupportInfo] = [
             // Keys not supported on macOS, watchOS.
-            "LSRequiresIPhoneOS":               .notSupportedOn(Set(["macOS", "watchOS"])),
+            "LSRequiresIPhoneOS": .notSupportedOn(Set(["macOS", "watchOS"])),
 
             // Keys only supported on macOS.
-            "LSBackgroundOnly":                 .supportedOnlyOn(Set(["macOS"])),
-            "LSUIElement":                      .supportedOnlyOn(Set(["macOS"])),
-            "NSDocumentClass":                  .supportedOnlyOn(Set(["macOS"])),
-            "NSServices":                       .supportedOnlyOn(Set(["macOS"])),
-            "NSSupportsAutomaticTermination":   .supportedOnlyOn(Set(["macOS"])),
-            "NSSupportsSuddenTermination":      .supportedOnlyOn(Set(["macOS"])),
+            "LSBackgroundOnly": .supportedOnlyOn(Set(["macOS"])),
+            "LSUIElement": .supportedOnlyOn(Set(["macOS"])),
+            "NSDocumentClass": .supportedOnlyOn(Set(["macOS"])),
+            "NSServices": .supportedOnlyOn(Set(["macOS"])),
+            "NSSupportsAutomaticTermination": .supportedOnlyOn(Set(["macOS"])),
+            "NSSupportsSuddenTermination": .supportedOnlyOn(Set(["macOS"])),
 
             // Keys only supported on macOS, iOS, tvOS.
-            "LSApplicationCategoryType":        .supportedOnlyOn(Set(["macOS", "iOS", "tvOS"])),
+            "LSApplicationCategoryType": .supportedOnlyOn(Set(["macOS", "iOS", "tvOS"])),
         ]
 
         /// Mapping of all the values for keys known to not be supported on some platforms to the info about which platforms they are or aren't supported on.
-        let keyValuesPlatformSupport: [String:[String:PlatformFamilySupportInfo]] = [
+        let keyValuesPlatformSupport: [String: [String: PlatformFamilySupportInfo]] = [
             "UIBackgroundModes": [
                 "audio": .supportedOnlyOn(["iOS", "tvOS", "watchOS", "xrOS"]),
                 "location": .supportedOnlyOn(["iOS", "watchOS"]),
@@ -1188,11 +1099,10 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                     let reason: String
                     if let platform = platforms.only {
                         reason = "only supported on \(platform)"
-                    }
-                    else {
+                    } else {
                         reason = "not supported on \(context.platform?.familyDisplayName ?? "")"
                     }
-                    remove(unsupportedKey: key,  reason)
+                    remove(unsupportedKey: key, reason)
                 }
             }
         }
@@ -1215,11 +1125,10 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                         let reason: String
                         if let platform = platforms.only {
                             reason = "only supported on \(platform)"
-                        }
-                        else {
+                        } else {
                             reason = "not supported on \(context.platform?.familyDisplayName ?? "")"
                         }
-                        remove(unsupportedValue: value, from: key,  reason)
+                        remove(unsupportedValue: value, from: key, reason)
                     }
                 }
             }
@@ -1266,7 +1175,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         if let oldValue {
             switch (oldValue, newValue) {
             case (.plArray(let oldArray), .plArray(let newArray)):
-                        // Both values are arrays - we append the contents of newValue to oldValue, making sure not to add the same value twice.
+                // Both values are arrays - we append the contents of newValue to oldValue, making sure not to add the same value twice.
                 // (This would be easier if PropertyListItem were hashable and we could create an OrderedSet here.)
                 var resultArray = oldArray
                 for item in newArray {
@@ -1282,8 +1191,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 for item in oldArray {
                     if let key = item.stringValue {
                         oldDict[key] = .plBool(true)
-                    }
-                    else {
+                    } else {
                         outputDelegate.emitError("all values in 'UIRequiredDeviceCapabilities' must be strings (file \(oldValuePath)")
                         return nil
                     }
@@ -1296,8 +1204,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 for item in newArray {
                     if let key = item.stringValue {
                         newDict[key] = .plBool(true)
-                    }
-                    else {
+                    } else {
                         outputDelegate.emitError("all values in 'UIRequiredDeviceCapabilities' must be strings (file \(newValuePath)")
                         return nil
                     }
@@ -1319,21 +1226,18 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 }
                 return nil
             }
-        }
-        else {
+        } else {
             // If oldValue is empty then we can just set it to newValue, as long as it is an array or a dictionary.
             if newValue.arrayValue != nil || newValue.dictValue != nil {
                 return newValue
-            }
-            else {
+            } else {
                 outputDelegate.emitError("'UIRequiredDeviceCapabilities' must be an array or dictionary but it is \(newValue.typeDisplayString.withIndefiniteArticle) (file \(oldValuePath.str))")
                 return nil
             }
         }
     }
 
-    private func setRequiredDeviceCapabilities(_ plist: inout PropertyListItem, context: InfoPlistProcessorTaskActionContext, outputDelegate: any TaskOutputDelegate) -> CommandResult
-    {
+    private func setRequiredDeviceCapabilities(_ plist: inout PropertyListItem, context: InfoPlistProcessorTaskActionContext, outputDelegate: any TaskOutputDelegate) -> CommandResult {
         guard case .plDict(var plistDict) = plist else {
             outputDelegate.emitError("Info.plist contents are not a dictionary prior to setting required device capabilities")
             return .failed
@@ -1406,8 +1310,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                         outputDelegate.warning("User-supplied CFBundleIdentifier value '\(identifierString)' in the Info.plist must be the same as the PRODUCT_BUNDLE_IDENTIFIER build setting value '\(buildSettingIdentifierString)'.", location: .buildSetting(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER))
                     }
                 }
-            }
-            else {
+            } else {
                 outputDelegate.emitWarning("the value for Bundle Identifier must be of type string, but is \(identifier.typeDisplayString.withIndefiniteArticle)")
             }
         }
@@ -1430,14 +1333,12 @@ public final class InfoPlistProcessorTaskAction: TaskAction
             if minimumSystemVersionStr.isEmpty {
                 outputDelegate.emitWarning("\(minimumSystemVersionKey) is explicitly set to empty - setting to value of \(deploymentTargetName) '\(deploymentTarget.description)'.")
                 plistDict[minimumSystemVersionKey] = .plString(deploymentTarget.description)
-            }
-            else if let minimumSystemVersion = try? Version(minimumSystemVersionStr) {
+            } else if let minimumSystemVersion = try? Version(minimumSystemVersionStr) {
                 if minimumSystemVersion < deploymentTarget {
                     outputDelegate.emitWarning("\(minimumSystemVersionKey) of '\(minimumSystemVersionStr)' is less than the value of \(deploymentTargetName) '\(deploymentTarget.description)' - setting to '\(deploymentTarget.description)'.")
                     plistDict[minimumSystemVersionKey] = .plString(deploymentTarget.description)
                 }
-            }
-            else {
+            } else {
                 outputDelegate.emitError("\(minimumSystemVersionKey) '\(minimumSystemVersionStr)' is not a valid version.")
                 return false
             }
@@ -1460,7 +1361,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
                 case iOS
                 case tvOS
                 case watchOS
-                case visionOS = "xrOS" // must be "xrOS" as it's compared against Platform.familyName
+                case visionOS = "xrOS"  // must be "xrOS" as it's compared against Platform.familyName
             }
 
             /// The values of the key that are deprecated, if only specific values are deprecated. `nil` indicates the key as a whole is deprecated.
@@ -1491,19 +1392,26 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         let plistKeyDeprecationInfo: [PropertyListKeyPath: DeprecationInfo] = [
             "UILaunchImages": .init(moreInfo: .alternate("launch storyboards"), deprecationVersions: [.iOS: Version(), .tvOS: Version(13)]),
             "CLKComplicationSupportedFamilies": .init(moreInfo: .alternate("the ClockKit complications API"), deprecationVersions: [.watchOS: Version(7)]),
-            PropertyListKeyPath(.dict(.equal("NSAppTransportSecurity")), .dict(.equal("NSExceptionDomains")), .dict(.any), .any(.equal("NSExceptionMinimumTLSVersion"))): .init(values: [.plString("TLSv1.0"), .plString("TLSv1.1")], moreInfo: .alternate("TLSv1.2 or TLSv1.3"), deprecationVersions: [
-                .macOS: Version(12),
-                .iOS: Version(15),
-                .tvOS: Version(15),
-                .watchOS: Version(8)
-            ]),
-            "UIRequiresFullScreen": .init(moreInfo: .ignored("See the UIRequiresFullScreen documentation for more details."), deprecationVersions: [
-                .macOS: Version(26),
-                .iOS: Version(26),
-                .tvOS: Version(26),
-                .watchOS: Version(26),
-                .visionOS: Version(26),
-            ])
+            PropertyListKeyPath(.dict(.equal("NSAppTransportSecurity")), .dict(.equal("NSExceptionDomains")), .dict(.any), .any(.equal("NSExceptionMinimumTLSVersion"))): .init(
+                values: [.plString("TLSv1.0"), .plString("TLSv1.1")],
+                moreInfo: .alternate("TLSv1.2 or TLSv1.3"),
+                deprecationVersions: [
+                    .macOS: Version(12),
+                    .iOS: Version(15),
+                    .tvOS: Version(15),
+                    .watchOS: Version(8),
+                ]
+            ),
+            "UIRequiresFullScreen": .init(
+                moreInfo: .ignored("See the UIRequiresFullScreen documentation for more details."),
+                deprecationVersions: [
+                    .macOS: Version(26),
+                    .iOS: Version(26),
+                    .tvOS: Version(26),
+                    .watchOS: Version(26),
+                    .visionOS: Version(26),
+                ]
+            ),
         ]
 
         for (key, info) in plistKeyDeprecationInfo.sorted(byKey: <) {
@@ -1567,8 +1475,7 @@ public final class InfoPlistProcessorTaskAction: TaskAction
     private func scanForPrivacyFile(at path: Path, fs: any FSProxy) -> Path? {
         do {
             return try fs.traverse(path) { $0.basename == "PrivacyInfo.xcprivacy" ? $0 : nil }.first
-        }
-        catch {}
+        } catch {}
 
         return nil
     }
@@ -1595,7 +1502,8 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         }
 
         // Get the package type code and signature (a.k.a. creator) code from the Info.plist.  We do various correctness checks.  One of the more interesting restrictions is that both the type code and the signature code have to be convertible to Mac OS Roman encoding.  The reason for this is that both four-character codes are really OSTypes, which were implicitly encoded in Mac OS Roman back in historical times.
-        let pkgInfoBytes = (OutputByteStream()
+        let pkgInfoBytes =
+            (OutputByteStream()
             <<< getFourCharCode(forKey: "CFBundlePackageType")
             <<< getFourCharCode(forKey: "CFBundleSignature")).bytes
         do {
@@ -1605,32 +1513,25 @@ public final class InfoPlistProcessorTaskAction: TaskAction
         }
     }
 
-
     // Serialization
 
-
-    public override func serialize<T: Serializer>(to serializer: T)
-    {
+    public override func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(contextPath)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
 
-    public required init(from deserializer: any Deserializer) throws
-    {
+    public required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         self.contextPath = try deserializer.deserialize()
         try super.init(from: deserializer)
     }
 }
 
-
-private extension PropertyListItem
-{
+private extension PropertyListItem {
     /// Specialized private method to transform a property list by removing any keys which are in the set `keys` from any dictionary in the plist where the value for that key is empty.
-    func byElidingRecursivelyEmptyStringValuesInDictionaries(_ keysToElide: Set<String>) -> PropertyListItem
-    {
+    func byElidingRecursivelyEmptyStringValuesInDictionaries(_ keysToElide: Set<String>) -> PropertyListItem {
         switch self
         {
         case .plArray(let value):
@@ -1640,14 +1541,12 @@ private extension PropertyListItem
         case .plDict(let value):
             // Handle this dictionary.
             var result = [String: PropertyListItem]()
-            for (key, item) in value
-            {
+            for (key, item) in value {
                 switch item
                 {
                 case .plString(let value):
                     // For strings, we elide it only if the key is in keysToElide and the value is empty.
-                    if !value.isEmpty || !keysToElide.contains(key)
-                    {
+                    if !value.isEmpty || !keysToElide.contains(key) {
                         result[key] = item
                     }
 

@@ -26,38 +26,49 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "macApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.c",]),
+                TestSourcesBuildPhase(["main.c"]),
                 TestFrameworksBuildPhase(["FwkTarget.framework"]),
-            ])
+            ]
+        )
 
         let iosApp = TestStandardTarget(
             "iosApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.c",]),
-            ])
+                TestSourcesBuildPhase(["main.c"])
+            ]
+        )
 
         let fwkTarget_mac = TestStandardTarget(
             "FwkTarget_mac",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "PRODUCT_NAME": "FwkTarget",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "PRODUCT_NAME": "FwkTarget",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.c",]),
+                TestSourcesBuildPhase(["main.c"])
             ]
         )
 
@@ -65,13 +76,16 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "FwkTarget_ios",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "FwkTarget",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "FwkTarget",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.c",]),
+                TestSourcesBuildPhase(["main.c"])
             ]
         )
 
@@ -80,8 +94,9 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("main.c"),
-                ]),
+                    TestFile("main.c")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -89,13 +104,16 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 macApp,
                 iosApp,
                 fwkTarget_mac,
                 fwkTarget_ios,
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check that we get tasks for all the supported platforms, independent of the run destination in the build request.
@@ -153,18 +171,21 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "FrameworkTarget1",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                    "INFOPLIST_FILE": "MyInfo.plist",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                        "INFOPLIST_FILE": "MyInfo.plist",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.c",
+                    "main.c"
                 ]),
                 TestHeadersBuildPhase([
-                    TestBuildFile("FrameworkTarget.h", headerVisibility: .public),
+                    TestBuildFile("FrameworkTarget.h", headerVisibility: .public)
                 ]),
             ]
         )
@@ -173,18 +194,21 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "FrameworkTarget2",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "INFOPLIST_FILE": "MyInfo.plist",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "INFOPLIST_FILE": "MyInfo.plist",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.c",
+                    "main.c"
                 ]),
                 TestHeadersBuildPhase([
-                    TestBuildFile("FrameworkTarget.h", headerVisibility: .public),
+                    TestBuildFile("FrameworkTarget.h", headerVisibility: .public)
                 ]),
             ]
         )
@@ -193,19 +217,22 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "FrameworkTarget3",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "unknown",
-                    "SUPPORTED_PLATFORMS": "unknown",
-                    "INFOPLIST_FILE": "MyInfo.plist",
-                    "PRODUCT_NAME": "FrameworkTarget3"
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "unknown",
+                        "SUPPORTED_PLATFORMS": "unknown",
+                        "INFOPLIST_FILE": "MyInfo.plist",
+                        "PRODUCT_NAME": "FrameworkTarget3",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.c",
+                    "main.c"
                 ]),
                 TestHeadersBuildPhase([
-                    TestBuildFile("FrameworkTarget.h", headerVisibility: .public),
+                    TestBuildFile("FrameworkTarget.h", headerVisibility: .public)
                 ]),
             ]
         )
@@ -214,19 +241,22 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "FrameworkTarget4",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "INFOPLIST_FILE": "MyInfo.plist",
-                    "EFFECTIVE_PLATFORM_NAME": "-custom",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "INFOPLIST_FILE": "MyInfo.plist",
+                        "EFFECTIVE_PLATFORM_NAME": "-custom",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.c",
+                    "main.c"
                 ]),
                 TestHeadersBuildPhase([
-                    TestBuildFile("FrameworkTarget4.h", headerVisibility: .public),
+                    TestBuildFile("FrameworkTarget4.h", headerVisibility: .public)
                 ]),
             ]
         )
@@ -240,14 +270,19 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     TestFile("FrameworkTarget.h"),
                     TestFile("FrameworkTarget4.h"),
                     TestFile("MyInfo.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                    ]
+                )
             ],
-            targets: [fwkTarget1, fwkTarget2, fwkTarget3, fwkTarget4])
+            targets: [fwkTarget1, fwkTarget2, fwkTarget3, fwkTarget4]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -266,7 +301,7 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
 
         try await tester.checkIndexBuild() { results in
             func checkVFSContents(_ task: any PlannedTask, _ target: ConfiguredTarget, _ platformDir: String, _ contents: ByteString, sourceLocation: SourceLocation = #_sourceLocation) {
-                func recursivelyForEachDict(_ item: PropertyListItem, _ body: ([String:PropertyListItem]) -> Void) {
+                func recursivelyForEachDict(_ item: PropertyListItem, _ body: ([String: PropertyListItem]) -> Void) {
                     if let item = item.dictValue {
                         body(item)
                         for (_, value) in item {
@@ -443,35 +478,43 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.c"),
                     TestFile("FrameworkTarget.h"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                    "DEPLOYMENT_LOCATION": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                        "DEPLOYMENT_LOCATION": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFrame",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                            "DEPLOYMENT_LOCATION": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                                "DEPLOYMENT_LOCATION": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.c",
+                            "main.c"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("FrameworkTarget.h", headerVisibility: .public),
+                            TestBuildFile("FrameworkTarget.h", headerVisibility: .public)
                         ]),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -504,7 +547,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("main.swift") ]),
+                children: [TestFile("main.swift")]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: buildSettings)
             ],
@@ -516,12 +560,14 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "OTHER_SWIFT_FLAGS": "$(inherited) -vfsoverlay /must/be/after/fallback/overlay.yaml",
-                            ])
+                                "OTHER_SWIFT_FLAGS": "$(inherited) -vfsoverlay /must/be/after/fallback/overlay.yaml"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([ "main.swift" ])
-                    ]),
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]
+                ),
                 TestStandardTarget(
                     "AppTargetNoRemap",
                     type: .application,
@@ -529,13 +575,16 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "INDEX_DISABLE_VFS_DIRECTORY_REMAP": "YES",
-                            ])
+                                "INDEX_DISABLE_VFS_DIRECTORY_REMAP": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"])
-                    ])
-            ])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         try await tester.checkIndexBuild() { results in
@@ -638,7 +687,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("main.swift") ]),
+                children: [TestFile("main.swift")]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: buildSettings)
             ],
@@ -650,9 +700,11 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug", buildSettings: buildSettings)
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([ "main.swift" ])
-                    ])
-            ])
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .anyMac) { results in
@@ -681,9 +733,12 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "Target1",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "Mod",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "Mod"
+                    ]
+                )
             ],
             buildPhases: [TestSourcesBuildPhase(["a.swift"])]
         )
@@ -691,10 +746,13 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "Target2",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "Mod",
-                    "EFFECTIVE_PLATFORM_NAME": "-custom"
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "Mod",
+                        "EFFECTIVE_PLATFORM_NAME": "-custom",
+                    ]
+                )
             ],
             buildPhases: [TestSourcesBuildPhase(["a.swift"])]
         )
@@ -703,15 +761,19 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "proj",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("a.swift") ]),
+                children: [TestFile("a.swift")]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
             ],
             targets: [target1, target2]
         )
@@ -751,7 +813,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("main.c") ]),
+                children: [TestFile("main.c")]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -761,7 +824,9 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
                         "CC": clangCompilerPath.str,
                         "CLANG_USE_RESPONSE_FILE": "NO",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
@@ -770,12 +835,14 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "OTHER_CFLAGS": "$(inherited) -ivfsoverlay /must/be/after/fallback/overlay.yaml",
-                            ])
+                                "OTHER_CFLAGS": "$(inherited) -ivfsoverlay /must/be/after/fallback/overlay.yaml"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"])
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "AppTargetNoRemap",
                     type: .application,
@@ -783,13 +850,16 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "INDEX_DISABLE_VFS_DIRECTORY_REMAP": "YES",
-                            ])
+                                "INDEX_DISABLE_VFS_DIRECTORY_REMAP": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"])
-                    ])
-            ])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         try await tester.checkIndexBuild() { results in
@@ -853,24 +923,30 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "Sources",
                     children: [
-                        TestFile("file.c"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                        "CLANG_COMPILE_CACHE_PATH": tmpDirPath.join("CompilationCache").str,
-                    ])],
+                        TestFile("file.c")
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                            "CLANG_COMPILE_CACHE_PATH": tmpDirPath.join("CompilationCache").str,
+                        ]
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "App",
                         type: .application,
                         buildPhases: [
-                            TestSourcesBuildPhase(["file.c"]),
-                        ]),
-                ])
+                            TestSourcesBuildPhase(["file.c"])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             try await tester.checkIndexBuild() { results in
@@ -889,7 +965,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("interface.iig"),
                     TestFile("main.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -898,7 +975,9 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
                         "IIG_EXEC": iigPath.str,
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "DextTarget",
@@ -911,8 +990,10 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                             "interface.iig",
                             "main.c",
                         ])
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -940,7 +1021,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 groupTree: TestGroup(
                     "SomeFiles",
-                    children: [ TestFile("main.c") ]),
+                    children: [TestFile("main.c")]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -950,15 +1032,19 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                             "CLANG_ENABLE_MODULES": "YES",
                             "CLANG_ENABLE_EXPLICIT_MODULES": enableExplicitModules ? "YES" : "NO",
                             "CC": clangCompilerPath.str,
-                        ])],
+                        ]
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase(["main.c"])
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             try await tester.checkIndexBuild { results in
                 try results.checkTask(.matchTargetName("AppTarget"), .matchRuleItem("CompileC")) { task in
@@ -988,7 +1074,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.c"),
                     TestFile("FrameworkTarget.h"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Staging",
@@ -998,7 +1085,9 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
                         "GCC_PREPROCESSOR_DEFINITIONS": "$(CONFIGURATION)",
                         "CLANG_USE_RESPONSE_FILE": "NO",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
@@ -1006,16 +1095,20 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"]),
                         TestFrameworksBuildPhase(["Fwk.framework"]),
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
-                    "Fwk", type: .framework,
+                    "Fwk",
+                    type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("FrameworkTarget.h", headerVisibility: .public),
+                            TestBuildFile("FrameworkTarget.h", headerVisibility: .public)
                         ]),
-                        TestSourcesBuildPhase(["main.c"])
-                    ])
-            ])
+                        TestSourcesBuildPhase(["main.c"]),
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1049,34 +1142,49 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "AppTarget",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.c",
+                    "main.c"
                 ]),
                 TestShellScriptBuildPhase(
-                    name: "ScriptNoOut", originalObjectID: "ScriptNoOut", contents: "exit 0", inputs: [], outputs: [])
-            ])
+                    name: "ScriptNoOut",
+                    originalObjectID: "ScriptNoOut",
+                    contents: "exit 0",
+                    inputs: [],
+                    outputs: []
+                ),
+            ]
+        )
 
-        let testProject =  TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("main.c"),
-                ]),
+                    TestFile("main.c")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                    ]
+                )
+            ],
             targets: [
-                appTarget,
-            ])
+                appTarget
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         try await tester.checkIndexBuild(runDestination: .iOS) { results in
@@ -1091,67 +1199,86 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "catalystApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.c",
-                ]),
+                    "main.c"
+                ])
             ],
             dependencies: [
-                "script1",
-            ])
+                "script1"
+            ]
+        )
 
         let appTarget = TestStandardTarget(
             "AppTarget1",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.c",
-                ]),
+                    "main.c"
+                ])
             ],
             dependencies: [
-                "script1",
-            ])
+                "script1"
+            ]
+        )
 
         let scriptTarget = TestAggregateTarget(
             "script1",
             buildPhases: [
                 TestShellScriptBuildPhase(
-                    name: "Script1", originalObjectID: "Script1", contents: "echo Script1 > \"${DERIVED_FILE_DIR}/script1-output\"", inputs: [], outputs: [
+                    name: "Script1",
+                    originalObjectID: "Script1",
+                    contents: "echo Script1 > \"${DERIVED_FILE_DIR}/script1-output\"",
+                    inputs: [],
+                    outputs: [
                         "$(DERIVED_FILE_DIR)/script1-output"
-                    ])
+                    ]
+                )
             ]
         )
 
-        let testProject =  TestProject(
+        let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("main.c"),
-                ]),
+                    TestFile("main.c")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "SDKROOT": "macosx",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "SDKROOT": "macosx",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                    ]
+                )
+            ],
             targets: [
                 catalystAppTarget,
                 appTarget,
                 scriptTarget,
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         try await tester.checkIndexBuild { results in
@@ -1186,11 +1313,14 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "catalystApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
@@ -1199,16 +1329,20 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
         )
 
         let zipperedFrameTarget = TestStandardTarget(
-            "zipperFrame", type: .framework,
+            "zipperFrame",
+            type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "IS_ZIPPERED": "YES",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "IS_ZIPPERED": "YES",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
@@ -1217,22 +1351,28 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("main.swift"),
-                ]),
+                    TestFile("main.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "SDKROOT": "macosx",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    // Ensure that the index build forces distinct build directories for macOS vs macCatalyst, even if the project overrides and sets the same EFFECTIVE_PLATFORM_NAME.
-                    "EFFECTIVE_PLATFORM_NAME[sdk=macos*]": "-mac",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "SDKROOT": "macosx",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        // Ensure that the index build forces distinct build directories for macOS vs macCatalyst, even if the project overrides and sets the same EFFECTIVE_PLATFORM_NAME.
+                        "EFFECTIVE_PLATFORM_NAME[sdk=macos*]": "-mac",
+                    ]
+                )
+            ],
             targets: [
                 catalystAppTarget,
                 zipperedFrameTarget,
-            ])
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         try await tester.checkIndexBuild { results in
@@ -1271,14 +1411,19 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.swift"),
                     TestFile("main.m"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "GENERATE_RESOURCE_ACCESSORS": "YES",
-                    "USE_HEADERMAP": "NO"]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_RESOURCE_ACCESSORS": "YES",
+                        "USE_HEADERMAP": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
@@ -1286,17 +1431,21 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     dependencies: ["tool", "objctool"]
                 ),
                 TestStandardTarget(
-                    "tool", type: .application,
+                    "tool",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
-                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "tool_resources",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                                "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "tool_resources",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
@@ -1305,31 +1454,41 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     dependencies: ["toolslib"]
                 ),
                 TestStandardTarget(
-                    "objctool", type: .commandLineTool,
+                    "objctool",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.m"]),
+                        TestSourcesBuildPhase(["main.m"])
                     ]
                 ),
                 TestStandardTarget(
-                    "toolslib", type: .dynamicLibrary,
+                    "toolslib",
+                    type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tools_resources",
-                        ], impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
-                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "$(inherited) tool_resources",
-                        ])
-                                              )]
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "PACKAGE_RESOURCE_BUNDLE_NAME": "tools_resources",
+                            ],
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "$(inherited) tool_resources"
+                            ])
+                        )
+                    ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         try await tester.checkIndexBuild(workspaceOperation: false) { results in
@@ -1367,20 +1526,25 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "multiVariantTarget",
             type: .application,
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
-            ])
+                TestSourcesBuildPhase(["main.swift"])
+            ]
+        )
 
         let singleIndexVariantTarget = TestStandardTarget(
             "singleIndexVariantTarget",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "INDEX_BUILD_VARIANT": "dev",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "INDEX_BUILD_VARIANT": "dev"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main2.swift"]),
-            ])
+                TestSourcesBuildPhase(["main2.swift"])
+            ]
+        )
 
         let testProject = try await TestProject(
             "aProject",
@@ -1401,12 +1565,14 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "OTHER_SWIFT_FLAGS[variant=dev]": "-DSOME_DEV_FLAG",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
-                    ])
+                    ]
+                )
             ],
             targets: [
                 multiVariantTarget,
                 singleIndexVariantTarget,
-            ])
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1436,20 +1602,24 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "testTarget",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "RUN_CLANG_STATIC_ANALYZER": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "RUN_CLANG_STATIC_ANALYZER": "YES"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.c"]),
-            ])
+                TestSourcesBuildPhase(["main.c"])
+            ]
+        )
 
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
                 "Files",
                 children: [
-                    TestFile("main.c"),
+                    TestFile("main.c")
                 ]
             ),
             buildConfigurations: [
@@ -1458,11 +1628,13 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ])
+                    ]
+                )
             ],
             targets: [
-                testTarget,
-            ])
+                testTarget
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1483,31 +1655,39 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "HasImplicitModMap",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "DEFINES_MODULE": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.c"]),
                 TestHeadersBuildPhase([
                     TestBuildFile("HasImplicitModMap.h", headerVisibility: .public)
-                ])
-            ])
+                ]),
+            ]
+        )
 
         // A target with explicit module maps that get copied into the product.
         let targetExplicitModMap = TestStandardTarget(
             "HasExplicitModMap",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "DEFINES_MODULE": "YES",
-                    "MODULEMAP_FILE": "ExplicitMod.modulemap",
-                    "MODULEMAP_PRIVATE_FILE": "ExplicitMod.private.modulemap",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES",
+                        "MODULEMAP_FILE": "ExplicitMod.modulemap",
+                        "MODULEMAP_PRIVATE_FILE": "ExplicitMod.private.modulemap",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.c"]),
-            ])
+                TestSourcesBuildPhase(["main.c"])
+            ]
+        )
 
         // A target with an explicit module map that gets extended before being
         // copied into the product.
@@ -1515,15 +1695,19 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
             "HasExtendedExplicitModMap",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "DEFINES_MODULE": "YES",
-                    "SWIFT_INSTALL_OBJC_HEADER": "YES",
-                    "MODULEMAP_FILE": "ExtExplicitMod.modulemap",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES",
+                        "SWIFT_INSTALL_OBJC_HEADER": "YES",
+                        "MODULEMAP_FILE": "ExtExplicitMod.modulemap",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["a.swift"]),
-            ])
+                TestSourcesBuildPhase(["a.swift"])
+            ]
+        )
 
         let testProject = try await TestProject(
             "aProject",
@@ -1547,13 +1731,15 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                         "SUPPORTED_PLATFORMS": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
-                    ])
+                    ]
+                )
             ],
             targets: [
                 targetImplicitModMap,
                 targetExplicitModMap,
                 targetExtendedExplicitModMap,
-            ])
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         try await tester.checkIndexBuild { results in
@@ -1568,13 +1754,15 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     "HasImplicitModMap.framework/Versions/A/Modules/module.modulemap"
                 )
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("WriteAuxiliaryFile"),
+                    .matchTarget(target),
+                    .matchRuleItem("WriteAuxiliaryFile"),
                     .matchRuleItemPattern(intermediateModMap)
                 ) { task in
                     task.checkOutputs(contain: [.pathPattern(intermediateModMap)])
                 }
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Copy"),
+                    .matchTarget(target),
+                    .matchRuleItem("Copy"),
                     .matchRuleItemPattern(frameworkModMap)
                 ) { task in
                     task.checkInputs(contain: [.pathPattern(intermediateModMap)])
@@ -1604,28 +1792,32 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     "HasExplicitModMap.framework/Versions/A/Modules/module.private.modulemap"
                 )
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Copy"),
+                    .matchTarget(target),
+                    .matchRuleItem("Copy"),
                     .matchRuleItemPattern(srcModMap)
                 ) { task in
                     task.checkInputs(contain: [.pathPattern(srcModMap)])
                     task.checkOutputs(contain: [.pathPattern(intermediateModMap)])
                 }
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Copy"),
+                    .matchTarget(target),
+                    .matchRuleItem("Copy"),
                     .matchRuleItemPattern(srcPrivateModMap)
                 ) { task in
                     task.checkInputs(contain: [.pathPattern(srcPrivateModMap)])
                     task.checkOutputs(contain: [.pathPattern(intermediatePrivateModMap)])
                 }
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Copy"),
+                    .matchTarget(target),
+                    .matchRuleItem("Copy"),
                     .matchRuleItemPattern(frameworkModMap)
                 ) { task in
                     task.checkInputs(contain: [.pathPattern(intermediateModMap)])
                     task.checkOutputs(contain: [.pathPattern(frameworkModMap)])
                 }
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Copy"),
+                    .matchTarget(target),
+                    .matchRuleItem("Copy"),
                     .matchRuleItemPattern(frameworkPrivateModMap)
                 ) { task in
                     task.checkInputs(contain: [.pathPattern(intermediatePrivateModMap)])
@@ -1652,7 +1844,8 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     "HasExtendedExplicitModMap.framework/Versions/A/Modules/module.modulemap"
                 )
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Concatenate"),
+                    .matchTarget(target),
+                    .matchRuleItem("Concatenate"),
                     .matchRuleItemPattern(srcModMap),
                     .matchRuleItemPattern(intermediateModMap)
                 ) { task in
@@ -1660,23 +1853,26 @@ fileprivate struct IndexBuildTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs(contain: [.pathPattern(intermediateModMap)])
                 }
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("WriteAuxiliaryFile"),
+                    .matchTarget(target),
+                    .matchRuleItem("WriteAuxiliaryFile"),
                     .matchRuleItemPattern(unextensionModMap)
                 ) { task in
                     task.checkOutputs(contain: [.pathPattern(unextensionModMap)])
                 }
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Concatenate"),
+                    .matchTarget(target),
+                    .matchRuleItem("Concatenate"),
                     .matchRuleItemPattern(srcModMap),
                     .matchRuleItemPattern(unextendedModMap)
                 ) { task in
                     task.checkInputs(contain: [
-                        .pathPattern(srcModMap), .pathPattern(unextensionModMap)
+                        .pathPattern(srcModMap), .pathPattern(unextensionModMap),
                     ])
                     task.checkOutputs(contain: [.pathPattern(unextendedModMap)])
                 }
                 results.checkTask(
-                    .matchTarget(target), .matchRuleItem("Copy"),
+                    .matchTarget(target),
+                    .matchRuleItem("Copy"),
                     .matchRuleItemPattern(frameworkModMap)
                 ) { task in
                     task.checkInputs(contain: [.pathPattern(intermediateModMap)])

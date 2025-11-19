@@ -147,9 +147,11 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
             return .failed
         }
 
-        for node in (dependencyInfo.files.map {
-            ExecutionNode(identifier: $0.str)
-        }) {
+        for node
+            in (dependencyInfo.files.map {
+                ExecutionNode(identifier: $0.str)
+            })
+        {
             dynamicExecutionDelegate.discoveredDependencyNode(node)
         }
 
@@ -231,10 +233,11 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 if case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
                     do {
                         if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
-                                forFailedDependency: dependencyInfo,
-                                libclangPath: key.libclangPath,
-                                casOptions: key.casOptions,
-                                location: key.reproducerOutputPath?.str) {
+                            forFailedDependency: dependencyInfo,
+                            libclangPath: key.libclangPath,
+                            casOptions: key.casOptions,
+                            location: key.reproducerOutputPath?.str
+                        ) {
                             outputDelegate.emitOutput(ByteString(encodingAsUTF8: reproducerMessage) + "\n")
                         }
                     } catch {

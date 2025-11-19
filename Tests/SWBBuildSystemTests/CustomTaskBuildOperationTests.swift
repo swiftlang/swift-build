@@ -35,11 +35,13 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("tool.swift"),
                         TestFile("foo.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -51,12 +53,14 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                             "SDKROOT": "$(HOST_PLATFORM)",
                             "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                             "CODE_SIGNING_ALLOWED": "NO",
-                            "MACOSX_DEPLOYMENT_TARGET": "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)"
-                        ]),
+                            "MACOSX_DEPLOYMENT_TARGET": "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
-                        "CoreFoo", type: .dynamicLibrary,
+                        "CoreFoo",
+                        type: .dynamicLibrary,
                         buildPhases: [
                             TestSourcesBuildPhase(["foo.c"])
                         ],
@@ -69,24 +73,26 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
                                 inputs: ["$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/tool\(destination == .windows ? ".exe" : "")"],
                                 outputs: [Path.root.join("output").str],
                                 enableSandboxing: false,
-                                preparesForIndexing: false)
+                                preparesForIndexing: false
+                            )
                         ],
                         dependencies: ["tool"]
                     ),
                     TestStandardTarget(
-                        "tool", type: .hostBuildTool,
+                        "tool",
+                        type: .hostBuildTool,
                         buildPhases: [
                             TestSourcesBuildPhase(["tool.swift"])
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             let parameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: .host)
 
             try await tester.fs.writeFileContents(tmpDir.join("Sources").join("tool.swift")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     @main
                     struct Entry {
                         static func main() {
@@ -97,8 +103,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(tmpDir.join("Sources").join("foo.c")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     void foo(void) {}
                     """
             }

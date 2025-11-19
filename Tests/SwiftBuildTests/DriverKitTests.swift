@@ -33,8 +33,9 @@ fileprivate struct DriverKitTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -44,26 +45,35 @@ fileprivate struct DriverKitTests: CoreBasedTests {
                                     "DEBUG_INFORMATION_FORMAT": "dwarf",
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
                                 "App",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app",
-                                        "SDKROOT": "auto",
-                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app",
+                                            "SDKROOT": "auto",
+                                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
+                                        "foo.c"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "Driver.dext"
-                                    ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(SYSTEM_EXTENSIONS_FOLDER_PATH)", onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "Driver.dext"
+                                        ],
+                                        destinationSubfolder: .builtProductsDir,
+                                        destinationSubpath: "$(SYSTEM_EXTENSIONS_FOLDER_PATH)",
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: ["Driver"]
                             ),
@@ -71,20 +81,25 @@ fileprivate struct DriverKitTests: CoreBasedTests {
                                 "Driver",
                                 type: .driverExtension,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app.driver",
-                                        "SDKROOT": "driverkit",
-                                        "SUPPORTED_PLATFORMS": "driverkit",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app.driver",
+                                            "SDKROOT": "driverkit",
+                                            "SUPPORTED_PLATFORMS": "driverkit",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
             try await withTester(testWorkspace, fs: fs) { tester in
                 let SRCROOT = tmpDirPath.join("Test")
 
@@ -140,15 +155,17 @@ final class DriverKitBuildOperationDelegate: SWBPlanningOperationDelegate {
     // Simulated implementation of the provisioning system which ad-hoc signs with the product type + project entitlements
     // FIXME: Find a way to call the real thing, perhaps in the future this is `xcsigningtool`
     func provisioningTaskInputs(targetGUID: String, provisioningSourceData: SWBProvisioningTaskInputsSourceData) async -> SWBProvisioningTaskInputs {
-        let signedEntitlements = provisioningSourceData.entitlementsDestination == "Signature"
-        ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-        : [:]
+        let signedEntitlements =
+            provisioningSourceData.entitlementsDestination == "Signature"
+            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+            : [:]
 
-        let simulatedEntitlements = provisioningSourceData.entitlementsDestination == "__entitlements"
-        ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-        : [:]
+        let simulatedEntitlements =
+            provisioningSourceData.entitlementsDestination == "__entitlements"
+            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+            : [:]
 
-        return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new  in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: false, keychainPath: nil, errors: [], warnings: [])
+        return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: false, keychainPath: nil, errors: [], warnings: [])
     }
 
     func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> SWBExternalToolResult {

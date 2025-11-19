@@ -18,7 +18,6 @@ import SWBTaskConstruction
 import SWBTestSupport
 import SWBUtil
 
-
 @Suite
 fileprivate struct EXUtilTaskConstructionTests: CoreBasedTests {
 
@@ -31,8 +30,9 @@ fileprivate struct EXUtilTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("source.swift"),
-                    ]),
+                        TestFile("source.swift")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -48,7 +48,8 @@ fileprivate struct EXUtilTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -59,14 +60,16 @@ fileprivate struct EXUtilTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "EX_ENABLE_EXTENSION_POINT_GENERATION" : "YES"
-                                ]),
+                                    "EX_ENABLE_EXTENSION_POINT_GENERATION": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -95,8 +98,9 @@ fileprivate struct EXUtilTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("source.swift"),
-                    ]),
+                        TestFile("source.swift")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -112,7 +116,8 @@ fileprivate struct EXUtilTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -121,25 +126,29 @@ fileprivate struct EXUtilTaskConstructionTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
-                                buildSettings: [:]),
+                                buildSettings: [:]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
             try await tester.checkBuild(runDestination: .iOS) { results in
 
-                let generatorTask = try #require(results.checkTask(.matchRuleType("AppExtensionPListGenerator")) { task in
-                    task.checkCommandLineMatches(["exutil", "generate-appextension-plist", .anySequence])
-                    task.checkInputs(contain: [.name("source.swiftconstvalues")])
-                    task.checkOutputs(contain: [.namePattern(.suffix("appextension-generated-info.plist"))])
-                    results.checkNoDiagnostics()
-                    return task
-                })
+                let generatorTask = try #require(
+                    results.checkTask(.matchRuleType("AppExtensionPListGenerator")) { task in
+                        task.checkCommandLineMatches(["exutil", "generate-appextension-plist", .anySequence])
+                        task.checkInputs(contain: [.name("source.swiftconstvalues")])
+                        task.checkOutputs(contain: [.namePattern(.suffix("appextension-generated-info.plist"))])
+                        results.checkNoDiagnostics()
+                        return task
+                    }
+                )
 
                 results.checkTask(.matchRuleType("ProcessInfoPlistFile")) { task in
                     results.checkTaskFollows(task, antecedent: generatorTask)

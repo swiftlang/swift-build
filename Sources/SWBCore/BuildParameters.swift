@@ -138,7 +138,7 @@ public struct BuildParameters: Hashable, SerializableCodable, Sendable {
         hasher.combine(precomputedHash)
     }
 
-    public static func ==(lhs: BuildParameters, rhs: BuildParameters) -> Bool {
+    public static func == (lhs: BuildParameters, rhs: BuildParameters) -> Bool {
         // Compare all properties except the signature which isn't stable.
         if lhs.action != rhs.action { return false }
         if lhs.configuration != rhs.configuration { return false }
@@ -181,7 +181,7 @@ public struct BuildParameters: Hashable, SerializableCodable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case action, configuration, packageConfigurationOverride, activeRunDestination, activeArchitecture, arena,  overrides, commandLineOverrides, commandLineConfigOverridesPath, commandLineConfigOverrides,  environmentConfigOverridesPath, environmentConfigOverrides, toolchainOverride
+        case action, configuration, packageConfigurationOverride, activeRunDestination, activeArchitecture, arena, overrides, commandLineOverrides, commandLineConfigOverridesPath, commandLineConfigOverrides, environmentConfigOverridesPath, environmentConfigOverrides, toolchainOverride
     }
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -253,7 +253,8 @@ extension BuildParameters {
             environmentConfigOverridesPath: environmentConfigOverridesPath,
             environmentConfigOverrides: environmentConfigOverrides,
             toolchainOverride: toolchainOverride,
-            arena: arena)
+            arena: arena
+        )
     }
 
     // Returns these `BuildParameters` after filtering out any overrides.
@@ -270,7 +271,8 @@ extension BuildParameters {
             environmentConfigOverridesPath: nil,
             environmentConfigOverrides: [:],
             toolchainOverride: toolchainOverride,
-            arena: arena)
+            arena: arena
+        )
     }
 
     // Returns these `BuildParameters` after modifying `activeRunDestination` and `activeArchitecture`.
@@ -287,7 +289,8 @@ extension BuildParameters {
             environmentConfigOverridesPath: environmentConfigOverridesPath,
             environmentConfigOverrides: environmentConfigOverrides,
             toolchainOverride: toolchainOverride,
-            arena: arena)
+            arena: arena
+        )
     }
 
     /// Removes any of the potentially imposed settings **unless** those have been specified via explicit overrides which have come in via the initial build request.
@@ -315,7 +318,8 @@ extension BuildParameters {
             environmentConfigOverridesPath: environmentConfigOverridesPath,
             environmentConfigOverrides: environmentConfigOverrides,
             toolchainOverride: toolchainOverride,
-            arena: arena)
+            arena: arena
+        )
     }
 }
 

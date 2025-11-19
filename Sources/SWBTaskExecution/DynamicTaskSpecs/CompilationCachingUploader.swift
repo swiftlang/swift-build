@@ -16,7 +16,7 @@ import SWBUtil
 import Foundation
 
 #if canImport(os)
-import os
+    import os
 #endif
 
 /// Manages uploading compilation caching outputs in the background, when a remote cache is enabled.
@@ -63,7 +63,7 @@ package final class CompilationCachingUploader {
     ) {
         let inserted = lock.withLock { uploadedKeys.insert(cacheKey).inserted }
         guard inserted else {
-            return // already uploaded
+            return  // already uploaded
         }
 
         startedUpload()
@@ -123,7 +123,7 @@ package final class CompilationCachingUploader {
     ) {
         let inserted = lock.withLock { uploadedKeys.insert(cacheKey).inserted }
         guard inserted else {
-            return // already uploaded
+            return  // already uploaded
         }
 
         startedUpload()
@@ -144,9 +144,11 @@ package final class CompilationCachingUploader {
             if enableDiagnosticRemarks {
                 for output in try swiftCompilation.getOutputs() {
                     activityReporter.emit(
-                        diagnostic: Diagnostic(behavior: .note,
-                                               location: .unknown,
-                                               data: DiagnosticData("uploaded CAS output \(output.kindName): \(output.casID)")),
+                        diagnostic: Diagnostic(
+                            behavior: .note,
+                            location: .unknown,
+                            data: DiagnosticData("uploaded CAS output \(output.kindName): \(output.casID)")
+                        ),
                         for: activityID,
                         signature: signature
                     )

@@ -31,7 +31,7 @@ public struct ClangCachingOutputMaterializerTaskKey: Serializable, CustomDebugSt
         self.outputName = outputName
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(4) {
             serializer.serialize(libclangPath)
             serializer.serialize(casOptions)

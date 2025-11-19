@@ -25,11 +25,13 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
             "Workspace",
             sourceRoot: tmpDirPath,
             projects: [
-                TestProject("aProject",
-                            groupTree: TestGroup("SomeFiles"),
-                            targets: [TestStandardTarget("Target1", type: .application)]
-                           )
-            ]).loadHelper(getCore())
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [TestStandardTarget("Target1", type: .application)]
+                )
+            ]
+        ).loadHelper(getCore())
         let project = helper.project
         let target = project.targets[0]
         return helper.globalScope(buildRequestContext: BuildRequestContext(workspaceContext: helper.workspaceContext), project: project, target: target)
@@ -55,7 +57,6 @@ fileprivate struct SerializationPerfTests: CoreBasedTests, PerfTests {
                     let sz = self.serializeMacroEvaluationScope(scope)
                     accumulatedBytes += Float64(sz.byteString.count)
                 }
-
 
                 if !didEmitSerializedSize.withLock({ $0 }) {
                     let mb = accumulatedBytes / (1000.0 * 1000.0)

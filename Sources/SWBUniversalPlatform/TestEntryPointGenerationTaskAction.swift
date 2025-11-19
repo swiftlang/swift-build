@@ -50,70 +50,75 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                 }
             }
 
-            try executionDelegate.fs.write(options.output, contents: ByteString(encodingAsUTF8: """
-            #if canImport(Testing)
-            import Testing
-            #endif
+            try executionDelegate.fs.write(
+                options.output,
+                contents: ByteString(
+                    encodingAsUTF8: """
+                        #if canImport(Testing)
+                        import Testing
+                        #endif
 
-            \(testObservationFragment)
+                        \(testObservationFragment)
 
-            public import XCTest
-            \(discoveredTestsFragment(tests: tests, options: options))
+                        public import XCTest
+                        \(discoveredTestsFragment(tests: tests, options: options))
 
-            @main
-            @available(macOS 10.15, iOS 11, watchOS 4, tvOS 11, visionOS 1, *)
-            @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
-            struct Runner {
-                private static func testingLibrary() -> String {
-                    var iterator = CommandLine.arguments.makeIterator()
-                    while let argument = iterator.next() {
-                        if argument == "--testing-library", let libraryName = iterator.next() {
-                            return libraryName.lowercased()
+                        @main
+                        @available(macOS 10.15, iOS 11, watchOS 4, tvOS 11, visionOS 1, *)
+                        @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
+                        struct Runner {
+                            private static func testingLibrary() -> String {
+                                var iterator = CommandLine.arguments.makeIterator()
+                                while let argument = iterator.next() {
+                                    if argument == "--testing-library", let libraryName = iterator.next() {
+                                        return libraryName.lowercased()
+                                    }
+                                }
+
+                                // Fallback if not specified: run XCTest (legacy behavior)
+                                return "xctest"
+                            }
+
+                            private static func testOutputPath() -> String? {
+                                var iterator = CommandLine.arguments.makeIterator()
+                                while let argument = iterator.next() {
+                                    if argument == "--testing-output-path", let outputPath = iterator.next() {
+                                        return outputPath
+                                    }
+                                }
+                                return nil
+                            }
+
+                            #if os(Linux)
+                            @_silgen_name("$ss13_runAsyncMainyyyyYaKcF")
+                            private static func _runAsyncMain(_ asyncFun: @Sendable @escaping () async throws -> ())
+
+                            static func main() {
+                                let testingLibrary = Self.testingLibrary()
+                                #if canImport(Testing)
+                                if testingLibrary == "swift-testing" {
+                                    _runAsyncMain {
+                                        await Testing.__swiftPMEntryPoint() as Never
+                                    }
+                                }
+                                #endif
+                                \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
+                            }
+                            #else
+                            static func main() async {
+                                let testingLibrary = Self.testingLibrary()
+                                #if canImport(Testing)
+                                if testingLibrary == "swift-testing" {
+                                    await Testing.__swiftPMEntryPoint() as Never
+                                }
+                                #endif
+                                \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
+                            }
+                            #endif
                         }
-                    }
-
-                    // Fallback if not specified: run XCTest (legacy behavior)
-                    return "xctest"
-                }
-
-                private static func testOutputPath() -> String? {
-                    var iterator = CommandLine.arguments.makeIterator()
-                    while let argument = iterator.next() {
-                        if argument == "--testing-output-path", let outputPath = iterator.next() {
-                            return outputPath
-                        }
-                    }
-                    return nil
-                }
-
-                #if os(Linux)
-                @_silgen_name("$ss13_runAsyncMainyyyyYaKcF")
-                private static func _runAsyncMain(_ asyncFun: @Sendable @escaping () async throws -> ())
-
-                static func main() {
-                    let testingLibrary = Self.testingLibrary()
-                    #if canImport(Testing)
-                    if testingLibrary == "swift-testing" {
-                        _runAsyncMain {
-                            await Testing.__swiftPMEntryPoint() as Never
-                        }
-                    }
-                    #endif
-                    \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
-                }
-                #else
-                static func main() async {
-                    let testingLibrary = Self.testingLibrary()
-                    #if canImport(Testing)
-                    if testingLibrary == "swift-testing" {
-                        await Testing.__swiftPMEntryPoint() as Never
-                    }
-                    #endif
-                    \(xctestFragment(enableExperimentalTestOutput: options.enableExperimentalTestOutput, disable: !options.discoverTests))
-                }
-                #endif
-            }
-            """))
+                        """
+                )
+            )
 
             return .succeeded
         } catch {
@@ -142,11 +147,11 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             fragment += "@testable import \(moduleName)\n"
         }
         fragment += """
-        @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
-        public func __allDiscoveredTests() -> [XCTestCaseEntry] {
-            return [
+            @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
+            public func __allDiscoveredTests() -> [XCTestCaseEntry] {
+                return [
 
-        """
+            """
         for testClass in tests {
 
             let testTuples = testClass.testMethods.map { method in
@@ -160,9 +165,9 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             fragment += "        testCase([\(testTuples.joined(separator: ",\n"))]),\n"
         }
         fragment += """
-            ]
-        }
-        """
+                ]
+            }
+            """
         return fragment
     }
 
@@ -171,17 +176,17 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             return ""
         }
         return """
-        if testingLibrary == "xctest" {
-            #if !os(Windows) && \(enableExperimentalTestOutput)
-            _ = Self.testOutputPath().map { __SwiftPMXCTestObserver(testOutputPath: testOutputPath) }
-            #endif
-            #if os(WASI)
-            await XCTMain(__allDiscoveredTests()) as Never
-            #else
-            XCTMain(__allDiscoveredTests()) as Never
-            #endif
-        }
-        """
+            if testingLibrary == "xctest" {
+                #if !os(Windows) && \(enableExperimentalTestOutput)
+                _ = Self.testOutputPath().map { __SwiftPMXCTestObserver(testOutputPath: testOutputPath) }
+                #endif
+                #if os(WASI)
+                await XCTMain(__allDiscoveredTests()) as Never
+                #else
+                XCTMain(__allDiscoveredTests()) as Never
+                #endif
+            }
+            """
     }
 
     private var testObservationFragment: String =

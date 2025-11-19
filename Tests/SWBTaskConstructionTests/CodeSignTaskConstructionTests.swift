@@ -32,15 +32,19 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("Tool.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                    "INFOPLIST_FILE": "Tool.plist",
-                    "INFOPLIST_PREPROCESS": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                        "INFOPLIST_FILE": "Tool.plist",
+                        "INFOPLIST_PREPROCESS": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -48,8 +52,9 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                     type: .commandLineTool,
                     buildConfigurations: [TestBuildConfiguration("Release")],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
-                ),
-            ])
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
@@ -77,7 +82,8 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                         TestFile("ExternalDeep.framework"),
                         TestFile("External.bundle"),
                         TestFile("ExternalDeep.bundle"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -86,7 +92,8 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             "CODE_SIGN_IDENTITY": "-",
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestAggregateTarget(
@@ -97,23 +104,31 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                         "ToolTarget",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_PKGINFO_FILE": "YES",
-                                "SHALLOW_BUNDLE": "YES",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_PKGINFO_FILE": "YES",
+                                    "SHALLOW_BUNDLE": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "SourceFile.m",
+                                "SourceFile.m"
                             ]),
-                            TestCopyFilesBuildPhase([
-                                TestBuildFile("AppCore.framework", codeSignOnCopy: true),
-                                TestBuildFile("AppCoreDeep.framework", codeSignOnCopy: true),
-                                TestBuildFile("External.framework", codeSignOnCopy: true),
-                                TestBuildFile("ExternalDeep.framework", codeSignOnCopy: true),
-                                TestBuildFile("External.bundle", codeSignOnCopy: true),
-                                TestBuildFile("ExternalDeep.bundle", codeSignOnCopy: true),
-                            ], destinationSubfolder: .frameworks, destinationSubpath: "Shallow", onlyForDeployment: false),
+                            TestCopyFilesBuildPhase(
+                                [
+                                    TestBuildFile("AppCore.framework", codeSignOnCopy: true),
+                                    TestBuildFile("AppCoreDeep.framework", codeSignOnCopy: true),
+                                    TestBuildFile("External.framework", codeSignOnCopy: true),
+                                    TestBuildFile("ExternalDeep.framework", codeSignOnCopy: true),
+                                    TestBuildFile("External.bundle", codeSignOnCopy: true),
+                                    TestBuildFile("ExternalDeep.bundle", codeSignOnCopy: true),
+                                ],
+                                destinationSubfolder: .frameworks,
+                                destinationSubpath: "Shallow",
+                                onlyForDeployment: false
+                            ),
                         ],
                         dependencies: ["AppCore", "AppCoreDeep"]
                     ),
@@ -121,23 +136,31 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                         "ToolTargetDeep",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_PKGINFO_FILE": "YES",
-                                "SHALLOW_BUNDLE": "NO",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_PKGINFO_FILE": "YES",
+                                    "SHALLOW_BUNDLE": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "SourceFile.m",
+                                "SourceFile.m"
                             ]),
-                            TestCopyFilesBuildPhase([
-                                TestBuildFile("AppCore.framework", codeSignOnCopy: true),
-                                TestBuildFile("AppCoreDeep.framework", codeSignOnCopy: true),
-                                TestBuildFile("External.framework", codeSignOnCopy: true),
-                                TestBuildFile("ExternalDeep.framework", codeSignOnCopy: true),
-                                TestBuildFile("External.bundle", codeSignOnCopy: true),
-                                TestBuildFile("ExternalDeep.bundle", codeSignOnCopy: true),
-                            ], destinationSubfolder: .frameworks, destinationSubpath: "Deep", onlyForDeployment: false),
+                            TestCopyFilesBuildPhase(
+                                [
+                                    TestBuildFile("AppCore.framework", codeSignOnCopy: true),
+                                    TestBuildFile("AppCoreDeep.framework", codeSignOnCopy: true),
+                                    TestBuildFile("External.framework", codeSignOnCopy: true),
+                                    TestBuildFile("ExternalDeep.framework", codeSignOnCopy: true),
+                                    TestBuildFile("External.bundle", codeSignOnCopy: true),
+                                    TestBuildFile("ExternalDeep.bundle", codeSignOnCopy: true),
+                                ],
+                                destinationSubfolder: .frameworks,
+                                destinationSubpath: "Deep",
+                                onlyForDeployment: false
+                            ),
                         ],
                         dependencies: ["AppCore", "AppCoreDeep"]
                     ),
@@ -145,26 +168,35 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                         "AppCore",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "SHALLOW_BUNDLE": "YES",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SHALLOW_BUNDLE": "YES"
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["SourceFile.m"]),
-                        ]),
+                            TestSourcesBuildPhase(["SourceFile.m"])
+                        ]
+                    ),
                     TestStandardTarget(
                         "AppCoreDeep",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "SHALLOW_BUNDLE": "NO",
-                                "FRAMEWORK_VERSION": "B",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SHALLOW_BUNDLE": "NO",
+                                    "FRAMEWORK_VERSION": "B",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["SourceFile.m"]),
-                        ])
-                ])
+                            TestSourcesBuildPhase(["SourceFile.m"])
+                        ]
+                    ),
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -198,7 +230,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Shallow/AppCore.framework"),
                             .path("\(SRCROOT)/build/Debug/Shallow/AppCore.framework/AppCore"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Shallow/AppCore.framework"),
@@ -216,7 +248,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Shallow/AppCoreDeep.framework"),
                             .path("\(SRCROOT)/build/Debug/Shallow/AppCoreDeep.framework/Versions/B/AppCoreDeep"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Shallow/AppCoreDeep.framework/Versions/B"),
@@ -234,7 +266,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Shallow/External.framework"),
                             .path("\(SRCROOT)/build/Debug/Shallow/External.framework/External"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Shallow/External.framework"),
@@ -252,7 +284,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Shallow/ExternalDeep.framework"),
                             .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.framework/Versions/C/ExternalDeep"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.framework/Versions/C"),
@@ -270,7 +302,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Shallow/External.bundle"),
                             .path("\(SRCROOT)/build/Debug/Shallow/External.bundle/External"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Shallow/External.bundle"),
@@ -288,7 +320,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle"),
                             .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle/Contents/MacOS/ExternalDeep"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Shallow/ExternalDeep.bundle"),
@@ -308,7 +340,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Deep/AppCore.framework"),
                             .path("\(SRCROOT)/build/Debug/Deep/AppCore.framework/AppCore"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Deep/AppCore.framework"),
@@ -326,7 +358,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Deep/AppCoreDeep.framework"),
                             .path("\(SRCROOT)/build/Debug/Deep/AppCoreDeep.framework/Versions/B/AppCoreDeep"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Deep/AppCoreDeep.framework/Versions/B"),
@@ -344,7 +376,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Deep/External.framework"),
                             .path("\(SRCROOT)/build/Debug/Deep/External.framework/External"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Deep/External.framework"),
@@ -362,7 +394,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Deep/ExternalDeep.framework"),
                             .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.framework/Versions/C/ExternalDeep"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.framework/Versions/C"),
@@ -380,7 +412,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Deep/External.bundle"),
                             .path("\(SRCROOT)/build/Debug/Deep/External.bundle/External"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Deep/External.bundle"),
@@ -398,7 +430,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             .name("Copy \(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle"),
                             .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle/Contents/MacOS/ExternalDeep"),
                             .namePattern(.suffix("-phase0-compile-sources")),
-                            .namePattern(.suffix("-entry"))
+                            .namePattern(.suffix("-entry")),
                         ])
                         task.checkOutputs([
                             .path("\(SRCROOT)/build/Debug/Deep/ExternalDeep.bundle"),
@@ -411,30 +443,38 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
 
                 results.checkTarget("AppCore") { target in
                     // There should be the expected mkdir tasks for the framework.
-                    results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { (tasks) -> Void in
-                        let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
-                        #expect(sortedTasks.count == 1)
-                        sortedTasks[0].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework")])
+                    results.checkTasks(
+                        .matchTarget(target),
+                        .matchRuleType("MkDir"),
+                        body: { (tasks) -> Void in
+                            let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
+                            #expect(sortedTasks.count == 1)
+                            sortedTasks[0].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCore.framework")])
 
-                        // Validate we also construct command lines.
-                        sortedTasks[0].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework"])
-                    })
+                            // Validate we also construct command lines.
+                            sortedTasks[0].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCore.framework"])
+                        }
+                    )
                 }
 
                 results.checkTarget("AppCoreDeep") { target in
                     // There should be the expected mkdir tasks for the framework.
-                    results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { (tasks) -> Void in
-                        let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
-                        #expect(sortedTasks.count == 4)
-                        sortedTasks[0].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCoreDeep.framework")])
-                        sortedTasks[1].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions")])
-                        sortedTasks[2].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions/B")])
+                    results.checkTasks(
+                        .matchTarget(target),
+                        .matchRuleType("MkDir"),
+                        body: { (tasks) -> Void in
+                            let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
+                            #expect(sortedTasks.count == 4)
+                            sortedTasks[0].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCoreDeep.framework")])
+                            sortedTasks[1].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions")])
+                            sortedTasks[2].checkRuleInfo([.equal("MkDir"), .equal("\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions/B")])
 
-                        // Validate we also construct command lines.
-                        sortedTasks[0].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCoreDeep.framework"])
-                        sortedTasks[1].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions"])
-                        sortedTasks[2].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions/B"])
-                    })
+                            // Validate we also construct command lines.
+                            sortedTasks[0].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCoreDeep.framework"])
+                            sortedTasks[1].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions"])
+                            sortedTasks[2].checkCommandLine(["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/AppCoreDeep.framework/Versions/B"])
+                        }
+                    )
                 }
 
                 // Check there are no other targets.
@@ -470,19 +510,23 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                             // For Script Phase: Run Me (FileLists)
                             TestFile("in3.xcfilelist"),
                             TestFile("out3.xcfilelist"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CODE_SIGN_IDENTITY": "-",
-                            "INFOPLIST_FILE": "Info.plist",
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CODE_SIGN_IDENTITY": "-",
+                                "INFOPLIST_FILE": "Info.plist",
 
-                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
-                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
+                                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
+                                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
 
-                            "OTHER_CODE_SIGN_FLAGS": "--entitlements /tmp/Test/aProject/build/aProject.build/custom-entitlements.plist",
-                        ])],
+                                "OTHER_CODE_SIGN_FLAGS": "--entitlements /tmp/Test/aProject/build/aProject.build/custom-entitlements.plist",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "Tool",
@@ -494,8 +538,12 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                                 TestShellScriptBuildPhase(name: "Run Me", shellPath: "/bin/bash", originalObjectID: "RunMe1", contents: "touch ${SCRIPT_OUTPUT_FILE_0}", inputs: ["$(SRCROOT)/input1.txt"], outputs: ["$(DERIVED_FILE_DIR)/out1"]),
                                 TestShellScriptBuildPhase(name: "Run Me (Outputs)", shellPath: "/bin/bash", originalObjectID: "RunMe2", contents: "touch ${SCRIPT_OUTPUT_FILE_0}", inputs: ["$(SRCROOT)/input2.txt"], outputs: ["$(TARGET_BUILD_DIR)/Tool.app/Contents/Resources/out2.txt"]),
                                 TestShellScriptBuildPhase(name: "Run Me (FileList)", shellPath: "/bin/bash", originalObjectID: "RunMe3", contents: "touch $TARGET_BUILD_DIR/Tool.app/Contents/Resources/out3.txt", inputs: [], inputFileLists: ["$(SRCROOT)/in3.xcfilelist"], outputs: [], outputFileLists: ["$(SRCROOT)/out3.xcfilelist"]),
-                            ]),
-                    ])])
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -549,13 +597,17 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("Tool.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -563,8 +615,9 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildConfigurations: [TestBuildConfiguration("Release", buildSettings: ["SDKROOT": "macosx"])],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
-                ),
-            ])
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
@@ -627,10 +680,10 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that flags without a dedicated build setting are passed through as expected.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in // ignore-unacceptable-language; codesign tool option
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "YES", "ENABLE_HARDENED_RUNTIME": "YES", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in  // ignore-unacceptable-language; codesign tool option
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
-                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,library,linker-signed,restrict,runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"]) // ignore-unacceptable-language; codesign tool option
+                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,library,linker-signed,restrict,runtime", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])  // ignore-unacceptable-language; codesign tool option
                 }
             }
 
@@ -638,10 +691,10 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // Check that flags without a dedicated build setting are passed through as expected, in conjunction with DISABLE_FREEFORM_CODE_SIGN_OPTION_FLAGS removing disabled, known ones.
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in // ignore-unacceptable-language; codesign tool option
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["ENABLE_LIBRARY_VALIDATION": "NO", "ENABLE_HARDENED_RUNTIME": "NO", "CODE_SIGN_RESTRICT": "YES", "OTHER_CODE_SIGN_FLAGS": "--options kill,hard,host,expires,linker-signed"]), runDestination: .macOS) { results in  // ignore-unacceptable-language; codesign tool option
             results.checkTarget("macOSFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign")) { task in
-                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,linker-signed,restrict", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"]) // ignore-unacceptable-language; codesign tool option
+                    task.checkCommandLineMatches(["/usr/bin/codesign", "--force", "--sign", "-", "--options", "expires,hard,host,kill,linker-signed,restrict", "--entitlements", .suffix("macOSFramework.framework.xcent"), "--generate-entitlement-der", "/tmp/aProject.dst/Library/Frameworks/macOSFramework.framework/Versions/A"])  // ignore-unacceptable-language; codesign tool option
                 }
             }
 
@@ -660,33 +713,39 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("Tool.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "Apple Development",
-                    "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "Apple Development",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                               ]
-                                              ),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "SDKROOT": "macosx"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceFile.m",
-                        ]),
+                            "SourceFile.m"
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let srcRoot = tester.workspace.projects[0].sourceRoot
@@ -708,11 +767,13 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
             func checkEntitlementsDictionary(action: BuildAction, overrides: [String: String] = [:], check: ([String: PropertyListItem]) throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
                 // These provisioning overrides replace the default ones that come from TaskConstructionTester.computeProvisioningInputs().
                 let appIdentifierPrefix = "F154D0C"
-                let provisioningOverrides = ProvisioningTaskInputs(signedEntitlements: .plDict([
-                    "application-identifier": .plString("\(appIdentifierPrefix).com.apple.dt.App"),
-                    "com.apple.developer.team-identifier": .plString(appIdentifierPrefix),
-                    "com.apple.security.get-task-allow": "YES",
-                ]))
+                let provisioningOverrides = ProvisioningTaskInputs(
+                    signedEntitlements: .plDict([
+                        "application-identifier": .plString("\(appIdentifierPrefix).com.apple.dt.App"),
+                        "com.apple.developer.team-identifier": .plString(appIdentifierPrefix),
+                        "com.apple.security.get-task-allow": "YES",
+                    ])
+                )
 
                 // Test that it does not get removed in a debug build.
                 try await tester.checkBuild(BuildParameters(action: action, configuration: "Config", overrides: overrides), runDestination: .macOS, provisioningOverrides: provisioningOverrides, fs: fs) { results in
@@ -752,7 +813,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .userDefaults(["AppSandboxConflictingValuesEmitsWarning":"1"]))
+    @Test(.requireSDKs(.macOS), .userDefaults(["AppSandboxConflictingValuesEmitsWarning": "1"]))
     func appSandboxEntitlementAndBuildSettingConflictEmitsExpectedDiagnostics() async throws {
         let testProject = TestProject(
             "aProject",
@@ -761,33 +822,39 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("Tool.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "Apple Development",
-                    "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                    "GENERATE_INFOPLIST_FILE": "YES"
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "Apple Development",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                               ]
-                                              ),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "SDKROOT": "macosx"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceFile.m",
-                        ]),
+                            "SourceFile.m"
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let srcRoot = tester.workspace.projects[0].sourceRoot
@@ -799,9 +866,11 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
 
         func results(action: BuildAction, overrides: [String: String] = [:], appSandboxEntitlementValueOverride: Bool, resultsCompletion: (TaskConstructionTester.PlanningResults) -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
 
-            let provisioningOverrides = ProvisioningTaskInputs(signedEntitlements: .plDict([
-                "com.apple.security.app-sandbox": .plBool(appSandboxEntitlementValueOverride),
-            ]))
+            let provisioningOverrides = ProvisioningTaskInputs(
+                signedEntitlements: .plDict([
+                    "com.apple.security.app-sandbox": .plBool(appSandboxEntitlementValueOverride)
+                ])
+            )
 
             await tester.checkBuild(BuildParameters(action: action, configuration: "Config", overrides: overrides), runDestination: .macOS, provisioningOverrides: provisioningOverrides, fs: fs) { results in
                 results.checkTarget("App") { target in
@@ -812,17 +881,17 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // When build setting and entitlement values agree, then there should be no diagnostics
-        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX":"YES"], appSandboxEntitlementValueOverride: true) { results in
+        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX": "YES"], appSandboxEntitlementValueOverride: true) { results in
             results.checkNoDiagnostics()
         }
 
         // When build setting and entitlement values agree, then there should be no diagnostics
-        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX":"NO"], appSandboxEntitlementValueOverride: false) { results in
+        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX": "NO"], appSandboxEntitlementValueOverride: false) { results in
             results.checkNoDiagnostics()
         }
 
         // When build setting and entitlement values disagree, we expect diagnostics
-        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX":"YES"], appSandboxEntitlementValueOverride: false) { results in
+        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX": "YES"], appSandboxEntitlementValueOverride: false) { results in
             results.checkWarning(
                 .equal(
                     "The \'ENABLE_APP_SANDBOX\' build setting is set to \'YES\', but entitlement \'com.apple.security.app-sandbox\' is set to \'NO\' in your entitlements file.\n/tmp/aWorkspace/aProject/Entitlements.plist: To enable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file.\nTo disable \'ENABLE_APP_SANDBOX\', remove the entitlement from your entitlements file and disable \'ENABLE_APP_SANDBOX\' in  build settings. (in target \'App\' from project \'aProject\')"
@@ -831,7 +900,7 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
         }
 
         // When build setting and entitlement values disagree, we expect diagnostics
-        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX":"NO"], appSandboxEntitlementValueOverride: true) { results in
+        try await results(action: .build, overrides: ["ENABLE_APP_SANDBOX": "NO"], appSandboxEntitlementValueOverride: true) { results in
             results.checkNoDiagnostics()
         }
     }
@@ -845,22 +914,33 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("Tool.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "Apple Development",
-                    "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "Apple Development",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget("All", dependencies: ["App", "macOSFramework", "watchOSFramework"]),
                 TestStandardTarget(
                     "App",
                     type: .application,
-                    buildConfigurations: [TestBuildConfiguration("Release", buildSettings: ["SDKROOT": "iphoneos",
-                                                                                            "SUPPORTS_MACCATALYST": "YES"])],
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ]
+                        )
+                    ],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
                 ),
                 TestStandardTarget(
@@ -875,7 +955,8 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                     buildConfigurations: [TestBuildConfiguration("Release", buildSettings: ["SDKROOT": "watchos"])],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
                 ),
-            ])
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let srcRoot = tester.workspace.projects[0].sourceRoot
@@ -994,15 +1075,19 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                     TestFile("SelfLaunchConstraint.plist"),
                     TestFile("ParentLaunchConstraint.plist"),
                     TestFile("ResponsibleLaunchConstraint.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                    "INFOPLIST_FILE": "Tool.plist",
-                    "INFOPLIST_PREPROCESS": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                        "INFOPLIST_FILE": "Tool.plist",
+                        "INFOPLIST_PREPROCESS": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -1010,8 +1095,9 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                     type: .commandLineTool,
                     buildConfigurations: [TestBuildConfiguration("Release")],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
-                ),
-            ])
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
@@ -1032,7 +1118,6 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                 }
             }
         }
-
 
         // Check --launch-constraint-responsible is passed when the build setting is configured
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["LAUNCH_CONSTRAINT_RESPONSIBLE": "/tmp/ResponsibleLaunchConstraint.plist"]), runDestination: .macOS) { results in
@@ -1066,15 +1151,19 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                     TestFile("SelfLaunchConstraint.plist"),
                     TestFile("ParentLaunchConstraint.plist"),
                     TestFile("ResponsibleLaunchConstraint.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                    "INFOPLIST_FILE": "Tool.plist",
-                    "INFOPLIST_PREPROCESS": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                        "INFOPLIST_FILE": "Tool.plist",
+                        "INFOPLIST_PREPROCESS": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -1082,8 +1171,9 @@ fileprivate struct CodeSignTaskConstructionTests: CoreBasedTests {
                     type: .commandLineTool,
                     buildConfigurations: [TestBuildConfiguration("Release")],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m"])]
-                ),
-            ])
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 

@@ -25,48 +25,53 @@ package struct ProjectPlanner {
     }
 
     package func describeArchivableProducts(input: [SchemeInput]) -> [ProductTupleDescription] {
-        return Array(Set(input.flatMap { scheme in
-            return [scheme.analyze, scheme.archive, scheme.profile, scheme.run, scheme.test].flatMap { (input: ActionInput) -> [ProductTupleDescription] in
-                let parameters = BuildParameters(action: input)
-                return input.targetIdentifiers.flatMap { (targetIdentifier: String) -> [ProductTupleDescription] in
-                    guard let target = workspaceContext.workspace.target(for: targetIdentifier) else { return [] }
-                    let settings = buildRequestContext.getCachedSettings(parameters, target: target)
-                    return settings.globalScope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS).compactMap { supportedPlatform in
-                        guard let platform = workspaceContext.core.platformRegistry.lookup(name: supportedPlatform) else { return nil }
-                        let settings = buildRequestContext.getCachedSettings(BuildParameters(action: input, platform: platform), target: target)
-                        let productName = settings.globalScope.evaluate(BuiltinMacros.PRODUCT_NAME)
-                        let team = settings.globalScope.evaluate(BuiltinMacros.DEVELOPMENT_TEAM).nilIfEmpty
-                        return ProductTupleDescription(
-                            displayName: productName,
-                            productName: productName,
-                            productType: {
-                                switch settings.globalScope.evaluate(BuiltinMacros.PRODUCT_TYPE) {
-                                case "com.apple.product-type.application", "com.apple.product-type.application.watchapp2", "com.apple.product-type.application.on-demand-install-capable":
-                                    return .app
-                                case "com.apple.product-type.tool":
-                                    return .tool
-                                case "com.apple.product-type.framework", "com.apple.product-type.framework.static", "com.apple.product-type.library.dynamic", "com.apple.product-type.library.static":
-                                    return .library
-                                case "com.apple.product-type.watchkit2-extension":
-                                    return .appex
-                                case "com.apple.product-type.bundle.unit-test",
-                                    "com.apple.product-type.bundle.ui-testing",
-                                    "com.apple.product-type.bundle.multi-device-ui-testing":
-                                    return .tests
-                                default:
-                                    return .none
-                                }
-                            }(),
-                            identifier: target.guid,
-                            team: team,
-                            bundleIdentifier: settings.globalScope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER).nilIfEmpty,
-                            destination: DestinationInfo(platformName: settings.globalScope.evaluate(BuiltinMacros.PLATFORM_DISPLAY_NAME), isSimulator: settings.globalScope.evaluate(BuiltinMacros.PLATFORM_NAME).hasSuffix("simulator")),
-                            containingSchemes: [scheme.name],
-                            iconPath: nil)
+        return Array(
+            Set(
+                input.flatMap { scheme in
+                    return [scheme.analyze, scheme.archive, scheme.profile, scheme.run, scheme.test].flatMap { (input: ActionInput) -> [ProductTupleDescription] in
+                        let parameters = BuildParameters(action: input)
+                        return input.targetIdentifiers.flatMap { (targetIdentifier: String) -> [ProductTupleDescription] in
+                            guard let target = workspaceContext.workspace.target(for: targetIdentifier) else { return [] }
+                            let settings = buildRequestContext.getCachedSettings(parameters, target: target)
+                            return settings.globalScope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS).compactMap { supportedPlatform in
+                                guard let platform = workspaceContext.core.platformRegistry.lookup(name: supportedPlatform) else { return nil }
+                                let settings = buildRequestContext.getCachedSettings(BuildParameters(action: input, platform: platform), target: target)
+                                let productName = settings.globalScope.evaluate(BuiltinMacros.PRODUCT_NAME)
+                                let team = settings.globalScope.evaluate(BuiltinMacros.DEVELOPMENT_TEAM).nilIfEmpty
+                                return ProductTupleDescription(
+                                    displayName: productName,
+                                    productName: productName,
+                                    productType: {
+                                        switch settings.globalScope.evaluate(BuiltinMacros.PRODUCT_TYPE) {
+                                        case "com.apple.product-type.application", "com.apple.product-type.application.watchapp2", "com.apple.product-type.application.on-demand-install-capable":
+                                            return .app
+                                        case "com.apple.product-type.tool":
+                                            return .tool
+                                        case "com.apple.product-type.framework", "com.apple.product-type.framework.static", "com.apple.product-type.library.dynamic", "com.apple.product-type.library.static":
+                                            return .library
+                                        case "com.apple.product-type.watchkit2-extension":
+                                            return .appex
+                                        case "com.apple.product-type.bundle.unit-test",
+                                            "com.apple.product-type.bundle.ui-testing",
+                                            "com.apple.product-type.bundle.multi-device-ui-testing":
+                                            return .tests
+                                        default:
+                                            return .none
+                                        }
+                                    }(),
+                                    identifier: target.guid,
+                                    team: team,
+                                    bundleIdentifier: settings.globalScope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER).nilIfEmpty,
+                                    destination: DestinationInfo(platformName: settings.globalScope.evaluate(BuiltinMacros.PLATFORM_DISPLAY_NAME), isSimulator: settings.globalScope.evaluate(BuiltinMacros.PLATFORM_NAME).hasSuffix("simulator")),
+                                    containingSchemes: [scheme.name],
+                                    iconPath: nil
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        }))
+            )
+        )
     }
 
     // TODO: This is a stub for testing, real implementation will be done in rdar://problem/56446029
@@ -83,11 +88,13 @@ package struct ProjectPlanner {
     // TODO: This is a stub for testing, real implementation will be done in rdar://problem/56446029
     package func describeSchemes(input: [SchemeInput]) -> [SchemeDescription] {
         return input.map { scheme in
-            let actions = ActionsInfo(analyze: actionInfo(scheme.analyze),
-                        archive: actionInfo(scheme.archive),
-                        profile: actionInfo(scheme.profile),
-                        run: actionInfo(scheme.run),
-                        test: actionInfo(scheme.test))
+            let actions = ActionsInfo(
+                analyze: actionInfo(scheme.analyze),
+                archive: actionInfo(scheme.archive),
+                profile: actionInfo(scheme.profile),
+                run: actionInfo(scheme.run),
+                test: actionInfo(scheme.test)
+            )
             return SchemeDescription(name: scheme.name, disambiguatedName: scheme.name, isShared: scheme.isShared, isAutogenerated: scheme.isAutogenerated, actions: actions)
         }
     }

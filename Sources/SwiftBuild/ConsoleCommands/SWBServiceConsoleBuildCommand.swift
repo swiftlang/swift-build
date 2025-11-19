@@ -520,15 +520,17 @@ private final class PlanningOperationDelegate: SWBPlanningOperationDelegate, Sen
     public func provisioningTaskInputs(targetGUID: String, provisioningSourceData: SWBProvisioningTaskInputsSourceData) async -> SWBProvisioningTaskInputs {
         let identity = provisioningSourceData.signingCertificateIdentifier
         if identity == "-" {
-            let signedEntitlements = provisioningSourceData.entitlementsDestination == "Signature"
-            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-            : [:]
+            let signedEntitlements =
+                provisioningSourceData.entitlementsDestination == "Signature"
+                ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+                : [:]
 
-            let simulatedEntitlements = provisioningSourceData.entitlementsDestination == "__entitlements"
-            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-            : [:]
+            let simulatedEntitlements =
+                provisioningSourceData.entitlementsDestination == "__entitlements"
+                ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+                : [:]
 
-            return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new  in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: nil, keychainPath: nil, errors: [], warnings: [])
+            return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: nil, keychainPath: nil, errors: [], warnings: [])
         } else if identity.isEmpty {
             return SWBProvisioningTaskInputs()
         } else {
@@ -536,18 +538,20 @@ private final class PlanningOperationDelegate: SWBPlanningOperationDelegate, Sen
         }
     }
 
-    public func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> SWBExternalToolResult {
+    public func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> SWBExternalToolResult {
         .deferred
     }
 }
 
 func registerBuildCommands() {
-    for commandClass in ([
-        SWBServiceConsoleBuildCommand.self,
-        SWBServiceConsolePrepareForIndexCommand.self,
-        SWBServiceConsoleCreateBuildDescriptionCommand.self,
-        SWBServiceConsoleDependencyInfoCommand.self,
-    ] as [any SWBServiceConsoleCommand.Type]) { SWBServiceConsoleCommandRegistry.registerCommandClass(commandClass) }
+    for commandClass
+        in ([
+            SWBServiceConsoleBuildCommand.self,
+            SWBServiceConsolePrepareForIndexCommand.self,
+            SWBServiceConsoleCreateBuildDescriptionCommand.self,
+            SWBServiceConsoleDependencyInfoCommand.self,
+        ] as [any SWBServiceConsoleCommand.Type])
+    { SWBServiceConsoleCommandRegistry.registerCommandClass(commandClass) }
 }
 
 extension SwiftBuildMessage.BuildCompletedInfo.Result {
@@ -578,7 +582,8 @@ extension SWBBuildRequest {
             indexRegularBuildIntermediatesPath: nil,
             indexPCHPath: derivedDataPath.str,
             indexDataStoreFolderPath: derivedDataPath.str,
-            indexEnableDataStore: parameters.arenaInfo?.indexEnableDataStore ?? false)
+            indexEnableDataStore: parameters.arenaInfo?.indexEnableDataStore ?? false
+        )
 
         parameters.arenaInfo = arenaInfo
         configuredTargets = configuredTargets.map { configuredTarget in

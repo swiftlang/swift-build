@@ -18,7 +18,7 @@ import SWBBuildSystem
 
 /// Errors that might be thrown while generating localization info from a build description.
 enum LocalizationInfoErrors: Error {
-    case noBuildDescriptionID // The client didn't set buildDescriptionID
+    case noBuildDescriptionID  // The client didn't set buildDescriptionID
     case noBuildDescription
 }
 
@@ -92,17 +92,18 @@ extension BuildDescription {
             guard let targetGUID = task.forTarget?.target.guid else {
                 // This task is not associated with a target at all.
                 // Ignore for now.
-                return // equivalent to `continue` since we're in a closure-based loop.
+                return  // equivalent to `continue` since we're in a closure-based loop.
             }
 
             let taskLocalizationOutputs = task.generateLocalizationInfo(input: input)
 
             guard !taskLocalizationOutputs.isEmpty else {
-                return // continue
+                return  // continue
             }
 
             let taskXCStringsPaths = Set(taskLocalizationOutputs.flatMap(\.compilableXCStringsPaths))
-            let taskStringsdataPaths: [LocalizationBuildPortion: Set<Path>] = taskLocalizationOutputs
+            let taskStringsdataPaths: [LocalizationBuildPortion: Set<Path>] =
+                taskLocalizationOutputs
                 .map(\.producedStringsdataPaths)
                 .reduce([:], { aggregate, partial in aggregate.merging(partial, uniquingKeysWith: +) })
                 .mapValues { Set($0) }
@@ -119,7 +120,8 @@ extension BuildDescription {
                 outputsByTarget[targetGUID]?.effectivePlatformName = effectivePlatformName
             }
 
-            let taskGeneratedSymbolFiles = taskLocalizationOutputs
+            let taskGeneratedSymbolFiles =
+                taskLocalizationOutputs
                 .map(\.generatedSymbolFilesByXCStringsPath)
                 .reduce([:], { aggregate, partial in aggregate.merging(partial, uniquingKeysWith: +) })
                 .mapValues { Set($0) }

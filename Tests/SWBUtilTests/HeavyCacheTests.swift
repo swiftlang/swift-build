@@ -76,7 +76,7 @@ fileprivate struct HeavyCacheTests {
         do {
             let max = 4
             await withHeavyCache(maximumSize: max) { cache in
-                for i in 0 ..< 100 {
+                for i in 0..<100 {
                     if i < 50 {
                         _ = cache.getOrInsert(i) { i }
                     } else {
@@ -91,7 +91,7 @@ fileprivate struct HeavyCacheTests {
         // Check max set after the fact.
         do {
             await withHeavyCache { cache in
-                for i in 0 ..< 100 {
+                for i in 0..<100 {
                     if i < 50 {
                         _ = cache.getOrInsert(i) { i }
                     } else {
@@ -111,7 +111,7 @@ fileprivate struct HeavyCacheTests {
         let fudgeFactor = 10.0
         let ttl = Duration.seconds(0.01)
         try await withHeavyCache(timeToLive: ttl) { cache in
-            for i in 0 ..< 100 {
+            for i in 0..<100 {
                 if i < 50 {
                     _ = cache.getOrInsert(i) { i }
                 } else {
@@ -130,7 +130,7 @@ fileprivate struct HeavyCacheTests {
         let fudgeFactor = 10.0
         let ttl = Duration.seconds(0.01)
         try await withHeavyCache { cache in
-            for i in 0 ..< 100 {
+            for i in 0..<100 {
                 _ = cache.getOrInsert(i) { i }
             }
             #expect(cache.count == 100, "Expected cache to contain all 100 items that were inserted")
@@ -173,7 +173,7 @@ fileprivate struct HeavyCacheTests {
         try await withHeavyCache(maximumSize: 3) { cache in
             cache[0] = 0
             cache[1] = 1
-            for i in 2 ..< 100 {
+            for i in 2..<100 {
                 try await Task.sleep(for: .microseconds(1))
                 cache[i] = i
                 _ = cache[0]

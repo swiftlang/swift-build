@@ -17,16 +17,20 @@ import Synchronization
 ///
 /// This class *is* thread-safe (macros may be declared and looked up concurrently).
 public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Sendable {
-    static let parsedStrings = Statistic("MacroNamespace.parsedStrings",
-        "The number of strings which were parsed into macro expressions.")
-    static let parsedLists = Statistic("MacroNamespace.parsedLists",
-        "The number of lists which were parsed into macro expression.")
+    static let parsedStrings = Statistic(
+        "MacroNamespace.parsedStrings",
+        "The number of strings which were parsed into macro expressions."
+    )
+    static let parsedLists = Statistic(
+        "MacroNamespace.parsedLists",
+        "The number of lists which were parsed into macro expression."
+    )
 
     /// Parent namespace.  All declarations in the parent namespace are visible to this namespace, and the same rules regarding type conflicts apply.
     let parentNamespace: MacroNamespace?
 
     /// Maps macro names to declarations.  Each declaration is of one of the concrete subclasses of MacroDeclaration, based on its type.
-    private let macroRegistry = LockedValue<Dictionary<String,MacroDeclaration>>([:])
+    private let macroRegistry = LockedValue<Dictionary<String, MacroDeclaration>>([:])
 
     private enum CodingKeys: String, CodingKey {
         case parentNamespace
@@ -135,7 +139,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     }
 
     /// Maps condition parameter names to condition parameters.  Each declaration is an instance of MacroConditionParameter.
-    private let conditionParameters = LockedValue<Dictionary<String,MacroConditionParameter>>([:])
+    private let conditionParameters = LockedValue<Dictionary<String, MacroConditionParameter>>([:])
 
     /// Looks up and returns the macro condition parameter that's associated with ‘name’, if any.  The name is not allowed to be the empty string.
     public func lookupConditionParameter(_ name: String) -> MacroConditionParameter? {
@@ -216,8 +220,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
             // Emit an instruction to replace the subresult buffer at the top of the buffer stack with the result of applying a ‘retrieval’ operator to it.
             if let op = MacroEvaluationProgram.MacroEvaluationRetrievalOperator(String(operatorName)!) {
                 programBuilder.emit(.applyRetrievalOperator(op))
-            }
-            else {
+            } else {
                 // The operator was unrecognized, so emit an error.
                 handleDiagnostic(MacroExpressionDiagnostic(string: parser.string, range: parser.currIdx..<parser.currIdx, kind: .unknownRetrievalOperator, level: .error), parser: parser)
             }
@@ -230,15 +233,14 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
             // Emit an instruction to pop the current subresult buffer from the top of the buffer stack, using it as the operand for the replacement, and to then replace the subresult buffer at the top of the buffer stack with the result of applying a ‘replacement’ operator to it.
             if let op = MacroEvaluationProgram.MacroEvaluationReplacementOperator(String(operatorName)!) {
                 programBuilder.emit(.applyReplacementOperator(op))
-            }
-            else {
+            } else {
                 // The operator was unrecognized, so emit an error.
                 handleDiagnostic(MacroExpressionDiagnostic(string: parser.string, range: parser.currIdx..<parser.currIdx, kind: .unknownReplacementOperator, level: .error), parser: parser)
             }
         }
         func foundEndOfSubstitutionSubexpression(alwaysEvalAsString: Bool, parser: MacroExpressionParser) {
             // If this substitution subexpression is one in which we should always evaluate a string, we decrement the “evaluate-as-string nesting level” to balance its increment in `foundStartOfSubstitutionSubexpression()`.
-             if alwaysEvalAsString { alwaysEvalAsStringNestingLevel -= 1 }
+            if alwaysEvalAsString { alwaysEvalAsStringNestingLevel -= 1 }
 
             // Emit and instruction to pop the current subresult buffer from the top of the buffer stack and append it to the next subresult buffer on the stack.
             programBuilder.emit(.mergeSubresult)
@@ -263,12 +265,12 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
         return _parseLiteralString(string, allowSubstitutionPrefix: allowSubstitutionPrefix)
     }
     private func _parseLiteralString(_ string: String, allowSubstitutionPrefix: Bool) -> MacroStringExpression {
-#if DEBUG
-        // We make it an error in debug builds to try and parse '$(' as a literal unless we've explicitly specified it's ok. Otherwise, it is almost certainly (but not necessarily) a programmatic error if it ever does.
-        if !allowSubstitutionPrefix, string.contains("$(") {
-            fatalError("pushing literal string containing a possible macro reference: \(string)')")
-        }
-#endif
+        #if DEBUG
+            // We make it an error in debug builds to try and parse '$(' as a literal unless we've explicitly specified it's ok. Otherwise, it is almost certainly (but not necessarily) a programmatic error if it ever does.
+            if !allowSubstitutionPrefix, string.contains("$(") {
+                fatalError("pushing literal string containing a possible macro reference: \(string)')")
+            }
+        #endif
 
         let emitter = MacroEvaluationProgramBuilder()
         emitter.emit(MacroEvaluationProgram.EvalInstr.appendLiteral(string))
@@ -277,14 +279,14 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
 
     /// "Parses" `strings` as a list of literal strings.
     public func parseLiteralStringList(_ strings: [String]) -> MacroStringListExpression {
-#if DEBUG
-        for string in strings {
-            // We make it an error in debug builds to try and parse '$(' as a literal. This never comes up in our test suite, and it is almost certainly (but not necessarily) a programmatic error when if it ever does.
-            if string.contains("$(") {
-                fatalError("pushing literal string containing a possible macro reference: \(string)')")
+        #if DEBUG
+            for string in strings {
+                // We make it an error in debug builds to try and parse '$(' as a literal. This never comes up in our test suite, and it is almost certainly (but not necessarily) a programmatic error when if it ever does.
+                if string.contains("$(") {
+                    fatalError("pushing literal string containing a possible macro reference: \(string)')")
+                }
             }
-        }
-#endif
+        #endif
 
         let emitter = MacroEvaluationProgramBuilder()
         var needsListSeparator = false
@@ -378,7 +380,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
                     return nil
                 }
             }
-            return parseForMacro(macro, value:strings, diagnosticsHandler: diagnosticsHandler)
+            return parseForMacro(macro, value: strings, diagnosticsHandler: diagnosticsHandler)
 
         default:
             return nil
@@ -404,14 +406,14 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
                 // if this setting key is matched by any `associatedTypesForKeysMatching`, use the associatedType provided
                 if let associatedType = associatedTypesForKeysMatching?.first(where: { key.contains($0.key) })?.value {
                     switch associatedType {
-                        case .boolean: return lookupOrDeclareMacro(BooleanMacroDeclaration.self, macroName)
-                        case .string: return lookupOrDeclareMacro(StringMacroDeclaration.self, macroName)
-                        case .stringList: return lookupOrDeclareMacro(StringListMacroDeclaration.self, macroName)
-                        case .userDefined: return lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, macroName)
-                        case .path: return lookupOrDeclareMacro(PathMacroDeclaration.self, macroName)
-                        case .pathList: return lookupOrDeclareMacro(PathListMacroDeclaration.self, macroName)
+                    case .boolean: return lookupOrDeclareMacro(BooleanMacroDeclaration.self, macroName)
+                    case .string: return lookupOrDeclareMacro(StringMacroDeclaration.self, macroName)
+                    case .stringList: return lookupOrDeclareMacro(StringListMacroDeclaration.self, macroName)
+                    case .userDefined: return lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, macroName)
+                    case .path: return lookupOrDeclareMacro(PathMacroDeclaration.self, macroName)
+                    case .pathList: return lookupOrDeclareMacro(PathListMacroDeclaration.self, macroName)
                     }
-                // If this is a user defined table, unknown settings should be treated as user defined.
+                    // If this is a user defined table, unknown settings should be treated as user defined.
                 } else if allowUserDefined {
                     return lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, macroName)
                 } else {
@@ -427,13 +429,11 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
             if let parsedMacroName = parsedName {
                 macroName = parsedMacroName
                 if let conditions = parsedConditions {
-                    conditionSet = MacroConditionSet(conditions: conditions.map{ MacroCondition(parameter: declareConditionParameter($0.0), valuePattern: $0.1) })
-                }
-                else {
+                    conditionSet = MacroConditionSet(conditions: conditions.map { MacroCondition(parameter: declareConditionParameter($0.0), valuePattern: $0.1) })
+                } else {
                     conditionSet = nil
                 }
-            }
-            else {
+            } else {
                 // If we can't parse a name and condition, then use the original key as the name.  c.f. <rdar://problem/29271127>
                 macroName = key
                 conditionSet = nil
@@ -458,7 +458,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     /// This just takes a `[String: String]` dictionary and marshals the values as `PropertyListItem.string` values, then calls `parseTable([String: PropertyListItem], ...)` to parse the resulting table.
     public func parseTable(_ settings: [String: String], allowUserDefined: Bool, associatedTypesForKeysMatching: [String: MacroType]? = nil, diagnosticsHandler: ((MacroExpressionDiagnostic) -> Void)? = nil) throws -> MacroValueAssignmentTable {
         var settingsCopy = [String: PropertyListItem]()
-        for (key,value) in settings {
+        for (key, value) in settings {
             settingsCopy[key] = .plString(value)
         }
         return try self.parseTable(settingsCopy, allowUserDefined: allowUserDefined, associatedTypesForKeysMatching: associatedTypesForKeysMatching, diagnosticsHandler: diagnosticsHandler)
@@ -531,7 +531,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
 
     /// The table to use for parsed string expression interning, if installed.
     static var stringExpressionInterningTable: Registry<String, MacroStringExpression>? {
-        return interningState.withLock{ $0._stringExpressionInterningTable }
+        return interningState.withLock { $0._stringExpressionInterningTable }
     }
 }
 

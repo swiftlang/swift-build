@@ -48,8 +48,8 @@ extension ByteString {
     @Test
     func asString() {
         #expect(ByteString("hello").stringValue == "hello")
-        #expect(ByteString([0xFF,0xFF]).unsafeStringValue == "\u{FFFD}\u{FFFD}")
-        #expect(ByteString([0xFF,0xFF]).stringValue == nil)
+        #expect(ByteString([0xFF, 0xFF]).unsafeStringValue == "\u{FFFD}\u{FFFD}")
+        #expect(ByteString([0xFF, 0xFF]).stringValue == nil)
     }
 
     @Test
@@ -65,7 +65,7 @@ extension ByteString {
         #expect(!s.contains(ByteString([3])))
 
         // Insert a long string which tests overflow in the hash function.
-        let long = ByteString([UInt8](0 ..< 100))
+        let long = ByteString([UInt8](0..<100))
         #expect(!s.contains(long))
         s.insert(long)
         #expect(s.contains(long))
@@ -90,7 +90,7 @@ extension ByteString {
         #expect(!s.hasPrefix("bar"))
         #expect(s.hasPrefix("foobar"))
         #expect(!s.hasPrefix("foobars"))
-        #expect(s.hasPrefix("")) // same behavior as String.hasPrefix
+        #expect(s.hasPrefix(""))  // same behavior as String.hasPrefix
         #expect(!s.hasPrefix("what"))
 
         let string: String = "foobar"
@@ -104,7 +104,7 @@ extension ByteString {
         #expect(!s.hasSuffix("foo"))
         #expect(s.hasSuffix("foobar"))
         #expect(!s.hasSuffix("afoobar"))
-        #expect(s.hasSuffix("")) // same behavior as String.hasSuffix
+        #expect(s.hasSuffix(""))  // same behavior as String.hasSuffix
         #expect(!s.hasSuffix("what"))
 
         let string: String = "foobar"

@@ -20,7 +20,7 @@ package import SWBProtocol
 package import Testing
 
 #if os(Windows)
-import WinSDK
+    import WinSDK
 #endif
 
 package extension Sequence where Element: Equatable {
@@ -182,16 +182,16 @@ package func XCTAssertEqualPropertyListItems(_ expression1: @autoclosure () thro
 extension ProcessInfo {
     package var isRunningInVirtualMachine: Bool {
         #if canImport(Darwin)
-        let machdep_cpu_features = "machdep.cpu.features"
-        var len: Int = 0
-        if sysctlbyname(machdep_cpu_features, nil, &len, nil, 0) == 0 {
-            var p = [CChar](repeating: 0, count: len)
-            if sysctlbyname(machdep_cpu_features, &p, &len, nil, 0) == 0 {
-                if let features = p.withUnsafeBufferPointer({ $0.baseAddress.map({ String(cString: $0) }) })?.split(separator: " ") {
-                    return features.contains("VMM")
+            let machdep_cpu_features = "machdep.cpu.features"
+            var len: Int = 0
+            if sysctlbyname(machdep_cpu_features, nil, &len, nil, 0) == 0 {
+                var p = [CChar](repeating: 0, count: len)
+                if sysctlbyname(machdep_cpu_features, &p, &len, nil, 0) == 0 {
+                    if let features = p.withUnsafeBufferPointer({ $0.baseAddress.map({ String(cString: $0) }) })?.split(separator: " ") {
+                        return features.contains("VMM")
+                    }
                 }
             }
-        }
         #endif
         return false
     }
@@ -199,19 +199,19 @@ extension ProcessInfo {
     // Get memory usage of current process in bytes
     package var memoryUsage: UInt64 {
         #if canImport(Darwin)
-        var info = task_vm_info_data_t()
-        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info>.size) / 4
-        let result: kern_return_t = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            var info = task_vm_info_data_t()
+            var count = mach_msg_type_number_t(MemoryLayout<task_vm_info>.size) / 4
+            let result: kern_return_t = withUnsafeMutablePointer(to: &info) {
+                $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                    task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+                }
             }
-        }
-        if result == KERN_SUCCESS {
-            return info.phys_footprint // memory in bytes
-        }
-        return 0
+            if result == KERN_SUCCESS {
+                return info.phys_footprint  // memory in bytes
+            }
+            return 0
         #else
-        return 0 // for non-macOS platforms
+            return 0  // for non-macOS platforms
         #endif
     }
 }
@@ -257,7 +257,7 @@ extension ArenaInfo {
 
     package static func indexBuildArena(derivedDataRoot path: Path) -> ArenaInfo {
         let buildRoot = path.join("Build")
-        let indexBuildRoot =  path.join("Index.noindex/Build")
+        let indexBuildRoot = path.join("Index.noindex/Build")
         return ArenaInfo(
             derivedDataPath: path,
             buildProductsPath: indexBuildRoot.join("Products"),

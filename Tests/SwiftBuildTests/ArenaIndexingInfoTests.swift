@@ -28,34 +28,41 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let macApp = TestStandardTarget(
                     "macApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c",]),
+                        TestSourcesBuildPhase(["main.c"]),
                         TestFrameworksBuildPhase(["FwkTarget.framework"]),
-                    ])
+                    ]
+                )
 
                 let fwkTarget_mac = TestStandardTarget(
                     "FwkTarget_mac",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "PRODUCT_NAME": "FwkTarget",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "PRODUCT_NAME": "FwkTarget",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c",]),
+                        TestSourcesBuildPhase(["main.c"])
                     ]
                 )
 
@@ -63,37 +70,48 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                     "FwkTarget_ios",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "PRODUCT_NAME": "FwkTarget",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "PRODUCT_NAME": "FwkTarget",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c",]),
+                        TestSourcesBuildPhase(["main.c"])
                     ]
                 )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "SomeFiles",
-                            children: [
-                                TestFile("main.c"),
-                            ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                ])],
-                        targets: [
-                            macApp,
-                            fwkTarget_mac,
-                            fwkTarget_ios,
-                        ])
-                ])
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "SomeFiles",
+                                children: [
+                                    TestFile("main.c")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                macApp,
+                                fwkTarget_mac,
+                                fwkTarget_ios,
+                            ]
+                        )
+                    ]
+                )
 
                 let infoProducer = try await IndexInfoProducer(testWorkspace, testSession: testSession)
                 do {
@@ -150,34 +168,41 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let macApp = TestStandardTarget(
                     "macApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c",]),
+                        TestSourcesBuildPhase(["main.c"]),
                         TestFrameworksBuildPhase(["FwkTarget.framework"]),
-                    ])
+                    ]
+                )
 
                 let fwkTarget_mac = TestStandardTarget(
                     "FwkTarget_mac",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "PRODUCT_NAME": "FwkTarget",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "PRODUCT_NAME": "FwkTarget",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c",]),
+                        TestSourcesBuildPhase(["main.c"])
                     ]
                 )
 
@@ -185,37 +210,48 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                     "FwkTarget_ios",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "PRODUCT_NAME": "FwkTarget",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "PRODUCT_NAME": "FwkTarget",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c",]),
+                        TestSourcesBuildPhase(["main.c"])
                     ]
                 )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "SomeFiles",
-                            children: [
-                                TestFile("main.c"),
-                            ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                ])],
-                        targets: [
-                            macApp,
-                            fwkTarget_mac,
-                            fwkTarget_ios,
-                        ])
-                ])
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "SomeFiles",
+                                children: [
+                                    TestFile("main.c")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                macApp,
+                                fwkTarget_mac,
+                                fwkTarget_ios,
+                            ]
+                        )
+                    ]
+                )
 
                 let infoProducer = try await IndexInfoProducer(testWorkspace, testSession: testSession, targets: [macApp])
                 let buildDescInfo = try await infoProducer.generateBuildDescriptionTargetInfo(.macOS)
@@ -232,40 +268,51 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let appTarget1 = TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "iphoneos",
-                                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
-                                               ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"])
-                    ])
-                let testWorkspace1 = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "SomeFiles",
-                            children: [ TestFile("main.c") ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                ])],
-                        targets: [
-                            appTarget1,
-                        ])
-                ])
+                    ]
+                )
+                let testWorkspace1 = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "SomeFiles",
+                                children: [TestFile("main.c")]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                appTarget1
+                            ]
+                        )
+                    ]
+                )
 
                 let SRCROOT = testWorkspace1.sourceRoot.join("aProject")
                 try await localFS.writeFileContents(SRCROOT.join("main.c")) { contents in
@@ -308,24 +355,33 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c", "second.c"])
-                    ])
-                let testWorkspace2 = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "SomeFiles",
-                            children: [ TestFile("main.c"), TestFile("second.c") ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                ])],
-                        targets: [
-                            appTarget2,
-                        ])
-                ])
+                    ]
+                )
+                let testWorkspace2 = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "SomeFiles",
+                                children: [TestFile("main.c"), TestFile("second.c")]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                appTarget2
+                            ]
+                        )
+                    ]
+                )
 
                 try await localFS.writeFileContents(SRCROOT.join("second.c")) { contents in
                     contents <<< ""
@@ -369,8 +425,8 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let appTarget = TestStandardTarget(
@@ -380,27 +436,36 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                         TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([ "main.swift" ])
-                    ])
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]
+                )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "SomeFiles",
-                            children: [ TestFile("main.swift") ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                    "SWIFT_INCLUDE_PATHS": "/tmp/some-dir",
-                                ])],
-                        targets: [
-                            appTarget,
-                        ])
-                ])
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "SomeFiles",
+                                children: [TestFile("main.swift")]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                        "SWIFT_INCLUDE_PATHS": "/tmp/some-dir",
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                appTarget
+                            ]
+                        )
+                    ]
+                )
 
                 let infoProducer = try await IndexInfoProducer(testWorkspace, testSession: testSession)
                 let info = try await IndexingInfoResults(infoProducer.generateIndexingInfo(appTarget, .macOS))
@@ -421,8 +486,8 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let appTarget = TestStandardTarget(
@@ -435,30 +500,39 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "f1.swift",
-                            "f2.m"
+                            "f2.m",
                         ])
-                    ])
+                    ]
+                )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "SomeFiles",
-                            children: [
-                                TestFile("f1.swift"),
-                                TestFile("f2.m"),
-                            ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "COMPILER_INDEX_STORE_ENABLE": "YES",
-                                ])],
-                        targets: [
-                            appTarget,
-                        ])
-                ])
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "SomeFiles",
+                                children: [
+                                    TestFile("f1.swift"),
+                                    TestFile("f2.m"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "COMPILER_INDEX_STORE_ENABLE": "YES",
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                appTarget
+                            ]
+                        )
+                    ]
+                )
 
                 let projectDir = tmpDir.join("aProject")
                 let infoProducer = try await IndexInfoProducer(testWorkspace, testSession: testSession)
@@ -485,12 +559,14 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let target = TestStandardTarget(
-                    "Foo", guid: "Foo", type: .staticLibrary,
+                    "Foo",
+                    guid: "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -505,29 +581,36 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                             "foo.m",
                             "bar.swift",
                         ])
-                    ])
+                    ]
+                )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "Files",
-                            children: [
-                                TestFile("foo.m"),
-                                TestFile("bar.swift"),
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Files",
+                                children: [
+                                    TestFile("foo.m"),
+                                    TestFile("bar.swift"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                target
                             ]
-                        ),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
-                        ],
-                        targets: [
-                            target
-                        ])
-                ])
+                        )
+                    ]
+                )
 
                 let projectDir = tmpDir.join("aProject")
                 let infoProducer = try await IndexInfoProducer(testWorkspace, testSession: testSession)
@@ -564,62 +647,76 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let precompiledPCHTarget = TestStandardTarget(
-                    "Foo", guid: "Foo", type: .staticLibrary,
+                    "Foo",
+                    guid: "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
                                 "GCC_PREFIX_HEADER": "prefix.h",
-                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES"
-                            ])
+                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "foo.c",
+                            "foo.c"
                         ])
-                    ])
+                    ]
+                )
 
                 let regularTarget = TestStandardTarget(
-                    "Bar", guid: "Bar", type: .staticLibrary,
+                    "Bar",
+                    guid: "Bar",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
                                 "GCC_PREFIX_HEADER": "prefix.h"
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "foo.c",
+                            "foo.c"
                         ])
-                    ])
+                    ]
+                )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "Files",
-                            children: [
-                                TestFile("foo.c"),
-                                TestFile("prefix.h"),
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Files",
+                                children: [
+                                    TestFile("foo.c"),
+                                    TestFile("prefix.h"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                precompiledPCHTarget, regularTarget,
                             ]
-                        ),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
-                        ],
-                        targets: [
-                            precompiledPCHTarget, regularTarget
-                        ])
-                ])
+                        )
+                    ]
+                )
 
                 let projectDir = tmpDir.join("aProject")
                 let infoProducer = try await IndexInfoProducer(testWorkspace, testSession: testSession)
@@ -658,42 +755,52 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let quotedTarget = TestStandardTarget(
                     "quotedTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GCC_PREPROCESSOR_DEFINITIONS": #"SOME_DEFINE=\"Some:\ Super\ \\\ Name\'s\""#,
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GCC_PREPROCESSOR_DEFINITIONS": #"SOME_DEFINE=\"Some:\ Super\ \\\ Name\'s\""#
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c"]),
-                    ])
+                        TestSourcesBuildPhase(["main.c"])
+                    ]
+                )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "Files",
-                            children: [
-                                TestFile("main.c"),
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Files",
+                                children: [
+                                    TestFile("main.c")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                quotedTarget
                             ]
-                        ),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
-                        ],
-                        targets: [
-                            quotedTarget,
-                        ])
-                ])
+                        )
+                    ]
+                )
 
                 let projectDir = tmpDir.join("aProject")
                 let infoProducer = try await IndexInfoProducer(testWorkspace, testSession: testSession)
@@ -714,37 +821,44 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let target = TestStandardTarget(
                     "quotedTarget",
                     type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c"]),
-                    ])
+                        TestSourcesBuildPhase(["main.c"])
+                    ]
+                )
 
-                let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "Files",
-                            children: [
-                                TestFile("main.c"),
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Files",
+                                children: [
+                                    TestFile("main.c")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                target
                             ]
-                        ),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
-                        ],
-                        targets: [
-                            target
-                        ])
-                ])
+                        )
+                    ]
+                )
 
                 let projectDir = tmpDir.join("aProject")
 
@@ -796,38 +910,45 @@ struct ArenaIndexingInfoTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let target = TestStandardTarget(
                     "quotedTarget",
                     type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.swift"]),
-                    ])
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]
+                )
 
-                let testWorkspace = try await TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "aProject",
-                        groupTree: TestGroup(
-                            "Files",
-                            children: [
-                                TestFile("main.swift"),
+                let testWorkspace = try await TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Files",
+                                children: [
+                                    TestFile("main.swift")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SWIFT_VERSION": swiftVersion,
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                target
                             ]
-                        ),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "SWIFT_VERSION": swiftVersion
-                                ])
-                        ],
-                        targets: [
-                            target
-                        ])
-                ])
+                        )
+                    ]
+                )
 
                 let projectDir = tmpDir.join("aProject")
 
@@ -877,9 +998,9 @@ func createIndexBuildDescription(_ workspace: TestWorkspace, session: TestSWBSes
     let buildParameters = SWBBuildParameters(action: "indexbuild", configuration: "Debug", overrides: ["ONLY_ACTIVE_ARCH": "YES"])
     var request = SWBBuildRequest()
     if let targets {
-        request.configuredTargets = targets.map{ SWBConfiguredTarget(guid: $0.guid, parameters: buildParameters) }
+        request.configuredTargets = targets.map { SWBConfiguredTarget(guid: $0.guid, parameters: buildParameters) }
     } else {
-        request.configuredTargets = workspace.projects.flatMap{ $0.targets.map{ SWBConfiguredTarget(guid: $0.guid, parameters: buildParameters) } }
+        request.configuredTargets = workspace.projects.flatMap { $0.targets.map { SWBConfiguredTarget(guid: $0.guid, parameters: buildParameters) } }
     }
     request.buildCommand = .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: true)
     request.parameters = buildParameters

@@ -120,13 +120,16 @@ package final class ConditionTraitContext: CoreBasedTests, Sendable {
 extension Trait where Self == Testing.ConditionTrait {
     /// Skips a test case that requires one or more SDKs if they are not all available.
     package static func requireSDKs(_ knownSDKs: KnownSDK..., comment: Comment? = nil) -> Self {
-        enabled(comment != nil ? "required SDKs are not installed: \(comment?.description ?? "")" : "required SDKs are not installed.", {
-            let sdkRegistry = try await ConditionTraitContext.shared.getCore().sdkRegistry
-            let missingSDKs = await knownSDKs.asyncFilter { knownSDK in
-                sdkRegistry.lookup(knownSDK.sdkName) == nil && sdkRegistry.allSDKs.count(where: { $0.aliases.contains(knownSDK.sdkName) }) == 0
-            }.sorted()
-            return missingSDKs.isEmpty
-        })
+        enabled(
+            comment != nil ? "required SDKs are not installed: \(comment?.description ?? "")" : "required SDKs are not installed.",
+            {
+                let sdkRegistry = try await ConditionTraitContext.shared.getCore().sdkRegistry
+                let missingSDKs = await knownSDKs.asyncFilter { knownSDK in
+                    sdkRegistry.lookup(knownSDK.sdkName) == nil && sdkRegistry.allSDKs.count(where: { $0.aliases.contains(knownSDK.sdkName) }) == 0
+                }.sorted()
+                return missingSDKs.isEmpty
+            }
+        )
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running on the specified host OS.
@@ -147,9 +150,12 @@ extension Trait where Self == Testing.ConditionTrait {
 
     /// Constructs a condition trait that causes a test to be disabled if the developer directory is pointing at an Xcode developer directory.
     package static var skipXcodeToolchain: Self {
-        disabled("This test is incompatible with Xcode toolchains.", {
-            try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains(".app/Contents/Developer")
-        })
+        disabled(
+            "This test is incompatible with Xcode toolchains.",
+            {
+                try await ConditionTraitContext.shared.getCore().developerPath.path.str.contains(".app/Contents/Developer")
+            }
+        )
     }
 
     /// Constructs a condition trait that causes a test to be disabled if the Foundation process spawning implementation is not thread-safe.
@@ -165,9 +171,9 @@ extension Trait where Self == Testing.ConditionTrait {
 
     package static var skipSwiftPackage: Self {
         #if SWIFT_PACKAGE
-        return disabled("Test is not supported when building Swift Build as a package")
+            return disabled("Test is not supported when building Swift Build as a package")
         #else
-        return enabled(if: true)
+            return enabled(if: true)
         #endif
     }
 
@@ -211,7 +217,7 @@ extension Trait where Self == Testing.ConditionTrait {
             func installCommand(packageManagerPath: Path, packageNames: String) -> String {
                 switch packageManagerPath.basenameWithoutSuffix {
                 case "pkg_info":
-                    return "pkg_add \(packageNames)" // OpenBSD
+                    return "pkg_add \(packageNames)"  // OpenBSD
                 default:
                     return "\(packageManagerPath.basenameWithoutSuffix) install \(packageNames)"
                 }
@@ -273,10 +279,13 @@ extension Trait where Self == Testing.ConditionTrait {
 extension Trait where Self == Testing.ConditionTrait {
     /// Constructs a condition trait that causes a test to be disabled if running against the exact given version of Xcode.
     package static func skipXcodeBuildVersion(_ version: String, sourceLocation: SourceLocation = #_sourceLocation) -> Self {
-        skipXcodeBuildVersions(in: try {
-            let v: ProductBuildVersion = try ProductBuildVersion(version)
-            return v...v
-        }(), sourceLocation: sourceLocation)
+        skipXcodeBuildVersions(
+            in: try {
+                let v: ProductBuildVersion = try ProductBuildVersion(version)
+                return v...v
+            }(),
+            sourceLocation: sourceLocation
+        )
     }
 
     /// Constructs a condition trait that causes a test to be disabled if running against the exact given version of Xcode.
@@ -286,9 +295,13 @@ extension Trait where Self == Testing.ConditionTrait {
 
     /// Constructs a condition trait that causes a test to be disabled if running against a version of Xcode within the given range.
     package static func skipXcodeBuildVersions<R: RangeExpression>(in range: @Sendable @autoclosure @escaping () throws -> R, sourceLocation: SourceLocation = #_sourceLocation) -> Self where R.Bound == ProductBuildVersion {
-        disabled("Xcode version is not suitable", sourceLocation: sourceLocation, {
-            return try await range().contains(InstalledXcode.currentlySelected().productBuildVersion())
-        })
+        disabled(
+            "Xcode version is not suitable",
+            sourceLocation: sourceLocation,
+            {
+                return try await range().contains(InstalledXcode.currentlySelected().productBuildVersion())
+            }
+        )
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running against at least the given version of Xcode.
@@ -297,12 +310,16 @@ extension Trait where Self == Testing.ConditionTrait {
     }
 
     package static func requireXcode16(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
-        enabled("Xcode version is not suitable", sourceLocation: sourceLocation, {
-            guard let installedVersion =  try? await InstalledXcode.currentlySelected().productBuildVersion() else {
-                return true
+        enabled(
+            "Xcode version is not suitable",
+            sourceLocation: sourceLocation,
+            {
+                guard let installedVersion = try? await InstalledXcode.currentlySelected().productBuildVersion() else {
+                    return true
+                }
+                return installedVersion > (try ProductBuildVersion("16A242d"))
             }
-            return installedVersion > (try ProductBuildVersion("16A242d"))
-        })
+        )
     }
 
     package static func requireXcode26(sourceLocation: SourceLocation = #_sourceLocation) -> Self {
@@ -316,12 +333,16 @@ extension Trait where Self == Testing.ConditionTrait {
 
     /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode within the given range.
     package static func requireXcodeBuildVersions<R: RangeExpression>(in range: @Sendable @autoclosure @escaping () throws -> R, sourceLocation: SourceLocation = #_sourceLocation) -> Self where R.Bound == ProductBuildVersion {
-        enabled("Xcode version is not suitable", sourceLocation: sourceLocation, {
-            guard let installedVersion =  try? await InstalledXcode.currentlySelected().productBuildVersion() else {
-                return true
+        enabled(
+            "Xcode version is not suitable",
+            sourceLocation: sourceLocation,
+            {
+                guard let installedVersion = try? await InstalledXcode.currentlySelected().productBuildVersion() else {
+                    return true
+                }
+                return try range().contains(installedVersion)
             }
-            return try range().contains(installedVersion)
-        })
+        )
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including at least the given version of a particular SDK.
@@ -331,10 +352,14 @@ extension Trait where Self == Testing.ConditionTrait {
 
     /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including at least the given version of a particular SDK.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersion: @Sendable @autoclosure @escaping () throws -> ProductBuildVersion, sourceLocation: SourceLocation = #_sourceLocation) -> Self {
-        disabled("SDK build version is too old", sourceLocation: sourceLocation, {
-            let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: sdkName)
-            return try sdkVersion < requiredVersion()
-        })
+        disabled(
+            "SDK build version is too old",
+            sourceLocation: sourceLocation,
+            {
+                let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: sdkName)
+                return try sdkVersion < requiredVersion()
+            }
+        )
     }
 
     /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions within the same release.
@@ -344,20 +369,24 @@ extension Trait where Self == Testing.ConditionTrait {
 
     /// Constructs a condition trait that causes a test to be disabled if not running against a version of Xcode including the SDK which is equal to or newer than at least one of the given versions within the same release.
     package static func requireMinimumSDKBuildVersion(sdkName: String, requiredVersions: @Sendable @autoclosure @escaping () throws -> [ProductBuildVersion], sourceLocation: SourceLocation = #_sourceLocation) -> Self {
-        disabled("SDK build version is too old", sourceLocation: sourceLocation, {
-            let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: sdkName)
+        disabled(
+            "SDK build version is too old",
+            sourceLocation: sourceLocation,
+            {
+                let sdkVersion = try await InstalledXcode.currentlySelected().productBuildVersion(sdkCanonicalName: sdkName)
 
-            // For each required version, check to see if it is from the same release as the SDK version.  If it is, then we will check against it.
-            for requiredVersion in try requiredVersions() {
-                if sdkVersion.major == requiredVersion.major, sdkVersion.train == requiredVersion.train {
-                    return sdkVersion < requiredVersion
+                // For each required version, check to see if it is from the same release as the SDK version.  If it is, then we will check against it.
+                for requiredVersion in try requiredVersions() {
+                    if sdkVersion.major == requiredVersion.major, sdkVersion.train == requiredVersion.train {
+                        return sdkVersion < requiredVersion
+                    }
                 }
-            }
 
-            // If the SDK version is not from the same release as any of required versions, then we assume we don't need to skip.  This is to handle the common case where we've moved on to newer releases and don't want to be forced to clean up these skips as soon as we do so.  It assumes we won't start running the test against older releases of the SDK.
-            // We could do something more sophisticated here to handle versions outside of the specific releases we were passed, but this meets our needs for now.
-            return false
-        })
+                // If the SDK version is not from the same release as any of required versions, then we assume we don't need to skip.  This is to handle the common case where we've moved on to newer releases and don't want to be forced to clean up these skips as soon as we do so.  It assumes we won't start running the test against older releases of the SDK.
+                // We could do something more sophisticated here to handle versions outside of the specific releases we were passed, but this meets our needs for now.
+                return false
+            }
+        )
     }
 }
 
@@ -482,7 +511,7 @@ fileprivate enum XcodeVersionInfoProvider {
         case let .installedXcode(xcode):
             return try xcode.productBuildVersion()
         case .noXcode:
-            return try ProductBuildVersion("99T999") // same fallback version that Core uses
+            return try ProductBuildVersion("99T999")  // same fallback version that Core uses
         }
     }
 

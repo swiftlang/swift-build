@@ -66,11 +66,13 @@ public final class ClangCachingMaterializeKeyTaskAction: TaskAction {
         state.reset()
 
         let clangModuleDependencyGraph = dynamicExecutionDelegate.operationContext.clangModuleDependencyGraph
-        do  {
-            guard let casDBs = try clangModuleDependencyGraph.getCASDatabases(
-                libclangPath: taskKey.libclangPath,
-                casOptions: taskKey.casOptions
-            ) else {
+        do {
+            guard
+                let casDBs = try clangModuleDependencyGraph.getCASDatabases(
+                    libclangPath: taskKey.libclangPath,
+                    casOptions: taskKey.casOptions
+                )
+            else {
                 throw StubError.error("unable to use CAS databases")
             }
 
@@ -117,7 +119,7 @@ public final class ClangCachingMaterializeKeyTaskAction: TaskAction {
             do {
                 guard let cachedComp = try casDBs.getLocalCachedCompilation(cacheKey: taskKey.cacheKey) else {
                     state = .done
-                    return // compilation key not found.
+                    return  // compilation key not found.
                 }
                 let numOutputsToDownload = requestCompilationOutputs(cachedComp, dynamicExecutionDelegate: dynamicExecutionDelegate, jobTaskIDBase: jobTaskIDBase)
                 if numOutputsToDownload == 0 {

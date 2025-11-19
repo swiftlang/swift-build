@@ -101,12 +101,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS), .userDefaults(["AllowRuntimeSearchPathAdditionForSwiftConcurrency": "0"]))
     func swiftAppBasics_postSwiftOSDeploymentTarget_preSwiftConcurrencySupportedNatively_DisallowRpathInjection() async throws {
-        try await _testSwiftAppBasics(deploymentTargetVersion: "11.0", shouldEmitSwiftRPath:true, shouldFilterSwiftLibs: true, shouldBackDeploySwiftConcurrency: true, shouldBackDeploySwiftSpan: true,
-        missingSpanCompatibilitySuppressesRPath: true)
+        try await _testSwiftAppBasics(
+            deploymentTargetVersion: "11.0",
+            shouldEmitSwiftRPath: true,
+            shouldFilterSwiftLibs: true,
+            shouldBackDeploySwiftConcurrency: true,
+            shouldBackDeploySwiftSpan: true,
+            missingSpanCompatibilitySuppressesRPath: true
+        )
     }
 
-    func _testSwiftAppBasics(deploymentTargetVersion: String, targetDeviceOSVersion: String? = nil, targetDevicePlatformName: String? = nil, toolchain toolchainIdentifier: String = "default", shouldEmitSwiftRPath: Bool, shouldFilterSwiftLibs: Bool, shouldBackDeploySwiftConcurrency: Bool, shouldBackDeploySwiftSpan: Bool,
-        missingSpanCompatibilitySuppressesRPath: Bool = false) async throws {
+    func _testSwiftAppBasics(
+        deploymentTargetVersion: String,
+        targetDeviceOSVersion: String? = nil,
+        targetDevicePlatformName: String? = nil,
+        toolchain toolchainIdentifier: String = "default",
+        shouldEmitSwiftRPath: Bool,
+        shouldFilterSwiftLibs: Bool,
+        shouldBackDeploySwiftConcurrency: Bool,
+        shouldBackDeploySwiftSpan: Bool,
+        missingSpanCompatibilitySuppressesRPath: Bool = false
+    ) async throws {
         let swiftCompilerPath = try await self.swiftCompilerPath
         let swiftVersion = try await self.swiftVersion
         let swiftFeatures = try await self.swiftFeatures
@@ -121,7 +136,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     TestFile("foo.swift"),
                     TestFile("bar.swift"),
                     TestFile("baz.fake-swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -139,16 +155,20 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_INCLUDE_PATHS": "/tmp/include",
                         "SWIFT_SYSTEM_INCLUDE_PATHS": "/tmp/system/include",
                         "TAPI_EXEC": tapiToolPath.str,
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "VERSIONING_SYSTEM": "apple-generic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "VERSIONING_SYSTEM": "apple-generic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -157,22 +177,34 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "baz.fake-swift",
                         ]),
                         TestFrameworksBuildPhase([
-                            "FwkTarget.framework"])
+                            "FwkTarget.framework"
+                        ]),
                     ],
-                    buildRules: [TestBuildRule(filePattern: "*/*.fake-swift", script: "echo \"make some swift stuff\"", outputs: [
-                        "$(DERIVED_FILES_DIR)/$(INPUT_FILE_BASE).swift"
-                    ])],
-                    dependencies: ["FwkTarget"]),
+                    buildRules: [
+                        TestBuildRule(
+                            filePattern: "*/*.fake-swift",
+                            script: "echo \"make some swift stuff\"",
+                            outputs: [
+                                "$(DERIVED_FILES_DIR)/$(INPUT_FILE_BASE).swift"
+                            ]
+                        )
+                    ],
+                    dependencies: ["FwkTarget"]
+                ),
                 TestStandardTarget(
                     "FwkTarget",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "bar.swift"])],
-                    dependencies: ["MockTarget"]),
+                            "bar.swift"
+                        ])
+                    ],
+                    dependencies: ["MockTarget"]
+                ),
                 // This target is a mock to ensure we still generate a VFS, even if we wouldn't for the "key" target.
                 TestAggregateTarget("MockTarget"),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -203,9 +235,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 // There should be a WriteAuxiliaryFile task to create the versioning file.
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/AppTarget_vers.c"])) { task, contents in
                     task.checkInputs([
-                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))])
+                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))
+                    ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/AppTarget_vers.c")])
+                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/AppTarget_vers.c")
+                    ])
 
                     #expect(contents == " extern const unsigned char AppTargetVersionString[];\n extern const double AppTargetVersionNumber;\n\n const unsigned char AppTargetVersionString[] __attribute__ ((used)) = \"@(#)PROGRAM:AppTarget  PROJECT:aProject-3.1\" \"\\n\";\n const double AppTargetVersionNumber __attribute__ ((used)) = (double)3.1;\n")
                 }
@@ -218,7 +252,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/baz.fake-swift"),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/DerivedSources/baz.swift")
@@ -248,7 +282,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -284,7 +318,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -296,17 +330,19 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftinterface"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.private.swiftinterface"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-Swift.h"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftdoc")
+                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.swiftdoc"),
                     ])
                 }
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
                     // Check the inputs and outputs.
                     task.checkInputs([
-                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))])
+                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))
+                    ])
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json")])
+                        .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json")
+                    ])
 
                     // Check the contents.
                     guard let plist = try? PropertyList.fromJSONData(contents) else {
@@ -322,15 +358,17 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                     // Check the global dictionary.
                     if let globalDict = dict[""] {
-                        XCTAssertEqualPropertyListItems(globalDict, .plDict([
-                            "swift-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary.swiftdeps"),
-                            "diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary.dia"),
-                            "emit-module-diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary-emit-module.dia"),
-                            "emit-module-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary-emit-module.d"),
-                            "pch": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary-Bridging-header.pch"),
-                        ]))
-                    }
-                    else {
+                        XCTAssertEqualPropertyListItems(
+                            globalDict,
+                            .plDict([
+                                "swift-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary.swiftdeps"),
+                                "diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary.dia"),
+                                "emit-module-diagnostics": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary-emit-module.dia"),
+                                "emit-module-dependencies": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary-emit-module.d"),
+                                "pch": .plString("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-primary-Bridging-header.pch"),
+                            ])
+                        )
+                    } else {
                         Issue.record("output file map does not contain a global dictionary")
                     }
 
@@ -355,8 +393,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             } else {
                                 #expect(fileDict.count == 6)
                             }
-                        }
-                        else {
+                        } else {
                             Issue.record("output file map does not contain a dictionary for '\(filename).swift'")
                         }
                     }
@@ -398,11 +435,13 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget", "normal"])
 
                     let toolchain = toolchainIdentifier != "default" ? "OSX10.15" : "XcodeDefault"
-                    task.checkCommandLine(([
-                        ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"],
-                        shouldEmitSwiftRPath ? ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"] : [],
-                        ["-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/\(toolchain).xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-framework", "FwkTarget", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"]
-                    ] as [[String]]).reduce([], +))
+                    task.checkCommandLine(
+                        ([
+                            ["clang", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"],
+                            shouldEmitSwiftRPath ? ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"] : [],
+                            ["-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-L\(core.developerPath.path.str)/Toolchains/\(toolchain).xctoolchain/usr/lib/swift/macosx", "-L/usr/lib/swift", "-framework", "FwkTarget", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"],
+                        ] as [[String]]).reduce([], +)
+                    )
 
                     task.checkInputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_vers.o"),
@@ -412,7 +451,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"),
                         .path("\(SRCROOT)/build/Debug"),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
-                        .namePattern(.prefix("target-"))])
+                        .namePattern(.prefix("target-")),
+                    ])
 
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"),
@@ -431,18 +471,23 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"),
                         .namePattern(.prefix("target-")),
                         .namePattern(.prefix("target-")),
-                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))])
+                        .namePattern(.and(.prefix("target-"), .suffix("-immediate"))),
+                    ])
 
                     task.checkOutputs([
-                        .name("CopySwiftStdlib \(SRCROOT)/build/Debug/AppTarget.app"),])
+                        .name("CopySwiftStdlib \(SRCROOT)/build/Debug/AppTarget.app")
+                    ])
 
-                    task.checkEnvironment([
-                        "CODESIGN_ALLOCATE":    .equal(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/bin/codesign_allocate").str),
-                        "DEVELOPER_DIR":        .equal(core.developerPath.path.str),
-                        "SDKROOT":              .equal(core.loadSDK(.macOS).path.str),
-                        // This is coming from our overrides in unit test infrastructure.
-                        "TOOLCHAINS": .equal(toolchainIdentifier),
-                    ], exact: true)
+                    task.checkEnvironment(
+                        [
+                            "CODESIGN_ALLOCATE": .equal(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/bin/codesign_allocate").str),
+                            "DEVELOPER_DIR": .equal(core.developerPath.path.str),
+                            "SDKROOT": .equal(core.loadSDK(.macOS).path.str),
+                            // This is coming from our overrides in unit test infrastructure.
+                            "TOOLCHAINS": .equal(toolchainIdentifier),
+                        ],
+                        exact: true
+                    )
                 }
 
                 // There should be a product 'Touch' task.
@@ -464,8 +509,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .namePattern(.and(.prefix("target-"), .suffix("-will-sign"))),
                         .namePattern(.and(.prefix("target"), .suffix("-entry"))),
                     ])
-                    #expect(task.outputs.map{ $0.name } == [
-                        "AppTarget.app", "LSRegisterURL \(SRCROOT)/build/Debug/AppTarget.app"])
+                    #expect(
+                        task.outputs.map { $0.name } == [
+                            "AppTarget.app", "LSRegisterURL \(SRCROOT)/build/Debug/AppTarget.app",
+                        ]
+                    )
                 }
 
                 // Ignore all the MkDir tasks.
@@ -514,8 +562,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
             // check the remaining auxiliary files tasks, which should just be headermaps.
             results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { tasks in
-                #expect(tasks.contains(where: {$0.ruleInfo[1].hasSuffix(".hmap")}))
-                #expect(tasks.contains(where: {$0.ruleInfo[1].hasSuffix("const_extract_protocols.json")}))
+                #expect(tasks.contains(where: { $0.ruleInfo[1].hasSuffix(".hmap") }))
+                #expect(tasks.contains(where: { $0.ruleInfo[1].hasSuffix("const_extract_protocols.json") }))
             }
 
             // Ignore all Gate and build directory tasks.
@@ -543,36 +591,46 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "Test",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File1.swift"),
-                ]),
+                    TestFile("File1.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "auto",
-                    "SDK_VARIANT": "auto",
-                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                        "SDK_VARIANT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Executable",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("File1.swift")]),
-                    ]),
-            ])
+                        TestSourcesBuildPhase([TestBuildFile("File1.swift")])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOSSimulator) { results in
@@ -587,10 +645,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -598,36 +658,45 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "DEFINES_MODULE": "YES",
-                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                "SWIFT_VERSION": swiftVersion,
-                                                "TAPI_EXEC": tapiToolPath.str,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "DEFINES_MODULE": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
-                        ]),
-                    ])
-            ])
+                            "Foo.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
             // Check the actual module map.
             results.checkWriteAuxiliaryFileTask(.matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/module.modulemap"])) { task, contents in
-                #expect(contents == (OutputByteStream()
-                                     <<< "framework module CoreFoo {\n"
-                                     <<< "  header \"CoreFoo-Swift.h\"\n"
-                                     <<< "}\n").bytes)
+                #expect(
+                    contents
+                        == (OutputByteStream()
+                        <<< "framework module CoreFoo {\n"
+                        <<< "  header \"CoreFoo-Swift.h\"\n"
+                        <<< "}\n").bytes
+                )
             }
         }
     }
@@ -640,11 +709,13 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Foo.swift"),
                     TestFile("CoreFoo.h"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -652,31 +723,37 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "DEFINES_MODULE": "YES",
-                                                "SWIFT_VERSION": swiftVersion,
-                                                "SWIFT_PACKAGE_NAME": "FooPkg",
-                                                "SWIFT_EMIT_MODULE_INTERFACE": "YES",
-                                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "DEFINES_MODULE": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "SWIFT_PACKAGE_NAME": "FooPkg",
+                                "SWIFT_EMIT_MODULE_INTERFACE": "YES",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
+                            "Foo.swift"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("CoreFoo.h", headerVisibility: .public),
+                            TestBuildFile("CoreFoo.h", headerVisibility: .public)
                         ]),
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -732,7 +809,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         // Import the target's public module, while hiding the Swift generated header.
                         "-import-underlying-module", "-Xcc", "-ivfsoverlay", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/unextended-module-overlay.yaml",
                         "-working-directory", "/tmp/Test/aProject",
-                        .anySequence])
+                        .anySequence,
+                    ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Finished"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Foo.o"),
@@ -786,7 +864,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         // Import the target's public module, while hiding the Swift generated header.
                         "-import-underlying-module", "-Xcc", "-ivfsoverlay", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/unextended-module-overlay.yaml",
                         "-working-directory", "/tmp/Test/aProject",
-                        .anySequence])
+                        .anySequence,
+                    ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo Swift Compilation Requirements Finished"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftmodule"),
@@ -826,11 +905,13 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Foo.swift"),
                     TestFile("CoreFoo.h"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -839,29 +920,35 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "DEFINES_MODULE": "YES",
-                                                "SWIFT_VERSION": swiftVersion,
-                                                "SWIFT_EMIT_MODULE_INTERFACE": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "DEFINES_MODULE": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "SWIFT_EMIT_MODULE_INTERFACE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
+                            "Foo.swift"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("CoreFoo.h", headerVisibility: .public),
+                            TestBuildFile("CoreFoo.h", headerVisibility: .public)
                         ]),
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -896,7 +983,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         // Compilation mode arguments.
                         "-parse-as-library", "-c", "-j\(compilerParallelismLevel)",
 
-                            .anySequence,
+                        .anySequence,
                         "-incremental",
 
                         // The output file map.
@@ -925,7 +1012,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "-import-underlying-module", "-Xcc", "-ivfsoverlay", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/unextended-module-overlay.yaml",
 
                         "-working-directory", "/tmp/Test/aProject",
-                        .anySequence])
+                        .anySequence,
+                    ])
 
                     task.checkInputs([
                         .path("\(SRCROOT)/Sources/Foo.swift"),
@@ -944,7 +1032,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.prefix("target")),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -952,7 +1040,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Foo.o"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Foo.swiftconstvalues"),
                     ])
-
 
                     return task
                 }
@@ -980,7 +1067,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         // Compilation mode arguments.
                         "-parse-as-library", "-c", "-j\(compilerParallelismLevel)",
 
-                            .anySequence,
+                        .anySequence,
                         "-incremental",
 
                         // The output file map.
@@ -1009,7 +1096,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "-import-underlying-module", "-Xcc", "-ivfsoverlay", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/unextended-module-overlay.yaml",
 
                         "-working-directory", "/tmp/Test/aProject",
-                        .anySequence])
+                        .anySequence,
+                    ])
 
                     task.checkInputs([
                         .path("\(SRCROOT)/Sources/Foo.swift"),
@@ -1027,7 +1115,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.prefix("target")),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -1042,7 +1130,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo.swiftdoc"),
                     ])
 
-
                     return task
                 }
 
@@ -1051,7 +1138,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkInputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/CoreFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/CoreFoo-Swift.h"),
                         .namePattern(.and(.prefix("target"), .suffix("begin-compiling"))),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
                     task.checkOutputs([
                         .path("/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/Versions/A/Headers/CoreFoo-Swift.h")
@@ -1162,9 +1249,9 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTasks(.matchRuleType("ExtractAppIntentsMetadata")) { _ in }
 
             // Ignore other install tasks.
-            results.checkTasks(.matchRuleType("SetMode")) { _ in  }
-            results.checkTasks(.matchRuleType("SetOwnerAndGroup")) { _ in  }
-            results.checkTasks(.matchRuleType("Strip")) { _ in  }
+            results.checkTasks(.matchRuleType("SetMode")) { _ in }
+            results.checkTasks(.matchRuleType("SetOwnerAndGroup")) { _ in }
+            results.checkTasks(.matchRuleType("Strip")) { _ in }
 
             // Check there are no other tasks.
             results.checkNoTask()
@@ -1181,10 +1268,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1194,24 +1283,30 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
                         "SWIFT_EXPLICIT_MODULES_OUTPUT_PATH": "/path/to/ExplicitModules",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "SWIFT_VERSION": swiftVersion,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
-                        ]),
-                    ])
-            ])
+                            "Foo.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -1220,7 +1315,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
         let arena = ArenaInfo(derivedDataPath: Path("/path/to/DerivedData"), buildProductsPath: Path.root, buildIntermediatesPath: Path.root, pchPath: Path.root, indexRegularBuildProductsPath: nil, indexRegularBuildIntermediatesPath: nil, indexPCHPath: Path.root, indexDataStoreFolderPath: nil, indexEnableDataStore: false)
         await tester.checkBuild(BuildParameters(configuration: "Debug", arena: arena), runDestination: .macOS, fs: fs) { results in
-            results.checkTarget("CoreFoo")  { target in
+            results.checkTarget("CoreFoo") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                     task.checkCommandLineContains(["-module-cache-path", "/path/to/ExplicitModules"])
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-clang-scanner-module-cache-path") {
@@ -1240,11 +1335,13 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Foo.swift"),
                     TestFile("Bar.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1253,23 +1350,30 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": swiftVersion,
                         "LIBTOOL": libtoolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Foo.swift"]),
-                        TestFrameworksBuildPhase([TestBuildFile("libBar.a"),])
-                    ], dependencies: ["Bar"]),
+                        TestFrameworksBuildPhase([TestBuildFile("libBar.a")]),
+                    ],
+                    dependencies: ["Bar"]
+                ),
                 TestStandardTarget(
-                    "Bar", type: .staticLibrary,
+                    "Bar",
+                    type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Bar.swift",
-                        ]),
-                    ])
-            ])
+                            "Bar.swift"
+                        ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let fs = PseudoFS()
         try await fs.writeFileContents(swiftCompilerPath) { $0 <<< "binary" }
@@ -1317,11 +1421,13 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Foo.swift"),
                     TestFile("CoreFoo.h"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1331,31 +1437,37 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                         "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": sdkroot,
-                                                "DEFINES_MODULE": "YES",
-                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                "SWIFT_VERSION": swiftVersion,
-                                                "ARCHS": archs.joined(separator: " "),
-                                                "EXCLUDED_ARCHS": excludedArchs.joined(separator: " "),
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": sdkroot,
+                                "DEFINES_MODULE": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "ARCHS": archs.joined(separator: " "),
+                                "EXCLUDED_ARCHS": excludedArchs.joined(separator: " "),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
+                            "Foo.swift"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("CoreFoo.h", headerVisibility: .public),
+                            TestBuildFile("CoreFoo.h", headerVisibility: .public)
                         ]),
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -1408,7 +1520,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await testMultipleArchs(
             runDestination: .anyiOSDevice,
             archs: ["arm64", "arm64e"],
-            targetTripleSuffix: "-apple-ios")
+            targetTripleSuffix: "-apple-ios"
+        )
     }
 
     @Test(.requireSDKs(.watchOS))
@@ -1416,17 +1529,20 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         try await testMultipleArchs(
             runDestination: .anywatchOSDevice,
             archs: ["armv7k"],
-            targetTripleSuffix: "-apple-watchos")
+            targetTripleSuffix: "-apple-watchos"
+        )
 
         try await testMultipleArchs(
             runDestination: .anywatchOSDevice,
             archs: ["arm64_32"],
-            targetTripleSuffix: "-apple-watchos")
+            targetTripleSuffix: "-apple-watchos"
+        )
 
         try await testMultipleArchs(
             runDestination: .anywatchOSDevice,
             archs: ["armv7k", "arm64_32"],
-            targetTripleSuffix: "-apple-watchos")
+            targetTripleSuffix: "-apple-watchos"
+        )
     }
 
     /// Check handling of Swift combined with explicit module map files.
@@ -1435,10 +1551,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1446,26 +1564,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "MODULEMAP_FILE": "Foo.modulemap",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "DEFINES_MODULE": "YES",
-                                                "SWIFT_VERSION": swiftVersion,
-                                                "TAPI_EXEC": tapiToolPath.str,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "DEFINES_MODULE": "YES",
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
-                        ]),
-                    ])
-            ])
+                            "Foo.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot
 
@@ -1482,7 +1606,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                     task.checkCommandLineContains([
                         // Import the target's public module, while hiding the Swift generated header.
-                        "-import-underlying-module", "-Xcc", "-ivfsoverlay", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/unextended-module-overlay.yaml"])
+                        "-import-underlying-module", "-Xcc", "-ivfsoverlay", "-Xcc", "/tmp/Test/aProject/build/aProject.build/Debug/CoreFoo.build/unextended-module-overlay.yaml",
+                    ])
                 }
             }
 
@@ -1496,34 +1621,42 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.swift"),
-                ]),
+                    TestFile("main.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Exec", type: .commandLineTool,
+                    "Exec",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                "SWIFT_VERSION": swiftVersion,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
-                    ])
-            ])
+                            "main.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -1559,34 +1692,42 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.swift"),
-                ]),
+                    TestFile("main.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Exec", type: .commandLineTool,
+                    "Exec",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                "SWIFT_VERSION": swiftVersion,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
-                    ])
-            ])
+                            "main.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_ENABLE_INCREMENTAL_SCAN": "YES"]), runDestination: .macOS) { results in
@@ -1617,33 +1758,41 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.swift"),
-                ]),
+                    TestFile("main.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Exec", type: .commandLineTool,
+                    "Exec",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_EXEC": swiftCompilerPath.str
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
-                    ])
-            ])
+                            "main.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": "6.0"]), runDestination: .macOS) { results in
@@ -1698,34 +1847,42 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.swift"),
-                ]),
+                    TestFile("main.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Exec", type: .commandLineTool,
+                    "Exec",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                "SWIFT_VERSION": swiftVersion,
-                                                "SWIFT_INSTALL_MODULE": "NO",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "SWIFT_INSTALL_MODULE": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
-                    ])
-            ])
+                            "main.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -1754,36 +1911,44 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "FooApp", type: .application,
+                    "FooApp",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "SWIFT_OBJC_BRIDGING_HEADER": "swift-bridge-header.h",
-                                                "SWIFT_BRIDGING_HEADER_IS_INTERNAL": bridgingHeaderIsInternal,
-                                                "SWIFT_VERSION": swiftVersion,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SWIFT_OBJC_BRIDGING_HEADER": "swift-bridge-header.h",
+                                "SWIFT_BRIDGING_HEADER_IS_INTERNAL": bridgingHeaderIsInternal,
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
-                        ]),
-                    ])
-            ])
+                            "Foo.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot
 
@@ -1801,7 +1966,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
                     let expectedFlag = isInternal ? "-internal-import-bridging-header" : "-import-objc-header"
                     task.checkCommandLineContains([
-                        expectedFlag, bridgeHeader.str])
+                        expectedFlag, bridgeHeader.str,
+                    ])
                     task.checkInputs(contain: [.path(bridgeHeader.str)])
                 }
             }
@@ -1817,35 +1983,43 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "FooApp", type: .application,
+                    "FooApp",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "SWIFT_OBJC_BRIDGING_HEADER": "../aProject/./swift-bridge-header.h",
-                                                "SWIFT_VERSION": swiftVersion,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SWIFT_OBJC_BRIDGING_HEADER": "../aProject/./swift-bridge-header.h",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Foo.swift",
-                        ]),
-                    ])
-            ])
+                            "Foo.swift"
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot
 
@@ -1862,7 +2036,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     task.checkRuleInfo(["SwiftDriver Compilation", "FooApp", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"])
 
                     task.checkCommandLineContains([
-                        "-import-objc-header", bridgeHeader.str])
+                        "-import-objc-header", bridgeHeader.str,
+                    ])
                 }
             }
 
@@ -1877,10 +2052,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.swift"),
-                ]),
+                    TestFile("main.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1890,7 +2067,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "LIBTOOL": libtoolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
@@ -1902,14 +2080,15 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "StaticFrameworkNoInstallHeader",
                         "DynamicFrameworkNoInstallModule",
                         "StaticFrameworkNoInstallModule",
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "DynamicFramework",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
+                            "main.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
@@ -1917,67 +2096,80 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     type: .staticFramework,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
+                            "main.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "DynamicFrameworkNoInstallHeader",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
+                            "main.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "StaticFrameworkNoInstallHeader",
                     type: .staticFramework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
+                            "main.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "DynamicFrameworkNoInstallModule",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_MODULE": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_MODULE": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
+                            "main.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "StaticFrameworkNoInstallModule",
                     type: .staticFramework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_MODULE": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_MODULE": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
-                        ]),
+                            "main.swift"
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -1988,7 +2180,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTarget("DynamicFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftMergeGeneratedHeaders")) { task in
                     task.checkOutputs([
-                        .path("/tmp/Test/aProject/build/Debug/DynamicFramework.framework/Versions/A/Headers/DynamicFramework-Swift.h"),
+                        .path("/tmp/Test/aProject/build/Debug/DynamicFramework.framework/Versions/A/Headers/DynamicFramework-Swift.h")
                     ])
                 }
 
@@ -2000,7 +2192,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTarget("StaticFramework") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftMergeGeneratedHeaders")) { task in
                     task.checkOutputs([
-                        .path("/tmp/Test/aProject/build/Debug/StaticFramework.framework/Versions/A/Headers/StaticFramework-Swift.h"),
+                        .path("/tmp/Test/aProject/build/Debug/StaticFramework.framework/Versions/A/Headers/StaticFramework-Swift.h")
                     ])
                 }
 
@@ -2014,7 +2206,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTarget("DynamicFrameworkNoInstallHeader") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftMergeGeneratedHeaders")) { task in
                     task.checkOutputs([
-                        .path("/tmp/Test/aProject/build/aProject.build/Debug/DynamicFrameworkNoInstallHeader.build/DerivedSources/DynamicFrameworkNoInstallHeader-Swift.h"),
+                        .path("/tmp/Test/aProject/build/aProject.build/Debug/DynamicFrameworkNoInstallHeader.build/DerivedSources/DynamicFrameworkNoInstallHeader-Swift.h")
                     ])
                 }
             }
@@ -2022,7 +2214,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             results.checkTarget("StaticFrameworkNoInstallHeader") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftMergeGeneratedHeaders")) { task in
                     task.checkOutputs([
-                        .path("/tmp/Test/aProject/build/aProject.build/Debug/StaticFrameworkNoInstallHeader.build/DerivedSources/StaticFrameworkNoInstallHeader-Swift.h"),
+                        .path("/tmp/Test/aProject/build/aProject.build/Debug/StaticFrameworkNoInstallHeader.build/DerivedSources/StaticFrameworkNoInstallHeader-Swift.h")
                     ])
                 }
             }
@@ -2051,32 +2243,39 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("TestFile.swift"),
-                ]),
+                    TestFile("TestFile.swift")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TestTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "PRODUCT_NAME": "TestProduct",
-                            "ARCHS": "x86_64",
-                            "SWIFT_VERSION": swiftVersion,
-                            "SDKROOT": sdkRoot,
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_ENABLE_EMIT_CONST_VALUES": "YES",
-                            "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "PRODUCT_NAME": "TestProduct",
+                                "ARCHS": "x86_64",
+                                "SWIFT_VERSION": swiftVersion,
+                                "SDKROOT": sdkRoot,
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_ENABLE_EMIT_CONST_VALUES": "YES",
+                                "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile.swift"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("TestFile.swift")
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -2098,7 +2297,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     // Verify protocol list specification contents
                     results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/ProjectName.build/Debug/TestTarget.build/Objects-normal/x86_64/TestTarget_const_extract_protocols.json"])) { task, contents in
                         guard let plist = try? PropertyList.fromJSONData(contents),
-                              let array = plist.arrayValue else {
+                            let array = plist.arrayValue
+                        else {
                             Issue.record("could not convert output file map from JSON to plist array")
                             return
                         }
@@ -2110,7 +2310,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 // Verify output file map contents
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/ProjectName.build/Debug/TestTarget.build/Objects-normal/x86_64/TestTarget-OutputFileMap.json"])) { task, contents in
                     guard let plist = try? PropertyList.fromJSONData(contents),
-                          let dict = plist.dictValue else {
+                        let dict = plist.dictValue
+                    else {
                         Issue.record("could not convert output file map from JSON to plist dictionary")
                         return
                     }
@@ -2124,8 +2325,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         } else {
                             #expect(fileDict["const-values"] == nil)
                         }
-                    }
-                    else {
+                    } else {
                         Issue.record("output file map does not contain a dictionary for '\(filename).swift'")
                     }
 
@@ -2139,30 +2339,37 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("TestFile.swift"),
-                ]),
+                    TestFile("TestFile.swift")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TestTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "PRODUCT_NAME": "TestProduct",
-                            "ARCHS": "x86_64",
-                            "SWIFT_VERSION": swiftVersion,
-                            "SDKROOT": "macosx",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "PRODUCT_NAME": "TestProduct",
+                                "ARCHS": "x86_64",
+                                "SWIFT_VERSION": swiftVersion,
+                                "SDKROOT": "macosx",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile.swift"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("TestFile.swift")
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -2213,32 +2420,39 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File2.swift"),
-                ]),
+                    TestFile("File2.swift")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "ProductName",
-                            "ARCHS": "x86_64",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "TAPI_EXEC": tapiToolPath.str,
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                            "SDKROOT": sdkRoot
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "ProductName",
+                                "ARCHS": "x86_64",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                                "SDKROOT": sdkRoot,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File2.swift"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("File2.swift")
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -2268,32 +2482,39 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("File1.m"),
                     TestFile("File2.swift"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "ProductName",
-                            "ARCHS": "x86_64",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "TAPI_EXEC": tapiToolPath.str,
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "ProductName",
+                                "ARCHS": "x86_64",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("File1.m"),
                             TestBuildFile("File2.swift"),
-                        ]),
-                    ])
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
         return try await TaskConstructionTester(getCore(), testProject)
     }
 
@@ -2335,18 +2556,23 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "Test",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("File2.swift"),
                     TestFile("File3.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -2356,21 +2582,26 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase([TestBuildFile("File1.swift")]),
                         TestFrameworksBuildPhase([
                             TestBuildFile("libFirstLib.a"),
-                            TestBuildFile("libSecondLib.a")])
-                    ]),
+                            TestBuildFile("libSecondLib.a"),
+                        ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "FirstLib",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File2.swift")])
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "SecondLib",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File3.swift")])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -2392,34 +2623,42 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "Test",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("File2.swift"),
                     TestFile("File3.swift"),
-                    TestFile("SwiftyJSON.swift")
-                ]),
+                    TestFile("SwiftyJSON.swift"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "auto",
-                    "SDK_VARIANT": "auto",
-                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                        "SDK_VARIANT": "auto",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Executable",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File1.swift")]),
@@ -2428,15 +2667,19 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("libSecondLib.a"),
                         ]),
                     ],
-                    dependencies: ["WatchExecutable"]),
+                    dependencies: ["WatchExecutable"]
+                ),
                 TestStandardTarget(
                     "WatchExecutable",
                     type: .applicationExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "watchos",
-                            "SUPPORTED_PLATFORMS": "watchos watchsimulator",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "watchos",
+                                "SUPPORTED_PLATFORMS": "watchos watchsimulator",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File1.swift")]),
@@ -2444,20 +2687,24 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("libFirstLib.a"),
                             TestBuildFile("libSecondLib.a"),
                         ]),
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "FirstLib",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File2.swift")])
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "SecondLib",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File3.swift")])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOSSimulator) { results in
@@ -2492,7 +2739,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     TestFile("main.swift"),
                     TestFile("foo.swift"),
                     TestFile("bar.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2507,16 +2755,20 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "USE_SWIFT_RESPONSE_FILE": "YES",
                         // remove in 51621328
                         "SWIFT_RESPONSE_FILE_PATH": "$(SWIFT_RESPONSE_FILE_PATH_$(variant)_$(arch))",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "VERSIONING_SYSTEM": "apple-generic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "VERSIONING_SYSTEM": "apple-generic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -2524,14 +2776,17 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "foo.swift",
                             "bar.swift",
                         ])
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check the debug build.
         try await tester.checkBuild(runDestination: .macOS) { results in
-            results.checkWriteAuxiliaryFileTask(.matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList"])) { task, contents in task.checkOutputs([.pathPattern(.suffix("Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList"))])
+            results.checkWriteAuxiliaryFileTask(.matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList"])) { task, contents in
+                task.checkOutputs([.pathPattern(.suffix("Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.SwiftFileList"))])
 
                 #expect(contents.asString.components(separatedBy: .newlines).dropLast().sorted() == ["\(SRCROOT)/bar.swift", "\(SRCROOT)/foo.swift", "\(SRCROOT)/main.swift"])
             }
@@ -2584,7 +2839,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     TestFile("main.swift"),
                     TestFile("foo.swift"),
                     TestFile("bar.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2596,16 +2852,20 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "CURRENT_PROJECT_VERSION": "3.1",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "VERSIONING_SYSTEM": "apple-generic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "VERSIONING_SYSTEM": "apple-generic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -2613,8 +2873,10 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                             "foo.swift",
                             "bar.swift",
                         ])
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2702,7 +2964,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("main.swift") ]),
+                children: [TestFile("main.swift")]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2715,21 +2978,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "SWIFT_INCLUDE_PATHS": "/tmp/some-dir",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "VERSIONING_SYSTEM": "apple-generic",
-                                               ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "VERSIONING_SYSTEM": "apple-generic"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([ "main.swift" ])
-                    ])
-            ])
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]
+                )
+            ]
+        )
 
         do {
             let tester = try await TaskConstructionTester(getCore(), testProject)
@@ -2768,7 +3037,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("main.swift") ]),
+                children: [TestFile("main.swift")]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2782,21 +3052,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "SWIFT_RESPONSE_FILE_PATH": "",
                         "USE_SWIFT_RESPONSE_FILE": "YES",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "VERSIONING_SYSTEM": "apple-generic",
-                                               ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "VERSIONING_SYSTEM": "apple-generic"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([ "main.swift" ])
-                    ])
-            ])
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkError("The path for Swift input file list cannot be empty. (in target 'AppTarget' from project 'aProject')")
@@ -2810,7 +3086,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("main.swift") ]),
+                children: [TestFile("main.swift")]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2824,21 +3101,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "SWIFT_RESPONSE_FILE_PATH": "",
                         "USE_SWIFT_RESPONSE_FILE": "NO",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "VERSIONING_SYSTEM": "apple-generic",
-                                               ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "VERSIONING_SYSTEM": "apple-generic"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([ "main.swift" ])
-                    ])
-            ])
+                        TestSourcesBuildPhase(["main.swift"])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
@@ -2851,7 +3134,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [ TestFile("ma\nin.swift") ]),
+                children: [TestFile("ma\nin.swift")]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2866,21 +3150,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "USE_SWIFT_RESPONSE_FILE": "YES",
                         // remove in 51621328
                         "SWIFT_RESPONSE_FILE_PATH": "$(SWIFT_RESPONSE_FILE_PATH_$(variant)_$(arch))",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "VERSIONING_SYSTEM": "apple-generic",
-                                               ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "VERSIONING_SYSTEM": "apple-generic"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([ "ma\nin.swift" ])
-                    ])
-            ])
+                        TestSourcesBuildPhase(["ma\nin.swift"])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let srcroot = tester.workspace.projects[0].sourceRoot
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -3016,24 +3306,30 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         TestFile("Source.m"),
                     ]
                 ),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "ARCHS": "arm64 arm64e",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Target-Swift.h",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": swiftVersion,
-                    ]
-                )],
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "ARCHS": "arm64 arm64e",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Target-Swift.h",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("Target", type: .framework, buildPhases: [
-                        TestHeadersBuildPhase([TestBuildFile("Header.h", headerVisibility: .public)]),
-                        TestSourcesBuildPhase(["Source.swift", "Source.m"]),
-                    ])
+                    TestStandardTarget(
+                        "Target",
+                        type: .framework,
+                        buildPhases: [
+                            TestHeadersBuildPhase([TestBuildFile("Header.h", headerVisibility: .public)]),
+                            TestSourcesBuildPhase(["Source.swift", "Source.m"]),
+                        ]
+                    )
                 ]
             )
 
@@ -3060,10 +3356,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -3073,17 +3371,21 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("Foo.swift", additionalArgs: ["-customflag"])
-                        ]),
-                    ])
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -3099,10 +3401,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -3113,17 +3417,21 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("Foo.swift")
-                        ]),
-                    ])
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -3139,10 +3447,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -3154,17 +3464,21 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "SWIFT_USE_INTEGRATED_DRIVER": "NO",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
                         "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("Foo.swift")
-                        ]),
-                    ])
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -3180,10 +3494,12 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -3195,17 +3511,21 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                         "TAPI_EXEC": tapiToolPath.str,
 
                         "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("Foo.swift")
-                        ]),
-                    ])
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -3232,70 +3552,84 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func tBDOutput() async throws {
         let target = try await TestStandardTarget(
-            "Core", type: .framework,
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                ])],
+            "Core",
+            type: .framework,
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]
+                )
+            ],
             buildPhases: [
                 TestSourcesBuildPhase(["foo.swift"])
-            ])
+            ]
+        )
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", children: [
-                TestFile("foo.swift")
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
+            groupTree: TestGroup(
+                "Sources",
+                children: [
+                    TestFile("foo.swift")
                 ]
-            )],
-            targets: [target])
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
+            ],
+            targets: [target]
+        )
         let testWorkspace = TestWorkspace("Test", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         // If eager compilation is on, the tbd file is an output of the compilation requirements (module emission) step
         await tester.checkBuild(runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { moduleTask in
-                moduleTask.checkOutputs([.pathPattern(.suffix("Core Swift Compilation Requirements Finished")),
-                                         .pathPattern(.suffix("Swift-API.tbd")),
-                                         .pathPattern(.suffix("Core.swiftmodule")),
-                                         .pathPattern(.suffix("Core-linker-args.resp")),
-                                         .pathPattern(.suffix("Core.swiftsourceinfo")),
-                                         .pathPattern(.suffix("Core.abi.json")),
-                                         .pathPattern(.suffix("Core-Swift.h")),
-                                         .pathPattern(.suffix("Core.swiftdoc")),
+                moduleTask.checkOutputs([
+                    .pathPattern(.suffix("Core Swift Compilation Requirements Finished")),
+                    .pathPattern(.suffix("Swift-API.tbd")),
+                    .pathPattern(.suffix("Core.swiftmodule")),
+                    .pathPattern(.suffix("Core-linker-args.resp")),
+                    .pathPattern(.suffix("Core.swiftsourceinfo")),
+                    .pathPattern(.suffix("Core.abi.json")),
+                    .pathPattern(.suffix("Core-Swift.h")),
+                    .pathPattern(.suffix("Core.swiftdoc")),
                 ])
 
             }
             results.checkTask(.matchRuleType("SwiftDriver Compilation")) { compileTask in
-                compileTask.checkOutputs([.pathPattern(.suffix("Core Swift Compilation Finished")),
-                                          .pathPattern(.suffix("foo.o")),
-                                          .pathPattern(.suffix("foo.swiftconstvalues")),
+                compileTask.checkOutputs([
+                    .pathPattern(.suffix("Core Swift Compilation Finished")),
+                    .pathPattern(.suffix("foo.o")),
+                    .pathPattern(.suffix("foo.swiftconstvalues")),
                 ])
 
             }
         }
 
         // If eager compilation is off, everything is an output of CompileSwiftSources.
-        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_USE_INTEGRATED_DRIVER": "NO","SWIFT_ENABLE_EXPLICIT_MODULES": "NO", "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_USE_INTEGRATED_DRIVER": "NO", "SWIFT_ENABLE_EXPLICIT_MODULES": "NO", "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO"]), runDestination: .macOS) { results in
             results.checkTask(.matchRuleType("CompileSwiftSources")) { moduleTask in
-                moduleTask.checkOutputs([.pathPattern(.suffix("foo.o")),
-                                         .pathPattern(.suffix("foo.swiftconstvalues")),
-                                         .pathPattern(.suffix("Swift-API.tbd")),
-                                         .pathPattern(.suffix("Core.swiftmodule")),
-                                         .pathPattern(.suffix("Core.swiftsourceinfo")),
-                                         .pathPattern(.suffix("Core.abi.json")),
-                                         .pathPattern(.suffix("Core-Swift.h")),
-                                         .pathPattern(.suffix("Core.swiftdoc")),
+                moduleTask.checkOutputs([
+                    .pathPattern(.suffix("foo.o")),
+                    .pathPattern(.suffix("foo.swiftconstvalues")),
+                    .pathPattern(.suffix("Swift-API.tbd")),
+                    .pathPattern(.suffix("Core.swiftmodule")),
+                    .pathPattern(.suffix("Core.swiftsourceinfo")),
+                    .pathPattern(.suffix("Core.abi.json")),
+                    .pathPattern(.suffix("Core-Swift.h")),
+                    .pathPattern(.suffix("Core.swiftdoc")),
                 ])
             }
 
@@ -3312,28 +3646,35 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "ProductName",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "ProductName",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             let fs = PseudoFS()
@@ -3381,47 +3722,59 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("File1.swift"),
                         TestFile("File2.swift"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "AppWithoutRegex",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "ProductName",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                                "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "ProductName",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "SWIFT_ENABLE_BARE_SLASH_REGEX": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ], dependencies: ["FrameworkWithRegex"]),
+                                TestBuildFile("File1.swift")
+                            ])
+                        ],
+                        dependencies: ["FrameworkWithRegex"]
+                    ),
                     TestStandardTarget(
                         "FrameworkWithRegex",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "ProductName",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                                "SWIFT_ENABLE_BARE_SLASH_REGEX": "YES",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "ProductName",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                    "SWIFT_ENABLE_BARE_SLASH_REGEX": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File2.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File2.swift")
+                            ])
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
@@ -3448,82 +3801,102 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("File1.swift"),
                         TestFile("File2.swift"),
                         TestFile("File3.swift"),
                         TestFile("File4.swift"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Default",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ], dependencies: ["Minimal", "Targeted", "Complete"]),
+                                TestBuildFile("File1.swift")
+                            ])
+                        ],
+                        dependencies: ["Minimal", "Targeted", "Complete"]
+                    ),
                     TestStandardTarget(
                         "Minimal",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                                "SWIFT_STRICT_CONCURRENCY": "minimal",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                    "SWIFT_STRICT_CONCURRENCY": "minimal",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File2.swift"),
-                            ]),
-                        ]),
+                                TestBuildFile("File2.swift")
+                            ])
+                        ]
+                    ),
                     TestStandardTarget(
                         "Targeted",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                                "SWIFT_STRICT_CONCURRENCY": "targeted",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                    "SWIFT_STRICT_CONCURRENCY": "targeted",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File3.swift"),
-                            ]),
-                        ]),
+                                TestBuildFile("File3.swift")
+                            ])
+                        ]
+                    ),
                     TestStandardTarget(
                         "Complete",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                                "SWIFT_STRICT_CONCURRENCY": "complete",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                    "SWIFT_STRICT_CONCURRENCY": "complete",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File4.swift"),
-                            ]),
-                        ]),
-                ])
+                                TestBuildFile("File4.swift")
+                            ])
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
@@ -3561,64 +3934,80 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("File1.swift"),
                         TestFile("File2.swift"),
                         TestFile("File3.swift"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Default",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ], dependencies: ["Nonisolated", "MainActor"]),
+                                TestBuildFile("File1.swift")
+                            ])
+                        ],
+                        dependencies: ["Nonisolated", "MainActor"]
+                    ),
                     TestStandardTarget(
                         "Nonisolated",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                                "SWIFT_DEFAULT_ACTOR_ISOLATION": "nonisolated",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                    "SWIFT_DEFAULT_ACTOR_ISOLATION": "nonisolated",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File2.swift"),
-                            ]),
-                        ]),
+                                TestBuildFile("File2.swift")
+                            ])
+                        ]
+                    ),
                     TestStandardTarget(
                         "MainActor",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": "5.0",
-                                "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": "5.0",
+                                    "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File3.swift"),
-                            ]),
-                        ]),
-                ])
+                                TestBuildFile("File3.swift")
+                            ])
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
@@ -3645,42 +4034,56 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func libraryLevel() async throws {
         if try await !swiftFeatures.has(.libraryLevel) {
-            try await checkLibraryLevelForConfig(targetType: .framework,
-                                                 buildSettings: ["SWIFT_LIBRARY_LEVEL" : "api"]) { task in
+            try await checkLibraryLevelForConfig(
+                targetType: .framework,
+                buildSettings: ["SWIFT_LIBRARY_LEVEL": "api"]
+            ) { task in
                 task.checkCommandLineDoesNotContain("-library-level")
             }
             return
         }
 
         // Explicit library-level build setting.
-        try await checkLibraryLevelForConfig(targetType: .framework,
-                                             buildSettings: ["SWIFT_LIBRARY_LEVEL" : "api"]) { task in
+        try await checkLibraryLevelForConfig(
+            targetType: .framework,
+            buildSettings: ["SWIFT_LIBRARY_LEVEL": "api"]
+        ) { task in
             task.checkCommandLineContains(["-library-level", "api"])
         }
 
         // Infer "api" from public install path.
-        try await checkLibraryLevelForConfig(targetType: .framework,
-                                             buildSettings: ["INSTALL_PATH" : "/System/Library/Frameworks/MyFramework"]) { task in
+        try await checkLibraryLevelForConfig(
+            targetType: .framework,
+            buildSettings: ["INSTALL_PATH": "/System/Library/Frameworks/MyFramework"]
+        ) { task in
             task.checkCommandLineContains(["-library-level", "api"])
         }
-        try await checkLibraryLevelForConfig(targetType: .framework,
-                                             buildSettings: ["INSTALL_PATH" : "/System/Library/SubFrameworks/MyFramework"]) { task in
+        try await checkLibraryLevelForConfig(
+            targetType: .framework,
+            buildSettings: ["INSTALL_PATH": "/System/Library/SubFrameworks/MyFramework"]
+        ) { task in
             task.checkCommandLineContains(["-library-level", "api"])
         }
 
         // Don't infer library-level from an unknown install path.
-        try await checkLibraryLevelForConfig(targetType: .framework,
-                                             buildSettings: [:]) { task in
+        try await checkLibraryLevelForConfig(
+            targetType: .framework,
+            buildSettings: [:]
+        ) { task in
             task.checkCommandLineDoesNotContain("-library-level")
         }
-        try await checkLibraryLevelForConfig(targetType: .framework,
-                                             buildSettings: ["INSTALL_PATH" : "/SomeOtherApp/MyFramework"]) { task in
+        try await checkLibraryLevelForConfig(
+            targetType: .framework,
+            buildSettings: ["INSTALL_PATH": "/SomeOtherApp/MyFramework"]
+        ) { task in
             task.checkCommandLineDoesNotContain("-library-level")
         }
 
         // Don't infer library-level for a non-framework.
-        try await checkLibraryLevelForConfig(targetType: .application,
-                                             buildSettings: ["INSTALL_PATH" : "/System/Library/Frameworks/MyFramework"]) { task in
+        try await checkLibraryLevelForConfig(
+            targetType: .application,
+            buildSettings: ["INSTALL_PATH": "/System/Library/Frameworks/MyFramework"]
+        ) { task in
             task.checkCommandLineDoesNotContain("-library-level")
         }
     }
@@ -3693,29 +4096,36 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("File1.swift"),
                         TestFile("File2.swift"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Tool",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "Tool",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "Tool",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
                                 TestBuildFile("File1.swift"),
                                 TestBuildFile("File2.swift"),
-                            ]),
-                        ]),
-                ])
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .host) { results in
@@ -3735,37 +4145,46 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    private func checkLibraryLevelForConfig(targetType: TestStandardTarget.TargetType,
-                                            buildSettings: [String:String],
-                                            body: (any PlannedTask) -> Void) async throws {
+    private func checkLibraryLevelForConfig(
+        targetType: TestStandardTarget.TargetType,
+        buildSettings: [String: String],
+        body: (any PlannedTask) -> Void
+    ) async throws {
         try await withTemporaryDirectory { tmpDir in
             let srcRoot = tmpDir.join("srcroot")
             let testProject = try await TestProject(
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: targetType,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "ProductName",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                            ].addingContents(of: buildSettings)),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "ProductName",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ].addingContents(of: buildSettings)
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
@@ -3784,31 +4203,38 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "ProductName",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "ProductName",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION":"YES"]), runDestination: .macOS) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "YES"]), runDestination: .macOS) { results in
                 results.checkTarget("TargetName") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineContains(["-validate-clang-modules-once", "-clang-build-session-file"])
@@ -3816,7 +4242,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 }
             }
 
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION":"NO"]), runDestination: .macOS) { results in
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO"]), runDestination: .macOS) { results in
                 results.checkTarget("TargetName") { target in
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineDoesNotContain("-validate-clang-modules-once")
@@ -3835,28 +4261,35 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "ProductName",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "ProductName",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(runDestination: .macOS) { results in
@@ -3879,36 +4312,43 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
-        @Test(.requireSDKs(.macOS))
-        func workingDirectoryOverride() async throws {
+    @Test(.requireSDKs(.macOS))
+    func workingDirectoryOverride() async throws {
         try await withTemporaryDirectory { tmpDir in
             let srcRoot = tmpDir.join("srcroot")
             let testProject = try await TestProject(
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "ProductName",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "ProductName",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(runDestination: .macOS) { results in
@@ -3933,37 +4373,46 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.macOS))
     func userModuleVersion() async throws {
-        func checkUserModuleVersionForConfig(targetType: TestStandardTarget.TargetType,
-                                             buildSettings: [String:String],
-                                             body: (any PlannedTask) -> Void) async throws {
+        func checkUserModuleVersionForConfig(
+            targetType: TestStandardTarget.TargetType,
+            buildSettings: [String: String],
+            body: (any PlannedTask) -> Void
+        ) async throws {
             try await withTemporaryDirectory { tmpDir in
                 let srcRoot = tmpDir.join("srcroot")
                 let testProject = try await TestProject(
                     "ProjectName",
                     sourceRoot: srcRoot,
                     groupTree: TestGroup(
-                        "SomeFiles", path: "Sources",
+                        "SomeFiles",
+                        path: "Sources",
                         children: [
-                            TestFile("File1.swift"),
-                        ]),
+                            TestFile("File1.swift")
+                        ]
+                    ),
                     targets: [
                         TestStandardTarget(
                             "TargetName",
                             type: targetType,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [
-                                    "GENERATE_INFOPLIST_FILE": "YES",
-                                    "PRODUCT_NAME": "ProductName",
-                                    "SWIFT_EXEC": swiftCompilerPath.str,
-                                    "SWIFT_VERSION": swiftVersion,
-                                ].addingContents(of: buildSettings)),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "GENERATE_INFOPLIST_FILE": "YES",
+                                        "PRODUCT_NAME": "ProductName",
+                                        "SWIFT_EXEC": swiftCompilerPath.str,
+                                        "SWIFT_VERSION": swiftVersion,
+                                    ].addingContents(of: buildSettings)
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    TestBuildFile("File1.swift"),
-                                ]),
-                            ])
-                    ])
+                                    TestBuildFile("File1.swift")
+                                ])
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await TaskConstructionTester(getCore(), testProject)
                 await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
@@ -3974,24 +4423,34 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        try await checkUserModuleVersionForConfig(targetType: .framework,
-                                                  buildSettings: [:]) { task in
+        try await checkUserModuleVersionForConfig(
+            targetType: .framework,
+            buildSettings: [:]
+        ) { task in
             task.checkCommandLineDoesNotContain("-user-module-version")
         }
 
-        try await checkUserModuleVersionForConfig(targetType: .framework,
-                                                  buildSettings: ["SWIFT_USER_MODULE_VERSION": ""]) { task in
+        try await checkUserModuleVersionForConfig(
+            targetType: .framework,
+            buildSettings: ["SWIFT_USER_MODULE_VERSION": ""]
+        ) { task in
             task.checkCommandLineDoesNotContain("-user-module-version")
         }
 
-        try await checkUserModuleVersionForConfig(targetType: .framework,
-                                                  buildSettings: ["SWIFT_USER_MODULE_VERSION": "22"]) { task in
+        try await checkUserModuleVersionForConfig(
+            targetType: .framework,
+            buildSettings: ["SWIFT_USER_MODULE_VERSION": "22"]
+        ) { task in
             task.checkCommandLineContains(["-user-module-version", "22"])
         }
 
-        try await checkUserModuleVersionForConfig(targetType: .framework,
-                                                  buildSettings: ["SWIFT_USER_MODULE_VERSION": "22",
-                                                                  "OTHER_SWIFT_FLAGS": "-user-module-version 42"]) { task in
+        try await checkUserModuleVersionForConfig(
+            targetType: .framework,
+            buildSettings: [
+                "SWIFT_USER_MODULE_VERSION": "22",
+                "OTHER_SWIFT_FLAGS": "-user-module-version 42",
+            ]
+        ) { task in
             task.checkCommandLineContains(["-user-module-version", "42", "-user-module-version", "22"])
         }
     }
@@ -3999,8 +4458,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func swiftTakesCxxFlagsIfCxxInteropEnabled() async throws {
 
-        func setupInteropTest(_ tmpDir: Path, enableInterop: Bool,
-                              cxxLangStandard: String = "gnu++20") async throws -> TaskConstructionTester {
+        func setupInteropTest(
+            _ tmpDir: Path,
+            enableInterop: Bool,
+            cxxLangStandard: String = "gnu++20"
+        ) async throws -> TaskConstructionTester {
             let testProject = try await TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
@@ -4008,26 +4470,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile("source.cpp")
-                    ]),
+                        TestFile("source.cpp"),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
-                        "testFramework", type: .framework,
+                        "testFramework",
+                        type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                                "SWIFT_OBJC_INTEROP_MODE": enableInterop ? "objcxx" : "objc",
-                                "CLANG_CXX_LANGUAGE_STANDARD": cxxLangStandard
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "SWIFT_OBJC_INTEROP_MODE": enableInterop ? "objcxx" : "objc",
+                                    "CLANG_CXX_LANGUAGE_STANDARD": cxxLangStandard,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["source.swift", "source.cpp"])
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             return tester
         }
@@ -4076,8 +4544,10 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func enableHardeningInSwift() async throws {
 
-        func setupHardeningTest(_ tmpDir: Path,
-                              hardeningMode: String) async throws -> TaskConstructionTester {
+        func setupHardeningTest(
+            _ tmpDir: Path,
+            hardeningMode: String
+        ) async throws -> TaskConstructionTester {
             let testProject = try await TestProject(
                 "TestProject",
                 sourceRoot: tmpDir,
@@ -4085,25 +4555,31 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile("source.cpp")
-                    ]),
+                        TestFile("source.cpp"),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
-                        "testFramework", type: .framework,
+                        "testFramework",
+                        type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SWIFT_VERSION": swiftVersion,
-                                "CLANG_CXX_STANDARD_LIBRARY_HARDENING": hardeningMode
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "CLANG_CXX_STANDARD_LIBRARY_HARDENING": hardeningMode,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["source.swift", "source.cpp"])
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             return tester
         }
@@ -4175,20 +4651,25 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "Test",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("File2.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "LIBTOOL": libtoolPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "LIBTOOL": libtoolPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -4196,20 +4677,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File2.c")]),
-                        TestFrameworksBuildPhase(["libStaticLib.a"])
-                    ], dependencies: ["StaticLib"]),
+                        TestFrameworksBuildPhase(["libStaticLib.a"]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
                 TestStandardTarget(
                     "StaticLib",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_OBJC_INTEROP_MODE": "objcxx"
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_OBJC_INTEROP_MODE": "objcxx"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("File1.swift")])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -4231,26 +4719,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "CODE_SIGN_IDENTITY": "",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_UPCOMING_FEATURE_CONCISE_MAGIC_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "CODE_SIGN_IDENTITY": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_VERSION": "5.0"]), runDestination: .macOS) { results in
@@ -4282,26 +4776,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "CODE_SIGN_IDENTITY": "",
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "CODE_SIGN_IDENTITY": "",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(
@@ -4326,7 +4826,6 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 }
             }
 
-
         }
     }
 
@@ -4339,26 +4838,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "CODE_SIGN_IDENTITY": "",
-                                "SWIFT_VERSION": swiftVersion,
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "CODE_SIGN_IDENTITY": "",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["SWIFT_ENABLE_LAYOUT_STRING_VALUE_WITNESSES": "NO"]), runDestination: .macOS) { results in
@@ -4387,38 +4892,46 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.host))
     func nonConformantPathsCauseDiagnostics() async throws {
         let destination: RunDestinationInfo = .host
-        let testFilename = (destination == .windows) ? "main\t\n.swift": "main\u{0}.swift"
+        let testFilename = (destination == .windows) ? "main\t\n.swift" : "main\u{0}.swift"
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile(testFilename),
-                ]),
+                    TestFile(testFilename)
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Exec", type: .commandLineTool,
+                    "Exec",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                "SWIFT_VERSION": swiftVersion,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile(testFilename),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile(testFilename)
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .host) { results in
             results.checkError(.regex(#/Input .* is non-conformant to path conventions on this platform/#))
@@ -4436,26 +4949,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "SWIFT_WARNINGS_AS_WARNINGS_GROUPS": "Unsafe DeprecatedDeclaration",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SDKROOT": "$(HOST_PLATFORM)",
-                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_WARNINGS_AS_WARNINGS_GROUPS": "Unsafe DeprecatedDeclaration",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -4464,7 +4983,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineContains([
                             "-Wwarning", "Unsafe",
-                            "-Wwarning", "DeprecatedDeclaration"
+                            "-Wwarning", "DeprecatedDeclaration",
                         ])
                     }
                 }
@@ -4481,26 +5000,32 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("File1.swift"),
-                    ]),
+                        TestFile("File1.swift")
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "TargetName",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "SWIFT_WARNINGS_AS_ERRORS_GROUPS": "UnknownWarningGroup PreconcurrencyImport",
-                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                "SDKROOT": "$(HOST_PLATFORM)",
-                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_WARNINGS_AS_ERRORS_GROUPS": "UnknownWarningGroup PreconcurrencyImport",
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("File1.swift"),
-                            ]),
-                        ])
-                ])
+                                TestBuildFile("File1.swift")
+                            ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -4509,7 +5034,7 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
                         task.checkCommandLineContains([
                             "-Werror", "UnknownWarningGroup",
-                            "-Werror","PreconcurrencyImport"
+                            "-Werror", "PreconcurrencyImport",
                         ])
                     }
                 }
@@ -4527,7 +5052,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("File1.swift")
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Test",
@@ -4541,15 +5067,16 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                     "COMPILER_INDEX_STORE_ENABLE": "YES",
                                     "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
                                     "INDEX_STORE_COMPRESS": "YES",
-                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES"
+                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                 ]
-                            ),
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["File1.swift"]),
+                            TestSourcesBuildPhase(["File1.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -4583,7 +5110,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("File1.swift")
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Test",
@@ -4597,15 +5125,16 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                     "COMPILER_INDEX_STORE_ENABLE": "NO",
                                     "INDEX_DATA_STORE_DIR": tmpDir.join("index").str,
                                     "INDEX_STORE_COMPRESS": "YES",
-                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES"
+                                    "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                 ]
-                            ),
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["File1.swift"]),
+                            TestSourcesBuildPhase(["File1.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)

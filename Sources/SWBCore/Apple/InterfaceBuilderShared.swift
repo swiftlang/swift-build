@@ -22,51 +22,58 @@ extension SDKVariant {
 
         // Special case / optimization: by default, don't include iPad assets for Mac Catalyst apps/appexts deploying to 14.0+ if they include Mac assets
         return skipIt
-        || (name == MacCatalystInfo.sdkVariantName
-            && productType?.onlyPreferredAssets == true
-            && ((try? Version(scope.evaluate(BuiltinMacros.IPHONEOS_DEPLOYMENT_TARGET))) ?? Version()) >= Version(14)
-            && targetDeviceName == "ipad"
-            && targetDeviceIdentifierStrings.contains("6"))
+            || (name == MacCatalystInfo.sdkVariantName
+                && productType?.onlyPreferredAssets == true
+                && ((try? Version(scope.evaluate(BuiltinMacros.IPHONEOS_DEPLOYMENT_TARGET))) ?? Version()) >= Version(14)
+                && targetDeviceName == "ipad"
+                && targetDeviceIdentifierStrings.contains("6"))
     }
 
     public func evaluateTargetedDeviceFamilyBuildSetting(_ scope: MacroEvaluationScope, _ productType: ProductTypeSpec?) -> (filteredDeviceIdentifiers: Set<Int>, effectiveDeviceIdentifiers: Set<Int>, effectiveDeviceNames: [String], unexpectedValues: [String]) {
         var unexpectedValues = [String]()
 
         // int values, filtered to ones supported by the current platform
-        let filteredDeviceIdentifiers = Set(scope.targetedDeviceFamily.sorted().compactMap { string -> Int? in
-            guard !string.isEmpty else { return nil }
-            if let int = Int(string), int != 0 {
-                // Platforms with an explicit target device name don't use identifiers at all
-                if deviceFamilies.explicitTargetDeviceName != nil {
-                    return nil
-                }
-
-                // Only add this value to the list if it's actually supported by this platform.
-                // That is, we filter out values not associated with the current platform in order to
-                // allow TARGETED_DEVICE_FAMILY to contain all possible values in cross platform targets.
-                if deviceFamilies.targetDeviceIdentifiers.contains(int) {
-                    if let targetDeviceName = deviceFamilies.targetDeviceName(for: int), !targetDeviceName.isEmpty, shouldSkip(targetDeviceName: targetDeviceName, productType: productType, in: scope, usingDefaultTargetDeviceIdentifiers: false) {
+        let filteredDeviceIdentifiers = Set(
+            scope.targetedDeviceFamily.sorted().compactMap { string -> Int? in
+                guard !string.isEmpty else { return nil }
+                if let int = Int(string), int != 0 {
+                    // Platforms with an explicit target device name don't use identifiers at all
+                    if deviceFamilies.explicitTargetDeviceName != nil {
                         return nil
                     }
 
-                    return int
-                }
+                    // Only add this value to the list if it's actually supported by this platform.
+                    // That is, we filter out values not associated with the current platform in order to
+                    // allow TARGETED_DEVICE_FAMILY to contain all possible values in cross platform targets.
+                    if deviceFamilies.targetDeviceIdentifiers.contains(int) {
+                        if let targetDeviceName = deviceFamilies.targetDeviceName(for: int), !targetDeviceName.isEmpty, shouldSkip(targetDeviceName: targetDeviceName, productType: productType, in: scope, usingDefaultTargetDeviceIdentifiers: false) {
+                            return nil
+                        }
 
-                return nil
-            } else {
-                unexpectedValues.append(string)
-                return nil
+                        return int
+                    }
+
+                    return nil
+                } else {
+                    unexpectedValues.append(string)
+                    return nil
+                }
             }
-        })
+        )
 
         // int values we're actually going to use (if we got no values compatible, we use the default set)
-        let effectiveDeviceIdentifiers = !filteredDeviceIdentifiers.isEmpty ? filteredDeviceIdentifiers : Set(deviceFamilies.targetDeviceIdentifiers.compactMap { int -> Int? in
-            // perform any shouldSkip filtering of values from the default deviceFamilies.targetDeviceIdentifiers set
-            if let targetDeviceName = deviceFamilies.targetDeviceName(for: int), !targetDeviceName.isEmpty, shouldSkip(targetDeviceName: targetDeviceName, productType: productType, in: scope, usingDefaultTargetDeviceIdentifiers: true) {
-                return nil
-            }
-            return int
-        })
+        let effectiveDeviceIdentifiers =
+            !filteredDeviceIdentifiers.isEmpty
+            ? filteredDeviceIdentifiers
+            : Set(
+                deviceFamilies.targetDeviceIdentifiers.compactMap { int -> Int? in
+                    // perform any shouldSkip filtering of values from the default deviceFamilies.targetDeviceIdentifiers set
+                    if let targetDeviceName = deviceFamilies.targetDeviceName(for: int), !targetDeviceName.isEmpty, shouldSkip(targetDeviceName: targetDeviceName, productType: productType, in: scope, usingDefaultTargetDeviceIdentifiers: true) {
+                        return nil
+                    }
+                    return int
+                }
+            )
 
         // string values we're actually going to use (for platforms with an explicit name we use that, otherwise the effective IDs mapped to strings)
         let effectiveDeviceNames = { () -> [String] in

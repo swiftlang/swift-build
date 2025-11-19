@@ -40,13 +40,15 @@ struct MetalSourceFileIndexingInfo: SourceFileIndexingInfo {
 
     /// The indexing info is packaged and sent to the client in the property list format defined here.
     public var propertyListItem: PropertyListItem {
-        return .plDict([
-            "outputFilePath": .plString(outputFile.str),
-            "LanguageDialect": .plString("metal"),
-            "metalASTCommandArguments": .plArray(commandLine.map { .plString($0.asString) }),
-            "metalASTBuiltProductsDir": .plString(builtProductsDir.str),
-            "toolchains": .plArray(toolchains.map {.plString($0)})
-            ] as [String: PropertyListItem])
+        return .plDict(
+            [
+                "outputFilePath": .plString(outputFile.str),
+                "LanguageDialect": .plString("metal"),
+                "metalASTCommandArguments": .plArray(commandLine.map { .plString($0.asString) }),
+                "metalASTBuiltProductsDir": .plString(builtProductsDir.str),
+                "toolchains": .plArray(toolchains.map { .plString($0) }),
+            ] as [String: PropertyListItem]
+        )
     }
 }
 
@@ -64,11 +66,13 @@ fileprivate struct MetalIndexingPayload: Serializable, Encodable {
     let workingDir: Path
     let toolchains: [String]
 
-    init(sourceFileIndex: Int,
-         outputFileIndex: Int,
-         builtProductsDir: Path,
-         workingDir: Path,
-         toolchains: [String]) {
+    init(
+        sourceFileIndex: Int,
+        outputFileIndex: Int,
+        builtProductsDir: Path,
+        workingDir: Path,
+        toolchains: [String]
+    ) {
         self.sourceFileIndex = sourceFileIndex
         self.outputFileIndex = outputFileIndex
         self.builtProductsDir = builtProductsDir
@@ -126,7 +130,7 @@ fileprivate struct MetalTaskPayload: TaskPayload, Encodable {
     }
 }
 
-public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class MetalCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.metal"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -156,7 +160,7 @@ public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType, 
                 outputFileIndex: outputFileIndex,
                 builtProductsDir: cbc.scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR),
                 workingDir: cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR),
-                toolchains: cbc.producer.toolchains.map{ $0.identifier }
+                toolchains: cbc.producer.toolchains.map { $0.identifier }
             )
         }()
 
@@ -165,7 +169,8 @@ public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType, 
         // Create the task payload.
         let payload = MetalTaskPayload(
             serializedDiagnosticsPath: diagFilePath,
-            indexingPayload: indexingPayload)
+            indexingPayload: indexingPayload
+        )
 
         await super.constructTasks(cbc, delegate, specialArgs: [], payload: payload, commandLine: commandLine, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], toolLookup: nil)
     }
@@ -206,6 +211,6 @@ public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType, 
     override public var payloadType: (any TaskPayload.Type)? { return MetalTaskPayload.self }
 }
 
-public final class MetalLinkerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class MetalLinkerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.metal-linker"
 }

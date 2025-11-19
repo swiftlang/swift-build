@@ -26,46 +26,63 @@ fileprivate struct MacCatalystTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDirPath,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("Source.c"),
                         TestFile("Assets.xcassets"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "iphoneos",
-                        "SUPPORTS_MACCATALYST": "YES",
-                        "TARGETED_DEVICE_FAMILY": "2,6",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "iphoneos",
+                            "SUPPORTS_MACCATALYST": "YES",
+                            "TARGETED_DEVICE_FAMILY": "2,6",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Foo",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "SUPPORTS_MACCATALYST": "YES",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SUPPORTS_MACCATALYST": "YES"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["Source.c"]),
                             TestResourcesBuildPhase(["Assets.xcassets"]),
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
 
             let SRCROOT = tmpDirPath.str
             let testImagePath = Path(SRCROOT).join("Assets.xcassets/foo.imageset/test.png")
 
             let fs: any FSProxy = localFS
             try fs.write(Path(SRCROOT).join("Source.c"), contents: "int main() { return 0; }")
-            try await fs.writeAssetCatalog(Path(SRCROOT).join("Assets.xcassets"), .root, .imageSet("foo", [
-                .init(filename: testImagePath.basename, scale: 2, idiom: .universal),
-                .init(filename: testImagePath.basename, scale: 2, idiom: .ipad),
-                .init(filename: testImagePath.basename, scale: 2, idiom: .mac),
-            ]))
+            try await fs.writeAssetCatalog(
+                Path(SRCROOT).join("Assets.xcassets"),
+                .root,
+                .imageSet(
+                    "foo",
+                    [
+                        .init(filename: testImagePath.basename, scale: 2, idiom: .universal),
+                        .init(filename: testImagePath.basename, scale: 2, idiom: .ipad),
+                        .init(filename: testImagePath.basename, scale: 2, idiom: .mac),
+                    ]
+                )
+            )
             try fs.writeImage(testImagePath, width: 24, height: 24)
 
             try await withTester(testProject, fs: fs) { tester in

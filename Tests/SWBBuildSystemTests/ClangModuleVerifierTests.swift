@@ -36,19 +36,23 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                                 TestFile("Orange2.h"),
                                 TestFile("Orange3.h"),
                                 TestFile("main.m"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": archs.joined(separator: " "),
-                                "DEFINES_MODULE": "YES",
-                                "ENABLE_MODULE_VERIFIER": "YES",
-                                "MODULE_VERIFIER_KIND": "builtin",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": archs.joined(separator: " "),
+                                    "DEFINES_MODULE": "YES",
+                                    "ENABLE_MODULE_VERIFIER": "YES",
+                                    "MODULE_VERIFIER_KIND": "builtin",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -61,23 +65,33 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                                         TestBuildFile("Orange3.h", headerVisibility: .public),
                                     ]),
                                     TestSourcesBuildPhase([
-                                        "main.m",
+                                        "main.m"
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             try tester.fs.createDirectory(SRCROOT.join("Sources"), recursive: true)
-            try tester.fs.write(SRCROOT.join("Orange.h"), contents: """
-                // no include of Orange2.h -> incomplete umbrella
-                #include "Orange3.h"
-                """)
+            try tester.fs.write(
+                SRCROOT.join("Orange.h"),
+                contents: """
+                    // no include of Orange2.h -> incomplete umbrella
+                    #include "Orange3.h"
+                    """
+            )
             try tester.fs.write(SRCROOT.join("Orange2.h"), contents: "")
             try tester.fs.write(SRCROOT.join("Orange3.h"), contents: "")
-            try tester.fs.write(SRCROOT.join("main.m"), contents: """
-                #include <Orange/Orange.h>
-                """)
+            try tester.fs.write(
+                SRCROOT.join("main.m"),
+                contents: """
+                    #include <Orange/Orange.h>
+                    """
+            )
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check that the diagnostic has the source directory path.
@@ -117,20 +131,24 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                                 TestFile("Orange.h"),
                                 TestFile("Orange.defs"),
                                 TestFile("main.m"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": archs.joined(separator: " "),
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "DEFINES_MODULE": "YES",
-                                "ENABLE_MODULE_VERIFIER": "YES",
-                                "MODULE_VERIFIER_KIND": "builtin",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": archs.joined(separator: " "),
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "DEFINES_MODULE": "YES",
+                                    "ENABLE_MODULE_VERIFIER": "YES",
+                                    "MODULE_VERIFIER_KIND": "builtin",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -142,21 +160,31 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                                         TestBuildFile("Orange.defs", headerVisibility: .public),
                                     ]),
                                     TestSourcesBuildPhase([
-                                        "main.m",
+                                        "main.m"
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             try tester.fs.createDirectory(SRCROOT.join("Sources"), recursive: true)
-            try tester.fs.write(SRCROOT.join("Orange.h"), contents: """
-                #include <Orange/Orange.defs>
-                """)
+            try tester.fs.write(
+                SRCROOT.join("Orange.h"),
+                contents: """
+                    #include <Orange/Orange.defs>
+                    """
+            )
             try tester.fs.write(SRCROOT.join("Orange.defs"), contents: "")
-            try tester.fs.write(SRCROOT.join("main.m"), contents: """
-                #include <Orange/Orange.h>
-                """)
+            try tester.fs.write(
+                SRCROOT.join("main.m"),
+                contents: """
+                    #include <Orange/Orange.h>
+                    """
+            )
 
             // A regular build will just build the correct architecture.
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -208,25 +236,29 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                                 TestFile("Orange.h"),
                                 TestFile("Orange.defs"),
                                 TestFile("main.m"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": archs.joined(separator: " "),
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "DEFINES_MODULE": "YES",
-                                "ENABLE_MODULE_VERIFIER": "YES",
-                                "MODULE_VERIFIER_KIND": "builtin",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": archs.joined(separator: " "),
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "DEFINES_MODULE": "YES",
+                                    "ENABLE_MODULE_VERIFIER": "YES",
+                                    "MODULE_VERIFIER_KIND": "builtin",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
+                                    "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
 
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                                "OTHER_MODULE_VERIFIER_FLAGS": "-- -Rcompile-job-cache",
-                                "DSTROOT": tmpDirPath.join("dstroot").str,
-                            ]),
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "OTHER_MODULE_VERIFIER_FLAGS": "-- -Rcompile-job-cache",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -238,21 +270,31 @@ fileprivate struct ClangModuleVerifierTests: CoreBasedTests {
                                         TestBuildFile("Orange.defs", headerVisibility: .public),
                                     ]),
                                     TestSourcesBuildPhase([
-                                        "main.m",
+                                        "main.m"
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             try tester.fs.createDirectory(SRCROOT.join("Sources"), recursive: true)
-            try tester.fs.write(SRCROOT.join("Orange.h"), contents: """
-                #include <Orange/Orange.defs>
-                """)
+            try tester.fs.write(
+                SRCROOT.join("Orange.h"),
+                contents: """
+                    #include <Orange/Orange.defs>
+                    """
+            )
             try tester.fs.write(SRCROOT.join("Orange.defs"), contents: "")
-            try tester.fs.write(SRCROOT.join("main.m"), contents: """
-                #include <Orange/Orange.h>
-                """)
+            try tester.fs.write(
+                SRCROOT.join("main.m"),
+                contents: """
+                    #include <Orange/Orange.h>
+                    """
+            )
 
             // A regular build will just build the correct architecture.
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in

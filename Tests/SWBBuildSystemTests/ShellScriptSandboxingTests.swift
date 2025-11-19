@@ -62,13 +62,17 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                 TestFile("raw.txt"),
                                 TestFile("subfolder/rawFileInSubfolder.txt"),
                                 TestFile("subfolder/subsubfolder/rawFileInSubsubfolder.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "Calculate Checksum Target",
@@ -98,8 +102,12 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
                                     // Is writing to the null device allowed?
                                     TestShellScriptBuildPhase(name: "WriteToDevNull", shellPath: "/bin/bash", originalObjectID: "WriteToDevNull", contents: "echo Hello > \(Path.null.str)", inputs: [], outputs: [], alwaysOutOfDate: true),
-                                ]),
-                        ])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -206,15 +214,19 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("raw.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES"
-                            ])],
+                                TestFile("raw.txt")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "Calculate Checksum Target",
@@ -229,10 +241,14 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             cat "${SCRIPT_INPUT_FILE_0}/raw.txt" | md5 > "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
                                         inputs: ["$(SRCROOT)/myCryptoProject/"],
-                                        outputs: ["$DERIVED_FILE_DIR/checksum1.txt"]),
+                                        outputs: ["$DERIVED_FILE_DIR/checksum1.txt"]
+                                    )
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -276,7 +292,6 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
         }
     }
-
 
     // Some files are written to /tmp/raw/
     // TaskA reads /tmp/raw/ and produces /tmp/headers/
@@ -323,23 +338,29 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestGroup("raw", children: [
-                                    TestFile("libX.fake-h"),
-                                    TestFile("libY.fake-h"),
-                                    TestFile("libZ.fake-h"),
-                                ])
+                                TestGroup(
+                                    "raw",
+                                    children: [
+                                        TestFile("libX.fake-h"),
+                                        TestFile("libY.fake-h"),
+                                        TestFile("libZ.fake-h"),
+                                    ]
+                                )
                             ]
                         ),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                                "FUSE_BUILD_SCRIPT_PHASES": "YES",
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
-                                "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
-                            ])],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                    "FUSE_BUILD_SCRIPT_PHASES": "YES",
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                    "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "ALL",
@@ -366,7 +387,8 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             cat "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
                                         inputs: ["$(SHARED_DERIVED_FILE_DIR)/headers-processed/libY.fake-h"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/libY-from-TaskC.fake-h"]),
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/libY-from-TaskC.fake-h"]
+                                    )
                                 ],
                                 dependencies: ["TargetB"]
                             ),
@@ -395,7 +417,8 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             done
                                             """#,
                                         inputs: ["$(SHARED_DERIVED_FILE_DIR)/headers/"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/headers-processed/"]),
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/headers-processed/"]
+                                    )
                                 ],
                                 dependencies: ["TargetA"]
                             ),
@@ -425,11 +448,16 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
                                             cat "${SCRIPT_OUTPUT_FILE_0}"/*
                                             """#,
-                                        inputs: ["$(SRCROOT)/myCryptoProject/raw/"], outputs: ["$(SHARED_DERIVED_FILE_DIR)/headers/"]),
+                                        inputs: ["$(SRCROOT)/myCryptoProject/raw/"],
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/headers/"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, continueBuildingAfterErrors: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -551,18 +579,21 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         "myCryptoProject",
                         groupTree: TestGroup(
                             "Sources",
-                            children: [
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "NO", // We try both cases in this test
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
-                                "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
-                                "FUSE_BUILD_SCRIPT_PHASES": "YES",
-                            ])],
+                            children: []
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "NO",  // We try both cases in this test
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                    "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
+                                    "FUSE_BUILD_SCRIPT_PHASES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "ALL",
@@ -586,7 +617,8 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             cat "${SCRIPT_INPUT_FILE_0}" | tr a-z A-Z > "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
                                         inputs: ["$(SHARED_DERIVED_FILE_DIR)/out/a.txt"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/output.txt"]),
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/output.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -608,20 +640,28 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             echo "$A_DOT_TXT_PREFIX: Output from TaskAB for a.txt!" > "${SCRIPT_OUTPUT_FILE_0}"/a.txt
                                             echo "$B_DOT_TXT_PREFIX: Output from TaskAB for b.txt!" > "${SCRIPT_OUTPUT_FILE_0}"/b.txt
                                             """#,
-                                        inputs: [], outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/"]),
+                                        inputs: [],
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             for enableSandboxingInTest in ["YES", "NO"] {
-                var overriddenParameters = BuildParameters(configuration: "Debug",
-                                                           overrides: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest,
-                                                                       "A_DOT_TXT_PREFIX": "A_PREFIX",
-                                                                       "B_DOT_TXT_PREFIX": "B_PREFIX",
-                                                                      ])
+                var overriddenParameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest,
+                        "A_DOT_TXT_PREFIX": "A_PREFIX",
+                        "B_DOT_TXT_PREFIX": "B_PREFIX",
+                    ]
+                )
 
                 try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                     // Check that build succeeds
@@ -647,11 +687,14 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 }
 
                 // Change $A_DOT_TXT_PREFIX
-                overriddenParameters = BuildParameters(configuration: "Debug",
-                                                       overrides: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest,
-                                                                   "A_DOT_TXT_PREFIX": "UPDATED_A_PREFIX",
-                                                                   "B_DOT_TXT_PREFIX": "B_PREFIX",
-                                                                  ])
+                overriddenParameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest,
+                        "A_DOT_TXT_PREFIX": "UPDATED_A_PREFIX",
+                        "B_DOT_TXT_PREFIX": "B_PREFIX",
+                    ]
+                )
 
                 // Incremental build to reflect the change in environment variable
                 try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
@@ -678,11 +721,14 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 }
 
                 // Change $B_DOT_TXT_PREFIX
-                overriddenParameters = BuildParameters(configuration: "Debug",
-                                                       overrides: ["ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest,
-                                                                   "A_DOT_TXT_PREFIX": "UPDATED_A_PREFIX",
-                                                                   "B_DOT_TXT_PREFIX": "UPDATED_B_PREFIX",
-                                                                  ])
+                overriddenParameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "ENABLE_USER_SCRIPT_SANDBOXING": enableSandboxingInTest,
+                        "A_DOT_TXT_PREFIX": "UPDATED_A_PREFIX",
+                        "B_DOT_TXT_PREFIX": "UPDATED_B_PREFIX",
+                    ]
+                )
 
                 // Swift Build cannot detect ahead of time that change to B_DOT_TXT_PREFIX will have no effect on the input of TaskC
                 // In this case rescheduling TaskAB and TaskC due to change in environment variables is correct..
@@ -738,17 +784,20 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         "myCryptoProject",
                         groupTree: TestGroup(
                             "Sources",
-                            children: [
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "NO", // We test for both cases in this test
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
-                                "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
-                                "FUSE_BUILD_SCRIPT_PHASES": "YES",
-                            ])],
+                            children: []
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "NO",  // We test for both cases in this test
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                    "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
+                                    "FUSE_BUILD_SCRIPT_PHASES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "ErroneousTaskWritingToDirectoryOwnedByOtherTask",
@@ -767,7 +816,8 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             echo "Output from TaskC.. This should be blocked" > "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
                                         inputs: [],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/c.txt"]),
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/c.txt"]
+                                    ),
                                     TestShellScriptBuildPhase(
                                         name: "TaskB",
                                         shellPath: "/bin/bash",
@@ -782,7 +832,8 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             cat "${SCRIPT_INPUT_FILE_0}" | tr a-z A-Z > "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
                                         inputs: ["$(SHARED_DERIVED_FILE_DIR)/out/a.txt"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/output.txt"]),
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/output.txt"]
+                                    ),
                                     TestShellScriptBuildPhase(
                                         name: "TaskA",
                                         shellPath: "/bin/bash",
@@ -797,25 +848,37 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             echo "$A_DOT_TXT_PREFIX: Output from TaskA for a.txt!" > "${SCRIPT_OUTPUT_FILE_0}"/a.txt
                                             echo "$B_DOT_TXT_PREFIX: Output from TaskA for b.txt!" > "${SCRIPT_OUTPUT_FILE_0}"/b.txt
                                             """#,
-                                        inputs: [], outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/"]),
+                                        inputs: [],
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/"]
+                                    ),
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, continueBuildingAfterErrors: false)
 
-            let overriddenParameters = BuildParameters(configuration: "Debug",
-                                                       overrides: ["A_DOT_TXT_PREFIX": "A_PREFIX",
-                                                                   "B_DOT_TXT_PREFIX": "B_PREFIX",
-                                                                  ])
+            let overriddenParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "A_DOT_TXT_PREFIX": "A_PREFIX",
+                    "B_DOT_TXT_PREFIX": "B_PREFIX",
+                ]
+            )
 
             try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
                 // Check that build fails
                 results.checkError(
-                    .and(.prefix("Multiple commands produce"),
-                         .and(
+                    .and(
+                        .prefix("Multiple commands produce"),
+                        .and(
                             .and(.contains("TaskC"), .contains("TaskA")),
-                            .contains("c.txt"))))
+                            .contains("c.txt")
+                        )
+                    )
+                )
                 results.checkError("unable to load build file")
                 results.checkNoDiagnostics()
 
@@ -849,16 +912,19 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         "myCryptoProject",
                         groupTree: TestGroup(
                             "Sources",
-                            children: [
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
-                                "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
-                                "FUSE_BUILD_SCRIPT_PHASES": "YES",
-                            ])],
+                            children: []
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                    "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
+                                    "FUSE_BUILD_SCRIPT_PHASES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "ALL",
@@ -877,7 +943,8 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             # contents of the script are irrelevant to this test
                                             """#,
                                         inputs: ["$(SRCROOT)/out/"],
-                                        outputs: ["$(SRCROOT)/mock.txt"]),
+                                        outputs: ["$(SRCROOT)/mock.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -894,7 +961,8 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             # contents of the script are irrelevant to this test
                                             """#,
                                         inputs: [],
-                                        outputs: ["$(SRCROOT)/out/"]),
+                                        outputs: ["$(SRCROOT)/out/"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -910,21 +978,29 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             # contents of the script are irrelevant to this test
                                             """#,
                                         inputs: [],
-                                        outputs: ["$(SRCROOT)/out/"])
+                                        outputs: ["$(SRCROOT)/out/"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, continueBuildingAfterErrors: false)
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check that build fails
                 results.checkError(
-                    .and(.prefix("Multiple commands produce"),
-                         .and(
+                    .and(
+                        .prefix("Multiple commands produce"),
+                        .and(
                             .and(.contains("TaskA"), .contains("TaskB")),
-                            .contains("out/"))))
+                            .contains("out/")
+                        )
+                    )
+                )
                 results.checkWarning(.and(.prefix("duplicate output file"), .contains("Test/myCryptoProject/out")))
                 results.checkError("unable to load build file")
                 results.checkNoDiagnostics()
@@ -962,17 +1038,21 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         "myCryptoProject",
                         groupTree: TestGroup(
                             "Sources",
-                            children: [TestFile("raw.txt")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "NO", // We try both cases in this test
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
-                                "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
-                                "FUSE_BUILD_SCRIPT_PHASES": "YES",
-                            ])],
+                            children: [TestFile("raw.txt")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "NO",  // We try both cases in this test
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                    "ALLOW_DISJOINTED_DIRECTORIES_AS_DEPENDENCIES": "YES",
+                                    "FUSE_BUILD_SCRIPT_PHASES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "ALL",
@@ -994,7 +1074,9 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             set -o pipefail
                                             echo "Output from TaskB for b.txt!" > "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
-                                        inputs: [], outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/b.txt"]),
+                                        inputs: [],
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/b.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -1015,7 +1097,9 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}"
                                             cat "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
-                                        inputs: ["$(SRCROOT)/myCryptoProject/raw.txt"], outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/a.txt"]),
+                                        inputs: ["$(SRCROOT)/myCryptoProject/raw.txt"],
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/out/a.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -1037,11 +1121,15 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             cat "${SCRIPT_INPUT_FILE_0}"/* | tr a-z A-Z > "${SCRIPT_OUTPUT_FILE_0}"
                                             """#,
                                         inputs: ["$(SHARED_DERIVED_FILE_DIR)/out/"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/combine-a-and-b.txt"]),
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/combine-a-and-b.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             for enableSandboxingInTest in ["YES", "NO"] {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -1117,20 +1205,24 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("A.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES"
-                            ])],
+                                TestFile("A.txt")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "TargetWithUndeclaredInput",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredInput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredInput", contents: #"cat "$FAKE_PATH""#, inputs: [], outputs: []),
+                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredInput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredInput", contents: #"cat "$FAKE_PATH""#, inputs: [], outputs: [])
                                 ]
                             ),
                             TestAggregateTarget(
@@ -1153,13 +1245,18 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             ) &> "${DERIVED_FILE_DIR}/new-folder/log.txt"
                                             """#,
                                         inputs: [],
-                                        outputs: [ "$(DERIVED_FILE_DIR)/new-folder/",
-                                                   "$(DERIVED_FILE_DIR)/new-folder/declared.txt",
-                                                   "$(DERIVED_FILE_DIR)/new-folder/log.txt" ]
+                                        outputs: [
+                                            "$(DERIVED_FILE_DIR)/new-folder/",
+                                            "$(DERIVED_FILE_DIR)/new-folder/declared.txt",
+                                            "$(DERIVED_FILE_DIR)/new-folder/log.txt",
+                                        ]
                                     )
                                 ]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1171,8 +1268,10 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Override FAKE_PATH with testWorkspace.sourceRoot.join("aProject/A.txt")
-            let overriddenParameters = BuildParameters(configuration: "Debug",
-                                                       overrides: ["FAKE_PATH": Path(SRCROOT).join("aProject/A.txt").str])
+            let overriddenParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: ["FAKE_PATH": Path(SRCROOT).join("aProject/A.txt").str]
+            )
 
             // Note: the two user scripts are not dependent on each other.
             // We manually run each target in the test via `firstBuildRequest` and `secondBuildRequest`
@@ -1191,18 +1290,20 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                     do {
                         let path = task.workingDirectory.join("build/aProject.build/Debug/TargetWithUndeclaredOutput.build/DerivedSources/new-folder/log.txt")
                         let output = try tester.fs.read(path).asString
-                        let expectedOutput = try Regex<Substring>("""
-                        \\+ set -o errexit
-                        \\+ set -o nounset
-                        \\+ set -o pipefail
-                        \\+ echo 'Contents of the declared file'
-                        \\+ cat .*
-                        Contents of the declared file
-                        \\+ echo Non-violation
-                        \\+ echo Violation
-                        .*/undeclared.txt: Operation not permitted
-                        $
-                        """)
+                        let expectedOutput = try Regex<Substring>(
+                            """
+                            \\+ set -o errexit
+                            \\+ set -o nounset
+                            \\+ set -o pipefail
+                            \\+ echo 'Contents of the declared file'
+                            \\+ cat .*
+                            Contents of the declared file
+                            \\+ echo Non-violation
+                            \\+ echo Violation
+                            .*/undeclared.txt: Operation not permitted
+                            $
+                            """
+                        )
                         XCTAssertMatch(output, .regex(expectedOutput))
                     }
 
@@ -1233,20 +1334,24 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("A.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                                "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES"
-                            ])],
+                                TestFile("A.txt")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                    "USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "TargetWithUndeclaredInput",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredInput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredInput", contents: #"cat "$FAKE_PATH""#, inputs: [], outputs: []),
+                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredInput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredInput", contents: #"cat "$FAKE_PATH""#, inputs: [], outputs: [])
                                 ]
                             ),
                             TestAggregateTarget(
@@ -1268,13 +1373,18 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             ) &> "${DERIVED_FILE_DIR}/new-folder/log.txt"
                                             """#,
                                         inputs: [],
-                                        outputs: [ "$(DERIVED_FILE_DIR)/new-folder/",
-                                                   "$(DERIVED_FILE_DIR)/new-folder/declared.txt",
-                                                   "$(DERIVED_FILE_DIR)/new-folder/log.txt" ]
+                                        outputs: [
+                                            "$(DERIVED_FILE_DIR)/new-folder/",
+                                            "$(DERIVED_FILE_DIR)/new-folder/declared.txt",
+                                            "$(DERIVED_FILE_DIR)/new-folder/log.txt",
+                                        ]
                                     )
                                 ]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1286,8 +1396,10 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Override FAKE_PATH with testWorkspace.sourceRoot.join("aProject/A.txt")
-            let overriddenParameters = BuildParameters(configuration: "Debug",
-                                                       overrides: ["FAKE_PATH": Path(SRCROOT).join("aProject/A.txt").str])
+            let overriddenParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: ["FAKE_PATH": Path(SRCROOT).join("aProject/A.txt").str]
+            )
 
             // Note: the two user scripts are not dependent on each other.
             // We manually run each target in the test via `firstBuildRequest` and `secondBuildRequest`
@@ -1305,15 +1417,17 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("ScriptWithUndeclaredOutput"))) { task in
                     let path = task.workingDirectory.join("build/aProject.build/Debug/TargetWithUndeclaredOutput.build/DerivedSources/new-folder/log.txt")
                     let output = try tester.fs.read(path).asString
-                    let expectedOutput = try Regex<Substring>("""
-                    \\+ set -o errexit
-                    \\+ set -o nounset
-                    \\+ set -o pipefail
-                    \\+ echo 'Contents of the declared file'
-                    \\+ cat .*
-                    Contents of the declared file
-                    \\+ echo Violation
-                    """)
+                    let expectedOutput = try Regex<Substring>(
+                        """
+                        \\+ set -o errexit
+                        \\+ set -o nounset
+                        \\+ set -o pipefail
+                        \\+ echo 'Contents of the declared file'
+                        \\+ cat .*
+                        Contents of the declared file
+                        \\+ echo Violation
+                        """
+                    )
                     XCTAssertMatch(output, .regex(expectedOutput))
                     self.checkForFlakyViolations(results, #/file-write-create .*/new-folder/undeclared.txt .*/#)
                 }
@@ -1327,14 +1441,14 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
     func ensureMkdirSucceedsInDeclaredOutput() async throws {
         try await withTemporaryDirectory() { tmpDirPath async throws -> Void in
             let script = #"""
-            set -o xtrace
-            set -o errexit
-            set -o nounset
-            cd "${SRCROOT}"
-            echo "File Zero" > "${SCRIPT_OUTPUT_FILE_0}"
-            cd subFolder # Already exists because Swift Build creates ancestors of outputs before script execution
-            echo "File One" > "${SCRIPT_OUTPUT_FILE_1}"
-            """#
+                set -o xtrace
+                set -o errexit
+                set -o nounset
+                cd "${SRCROOT}"
+                echo "File Zero" > "${SCRIPT_OUTPUT_FILE_0}"
+                cd subFolder # Already exists because Swift Build creates ancestors of outputs before script execution
+                echo "File One" > "${SCRIPT_OUTPUT_FILE_1}"
+                """#
 
             let testWorkspace = TestWorkspace(
                 "Test",
@@ -1344,21 +1458,28 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         "myProjectWithPostProcessor",
                         groupTree: TestGroup(
                             "Sources",
-                            children: []),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                            children: []
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "TargetWithTwoOutputs",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "EnsureSubdirectoriesExist", shellPath: "/bin/bash", originalObjectID: "EnsureSubdirectoriesExist", contents: script, inputs: [], outputs: ["$(SRCROOT)/fileZero.txt", "$(SRCROOT)/subFolder/fileOne.txt"]),
+                                    TestShellScriptBuildPhase(name: "EnsureSubdirectoriesExist", shellPath: "/bin/bash", originalObjectID: "EnsureSubdirectoriesExist", contents: script, inputs: [], outputs: ["$(SRCROOT)/fileZero.txt", "$(SRCROOT)/subFolder/fileOne.txt"])
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1396,26 +1517,37 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                 TestFile("raw.txt"),
                                 TestFile("in.xcfilelist"),
                                 TestFile("out.xcfilelist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "CalculateChecksumTarget",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "Run My Crypto", shellPath: "/bin/bash", originalObjectID: "RunMyCrypto", contents: #"set -e; cat "${FAKE_PATH_IN}" | md5 > "${DERIVED_FILE_DIR}/checksum.txt""#,
-                                                              inputs: [],
-                                                              inputFileLists: ["$(SRCROOT)/myCryptoProject/in.xcfilelist"],
-                                                              outputs: [],
-                                                              outputFileLists: ["$(SRCROOT)/myCryptoProject/out.xcfilelist"]
-                                                             ),
+                                    TestShellScriptBuildPhase(
+                                        name: "Run My Crypto",
+                                        shellPath: "/bin/bash",
+                                        originalObjectID: "RunMyCrypto",
+                                        contents: #"set -e; cat "${FAKE_PATH_IN}" | md5 > "${DERIVED_FILE_DIR}/checksum.txt""#,
+                                        inputs: [],
+                                        inputFileLists: ["$(SRCROOT)/myCryptoProject/in.xcfilelist"],
+                                        outputs: [],
+                                        outputFileLists: ["$(SRCROOT)/myCryptoProject/out.xcfilelist"]
+                                    )
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1440,8 +1572,10 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 stream <<< "$(DERIVED_FILE_DIR)/checksum.txt\n"
             }
 
-            let overriddenParameters = BuildParameters(configuration: "Debug",
-                                                       overrides: ["FAKE_PATH_IN": Path(SRCROOT).join("myCryptoProject/raw.txt").str])
+            let overriddenParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: ["FAKE_PATH_IN": Path(SRCROOT).join("myCryptoProject/raw.txt").str]
+            )
 
             // Ensure content of checksum.txt is 8422bdbdffd21972340e63e377d9dbcf with no violation.
             try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS) { results in
@@ -1479,28 +1613,35 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("A.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                                TestFile("A.txt")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "TargetWithUndeclaredInput",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredInput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredInput", contents: #"cat "$FAKE_PATH""#, inputs: [], outputs: []),
+                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredInput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredInput", contents: #"cat "$FAKE_PATH""#, inputs: [], outputs: [])
                                 ]
                             ),
                             TestAggregateTarget(
                                 "TargetWithUndeclaredOutput",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredOutput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredOutput", contents: #"touch "${SRCROOT}/undeclared-output.txt""#, inputs: [], outputs: []),
+                                    TestShellScriptBuildPhase(name: "ScriptWithUndeclaredOutput", shellPath: "/bin/bash", originalObjectID: "ScriptWithUndeclaredOutput", contents: #"touch "${SRCROOT}/undeclared-output.txt""#, inputs: [], outputs: [])
                                 ]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1512,8 +1653,10 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
             }
 
             // Override FAKE_PATH with testWorkspace.sourceRoot.join("aProject/undeclared-input.txt")
-            let overriddenParameters = BuildParameters(configuration: "Debug",
-                                                       overrides: ["FAKE_PATH": Path(SRCROOT).join("aProject/undeclared-input.txt").str])
+            let overriddenParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: ["FAKE_PATH": Path(SRCROOT).join("aProject/undeclared-input.txt").str]
+            )
 
             let firstBuildRequest = BuildRequest(parameters: overriddenParameters, buildTargets: [BuildRequest.BuildTargetInfo(parameters: overriddenParameters, target: tester.workspace.projects[0].targets[0])], continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
@@ -1562,15 +1705,19 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("A.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                                TestFile("A.txt")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             // `BuildOperationTester::checkBuild` implicitly runs only the first target.
                             TestAggregateTarget(
@@ -1581,7 +1728,7 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                 "TargetWithDeclaredOutput",
                                 type: .application,
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "Run Me A", shellPath: "/bin/bash", originalObjectID: "RunMeA", contents: #"touch "${SCRIPT_OUTPUT_FILE_0}""#, inputs: [], outputs: ["$(SHARED_DERIVED_FILE_DIR)/A.txt"]),
+                                    TestShellScriptBuildPhase(name: "Run Me A", shellPath: "/bin/bash", originalObjectID: "RunMeA", contents: #"touch "${SCRIPT_OUTPUT_FILE_0}""#, inputs: [], outputs: ["$(SHARED_DERIVED_FILE_DIR)/A.txt"])
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -1589,11 +1736,14 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                 "TargetReadUndeclaredInputFromDeclaredOutputOfOtherTarget",
                                 type: .application,
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "ScriptReadUndeclaredInputFromDeclaredOutputOfOtherTarget", shellPath: "/bin/bash", originalObjectID: "ScriptReadUndeclaredInputFromDeclaredOutputOfOtherTarget", contents: #"cat "${SHARED_DERIVED_FILE_DIR}/A.txt""#, inputs: [], outputs: []),
+                                    TestShellScriptBuildPhase(name: "ScriptReadUndeclaredInputFromDeclaredOutputOfOtherTarget", shellPath: "/bin/bash", originalObjectID: "ScriptReadUndeclaredInputFromDeclaredOutputOfOtherTarget", contents: #"cat "${SHARED_DERIVED_FILE_DIR}/A.txt""#, inputs: [], outputs: [])
                                 ],
                                 dependencies: ["Other"]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1637,14 +1787,18 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("A.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                                TestFile("A.txt")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "ALL",
@@ -1653,17 +1807,20 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             TestAggregateTarget(
                                 "DummmyShellTargetA",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "EchoScript", shellPath: "/bin/bash", originalObjectID: "EchoScript", contents: "echo hello > \"\(aDotTxtPath)\"", inputs: [], outputs: []),
+                                    TestShellScriptBuildPhase(name: "EchoScript", shellPath: "/bin/bash", originalObjectID: "EchoScript", contents: "echo hello > \"\(aDotTxtPath)\"", inputs: [], outputs: [])
                                 ]
                             ),
                             TestAggregateTarget(
                                 "DummmyShellTargetB",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "CatScript", shellPath: "/bin/bash", originalObjectID: "CatScript", contents: #"cat "${SCRIPT_INPUT_FILE_0}""#, inputs: [aDotTxtPath], outputs: []),
+                                    TestShellScriptBuildPhase(name: "CatScript", shellPath: "/bin/bash", originalObjectID: "CatScript", contents: #"cat "${SCRIPT_INPUT_FILE_0}""#, inputs: [aDotTxtPath], outputs: [])
                                 ],
                                 dependencies: ["DummmyShellTargetA"]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1699,13 +1856,17 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                             children: [
                                 TestFile("Configs/subfolder/FeatureHiding.swift"),
                                 TestFile("Configs/subfolder/FeatureHiding.xcconfig"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "FeatureHidingTarget",
@@ -1729,10 +1890,13 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                                             """,
                                         inputs: ["$(SRCROOT)/Configs/subfolder/FeatureHiding.swift", "$(SRCROOT)/Configs/subfolder/FeatureHiding.xcconfig"],
                                         outputs: ["$DERIVED_FILE_DIR/output.txt", "$DERIVED_FILE_DIR/swift_log.txt", "$DERIVED_FILE_DIR/FeatureHiding"]
-                                    ),
+                                    )
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1741,33 +1905,33 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(Path(SRCROOT).join("Configs/subfolder/FeatureHiding.swift")) { stream in
                 let str = #"""
-                #!/usr/bin/swift
-                import Foundation
+                    #!/usr/bin/swift
+                    import Foundation
 
-                public func getcwd() -> String? {
-                    let cwd = getcwd(nil, Int(PATH_MAX))
-                    if cwd == nil {
-                       perror("getcwd")
-                       return nil
+                    public func getcwd() -> String? {
+                        let cwd = getcwd(nil, Int(PATH_MAX))
+                        if cwd == nil {
+                           perror("getcwd")
+                           return nil
+                        }
+
+                        defer { free(cwd) }
+                        guard let path = String(validatingUTF8: cwd!) else { fatalError("could not parse utf8 from getcwd") }
+                        return path
                     }
 
-                    defer { free(cwd) }
-                    guard let path = String(validatingUTF8: cwd!) else { fatalError("could not parse utf8 from getcwd") }
-                    return path
-                }
+                    print("getcwd: \(getcwd() ?? "nil")")
+                    print("FileManager.default.currentDirectoryPath: \(FileManager.default.currentDirectoryPath)")
+                    print("NSHomeDirectory: \(NSHomeDirectory())")
 
-                print("getcwd: \(getcwd() ?? "nil")")
-                print("FileManager.default.currentDirectoryPath: \(FileManager.default.currentDirectoryPath)")
-                print("NSHomeDirectory: \(NSHomeDirectory())")
-
-                let relURL = URL(fileURLWithPath: "FeatureHiding.xcconfig")
-                print("Data_contentsOf: \((try? Data(contentsOf: relURL))?.description ?? "nil")")
-                """#
+                    let relURL = URL(fileURLWithPath: "FeatureHiding.xcconfig")
+                    print("Data_contentsOf: \((try? Data(contentsOf: relURL))?.description ?? "nil")")
+                    """#
                 stream <<< str
             }
 
             try await tester.fs.writeFileContents(Path(SRCROOT).join("Configs/subfolder/FeatureHiding.xcconfig")) { stream in
-                stream <<< "The quick brown fox jumps over the lazy dog" // 43 bytes
+                stream <<< "The quick brown fox jumps over the lazy dog"  // 43 bytes
             }
 
             let overriddenParameters = BuildParameters(configuration: "Debug")
@@ -1825,26 +1989,32 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("blocked.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                                "SRCROOT": SRCROOT
-                            ])],
+                                TestFile("blocked.txt")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                    "SRCROOT": SRCROOT,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "TargetA",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "EnsureProjectDirIsBlocked", shellPath: "/bin/bash", originalObjectID: "EnsureProjectDirIsBlocked", contents: #"cat "${PROJECT_DIR}/blocked.txt""#, inputs: [], outputs: []),
+                                    TestShellScriptBuildPhase(name: "EnsureProjectDirIsBlocked", shellPath: "/bin/bash", originalObjectID: "EnsureProjectDirIsBlocked", contents: #"cat "${PROJECT_DIR}/blocked.txt""#, inputs: [], outputs: [])
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
-
 
             try tester.fs.createDirectory(Path(SRCROOT), recursive: true)
 
@@ -1857,7 +2027,6 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
         }
     }
 
-
     @Test(.requireSDKs(.macOS))
     func ensureDerivedDataIsWritable() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
@@ -1869,29 +2038,44 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         "myCryptoProject",
                         groupTree: TestGroup(
                             "Sources",
-                            children: []),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                                "MY_DERIVED_DATA_DIR": "$(DERIVED_DATA_DIR)",
-                            ])],
+                            children: []
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                    "MY_DERIVED_DATA_DIR": "$(DERIVED_DATA_DIR)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "Calculate Checksum Target",
                                 buildPhases: [
                                     // Write and read to DERIVED_DATA_DIR should be allowed
-                                    TestShellScriptBuildPhase(name: "ReadWriteToDerivedDataDir", shellPath: "/bin/bash", originalObjectID: "ReadWriteToDerivedDataDir", contents: #"""
-                (set -o xtrace
-                set -o errexit
-                set -o nounset
-                echo -n "Hello from DERIVED_DATA_DIR" > "${MY_DERIVED_DATA_DIR}/hello.txt"
-                cat "${MY_DERIVED_DATA_DIR}/hello.txt") &> "${SCRIPT_OUTPUT_FILE_0}"
-                """#, inputs: [], outputs: ["${DERIVED_FILE_DIR}/ReadWriteToDerivedDataDir.txt"], alwaysOutOfDate: true),
+                                    TestShellScriptBuildPhase(
+                                        name: "ReadWriteToDerivedDataDir",
+                                        shellPath: "/bin/bash",
+                                        originalObjectID: "ReadWriteToDerivedDataDir",
+                                        contents: #"""
+                                            (set -o xtrace
+                                            set -o errexit
+                                            set -o nounset
+                                            echo -n "Hello from DERIVED_DATA_DIR" > "${MY_DERIVED_DATA_DIR}/hello.txt"
+                                            cat "${MY_DERIVED_DATA_DIR}/hello.txt") &> "${SCRIPT_OUTPUT_FILE_0}"
+                                            """#,
+                                        inputs: [],
+                                        outputs: ["${DERIVED_FILE_DIR}/ReadWriteToDerivedDataDir.txt"],
+                                        alwaysOutOfDate: true
+                                    )
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1911,13 +2095,15 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                 try results.checkTask(.matchRuleType("PhaseScriptExecution"), .matchRuleItemPattern(.contains("WriteToDerivedDataDir"))) { task in
                     let path = task.outputPaths[0]
                     let value = try tester.fs.read(path).asString
-                    #expect(value == """
-                    + set -o errexit
-                    + set -o nounset
-                    + echo -n 'Hello from DERIVED_DATA_DIR'
-                    + cat \(derivedData.str)/hello.txt
-                    Hello from DERIVED_DATA_DIR
-                    """)
+                    #expect(
+                        value == """
+                            + set -o errexit
+                            + set -o nounset
+                            + echo -n 'Hello from DERIVED_DATA_DIR'
+                            + cat \(derivedData.str)/hello.txt
+                            Hello from DERIVED_DATA_DIR
+                            """
+                    )
                 }
             }
         }
@@ -1935,32 +2121,41 @@ fileprivate struct ShellScriptSandboxingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("raw.fake-neutral"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                            ])],
+                                TestFile("raw.fake-neutral")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Calculate Checksum Target and a Very Very Very Very Very Very Very Very Very Very Very Very Very Very Very Very Very Long Description",
                                 type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "raw.fake-neutral",
-                                    ]),
+                                        "raw.fake-neutral"
+                                    ])
                                 ],
                                 buildRules: [
-                                    TestBuildRule(filePattern: "*.fake-neutral",
-                                                  script: #"set -o errexit; cat "${SCRIPT_INPUT_FILE}" | md5 > "${SCRIPT_OUTPUT_FILE_0}""#,
-                                                  outputs: ["$(DERIVED_FILES_DIR)/$(INPUT_FILE_NAME).md5"],
-                                                  runOncePerArchitecture: false),
+                                    TestBuildRule(
+                                        filePattern: "*.fake-neutral",
+                                        script: #"set -o errexit; cat "${SCRIPT_INPUT_FILE}" | md5 > "${SCRIPT_OUTPUT_FILE_0}""#,
+                                        outputs: ["$(DERIVED_FILES_DIR)/$(INPUT_FILE_NAME).md5"],
+                                        runOncePerArchitecture: false
+                                    )
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str

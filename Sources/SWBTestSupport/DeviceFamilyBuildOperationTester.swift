@@ -44,7 +44,7 @@ extension CoreBasedTests {
                     path: "",
                     children: [
                         TestFile("Assets.xcassets"),
-                        TestFile("Info.plist")
+                        TestFile("Info.plist"),
                     ]
                 ),
                 buildConfigurations: [
@@ -54,7 +54,7 @@ extension CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CODE_SIGN_IDENTITY": "",
                             "SDKROOT": "\(destination.sdk)",
-                            "VERSIONING_SYSTEM": "apple-generic"
+                            "VERSIONING_SYSTEM": "apple-generic",
                         ]
                         .merging(sdkVariantSettings, uniquingKeysWith: { (_, new) in new })
                         .merging(deviceFamilySettings, uniquingKeysWith: { (_, new) in new })
@@ -68,7 +68,7 @@ extension CoreBasedTests {
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist",
+                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist"
                                 ]
                             )
                         ],
@@ -82,10 +82,13 @@ extension CoreBasedTests {
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
             let SRCROOT = tmpDirPath
 
-            try await tester.fs.writePlist(SRCROOT.join("Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             try await tester.fs.writeAssetCatalog(SRCROOT.join("Assets.xcassets"), .root, .appIcon("AppIcon"))
 

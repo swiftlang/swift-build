@@ -72,7 +72,7 @@ public struct MacroConfigFileDiagnostic: Sendable {
 }
 
 extension MacroConfigFileDiagnostic: Equatable {
-    public static func ==(lhs: MacroConfigFileDiagnostic, rhs: MacroConfigFileDiagnostic) -> Bool {
+    public static func == (lhs: MacroConfigFileDiagnostic, rhs: MacroConfigFileDiagnostic) -> Bool {
         if lhs.kind != rhs.kind { return false }
         if lhs.level != rhs.level { return false }
         if lhs.message != rhs.message { return false }

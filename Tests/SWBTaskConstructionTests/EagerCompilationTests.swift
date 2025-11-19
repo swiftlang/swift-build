@@ -29,87 +29,139 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
 
             return try await TestProject(
                 "aProject",
-                groupTree: TestGroup("Sources", path: "Sources", children: [
-                    TestFile("A.m"),
-                    TestFile("A.fake-data"),
-                    TestFile("B.m"),
-                    TestFile("C.m"),
-                    TestFile("D.m"),
-                    TestFile("E.h"),
-                    TestFile("E.m"),
-                    TestFile("F.m"),
-                    TestFile("F.modulemap"),
-                    TestFile("G.m"),
-                    TestFile("G.modulemap"),
-                    TestFile("H.swift"),
-                ] + allEFiles),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "EAGER_COMPILATION_REQUIRE": "true", // to verify there is no warning for targets with no scripts
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": swiftVersion,
-                        "EAGER_PARALLEL_COMPILATION_DISABLE": "YES",
-                        "TAPI_EXEC": tapiToolPath.str,
-                    ]
-                )],
+                groupTree: TestGroup(
+                    "Sources",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.m"),
+                        TestFile("A.fake-data"),
+                        TestFile("B.m"),
+                        TestFile("C.m"),
+                        TestFile("D.m"),
+                        TestFile("E.h"),
+                        TestFile("E.m"),
+                        TestFile("F.m"),
+                        TestFile("F.modulemap"),
+                        TestFile("G.m"),
+                        TestFile("G.modulemap"),
+                        TestFile("H.swift"),
+                    ] + allEFiles
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "EAGER_COMPILATION_REQUIRE": "true",  // to verify there is no warning for targets with no scripts
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "EAGER_PARALLEL_COMPILATION_DISABLE": "YES",
+                            "TAPI_EXEC": tapiToolPath.str,
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("A.m")
-                        ]),
-                        TestCopyFilesBuildPhase([TestBuildFile("A.fake-data")],
-                                                destinationSubfolder: .builtProductsDir,
-                                                destinationSubpath: "$(PUBLIC_HEADERS_FOLDER_PATH)",
-                                                onlyForDeployment: false)
-                    ], dependencies: ["E", "F", "G"]),
-                    TestStandardTarget("B", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("B.m")
-                        ])
-                    ], dependencies: ["A"]),
-                    TestStandardTarget("C", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("C.m")
-                        ])
-                    ]),
-                    TestStandardTarget("D", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("D.m")
-                        ])
-                    ], dependencies: ["B", "C"]),
-                    TestStandardTarget("E", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("E.m")]),
-                        TestCopyFilesBuildPhase([TestBuildFile("E.h", headerVisibility: .public)] + allEBuildFiles,
-                                                destinationSubfolder: .builtProductsDir,
-                                                destinationSubpath: "$(PUBLIC_HEADERS_FOLDER_PATH)",
-                                                onlyForDeployment: false),
-                    ]),
-                    TestStandardTarget("F", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("F.m")]),
-                        TestCopyFilesBuildPhase([TestBuildFile("F.modulemap")],
-                                                destinationSubfolder: .builtProductsDir,
-                                                destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Modules",
-                                                onlyForDeployment: false),
-                    ]),
-                    TestStandardTarget("G", type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                        "MODULEMAP_FILE_CONTENTS": "foo",
-                                       ])],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([TestBuildFile("G.m")]),
-                                       ]
-                                      ),
-                    TestStandardTarget("H", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("H.swift")
-                        ])
-                    ], dependencies: ["E", "F", "G"]),
-                ])
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("A.m")
+                            ]),
+                            TestCopyFilesBuildPhase(
+                                [TestBuildFile("A.fake-data")],
+                                destinationSubfolder: .builtProductsDir,
+                                destinationSubpath: "$(PUBLIC_HEADERS_FOLDER_PATH)",
+                                onlyForDeployment: false
+                            ),
+                        ],
+                        dependencies: ["E", "F", "G"]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("B.m")
+                            ])
+                        ],
+                        dependencies: ["A"]
+                    ),
+                    TestStandardTarget(
+                        "C",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("C.m")
+                            ])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "D",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("D.m")
+                            ])
+                        ],
+                        dependencies: ["B", "C"]
+                    ),
+                    TestStandardTarget(
+                        "E",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("E.m")]),
+                            TestCopyFilesBuildPhase(
+                                [TestBuildFile("E.h", headerVisibility: .public)] + allEBuildFiles,
+                                destinationSubfolder: .builtProductsDir,
+                                destinationSubpath: "$(PUBLIC_HEADERS_FOLDER_PATH)",
+                                onlyForDeployment: false
+                            ),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "F",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("F.m")]),
+                            TestCopyFilesBuildPhase(
+                                [TestBuildFile("F.modulemap")],
+                                destinationSubfolder: .builtProductsDir,
+                                destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Modules",
+                                onlyForDeployment: false
+                            ),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "G",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DEFINES_MODULE": "YES",
+                                    "MODULEMAP_FILE_CONTENTS": "foo",
+                                ]
+                            )
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("G.m")])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "H",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("H.swift")
+                            ])
+                        ],
+                        dependencies: ["E", "F", "G"]
+                    ),
+                ]
+            )
         }
     }
 
@@ -122,7 +174,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let checks = [
             ("B", ["A"]),
             ("C", ["B"]),
-            ("D", ["A", "B", "C"])
+            ("D", ["A", "B", "C"]),
         ]
 
         await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
@@ -227,27 +279,43 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationWithScriptsAfterCompiling() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                    TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "true", alwaysOutOfDate: true)
-                ]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")])
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")]),
+                        TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "true", alwaysOutOfDate: true),
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -273,27 +341,43 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationWithScriptsBeforeCompiling() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                ]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestShellScriptBuildPhase(name: "B Script", originalObjectID: "B Script", contents: "true", alwaysOutOfDate: true),
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")])
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestShellScriptBuildPhase(name: "B Script", originalObjectID: "B Script", contents: "true", alwaysOutOfDate: true),
+                        TestSourcesBuildPhase([TestBuildFile("B.m")]),
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -323,30 +407,46 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationWithScriptsAllowed() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "EAGER_COMPILATION_ALLOW_SCRIPTS": "true",
-                    "EAGER_COMPILATION_REQUIRE": "true",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "EAGER_COMPILATION_ALLOW_SCRIPTS": "true",
+                        "EAGER_COMPILATION_REQUIRE": "true",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                    TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "true", alwaysOutOfDate: true),
-                ]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestShellScriptBuildPhase(name: "B Script", originalObjectID: "B Script", contents: "true", alwaysOutOfDate: true),
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")]),
+                        TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "true", alwaysOutOfDate: true),
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestShellScriptBuildPhase(name: "B Script", originalObjectID: "B Script", contents: "true", alwaysOutOfDate: true),
+                        TestSourcesBuildPhase([TestBuildFile("B.m")]),
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -371,29 +471,45 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationBasicsWithSandboxedScripts() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                    TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "true", alwaysOutOfDate: true),
-                ]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestShellScriptBuildPhase(name: "B Script", originalObjectID: "B Script", contents: "true", alwaysOutOfDate: true),
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")]),
+                        TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "true", alwaysOutOfDate: true),
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestShellScriptBuildPhase(name: "B Script", originalObjectID: "B Script", contents: "true", alwaysOutOfDate: true),
+                        TestSourcesBuildPhase([TestBuildFile("B.m")]),
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -418,26 +534,41 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func sandboxingDoesNotImplyEagerCompilationForAggregateTargetScripts() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m")
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                    ]
+                )
+            ],
             targets: [
-                TestAggregateTarget("Aggregate", buildPhases: [
-                    TestShellScriptBuildPhase(name: "Script", originalObjectID: "Script", contents: "true", alwaysOutOfDate: true),
-                ], dependencies: ["A"]),
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                ]),
-            ])
+                TestAggregateTarget(
+                    "Aggregate",
+                    buildPhases: [
+                        TestShellScriptBuildPhase(name: "Script", originalObjectID: "Script", contents: "true", alwaysOutOfDate: true)
+                    ],
+                    dependencies: ["A"]
+                ),
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -455,28 +586,44 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func headerGeneratingShellScriptsAreCompilationRequirements() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                    TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "touch /foo/bar.h", outputs: ["/foo/bar.h"], alwaysOutOfDate: false),
-                ]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")]),
+                        TestShellScriptBuildPhase(name: "A Script", originalObjectID: "A Script", contents: "touch /foo/bar.h", outputs: ["/foo/bar.h"], alwaysOutOfDate: false),
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -497,30 +644,52 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         let core = try await getCore()
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .application, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                ]),
-                TestStandardTarget("B", type: .unitTest, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/A.app/Contents/MacOS/A",
-                    "BUNDLE_LOADER": "$(TEST_HOST)",
-                ])], buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")])
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .unitTest,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/A.app/Contents/MacOS/A",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try TaskConstructionTester(core, testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -566,28 +735,50 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationWithDeploymentLocation() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                ]),
-                TestStandardTarget("B", type: .framework, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                    "DEPLOYMENT_LOCATION": "true",
-                ])], buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")])
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEPLOYMENT_LOCATION": "true"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -614,33 +805,61 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationRequiredWithDeploymentLocationAndNestedInstallPaths() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "EAGER_COMPILATION_REQUIRE": "true",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "EAGER_COMPILATION_REQUIRE": "true",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                    "DEPLOYMENT_LOCATION": "true",
-                    "INSTALL_PATH": "/Library/Frameworks"
-                ])], buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                ]),
-                TestStandardTarget("B", type: .framework, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                    "DEPLOYMENT_LOCATION": "true",
-                    "INSTALL_PATH": "/Library/Frameworks/A.framework/Versions/A/Frameworks"
-                ])], buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEPLOYMENT_LOCATION": "true",
+                                "INSTALL_PATH": "/Library/Frameworks",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")])
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEPLOYMENT_LOCATION": "true",
+                                "INSTALL_PATH": "/Library/Frameworks/A.framework/Versions/A/Frameworks",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -656,32 +875,59 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationDisabledByTarget() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-                TestFile("C.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
+                    TestFile("C.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                ]),
-                TestStandardTarget("B", type: .framework, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                    "EAGER_COMPILATION_DISABLE": "true",
-                ])], buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-                TestStandardTarget("C", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("C.m")]),
-                ], dependencies: ["B"])
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")])
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "EAGER_COMPILATION_DISABLE": "true"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+                TestStandardTarget(
+                    "C",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("C.m")])
+                    ],
+                    dependencies: ["B"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -717,29 +963,51 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationDisabledAndRequiredByTarget() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "EAGER_COMPILATION_REQUIRE": "true",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "EAGER_COMPILATION_REQUIRE": "true",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                ]),
-                TestStandardTarget("B", type: .framework, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                    "EAGER_COMPILATION_DISABLE": "true",
-                ])], buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")])
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "EAGER_COMPILATION_DISABLE": "true"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -755,28 +1023,44 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func eagerCompilationRequiredByTarget() async throws {
         let testProject = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "EAGER_COMPILATION_REQUIRE": "true",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "EAGER_COMPILATION_REQUIRE": "true",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("A.m")]),
-                    TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "abcd", contents: "echo foo", alwaysOutOfDate: true),
-                ]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.m")]),
-                ], dependencies: ["A"]),
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("A.m")]),
+                        TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "abcd", contents: "echo foo", alwaysOutOfDate: true),
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.m")])
+                    ],
+                    dependencies: ["A"]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let parameters = BuildParameters(configuration: "Debug")
@@ -799,23 +1083,36 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                     TestFile("A.h"),
                     TestFile("A.c"),
                     TestFile("B.c"),
-                ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "ALWAYS_SEARCH_USER_PATHS": "false",
-                    "EAGER_COMPILATION_REQUIRE": "YES",
-                ])],
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "EAGER_COMPILATION_REQUIRE": "YES",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
-                    TestSourcesBuildPhase([TestBuildFile("A.c")]),
-                ]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([TestBuildFile("B.c")]),
-                ], dependencies: ["A"]),
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
+                        TestSourcesBuildPhase([TestBuildFile("A.c")]),
+                    ]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([TestBuildFile("B.c")])
+                    ],
+                    dependencies: ["A"]
+                ),
             ]
         )
 
@@ -856,23 +1153,36 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                     children: [
                         TestFile("A.c"),
                         TestFile("B.c"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "EAGER_COMPILATION_REQUIRE": "NO",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "EAGER_COMPILATION_REQUIRE": "NO",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A", type: .framework, buildPhases: [
-                        TestShellScriptBuildPhase(name: "Run Script Phase", originalObjectID: "abc", contents: "echo \"Hello world\"", inputs: [], outputs: [sourceRoot.join("Sources").join("A.h").str]),
-                        TestSourcesBuildPhase([TestBuildFile("A.c")])
-                    ]),
-                    TestStandardTarget("B", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("B.c")])
-                    ], dependencies: ["A"]),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildPhases: [
+                            TestShellScriptBuildPhase(name: "Run Script Phase", originalObjectID: "abc", contents: "echo \"Hello world\"", inputs: [], outputs: [sourceRoot.join("Sources").join("A.h").str]),
+                            TestSourcesBuildPhase([TestBuildFile("A.c")]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("B.c")])
+                        ],
+                        dependencies: ["A"]
+                    ),
                 ]
             )
 
@@ -922,23 +1232,36 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         TestFile("A.swift"),
                         TestFile("B.h"),
                         TestFile("B.c"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.1",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.1",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("A.c"), TestBuildFile("A.swift")])
-                    ]),
-                    TestStandardTarget("B", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("B.c")])
-                    ], dependencies: ["A"]),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("A.c"), TestBuildFile("A.swift")])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("B.c")])
+                        ],
+                        dependencies: ["A"]
+                    ),
                 ]
             )
 
@@ -994,29 +1317,52 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         TestFile("D.swift"),
                         TestFile("D.h"),
                         TestFile("D.c"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.1",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.1",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("A.c"), TestBuildFile("A.swift")])
-                    ]),
-                    TestStandardTarget("B", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("B.c")])
-                    ], dependencies: ["A"]),
-                    TestStandardTarget("C", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("C.c")])
-                    ], dependencies: ["A"]),
-                    TestStandardTarget("D", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("D.c"), TestBuildFile("D.swift")])
-                    ], dependencies: ["C"]),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("A.c"), TestBuildFile("A.swift")])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("B.c")])
+                        ],
+                        dependencies: ["A"]
+                    ),
+                    TestStandardTarget(
+                        "C",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("C.c")])
+                        ],
+                        dependencies: ["A"]
+                    ),
+                    TestStandardTarget(
+                        "D",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("D.c"), TestBuildFile("D.swift")])
+                        ],
+                        dependencies: ["C"]
+                    ),
                 ]
             )
 
@@ -1051,7 +1397,7 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                     .gateTask("A", suffix: "begin-compiling"),
                     .emitSwiftCompilationRequirements("A"),
                     .compileC("A", fileName: "A.c"),
-                    .gateTask("A", suffix: "end")
+                    .gateTask("A", suffix: "end"),
                 ])
 
                 // target A module ready
@@ -1091,12 +1437,16 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                 ])
 
                 // compiling should be done in parallel
-                noDependency(from: .compileC("B", fileName: "B.c"),
-                             to: .compileC("A", fileName: "A.c"))
+                noDependency(
+                    from: .compileC("B", fileName: "B.c"),
+                    to: .compileC("A", fileName: "A.c")
+                )
 
                 // modules ready should not depend on compiling C
-                noDependency(from: .gateTask("A", suffix: "modules-ready"),
-                             to: .compileC("A", fileName: "A.c"))
+                noDependency(
+                    from: .gateTask("A", suffix: "modules-ready"),
+                    to: .compileC("A", fileName: "A.c")
+                )
             }
         }
     }
@@ -1118,31 +1468,47 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         TestFile("A.pch"),
                         TestFile("B.c"),
                         TestFile("B.pch"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                                    buildSettings: ["GCC_PREFIX_HEADER": "Sources/A.pch"])],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([TestBuildFile("A.c")])
-                                       ]),
-                    TestStandardTarget("B",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                                    buildSettings: ["GCC_PREFIX_HEADER": "Sources/B.pch"])],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([TestBuildFile("B.c")])
-                                       ],
-                                       dependencies: ["A"]),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: ["GCC_PREFIX_HEADER": "Sources/A.pch"]
+                            )
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("A.c")])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: ["GCC_PREFIX_HEADER": "Sources/B.pch"]
+                            )
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([TestBuildFile("B.c")])
+                        ],
+                        dependencies: ["A"]
+                    ),
                 ]
             )
 
@@ -1192,61 +1558,72 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         TestFile("B.swift"),
                         TestFile("C.h"),
                         TestFile("C.m"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.2",
-                        "INTENTS_CODEGEN_LANGUAGE": "Objective-C",
-                        "COREML_CODEGEN_LANGUAGE": "Objective-C",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.2",
+                            "INTENTS_CODEGEN_LANGUAGE": "Objective-C",
+                            "COREML_CODEGEN_LANGUAGE": "Objective-C",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("CodegenFramework",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestHeadersBuildPhase([]),
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("A.intentdefinition", intentsCodegenVisibility: .public),
-                                            TestBuildFile("A.mlmodel", intentsCodegenVisibility: .public),
-                                        ])
-                                       ]
-                                      ),
-                    TestStandardTarget("A",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("A.c"),
-                                            TestBuildFile("A.swift"),
-                                            TestBuildFile("A.intentdefinition", intentsCodegenVisibility: .public),
-                                        ])
-                                       ]),
-                    TestStandardTarget("B",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("B.c"),
-                                            TestBuildFile("B.swift"),
-                                        ])
-                                       ],
-                                       dependencies: ["A"]),
-                    TestStandardTarget("C",
-                                       type: .applicationExtension,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("C.m"),
-                                        ])
-                                       ],
-                                       dependencies: ["CodegenFramework"]),
+                    TestStandardTarget(
+                        "CodegenFramework",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestHeadersBuildPhase([]),
+                            TestSourcesBuildPhase([
+                                TestBuildFile("A.intentdefinition", intentsCodegenVisibility: .public),
+                                TestBuildFile("A.mlmodel", intentsCodegenVisibility: .public),
+                            ]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
+                            TestSourcesBuildPhase([
+                                TestBuildFile("A.c"),
+                                TestBuildFile("A.swift"),
+                                TestBuildFile("A.intentdefinition", intentsCodegenVisibility: .public),
+                            ]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("B.c"),
+                                TestBuildFile("B.swift"),
+                            ])
+                        ],
+                        dependencies: ["A"]
+                    ),
+                    TestStandardTarget(
+                        "C",
+                        type: .applicationExtension,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("C.m")
+                            ])
+                        ],
+                        dependencies: ["CodegenFramework"]
+                    ),
                 ]
             )
 
@@ -1256,14 +1633,15 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
 
             final class Delegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                     switch commandLine.first.map(Path.init)?.basename {
                     case "intentbuilderc"?:
                         do {
                             if let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
-                               let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),
-                               let language = commandLine.elementAfterElements(["-language"]),
-                               let visibility = commandLine.elementAfterElements(["-visibility"]) {
+                                let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),
+                                let language = commandLine.elementAfterElements(["-language"]),
+                                let visibility = commandLine.elementAfterElements(["-visibility"])
+                            {
                                 if visibility != "public" {
                                     throw StubError.error("Visibility should be public")
                                 }
@@ -1358,39 +1736,47 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         TestFile("A.c"),
                         TestFile("B.c"),
                         TestFile("B.swift"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.2",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.2",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("A.c"),
-                                            TestBuildFile("A.swift"),
-                                            TestBuildFile("A.y"),
-                                        ])
-                                       ]),
-                    TestStandardTarget("B",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("B.c"),
-                                            TestBuildFile("B.swift"),
-                                        ])
-                                       ],
-                                       dependencies: ["A"]),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
+                            TestSourcesBuildPhase([
+                                TestBuildFile("A.c"),
+                                TestBuildFile("A.swift"),
+                                TestBuildFile("A.y"),
+                            ]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("B.c"),
+                                TestBuildFile("B.swift"),
+                            ])
+                        ],
+                        dependencies: ["A"]
+                    ),
                 ]
             )
 
@@ -1446,42 +1832,50 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         TestFile("A.c"),
                         TestFile("B.c"),
                         TestFile("B.swift"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.2",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.2",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("A.c"),
-                                            TestBuildFile("A.swift"),
-                                            TestBuildFile("A.fake-foo"),
-                                        ])
-                                       ],
-                                       buildRules: [
-                                        TestBuildRule(filePattern: "*.fake-foo", script: "cp ${SCRIPT_INPUT_FILE} ${SCRIPT_OUTPUT_FILE_0}", outputs: ["$(DERIVED_FILE_DIR)/$(INPUT_FILE_NAME).h"])
-                                       ]),
-                    TestStandardTarget("B",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("B.c"),
-                                            TestBuildFile("B.swift"),
-                                        ])
-                                       ],
-                                       dependencies: ["A"]),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
+                            TestSourcesBuildPhase([
+                                TestBuildFile("A.c"),
+                                TestBuildFile("A.swift"),
+                                TestBuildFile("A.fake-foo"),
+                            ]),
+                        ],
+                        buildRules: [
+                            TestBuildRule(filePattern: "*.fake-foo", script: "cp ${SCRIPT_INPUT_FILE} ${SCRIPT_OUTPUT_FILE_0}", outputs: ["$(DERIVED_FILE_DIR)/$(INPUT_FILE_NAME).h"])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("B.c"),
+                                TestBuildFile("B.swift"),
+                            ])
+                        ],
+                        dependencies: ["A"]
+                    ),
                 ]
             )
 
@@ -1532,47 +1926,57 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         TestFile("A.c"),
                         TestFile("B.c"),
                         TestFile("B.swift"),
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "false",
-                        "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.2",
-                    ])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "false",
+                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.2",
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
-                                        TestShellScriptBuildPhase(name: "Generate Header",
-                                                                  originalObjectID: "foobar123",
-                                                                  contents: """
-                                                                cat << EOF > #{SCRIPT_OUTPUT_FILE_0}
-                                                                @import Foundation;
-                                                                NSString *_Nonnull globalGeneratedFunction() { return @"I'm generated."; }
-                                                                EOF
-                                                                """,
-                                                                  outputs: ["$(DERIVED_FILE_DIR)/Generated/OutputFile.h"]),
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("A.c"),
-                                            TestBuildFile("A.swift"),
-                                        ])
-                                       ]),
-                    TestStandardTarget("B",
-                                       type: .framework,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("B.c"),
-                                            TestBuildFile("B.swift"),
-                                        ])
-                                       ],
-                                       dependencies: ["A"]),
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
+                            TestShellScriptBuildPhase(
+                                name: "Generate Header",
+                                originalObjectID: "foobar123",
+                                contents: """
+                                    cat << EOF > #{SCRIPT_OUTPUT_FILE_0}
+                                    @import Foundation;
+                                    NSString *_Nonnull globalGeneratedFunction() { return @"I'm generated."; }
+                                    EOF
+                                    """,
+                                outputs: ["$(DERIVED_FILE_DIR)/Generated/OutputFile.h"]
+                            ),
+                            TestSourcesBuildPhase([
+                                TestBuildFile("A.c"),
+                                TestBuildFile("A.swift"),
+                            ]),
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("B.c"),
+                                TestBuildFile("B.swift"),
+                            ])
+                        ],
+                        dependencies: ["A"]
+                    ),
                 ]
             )
 
@@ -1613,37 +2017,49 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func generateHeaderTaskOrdering() async throws {
         try await withTemporaryDirectory { srcroot in
-            let testProject = TestProject("aProject",
-                                          sourceRoot: srcroot,
-                                          groupTree: TestGroup("SomeFiles", path: "Sources",
-                                                               children: [
-                                                                TestFile("A.h"),
-                                                               ]),
-                                          buildConfigurations: [
-                                            TestBuildConfiguration("Debug",
-                                                                   buildSettings: [
-                                                                    "GENERATE_INFOPLIST_FILE": "YES",
-                                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                    "EAGER_COMPILATION_REQUIRE": "YES",
-                                                                    "EAGER_COMPILATION_ALLOW_SCRIPTS": "YES",
-                                                                   ]),
-                                          ],
-                                          targets: [
-                                            TestStandardTarget("A",
-                                                               type: .framework,
-                                                               buildConfigurations: [
-                                                                TestBuildConfiguration("Debug"),
-                                                               ],
-                                                               buildPhases: [
-                                                                TestShellScriptBuildPhase(name: "Generate A.h",
-                                                                                          originalObjectID: "script1",
-                                                                                          contents: "echo \"\" > ${SCRIPT_OUTPUT_FILE_0}",
-                                                                                          inputs: [],
-                                                                                          outputs: [srcroot.join("Sources").join("A.h").str]),
-                                                                TestHeadersBuildPhase([
-                                                                    TestBuildFile("A.h", headerVisibility: .public)]),
-                                                               ]),
-                                          ])
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: srcroot,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.h")
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "EAGER_COMPILATION_REQUIRE": "YES",
+                            "EAGER_COMPILATION_ALLOW_SCRIPTS": "YES",
+                        ]
+                    )
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestShellScriptBuildPhase(
+                                name: "Generate A.h",
+                                originalObjectID: "script1",
+                                contents: "echo \"\" > ${SCRIPT_OUTPUT_FILE_0}",
+                                inputs: [],
+                                outputs: [srcroot.join("Sources").join("A.h").str]
+                            ),
+                            TestHeadersBuildPhase([
+                                TestBuildFile("A.h", headerVisibility: .public)
+                            ]),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1665,55 +2081,68 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func swiftEagerCompilation() async throws {
         // This tests only the task construction side of eager compilation
         try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject("aProject",
-                                                    sourceRoot: tmpDir,
-                                                    groupTree: TestGroup("SomeFiles", path: "Sources",
-                                                                         children: [
-                                                                            TestFile("A.swift"),
-                                                                            TestFile("B.swift"),
-                                                                            TestFile("C.swift"),
-                                                                         ]),
-                                                    buildConfigurations: [
-                                                        TestBuildConfiguration("Debug",
-                                                                               buildSettings: [
-                                                                                "GENERATE_INFOPLIST_FILE": "YES",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                                                "SWIFT_VERSION": swiftVersion,
-                                                                                "TAPI_EXEC": tapiToolPath.str,
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.swift"),
+                        TestFile("B.swift"),
+                        TestFile("C.swift"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "TAPI_EXEC": tapiToolPath.str,
 
-                                                                                "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                                                               ]),
-                                                    ],
-                                                    targets: [
-                                                        TestStandardTarget("A",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["A.swift"]),
-                                                                           ]),
+                            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        ]
+                    )
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["A.swift"])
+                        ]
+                    ),
 
-                                                        TestStandardTarget("B",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["B.swift"]),
-                                                                           ],
-                                                                           dependencies: ["A"]),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["B.swift"])
+                        ],
+                        dependencies: ["A"]
+                    ),
 
-                                                        TestStandardTarget("C",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["C.swift"]),
-                                                                           ]),
-                                                    ])
+                    TestStandardTarget(
+                        "C",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["C.swift"])
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let parameters = BuildParameters(configuration: "Debug")
@@ -1730,11 +2159,11 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                     let compilationRequirementTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(compilationRequirementRuleInfoType)),
                     let compilationRequirementTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(compilationRequirementRuleInfoType)),
 
-                        let compilationTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(compilationRuleInfoType)),
+                    let compilationTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(compilationRuleInfoType)),
                     let compilationTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(compilationRuleInfoType)),
                     let compilationTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(compilationRuleInfoType)),
 
-                        let linkingTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(linkingRuleInfoType)),
+                    let linkingTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(linkingRuleInfoType)),
                     let linkingTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(linkingRuleInfoType)),
                     let linkingTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(linkingRuleInfoType))
                 else {
@@ -1799,7 +2228,8 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                 children: [
                     TestFile("Swift.swift"),
                     TestFile("ObjC.m"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1809,14 +2239,19 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Header-Swift.h",
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Swift.swift", "ObjC.m"]),
-                    ])])
+                        TestSourcesBuildPhase(["Swift.swift", "ObjC.m"])
+                    ]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
@@ -1842,55 +2277,68 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     func swiftEagerCompilation_WMO() async throws {
         // This tests only the task construction side of eager compilation
         try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject("aProject",
-                                                    sourceRoot: tmpDir,
-                                                    groupTree: TestGroup("SomeFiles", path: "Sources",
-                                                                         children: [
-                                                                            TestFile("A.swift"),
-                                                                            TestFile("B.swift"),
-                                                                            TestFile("C.swift"),
-                                                                         ]),
-                                                    buildConfigurations: [
-                                                        TestBuildConfiguration("Debug",
-                                                                               buildSettings: [
-                                                                                "GENERATE_INFOPLIST_FILE": "YES",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                                                "SWIFT_VERSION": swiftVersion,
-                                                                                "SWIFT_ENABLE_LIBRARY_EVOLUTION": "YES",
-                                                                                "TAPI_EXEC": tapiToolPath.str,
-                                                                                "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                                                               ]),
-                                                    ],
-                                                    targets: [
-                                                        TestStandardTarget("A",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["A.swift"]),
-                                                                           ]),
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.swift"),
+                        TestFile("B.swift"),
+                        TestFile("C.swift"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "SWIFT_ENABLE_LIBRARY_EVOLUTION": "YES",
+                            "TAPI_EXEC": tapiToolPath.str,
+                            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        ]
+                    )
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["A.swift"])
+                        ]
+                    ),
 
-                                                        TestStandardTarget("B",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["B.swift"]),
-                                                                           ],
-                                                                           dependencies: ["A"]),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["B.swift"])
+                        ],
+                        dependencies: ["A"]
+                    ),
 
-                                                        TestStandardTarget("C",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["C.swift"]),
-                                                                           ]),
-                                                    ])
+                    TestStandardTarget(
+                        "C",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["C.swift"])
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let parameters = BuildParameters(configuration: "Debug")
@@ -1907,11 +2355,11 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                     let compilationRequirementTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(compilationRequirementRuleInfoType)),
                     let compilationRequirementTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(compilationRequirementRuleInfoType)),
 
-                        let compilationTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(compilationRuleInfoType)),
+                    let compilationTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(compilationRuleInfoType)),
                     let compilationTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(compilationRuleInfoType)),
                     let compilationTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(compilationRuleInfoType)),
 
-                        let linkingTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(linkingRuleInfoType)),
+                    let linkingTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(linkingRuleInfoType)),
                     let linkingTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(linkingRuleInfoType)),
                     let linkingTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(linkingRuleInfoType))
                 else {
@@ -1971,56 +2419,69 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS), .requireLLBuild(apiVersion: 12))
     func swiftEagerCompilation_explicitModules() async throws {
         try await withTemporaryDirectory { tmpDir in
-            let testProject = try await TestProject("aProject",
-                                                    sourceRoot: tmpDir,
-                                                    groupTree: TestGroup("SomeFiles", path: "Sources",
-                                                                         children: [
-                                                                            TestFile("A.swift"),
-                                                                            TestFile("B.swift"),
-                                                                            TestFile("C.swift"),
-                                                                         ]),
-                                                    buildConfigurations: [
-                                                        TestBuildConfiguration("Debug",
-                                                                               buildSettings: [
-                                                                                "GENERATE_INFOPLIST_FILE": "YES",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SWIFT_EXEC": swiftCompilerPath.str,
-                                                                                "SWIFT_VERSION": swiftVersion,
-                                                                                "TAPI_EXEC": tapiToolPath.str,
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.swift"),
+                        TestFile("B.swift"),
+                        TestFile("C.swift"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "TAPI_EXEC": tapiToolPath.str,
 
-                                                                                "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                                                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                                                               ]),
-                                                    ],
-                                                    targets: [
-                                                        TestStandardTarget("A",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["A.swift"]),
-                                                                           ]),
+                            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                            "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        ]
+                    )
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["A.swift"])
+                        ]
+                    ),
 
-                                                        TestStandardTarget("B",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["B.swift"]),
-                                                                           ],
-                                                                           dependencies: ["A"]),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["B.swift"])
+                        ],
+                        dependencies: ["A"]
+                    ),
 
-                                                        TestStandardTarget("C",
-                                                                           type: .framework,
-                                                                           buildConfigurations: [
-                                                                            TestBuildConfiguration("Debug"),
-                                                                           ],
-                                                                           buildPhases: [
-                                                                            TestSourcesBuildPhase(["C.swift"]),
-                                                                           ]),
-                                                    ])
+                    TestStandardTarget(
+                        "C",
+                        type: .framework,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["C.swift"])
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2037,18 +2498,17 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
                     let compilationRequirementTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(compilationRequirementRuleInfoType)),
                     let compilationRequirementTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(compilationRequirementRuleInfoType)),
 
-                        let compilationTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(compilationRuleInfoType)),
+                    let compilationTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(compilationRuleInfoType)),
                     let compilationTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(compilationRuleInfoType)),
                     let compilationTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(compilationRuleInfoType)),
 
-                        let linkingTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(linkingRuleInfoType)),
+                    let linkingTargetA = results.getTask(.matchTargetName("A"), .matchRuleType(linkingRuleInfoType)),
                     let linkingTargetB = results.getTask(.matchTargetName("B"), .matchRuleType(linkingRuleInfoType)),
                     let linkingTargetC = results.getTask(.matchTargetName("C"), .matchRuleType(linkingRuleInfoType))
                 else {
                     Issue.record("Did not find Swift Driver tasks.")
                     return
                 }
-
 
                 func copyModuleFiles(targetName: String) throws -> [any PlannedTask] {
                     [".swiftmodule", ".swiftinterface", ".private.swiftmodule", ".swiftdoc"].flatMap {

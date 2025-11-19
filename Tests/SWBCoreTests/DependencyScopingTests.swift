@@ -30,18 +30,18 @@ import Foundation
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("S1.c"),
+                            TestFile("S1.c")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "T1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -52,7 +52,7 @@ import Foundation
                             "T2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -63,14 +63,14 @@ import Foundation
                             "T3",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
                             ]
-                        )
+                        ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -112,18 +112,18 @@ import Foundation
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("S1.c"),
+                            TestFile("S1.c")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "T1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "__SKIP_BUILD": "YES"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "__SKIP_BUILD": "YES"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -134,7 +134,7 @@ import Foundation
                             "T2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -145,14 +145,14 @@ import Foundation
                             "T3",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
                             ]
-                        )
+                        ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -182,18 +182,18 @@ import Foundation
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("S1.c"),
+                            TestFile("S1.c")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "T1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -204,7 +204,7 @@ import Foundation
                             "T2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -215,14 +215,14 @@ import Foundation
                             "T3",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
                             ]
-                        )
+                        ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -254,18 +254,18 @@ import Foundation
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("S1.c"),
+                            TestFile("S1.c")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "T1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -276,7 +276,7 @@ import Foundation
                             "T2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -287,7 +287,7 @@ import Foundation
                             "T3",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -298,7 +298,7 @@ import Foundation
                             "T4",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -309,7 +309,7 @@ import Foundation
                             "T5",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -320,7 +320,7 @@ import Foundation
                             "T6",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -331,7 +331,7 @@ import Foundation
                             "T7",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -342,15 +342,15 @@ import Foundation
                             "T8",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
                             ],
                             dependencies: []
-                        )
+                        ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -390,18 +390,18 @@ import Foundation
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("S1.c"),
+                            TestFile("S1.c")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "T1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -412,7 +412,7 @@ import Foundation
                             "T2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -423,12 +423,12 @@ import Foundation
                             "T3",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"]),
                                 TestFrameworksBuildPhase([
-                                    "T5.framework",
+                                    "T5.framework"
                                 ]),
                             ]
                         ),
@@ -436,7 +436,7 @@ import Foundation
                             "T4",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -446,14 +446,14 @@ import Foundation
                             "T5",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
                             ]
-                        )
+                        ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -517,20 +517,25 @@ import Foundation
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("S1.c"),
+                            TestFile("S1.c")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "T1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SDKROOT": "auto",
-                                                                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -541,9 +546,14 @@ import Foundation
                             "T2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SDKROOT": "auto",
-                                                                                "SUPPORTED_PLATFORMS": "macosx"]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
@@ -554,16 +564,21 @@ import Foundation
                             "T3",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SDKROOT": "auto",
-                                                                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
                             ]
-                        )
+                        ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -600,24 +615,24 @@ import Foundation
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("S1.c"),
+                            TestFile("S1.c")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "T1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["S1.c"])
                             ],
                             dependencies: ["PackageProductWithTransitiveRefs"]
-                        ),
+                        )
                     ]
                 ),
                 TestPackageProject(
@@ -628,62 +643,90 @@ import Foundation
                             TestFile("foo.c"),
                             TestFile("libBEGIN.a"),
                             TestFile("libEND.a"),
-                        ]),
+                        ]
+                    ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "LIBTOOL": libtoolPath.str,
-                            "CODE_SIGN_IDENTITY": "",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO"]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "LIBTOOL": libtoolPath.str,
+                                "CODE_SIGN_IDENTITY": "",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                            ]
+                        )
                     ],
                     targets: [
                         TestPackageProductTarget(
                             "SomePackageProduct",
                             frameworksBuildPhase: TestFrameworksBuildPhase([
-                                TestBuildFile(.target("A"))]),
-                            dependencies: ["A"]),
+                                TestBuildFile(.target("A"))
+                            ]),
+                            dependencies: ["A"]
+                        ),
                         TestPackageProductTarget(
                             "NestedPackagedProduct",
                             frameworksBuildPhase: TestFrameworksBuildPhase([
-                                TestBuildFile(.target("B"))]),
-                            dependencies: ["B"]),
+                                TestBuildFile(.target("B"))
+                            ]),
+                            dependencies: ["B"]
+                        ),
                         TestPackageProductTarget(
                             "PackageProductWithTransitiveRefs",
                             frameworksBuildPhase: TestFrameworksBuildPhase([
                                 TestBuildFile(.target("SomePackageProduct")),
                                 TestBuildFile(.target("NestedPackagedProduct")),
                                 TestBuildFile(.target("C")),
-                                TestBuildFile(.target("D"))]),
-                            dependencies: ["SomePackageProduct", "NestedPackageProduct", "C", "D"]),
+                                TestBuildFile(.target("D")),
+                            ]),
+                            dependencies: ["SomePackageProduct", "NestedPackageProduct", "C", "D"]
+                        ),
                         TestStandardTarget(
-                            "A", type: .staticLibrary,
-                            buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                            "A",
+                            type: .staticLibrary,
+                            buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                        ),
                         TestStandardTarget(
-                            "B", type: .staticLibrary,
-                            buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                            "B",
+                            type: .staticLibrary,
+                            buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                        ),
                         TestStandardTarget(
-                            "C", type: .staticLibrary,
+                            "C",
+                            type: .staticLibrary,
                             buildPhases: [
                                 TestSourcesBuildPhase(["foo.c"]),
                                 TestFrameworksBuildPhase([
-                                    TestBuildFile(.target("C_Impl"))])],
-                            dependencies: ["C_Impl"]),
+                                    TestBuildFile(.target("C_Impl"))
+                                ]),
+                            ],
+                            dependencies: ["C_Impl"]
+                        ),
                         TestStandardTarget(
-                            "C_Impl", type: .staticLibrary,
-                            buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                            "C_Impl",
+                            type: .staticLibrary,
+                            buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                        ),
                         TestStandardTarget(
-                            "D", type: .objectFile,
+                            "D",
+                            type: .objectFile,
                             buildPhases: [
                                 TestSourcesBuildPhase([]),
                                 TestFrameworksBuildPhase([
-                                    TestBuildFile(.target("E"))])
-                            ], dependencies: ["E"]),
+                                    TestBuildFile(.target("E"))
+                                ]),
+                            ],
+                            dependencies: ["E"]
+                        ),
                         TestStandardTarget(
-                            "E", type: .objectFile,
+                            "E",
+                            type: .objectFile,
                             buildPhases: [
                                 TestSourcesBuildPhase(["foo.c"])
-                            ]),
-                    ])
+                            ]
+                        ),
+                    ]
+                ),
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)

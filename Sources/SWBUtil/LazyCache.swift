@@ -15,36 +15,36 @@ import Synchronization
 
 // Workaround compiler crash: rdar://138854389 (Compiler crashes when compiling code using a Mutex with an Optional)
 #if os(Windows)
-private struct Storage<T> {
-    let _value: Any?
+    private struct Storage<T> {
+        let _value: Any?
 
-    init(value: T? = nil) { _value = value }
+        init(value: T? = nil) { _value = value }
 
-    var value: T? {
-        _value as! T?
-    }
+        var value: T? {
+            _value as! T?
+        }
 
-    static var none: Storage {
-        .init()
-    }
+        static var none: Storage {
+            .init()
+        }
 
-    static func some(_ value: T) -> Storage {
-        .init(value: value)
-    }
-}
-private typealias LazyStorage = Storage
-#else
-private typealias LazyStorage = Optional
-fileprivate extension Optional {
-    var value: Wrapped? {
-        switch self {
-        case let .some(wrapped):
-            return wrapped
-        case .none:
-            return nil
+        static func some(_ value: T) -> Storage {
+            .init(value: value)
         }
     }
-}
+    private typealias LazyStorage = Storage
+#else
+    private typealias LazyStorage = Optional
+    fileprivate extension Optional {
+        var value: Wrapped? {
+            switch self {
+            case let .some(wrapped):
+                return wrapped
+            case .none:
+                return nil
+            }
+        }
+    }
 #endif
 
 /// Wrapper for thread-safe lazily computed values.

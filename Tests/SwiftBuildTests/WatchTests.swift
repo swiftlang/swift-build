@@ -28,18 +28,23 @@ fileprivate struct WatchTests: CoreBasedTests {
                 "App",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
-                        TestFile("main.swift"),
-                    ]),
+                    "Sources",
+                    children: [
+                        TestFile("main.swift")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "watchos",
-                        "SWIFT_VERSION": "5.0",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "watchos",
+                            "SWIFT_VERSION": "5.0",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -50,8 +55,10 @@ fileprivate struct WatchTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["main.swift"])
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
 
             let SRCROOT = tmpDir.str
 
@@ -82,18 +89,23 @@ fileprivate struct WatchTests: CoreBasedTests {
                 "App",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
-                        TestFile("main.swift"),
-                    ]),
+                    "Sources",
+                    children: [
+                        TestFile("main.swift")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "watchos",
-                        "SWIFT_VERSION": "5.0",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "watchos",
+                            "SWIFT_VERSION": "5.0",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -102,9 +114,10 @@ fileprivate struct WatchTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
-                        buildPhases: [
-                        ]),
-                ])
+                        buildPhases: []
+                    )
+                ]
+            )
 
             let SRCROOT = tmpDir.str
 

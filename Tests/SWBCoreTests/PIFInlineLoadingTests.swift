@@ -24,7 +24,7 @@ import SWBUtil
             "guid": "some-workspace-guid",
             "name": "aWorkspace",
             "path": "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
-            "projects": [] as [String]
+            "projects": [] as [String],
         ]
 
         let pifLoader = PIFLoader(data: testInlineWorkspacePIF, namespace: BuiltinMacros.namespace)
@@ -42,18 +42,18 @@ import SWBUtil
                 "type": "group",
                 "name": "SomeFiles",
                 "sourceTree": "PROJECT_DIR",
-                "path": "/tmp/SomeProject/SomeFiles"
+                "path": "/tmp/SomeProject/SomeFiles",
             ],
             "buildConfigurations": [] as [String],
             "defaultConfigurationName": "Debug",
-            "developmentRegion": "English"
+            "developmentRegion": "English",
         ]
 
         let testWorkspacePIF: [String: PropertyListItem] = [
             "guid": "some-workspace-guid",
             "name": "aWorkspace",
             "path": "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
-            "projects": [testProjectPIF] // Inline *project* reference.
+            "projects": [testProjectPIF],  // Inline *project* reference.
         ]
 
         // Convert the test data into a property list, then read the workspace from it.
@@ -66,7 +66,7 @@ import SWBUtil
             "guid": "some-workspace-guid",
             "name": "aWorkspace",
             "path": "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
-            "projects": ["PROJECT"]
+            "projects": ["PROJECT"],
         ]
 
         let testTargetPIF: PropertyListItem = [
@@ -81,13 +81,13 @@ import SWBUtil
             "buildPhases": [] as [String],
             "buildRules": [] as [String],
             "buildConfigurations": [] as [String],
-            "dependencies": [] as [String]
+            "dependencies": [] as [String],
         ]
 
         let testProjectPIF: PropertyListItem = [
             "guid": "some-project-guid",
             "path": "/tmp/SomeProject/aProject.xcodeproj",
-            "targets": [testTargetPIF], // Inline *target* reference.
+            "targets": [testTargetPIF],  // Inline *target* reference.
             "groupTree": [
                 "guid": "some-fileGroup-guid",
                 "type": "group",
@@ -97,20 +97,20 @@ import SWBUtil
             ],
             "buildConfigurations": [] as [String],
             "defaultConfigurationName": "Debug",
-            "developmentRegion": "English"
+            "developmentRegion": "English",
         ]
 
         let testPIF: PropertyListItem = [
             [
                 "signature": "WORKSPACE",
                 "type": "workspace",
-                "contents": testWorkspacePIF
+                "contents": testWorkspacePIF,
             ],
             [
                 "signature": "PROJECT",
                 "type": "project",
-                "contents": testProjectPIF
-            ]
+                "contents": testProjectPIF,
+            ],
         ]
 
         let pifLoader = PIFLoader(data: testPIF, namespace: BuiltinMacros.namespace)

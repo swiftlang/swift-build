@@ -369,7 +369,7 @@ public struct AppleSystemFrameworkNamesRequest: RequestMessage, Equatable, Pendi
         self.xcodeAppPath = developerPath?.dirname.dirname
     }
 
-    public func legacySerialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+    public func legacySerialize<T>(to serializer: T) where T: SWBUtil.Serializer {
         serializer.serializeAggregate(2) {
             serializer.serialize(self.xcodeAppPath)
             serializer.serialize(self.developerPath)
@@ -398,7 +398,7 @@ public struct ProductTypeSupportsMacCatalystRequest: RequestMessage, Equatable, 
         self.productTypeIdentifier = productTypeIdentifier
     }
 
-    public func legacySerialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+    public func legacySerialize<T>(to serializer: T) where T: SWBUtil.Serializer {
         serializer.serializeAggregate(3) {
             serializer.serialize(self.xcodeAppPath)
             serializer.serialize(self.developerPath)
@@ -433,17 +433,17 @@ public struct CreateSessionRequest: RequestMessage, Equatable, SerializableCodab
     public let appPath: Path?
     public let cachePath: Path?
     public let inferiorProductsPath: Path?
-    public let environment: [String:String]?
+    public let environment: [String: String]?
 
     public init(name: String, developerPath: Path?, cachePath: Path?, inferiorProductsPath: Path?) {  // ABI compatibility
         self.init(name: name, developerPath: developerPath, cachePath: cachePath, inferiorProductsPath: inferiorProductsPath, environment: nil)
     }
 
-    public init(name: String, developerPath: Path?, cachePath: Path?, inferiorProductsPath: Path?, environment: [String:String]?) { // ABI Compatibility
+    public init(name: String, developerPath: Path?, cachePath: Path?, inferiorProductsPath: Path?, environment: [String: String]?) {  // ABI Compatibility
         self.init(name: name, developerPath: developerPath, resourceSearchPaths: [], cachePath: cachePath, inferiorProductsPath: inferiorProductsPath, environment: environment)
     }
 
-    public init(name: String, developerPath: Path?, resourceSearchPaths: [Path], cachePath: Path?, inferiorProductsPath: Path?, environment: [String:String]?) { // API/ABI compatibility
+    public init(name: String, developerPath: Path?, resourceSearchPaths: [Path], cachePath: Path?, inferiorProductsPath: Path?, environment: [String: String]?) {  // API/ABI compatibility
         self.name = name
         self.developerPath = developerPath
         self.developerPath2 = nil
@@ -454,7 +454,7 @@ public struct CreateSessionRequest: RequestMessage, Equatable, SerializableCodab
         self.environment = environment
     }
 
-    public init(name: String, developerPath: DeveloperPath?, resourceSearchPaths: [Path], cachePath: Path?, inferiorProductsPath: Path?, environment: [String:String]?) {
+    public init(name: String, developerPath: DeveloperPath?, resourceSearchPaths: [Path], cachePath: Path?, inferiorProductsPath: Path?, environment: [String: String]?) {
         self.name = name
         self.developerPath2 = developerPath
         switch developerPath {
@@ -500,7 +500,7 @@ public struct CreateSessionResponse: Message {
         self.diagnostics = try deserializer.deserialize()
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.beginAggregate(2)
         serializer.serialize(self.sessionID)
         serializer.serialize(self.diagnostics)
@@ -549,9 +549,9 @@ public struct SetSessionSystemInfoRequest: SessionMessage, RequestMessage, Equat
         serializer.beginAggregate(3)
         serializer.serialize(sessionHandle)
         let osVersion = self.operatingSystemVersion.zeroPadded(toMinimumNumberOfComponents: 3)
-        serializer.serialize(osVersion.rawValue[0])     // major
-        serializer.serialize(osVersion.rawValue[1])     // minor
-        serializer.serialize(osVersion.rawValue[2])     // update
+        serializer.serialize(osVersion.rawValue[0])  // major
+        serializer.serialize(osVersion.rawValue[1])  // minor
+        serializer.serialize(osVersion.rawValue[2])  // update
         serializer.serialize(self.productBuildVersion)
         serializer.serialize(self.nativeArchitecture)
     }
@@ -662,7 +662,7 @@ public struct ListSessionsRequest: RequestMessage, Equatable {
 
     public static let name = "LIST_SESSIONS"
 
-    public init() { }
+    public init() {}
 
     public init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(0)
@@ -902,13 +902,13 @@ public struct TransferSessionPIFObjectsLegacyRequest: SessionMessage, RequestMes
     public init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         self.sessionHandle = try deserializer.deserialize()
-        self.objects = (try deserializer.deserialize() as [ObjectData]).map{ $0.data }
+        self.objects = (try deserializer.deserialize() as [ObjectData]).map { $0.data }
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(self.sessionHandle)
-        serializer.serialize(self.objects.map{ ObjectData($0) })
+        serializer.serialize(self.objects.map { ObjectData($0) })
     }
 }
 
@@ -1185,69 +1185,70 @@ public struct IPCMessage: Serializable, Sendable {
     static let extraMessageTypes: [any Message.Type] = []
 
     /// All known message types.
-    static let messageTypes: [any Message.Type] = [
-        PingRequest.self,
-        SetConfigItemRequest.self,
-        ClearAllCachesRequest.self,
+    static let messageTypes: [any Message.Type] =
+        [
+            PingRequest.self,
+            SetConfigItemRequest.self,
+            ClearAllCachesRequest.self,
 
-        GetPlatformsRequest.self,
-        GetSDKsRequest.self,
-        GetSpecsRequest.self,
-        GetStatisticsRequest.self,
-        GetToolchainsRequest.self,
-        GetBuildSettingsDescriptionRequest.self,
-        ExecuteCommandLineToolRequest.self,
+            GetPlatformsRequest.self,
+            GetSDKsRequest.self,
+            GetSpecsRequest.self,
+            GetStatisticsRequest.self,
+            GetToolchainsRequest.self,
+            GetBuildSettingsDescriptionRequest.self,
+            ExecuteCommandLineToolRequest.self,
 
-        CreateSessionRequest.self,
-        CreateSessionResponse.self,
-        SetSessionSystemInfoRequest.self,
-        SetSessionUserInfoRequest.self,
-        SetSessionUserPreferencesRequest.self,
-        LookupToolchainRequest.self,
-        LookupToolchainResponse.self,
-        ListSessionsRequest.self,
-        ListSessionsResponse.self,
-        WaitForQuiescenceRequest.self,
-        DeleteSessionRequest.self,
+            CreateSessionRequest.self,
+            CreateSessionResponse.self,
+            SetSessionSystemInfoRequest.self,
+            SetSessionUserInfoRequest.self,
+            SetSessionUserPreferencesRequest.self,
+            LookupToolchainRequest.self,
+            LookupToolchainResponse.self,
+            ListSessionsRequest.self,
+            ListSessionsResponse.self,
+            WaitForQuiescenceRequest.self,
+            DeleteSessionRequest.self,
 
-        SetSessionWorkspaceContainerPathRequest.self,
-        SetSessionPIFRequest.self,
-        TransferSessionPIFRequest.self,
-        TransferSessionPIFResponse.self,
-        TransferSessionPIFObjectsRequest.self,
-        TransferSessionPIFObjectsLegacyRequest.self,
-        AuditSessionPIFRequest.self,
-        IncrementalPIFLookupFailureRequest.self,
+            SetSessionWorkspaceContainerPathRequest.self,
+            SetSessionPIFRequest.self,
+            TransferSessionPIFRequest.self,
+            TransferSessionPIFResponse.self,
+            TransferSessionPIFObjectsRequest.self,
+            TransferSessionPIFObjectsLegacyRequest.self,
+            AuditSessionPIFRequest.self,
+            IncrementalPIFLookupFailureRequest.self,
 
-        WorkspaceInfoRequest.self,
-        WorkspaceInfoResponse.self,
+            WorkspaceInfoRequest.self,
+            WorkspaceInfoResponse.self,
 
-        CreateXCFrameworkRequest.self,
+            CreateXCFrameworkRequest.self,
 
-        AppleSystemFrameworkNamesRequest.self,
-        ProductTypeSupportsMacCatalystRequest.self,
-        DeveloperPathRequest.self,
+            AppleSystemFrameworkNamesRequest.self,
+            ProductTypeSupportsMacCatalystRequest.self,
+            DeveloperPathRequest.self,
 
-        // TODO: Delete once all clients are no longer calling the public APIs which invoke this message
-        AvailableAppExtensionPointIdentifiersRequest.self,
-        MacCatalystUnavailableFrameworkNamesRequest.self,
+            // TODO: Delete once all clients are no longer calling the public APIs which invoke this message
+            AvailableAppExtensionPointIdentifiersRequest.self,
+            MacCatalystUnavailableFrameworkNamesRequest.self,
 
-        ErrorResponse.self,
-        BoolResponse.self,
-        StringResponse.self,
-        StringListResponse.self
-    ] + buildOperationMessageTypes
-      + macroEvaluationMessageTypes
-      + planningOperationMessageTypes
-      + taskConstructionMessageTypes
-      + indexingMessageTypes
-      + previewInfoMessageTypes
-      + projectDescriptorMessageTypes
-      + documentationMessageTypes
-      + localizationMessageTypes
-      + dependencyClosureMessageTypes
-      + dependencyGraphMessageTypes
-      + buildDescriptionMessages
+            ErrorResponse.self,
+            BoolResponse.self,
+            StringResponse.self,
+            StringListResponse.self,
+        ] + buildOperationMessageTypes
+        + macroEvaluationMessageTypes
+        + planningOperationMessageTypes
+        + taskConstructionMessageTypes
+        + indexingMessageTypes
+        + previewInfoMessageTypes
+        + projectDescriptorMessageTypes
+        + documentationMessageTypes
+        + localizationMessageTypes
+        + dependencyClosureMessageTypes
+        + dependencyGraphMessageTypes
+        + buildDescriptionMessages
 
     /// Reverse name mapping.
     static let messageNameToID: [String: any Message.Type] = {

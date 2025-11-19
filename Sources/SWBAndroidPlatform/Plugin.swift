@@ -67,7 +67,7 @@ struct AndroidPlatformSpecsExtension: SpecificationsExtension {
         findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBAndroidPlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 
-    func specificationDomains() -> [String : [String]] {
+    func specificationDomains() -> [String: [String]] {
         ["android": ["linux"]]
     }
 }
@@ -98,15 +98,18 @@ struct AndroidEnvironmentExtension: EnvironmentExtension {
 struct AndroidPlatformExtension: PlatformInfoExtension {
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
-            (.root, [
-                "Type": .plString("Platform"),
-                "Name": .plString("android"),
-                "Identifier": .plString("android"),
-                "Description": .plString("android"),
-                "FamilyName": .plString("Android"),
-                "FamilyIdentifier": .plString("android"),
-                "IsDeploymentPlatform": .plString("YES"),
-            ])
+            (
+                .root,
+                [
+                    "Type": .plString("Platform"),
+                    "Name": .plString("android"),
+                    "Identifier": .plString("android"),
+                    "Description": .plString("android"),
+                    "FamilyName": .plString("Android"),
+                    "FamilyIdentifier": .plString("android"),
+                    "IsDeploymentPlatform": .plString("YES"),
+                ]
+            )
         ]
     }
 }
@@ -147,7 +150,7 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
         let allPossibleTriples = try abis.values.flatMap { abi in
             try (max(deploymentTargetRange.min, abi.min_os_version)...deploymentTargetRange.max).map { deploymentTarget in
                 var triple = abi.llvm_triple
-                triple.vendor = "unknown" // Android NDK uses "none", Swift SDKs use "unknown"
+                triple.vendor = "unknown"  // Android NDK uses "none", Swift SDKs use "unknown"
                 guard let env = triple.environment else {
                     throw StubError.error("Android triples must have an environment")
                 }
@@ -156,11 +159,12 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             }
         }.map(\.description)
 
-        let androidSwiftSDKs = (try? SwiftSDK.findSDKs(
-            targetTriples: allPossibleTriples,
-            fs: context.fs,
-            hostOperatingSystem: context.hostOperatingSystem
-        )) ?? []
+        let androidSwiftSDKs =
+            (try? SwiftSDK.findSDKs(
+                targetTriples: allPossibleTriples,
+                fs: context.fs,
+                hostOperatingSystem: context.hostOperatingSystem
+            )) ?? []
 
         return try androidSwiftSDKs.map { androidSwiftSDK in
             let perArchSwiftResourceDirs = try Dictionary(grouping: androidSwiftSDK.targetTriples, by: { try LLVMTriple($0.key).arch }).mapValues {
@@ -179,14 +183,21 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
                 customProperties: [
                     "SWIFT_TARGET_TRIPLE": .plString("$(CURRENT_ARCH)-unknown-$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)"),
                     "LIBRARY_SEARCH_PATHS": "$(inherited) $(SWIFT_RESOURCE_DIR)/../$(__ANDROID_TRIPLE_$(CURRENT_ARCH))",
-                ].merging(perArchSwiftResourceDirs.map {
-                    [
-                        ("SWIFT_LIBRARY_PATH[arch=\($0.key)]", .plString($0.value.join("android").str)),
-                        ("SWIFT_RESOURCE_DIR[arch=\($0.key)]", .plString($0.value.str)),
-                    ]
-                }.flatMap { $0 }, uniquingKeysWith: { _, new in new }).merging(abis.map {
-                    ("__ANDROID_TRIPLE_\($0.value.llvm_triple.arch)", .plString($0.value.triple))
-                }, uniquingKeysWith: { _, new in new }))
+                ].merging(
+                    perArchSwiftResourceDirs.map {
+                        [
+                            ("SWIFT_LIBRARY_PATH[arch=\($0.key)]", .plString($0.value.join("android").str)),
+                            ("SWIFT_RESOURCE_DIR[arch=\($0.key)]", .plString($0.value.str)),
+                        ]
+                    }.flatMap { $0 },
+                    uniquingKeysWith: { _, new in new }
+                ).merging(
+                    abis.map {
+                        ("__ANDROID_TRIPLE_\($0.value.llvm_triple.arch)", .plString($0.value.triple))
+                    },
+                    uniquingKeysWith: { _, new in new }
+                )
+            )
         } + [
             // Fallback SDK for when there are no Swift SDKs (Android SDK is still usable for C/C++-only code)
             sdk(androidPlatform: androidPlatform, androidNdk: androidNdk, defaultProperties: defaultProperties)
@@ -194,38 +205,45 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
     }
 
     private func sdk(canonicalName: String? = nil, androidPlatform: Platform, androidNdk: AndroidSDK.NDK, defaultProperties: [String: PropertyListItem], customProperties: [String: PropertyListItem] = [:]) -> (path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem]) {
-        return (androidNdk.sysroot.path, androidPlatform, [
-            "Type": .plString("SDK"),
-            "Version": .plString(androidNdk.version.description),
-            "CanonicalName": .plString(canonicalName ?? "android\(androidNdk.version.description)"),
-            // "android.ndk" is an alias for the "Android SDK without a Swift SDK" scenario in order for tests to deterministically pick a single Android destination regardless of how many Android Swift SDKs may be installed.
-            "Aliases": .plArray([.plString("android")] + (canonicalName == nil ? [.plString("android.ndk")] : [])),
-            "IsBaseSDK": .plBool(true),
-            "DefaultProperties": .plDict([
-                "PLATFORM_NAME": .plString("android"),
-            ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-            "CustomProperties": .plDict([
-                // Unlike most platforms, the Android version goes on the environment field rather than the system field
-                // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
-                "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("$(SWIFT_PLATFORM_TARGET_PREFIX)"),
-                "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$($(DEPLOYMENT_TARGET_SETTING_NAME))"),
-            ].merging(customProperties, uniquingKeysWith: { _, new in new })),
-            "SupportedTargets": .plDict([
-                "android": .plDict([
-                    "Archs": .plArray(androidNdk.abis.map { .plString($0.value.llvm_triple.arch) }),
-                    "DeploymentTargetSettingName": .plString("ANDROID_DEPLOYMENT_TARGET"),
-                    "DefaultDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.min)"),
-                    "MinimumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.min)"),
-                    "MaximumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.max)"),
-                    "LLVMTargetTripleEnvironment": .plString("android"), // FIXME: androideabi for armv7!
-                    "LLVMTargetTripleSys": .plString("linux"),
-                    "LLVMTargetTripleVendor": .plString("none"),
-                ])
-            ]),
-            "Toolchains": .plArray([
-                .plString("android")
-            ])
-        ])
+        return (
+            androidNdk.sysroot.path, androidPlatform,
+            [
+                "Type": .plString("SDK"),
+                "Version": .plString(androidNdk.version.description),
+                "CanonicalName": .plString(canonicalName ?? "android\(androidNdk.version.description)"),
+                // "android.ndk" is an alias for the "Android SDK without a Swift SDK" scenario in order for tests to deterministically pick a single Android destination regardless of how many Android Swift SDKs may be installed.
+                "Aliases": .plArray([.plString("android")] + (canonicalName == nil ? [.plString("android.ndk")] : [])),
+                "IsBaseSDK": .plBool(true),
+                "DefaultProperties": .plDict(
+                    [
+                        "PLATFORM_NAME": .plString("android")
+                    ].merging(defaultProperties, uniquingKeysWith: { _, new in new })
+                ),
+                "CustomProperties": .plDict(
+                    [
+                        // Unlike most platforms, the Android version goes on the environment field rather than the system field
+                        // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
+                        "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("$(SWIFT_PLATFORM_TARGET_PREFIX)"),
+                        "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$($(DEPLOYMENT_TARGET_SETTING_NAME))"),
+                    ].merging(customProperties, uniquingKeysWith: { _, new in new })
+                ),
+                "SupportedTargets": .plDict([
+                    "android": .plDict([
+                        "Archs": .plArray(androidNdk.abis.map { .plString($0.value.llvm_triple.arch) }),
+                        "DeploymentTargetSettingName": .plString("ANDROID_DEPLOYMENT_TARGET"),
+                        "DefaultDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.min)"),
+                        "MinimumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.min)"),
+                        "MaximumDeploymentTarget": .plString("\(androidNdk.deploymentTargetRange.max)"),
+                        "LLVMTargetTripleEnvironment": .plString("android"),  // FIXME: androideabi for armv7!
+                        "LLVMTargetTripleSys": .plString("linux"),
+                        "LLVMTargetTripleVendor": .plString("none"),
+                    ])
+                ]),
+                "Toolchains": .plArray([
+                    .plString("android")
+                ]),
+            ]
+        )
     }
 }
 
@@ -251,7 +269,8 @@ struct AndroidToolchainRegistryExtension: ToolchainRegistryExtension {
                 defaultSettingsWhenPrimary: [:],
                 executableSearchPaths: [toolchainPath.path.join("bin")],
                 testingLibraryPlatformNames: [],
-                fs: context.fs)
+                fs: context.fs
+            )
         ]
     }
 }

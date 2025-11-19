@@ -50,10 +50,10 @@ fileprivate struct DocumentationInfoTests: CoreBasedTests {
                 let projectDir = "\(tmpDirPath)/SomeProject"
                 let projectFilesDir = "\(projectDir)/SomeFiles"
                 let workspacePIF: SWBPropertyListItem = [
-                    "guid":     "some-workspace-guid",
-                    "name":     "aWorkspace",
-                    "path":     .plString("\(tmpDirPath)/aWorkspace.xcworkspace/contents.xcworkspacedata"),
-                    "projects": ["P1"]
+                    "guid": "some-workspace-guid",
+                    "name": "aWorkspace",
+                    "path": .plString("\(tmpDirPath)/aWorkspace.xcworkspace/contents.xcworkspacedata"),
+                    "projects": ["P1"],
                 ]
                 let projectPIF: SWBPropertyListItem = [
                     "guid": "P1",
@@ -70,16 +70,16 @@ fileprivate struct DocumentationInfoTests: CoreBasedTests {
                                 "type": "file",
                                 "sourceTree": "<group>",
                                 "path": "Source.swift",
-                                "fileType": "sourcecode.c.c"
+                                "fileType": "sourcecode.c.c",
                             ],
                             [
                                 "guid": "doc-bundle-fileReference-guid",
                                 "type": "file",
                                 "sourceTree": "<group>",
                                 "path": "DocBundle.docc",
-                                "fileType": "folder.documentationcatalog"
-                            ]
-                        ]
+                                "fileType": "folder.documentationcatalog",
+                            ],
+                        ],
                     ],
                     "buildConfigurations": [
                         [
@@ -88,13 +88,13 @@ fileprivate struct DocumentationInfoTests: CoreBasedTests {
                             "buildSettings": [
                                 "PRODUCT_NAME": "some-product-name",
                                 "PRODUCT_BUNDLE_IDENTIFIER": "some-bundle-identifier",
-                                "RUN_DOCUMENTATION_COMPILER": runDocumentationCompiler ? "YES" : "NO"
-                            ]
+                                "RUN_DOCUMENTATION_COMPILER": runDocumentationCompiler ? "YES" : "NO",
+                            ],
                         ]
                     ],
                     "defaultConfigurationName": "Config1",
                     "developmentRegion": "English",
-                    "targets": ["T1"]
+                    "targets": ["T1"],
                 ]
                 let targetPIF: SWBPropertyListItem = [
                     "guid": "T1",
@@ -119,36 +119,36 @@ fileprivate struct DocumentationInfoTests: CoreBasedTests {
                                     "guid": "BF3",
                                     "name": "DocBundle.docc",
                                     "fileReference": "doc-bundle-fileReference-guid",
-                                ]
-                            ]
+                                ],
+                            ],
                         ]
                     ],
                     "buildConfigurations": [
                         [
                             "guid": "C2",
                             "name": "Config1",
-                            "buildSettings": [:]
+                            "buildSettings": [:],
                         ]
                     ],
                     "buildRules": [],
-                    "dependencies": []
+                    "dependencies": [],
                 ]
                 let PIF: SWBPropertyListItem = [
                     [
                         "type": "workspace",
                         "signature": "W1",
-                        "contents": workspacePIF
+                        "contents": workspacePIF,
                     ],
                     [
                         "type": "project",
                         "signature": "P1",
-                        "contents": projectPIF
+                        "contents": projectPIF,
                     ],
                     [
                         "type": "target",
                         "signature": "T1",
-                        "contents": targetPIF
-                    ]
+                        "contents": targetPIF,
+                    ],
                 ]
 
                 try await session.sendPIF(PIF)

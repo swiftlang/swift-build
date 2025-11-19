@@ -69,7 +69,8 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 TestProject(
                     "aProject",
                     groupTree: TestGroup(
-                        "Sources", children: [
+                        "Sources",
+                        children: [
                             // Application sources
                             TestFile("main.c"),
                             TestFile("Info-Foo.plist"),
@@ -82,19 +83,23 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                             TestFile("Quux.swift"),
                             TestFile("Crux.swift"),
                             TestFile("Info-Bar.plist"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "VERSIONING_SYSTEM": "apple-generic",
-                            "CURRENT_PROJECT_VERSION": "3.1",
-                            "ENABLE_SDK_IMPORTS": "NO",
                         ]
-                    )],
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "VERSIONING_SYSTEM": "apple-generic",
+                                "CURRENT_PROJECT_VERSION": "3.1",
+                                "ENABLE_SDK_IMPORTS": "NO",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
-                            "Foo", type: .application,
+                            "Foo",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -102,7 +107,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                                         "INFOPLIST_FILE": "Info-Foo.plist",
                                         "SWIFT_VERSION": swiftVersion,
                                     ]
-                                ),
+                                )
                             ],
                             buildPhases: [
                                 TestHeadersBuildPhase([]),
@@ -113,7 +118,8 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                             dependencies: ["Bar"]
                         ),
                         TestStandardTarget(
-                            "Bar", type: .framework,
+                            "Bar",
+                            type: .framework,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -124,7 +130,7 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                                         "CLANG_ENABLE_MODULES": "YES",
                                         "SWIFT_VERSION": swiftVersion,
                                     ]
-                                ),
+                                )
                             ],
                             buildPhases: [
                                 TestHeadersBuildPhase([
@@ -133,9 +139,12 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                                 ]),
                                 TestSourcesBuildPhase(["Bar.m", "Baz.m", "Quux.swift", "Crux.swift"]),
                                 TestFrameworksBuildPhase([]),
-                            ]),
-                    ])
-            ])
+                            ]
+                        ),
+                    ]
+                )
+            ]
+        )
     }
 
     /// Generate a `BuildDescription` from our test workspace, build it, and check results.  Then try doing it again to make sure we can use the results loaded from the on-disk cache.
@@ -151,9 +160,9 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 stream <<< "int main() { return 0; }\n"
             }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Foo.plist"), .plDict(["key": .plString("value")]))
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.h"))  { $0 <<< "#include \"Baz.h\"\n" }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.h")) { $0 <<< "#include \"Baz.h\"\n" }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.m")) { _ in }
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.h"))  { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.h")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.m")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Quux.swift")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Crux.swift")) { _ in }
@@ -358,9 +367,9 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 stream <<< "int main() { return 0; }\n"
             }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Foo.plist"), .plDict(["key": .plString("value")]))
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.h"))  { $0 <<< "#include \"Baz.h\"\n" }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.h")) { $0 <<< "#include \"Baz.h\"\n" }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.m")) { _ in }
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.h"))  { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.h")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.m")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Quux.swift")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Crux.swift")) { _ in }
@@ -487,9 +496,9 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 stream <<< "int main() { return 0; }\n"
             }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info-Foo.plist"), .plDict(["key": .plString("value")]))
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.h"))  { $0 <<< "#include \"Baz.h\"\n" }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.h")) { $0 <<< "#include \"Baz.h\"\n" }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Bar.m")) { _ in }
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.h"))  { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.h")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Baz.m")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Quux.swift")) { _ in }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Crux.swift")) { _ in }
@@ -554,7 +563,6 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
                 // Check that the delegate was passed build started and build ended events in the right place.
                 results.checkCapstoneEvents()
 
-
                 // Make sure there were only 2 configured targets deserialized among all the tasks, and that all of the configured targets in the build request are contained in the deserialized description.
                 var targets = Set<ConfiguredTarget>()
                 var targetRefs = Set<Ref<ConfiguredTarget>>()
@@ -582,4 +590,3 @@ fileprivate struct BuildOperationDescriptionTests: CoreBasedTests {
         }
     }
 }
-

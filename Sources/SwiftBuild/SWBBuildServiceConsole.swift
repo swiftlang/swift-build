@@ -88,9 +88,9 @@ extension SWBServiceConsoleError: CustomStringConvertible {
         // TODO: Display each error type differently?
         switch self {
         case SWBServiceConsoleError.failedCommandError(let msg),
-             SWBServiceConsoleError.invalidCommandError(let msg),
-             SWBServiceConsoleError.protocolError(let msg),
-             SWBServiceConsoleError.requestError(let msg):
+            SWBServiceConsoleError.invalidCommandError(let msg),
+            SWBServiceConsoleError.protocolError(let msg),
+            SWBServiceConsoleError.requestError(let msg):
             return msg
         }
     }

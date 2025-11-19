@@ -17,37 +17,37 @@ import Foundation
 struct LaunchXcode: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
         #if !os(macOS)
-        throw LaunchXcodeError.unsupportedPlatform
+            throw LaunchXcodeError.unsupportedPlatform
         #else
-        var args = ArgumentExtractor(arguments)
-        var configuration: PackageManager.BuildConfiguration = .debug
-        // --release
-        if args.extractFlag(named: "release") > 0 {
-            configuration = .release
-        } else {
-            // --configuration release
-            let configurationOptions = args.extractOption(named: "configuration")
-            if configurationOptions.contains("release") {
+            var args = ArgumentExtractor(arguments)
+            var configuration: PackageManager.BuildConfiguration = .debug
+            // --release
+            if args.extractFlag(named: "release") > 0 {
                 configuration = .release
+            } else {
+                // --configuration release
+                let configurationOptions = args.extractOption(named: "configuration")
+                if configurationOptions.contains("release") {
+                    configuration = .release
+                }
             }
-        }
 
-        let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(configuration: configuration, echoLogs: true))
-        guard buildResult.succeeded else { return }
-        guard let buildServiceURL = buildResult.builtArtifacts.map({ $0.url }).filter({ $0.lastPathComponent == "SWBBuildServiceBundle" }).first else {
-            throw LaunchXcodeError.buildServiceURLNotFound
-        }
+            let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(configuration: configuration, echoLogs: true))
+            guard buildResult.succeeded else { return }
+            guard let buildServiceURL = buildResult.builtArtifacts.map({ $0.url }).filter({ $0.lastPathComponent == "SWBBuildServiceBundle" }).first else {
+                throw LaunchXcodeError.buildServiceURLNotFound
+            }
 
-        print("Launching Xcode...")
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments = ["-n", "-F", "-W", "--env", "XCBBUILDSERVICE_PATH=\(buildServiceURL.path())", "-b", "com.apple.dt.Xcode"]
-        process.standardOutput = nil
-        process.standardError = nil
-        try await process.run()
-        if process.terminationStatus != 0 {
-            throw LaunchXcodeError.launchFailed
-        }
+            print("Launching Xcode...")
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            process.arguments = ["-n", "-F", "-W", "--env", "XCBBUILDSERVICE_PATH=\(buildServiceURL.path())", "-b", "com.apple.dt.Xcode"]
+            process.standardOutput = nil
+            process.standardError = nil
+            try await process.run()
+            if process.terminationStatus != 0 {
+                throw LaunchXcodeError.launchFailed
+            }
         #endif
     }
 }

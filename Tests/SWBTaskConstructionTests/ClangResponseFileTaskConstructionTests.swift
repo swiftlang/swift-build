@@ -34,7 +34,8 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                         TestFile("a.c"),
                         TestFile("b.c"),
                         TestFile("c.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -42,18 +43,20 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                             "LIBTOOL": libtoolPath.str,
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CLANG_USE_RESPONSE_FILE": "YES",
-                            "CC": clangCompilerPath.str
-                        ]),
+                            "CC": clangCompilerPath.str,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Test",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["a.c", "b.c", "c.c"]),
+                            TestSourcesBuildPhase(["a.c", "b.c", "c.c"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -92,7 +95,8 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                         TestFile("a.c"),
                         TestFile("b.c"),
                         TestFile("c.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -101,17 +105,19 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CC": "\(tmpDir.join("efi-clang").str)",
                             "CLANG_USE_RESPONSE_FILE": "YES",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Test",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["a.c", "b.c", "c.c"]),
+                            TestSourcesBuildPhase(["a.c", "b.c", "c.c"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -136,7 +142,8 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                         TestFile("a.c"),
                         TestFile("b.c"),
                         TestFile("c.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -148,18 +155,20 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                             "CLANG_ENABLE_MODULES": "YES",
                             "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
                             "CLANG_MODULES_DISABLE_PRIVATE_WARNING": "YES",
-                            "CC": clangCompilerPath.str
-                        ]),
+                            "CC": clangCompilerPath.str,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Test",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["a.c", "b.c", "c.c"]),
+                            TestSourcesBuildPhase(["a.c", "b.c", "c.c"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -167,14 +176,15 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                 results.checkWriteAuxiliaryFileTask(.matchRuleItemPattern(.suffix("-common-args.resp"))) { task, contents in
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-target"))
-                    let blocksFlag = switch runDestination {
+                    let blocksFlag =
+                        switch runDestination {
                         case .macOSIntel:
                             "-fasm-blocks"
                         case .linux:
                             "-fblocks"
                         default:
                             " "
-                    }
+                        }
                     #expect(stringContents.contains(blocksFlag))
                     #expect(!stringContents.contains("-MMD"))
                     #expect(!stringContents.contains("-fcolor-diagnostics"))
@@ -205,7 +215,8 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                         TestFile("a.c"),
                         TestFile("b.m"),
                         TestFile("c.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -213,18 +224,20 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                             "LIBTOOL": libtoolPath.str,
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CLANG_USE_RESPONSE_FILE": "YES",
-                            "CC": clangCompilerPath.str
-                        ]),
+                            "CC": clangCompilerPath.str,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Test",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["a.c", "b.m", "c.m"]),
+                            TestSourcesBuildPhase(["a.c", "b.m", "c.m"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -262,8 +275,9 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("a.c"),
-                    ]),
+                        TestFile("a.c")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -272,18 +286,20 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CLANG_USE_RESPONSE_FILE": "YES",
                             "RUN_CLANG_STATIC_ANALYZER": "YES",
-                            "CC": clangCompilerPath.str
-                        ]),
+                            "CC": clangCompilerPath.str,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Test",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["a.c"]),
+                            TestSourcesBuildPhase(["a.c"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -317,8 +333,9 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("a.c"),
-                    ]),
+                        TestFile("a.c")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -331,18 +348,20 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                             "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
                             "CLANG_MODULES_DISABLE_PRIVATE_WARNING": "YES",
                             "CC": clangCompilerPath.str,
-                            "OTHER_CFLAGS": "-Xclang -Wno-shorten-64-to-32" // matches a precompiled-header neutral pattern, but uses -Xclang
-                        ]),
+                            "OTHER_CFLAGS": "-Xclang -Wno-shorten-64-to-32",  // matches a precompiled-header neutral pattern, but uses -Xclang
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Test",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["a.c"]),
+                            TestSourcesBuildPhase(["a.c"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)

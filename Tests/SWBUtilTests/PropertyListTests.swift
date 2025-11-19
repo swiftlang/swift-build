@@ -191,8 +191,7 @@ import SWBUtil
             let bytes: [UInt8]
             do {
                 bytes = try plist.asBytes(.xml)
-            }
-            catch {
+            } catch {
                 Issue.record()
                 return
             }
@@ -214,8 +213,7 @@ import SWBUtil
             let bytes: [UInt8]
             do {
                 bytes = try plist.asBytes(.binary)
-            }
-            catch {
+            } catch {
                 Issue.record()
                 return
             }
@@ -440,7 +438,7 @@ import SWBUtil
             "double": .plDouble(5.3),
             "array": .plArray([
                 .plString("foo"),
-                .plString("bar")
+                .plString("bar"),
             ]),
             "dict": .plDict([
                 "bar": .plString("trap!"),
@@ -458,16 +456,16 @@ import SWBUtil
                     "d": .plDict([
                         "z": .plInt(2),
                         "a": .plInt(1),
-                    ])
+                    ]),
                 ]),
                 .plArray([
                     .plDict([
                         "n": .plInt(1),
                         "s": .plInt(3),
                         "q": .plInt(2),
-                    ]),
+                    ])
                 ]),
-            ]),
+            ])
         ])
         #expect(nestedPlistDict.deterministicDescription == "PLDict<[\"array\": PLArray<[PLDict<[\"d\": PLDict<[\"a\": 1, \"z\": 2]>, \"m\": 2, \"x\": 3]>, PLArray<[PLDict<[\"n\": 1, \"q\": 2, \"s\": 3]>]>]>]>")
     }
@@ -496,7 +494,7 @@ import SWBUtil
                     ]),
                     "localhost": .plDict([
                         "NSExceptionMinimumTLSVersion": .plString("TLSv1.2")
-                    ])
+                    ]),
                 ])
             ])
         ])

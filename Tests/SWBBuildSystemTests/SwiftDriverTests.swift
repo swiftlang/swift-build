@@ -42,7 +42,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("file3.swift"),
                                 TestFile("file4.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -52,7 +53,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -62,8 +64,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file1.swift",
                                         "file2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .staticLibrary,
@@ -71,10 +74,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file3.swift",
                                         "file4.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -83,16 +90,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct B {
                         let a = A()
                     }
@@ -100,14 +105,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct C {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
 
                     struct D {
@@ -202,7 +205,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("file3.swift"),
                                 TestFile("file4.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -214,7 +218,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "VALID_ARCHS": "arm64e x86_64",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -224,8 +229,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file1.swift",
                                         "file2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
@@ -233,10 +239,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file3.swift",
                                         "file4.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -245,16 +255,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct B {
                         let a = A()
                     }
@@ -262,14 +270,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct C {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
 
                     struct D {
@@ -353,7 +359,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("Bridging-Header.h"),
                                 TestFile("file1.swift"),
                                 TestFile("foo.c"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -364,7 +371,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_OBJC_BRIDGING_HEADER": "Sources/Bridging-Header.h",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -373,14 +381,17 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file1.swift",
-                                        "foo.c"
+                                        "foo.c",
                                     ]),
                                     TestHeadersBuildPhase([
                                         "Bridging-Header.h"
-                                    ])
-                                ]),
-                        ])
-                ])
+                                    ]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -389,26 +400,23 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {
-                            public init() {
-                                foo()
-                            }
+                file <<< """
+                    public struct A {
+                        public init() {
+                            foo()
                         }
-                        """
+                    }
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Bridging-Header.h")) { file in
-                file <<<
-                        """
-                        void foo(void);
-                        """
+                file <<< """
+                    void foo(void);
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                        """
-                        void foo(void) {}
-                        """
+                file <<< """
+                    void foo(void) {}
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
@@ -433,7 +441,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("Bridging-Header.h"),
                                 TestFile("file1.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -445,7 +454,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_OBJC_BRIDGING_HEADER": "Sources/Bridging-Header.h",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -453,14 +463,17 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
+                                        "file1.swift"
                                     ]),
                                     TestHeadersBuildPhase([
                                         "Bridging-Header.h"
-                                    ])
-                                ]),
-                        ])
-                ])
+                                    ]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -469,18 +482,16 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {
-                            public init() {}
-                        }
-                        """
+                file <<< """
+                    public struct A {
+                        public init() {}
+                    }
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Bridging-Header.h")) { file in
-                file <<<
-                        """
-                        @import Foundation;
-                        """
+                file <<< """
+                    @import Foundation;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
@@ -531,8 +542,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("file1.swift"),
-                            ]),
+                                TestFile("file1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -546,7 +558,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SWIFT_WHOLE_MODULE_OPTIMIZATION": enableWMO ? "YES" : "NO",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -554,11 +567,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .dynamicLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "file1.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -567,12 +583,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                            """
-                            public struct A {
-                                public init() {}
-                            }
-                            """
+                file <<< """
+                    public struct A {
+                        public init() {}
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
@@ -600,7 +615,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -612,7 +628,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "$(ARCHS_STANDARD)",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -623,13 +640,15 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "TargetAConfig",
                                         buildSettings: [
                                             "ARCHS": "arm64e"
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
+                                        "file1.swift"
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .dynamicLibrary,
@@ -638,16 +657,20 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "TargetBConfig",
                                         buildSettings: [
                                             "ARCHS": "arm64"
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file2.swift",
-                                    ]),
+                                        "file2.swift"
+                                    ])
                                 ],
-                                dependencies: ["TargetA"]),
-                        ])
-                ])
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -656,22 +679,20 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {
-                            public init() {}
-                        }
-                        """
+                file <<< """
+                    public struct A {
+                        public init() {}
+                    }
+                    """
             }
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                        """
-                        public struct B {
-                            public init() {}
-                        }
-                        """
+                file <<< """
+                    public struct B {
+                        public init() {}
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
@@ -695,7 +716,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -709,7 +731,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
 
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -720,24 +743,29 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "TargetAConfig",
                                         buildSettings: [
                                             "SKIP_INSTALL": "YES"
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
+                                        "file1.swift"
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .dynamicLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file2.swift",
-                                    ]),
+                                        "file2.swift"
+                                    ])
                                 ],
-                                dependencies: ["TargetA"]),
-                        ])
-                ])
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(action: .installAPI, configuration: "Debug")
@@ -746,22 +774,20 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {
-                            public init() {}
-                        }
-                        """
+                file <<< """
+                    public struct A {
+                        public init() {}
+                    }
+                    """
             }
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                        """
-                        public struct B {
-                            public init() {}
-                        }
-                        """
+                file <<< """
+                    public struct B {
+                        public init() {}
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .anyMac, buildRequest: buildRequest, persistent: true) { results in
@@ -786,7 +812,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             path: "Sources",
                             children: [
                                 TestFile("file.swift")
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -797,7 +824,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "BLOCKLISTS_PATH": tmpDirPath.str,
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -806,10 +834,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file.swift"
-                                    ]),
-                                ])
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             var tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try tester.fs.createDirectory(moduleCacheDir)
             let cleanParameters = BuildParameters(action: .clean, configuration: "Debug")
@@ -818,12 +849,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             // Create the source file.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file.swift")) { file in
-                file <<<
-                            """
-                            public struct A {
-                                public init() {}
-                            }
-                            """
+                file <<< """
+                    public struct A {
+                        public init() {}
+                    }
+                    """
             }
 
             let checkExplicitBuildOn = { (results: BuildOperationTester.BuildResults) in
@@ -863,22 +893,28 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             let parameterizedBuildRequest = { (_ parameters: BuildParameters) in
-                return BuildRequest(parameters: parameters,
-                                    buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }),
-                                    continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+                return BuildRequest(
+                    parameters: parameters,
+                    buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }),
+                    continueBuildingAfterErrors: true,
+                    useParallelTargets: true,
+                    useImplicitDependencies: false,
+                    useDryRun: false
+                )
             }
 
             do {
-                let buildParameters = BuildParameters(configuration: "Debug",
-                                                      commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
+                let buildParameters = BuildParameters(
+                    configuration: "Debug",
+                    commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES": "YES"]
+                )
                 // Ensure explicit modules are enabled as per the default
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "KnownFailures": []
-                            }
-                            """
+                    file <<< """
+                        {
+                            "KnownFailures": []
+                        }
+                        """
                 }
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(buildParameters)) { results in checkExplicitBuildOn(results) }
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
@@ -887,15 +923,16 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             do {
                 // Add project name to the `KnownFailures` and ensure explicit modules are disabled despite the build setting enable
-                let buildParameters = BuildParameters(configuration: "Debug",
-                                                      commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES":"YES"])
+                let buildParameters = BuildParameters(
+                    configuration: "Debug",
+                    commandLineOverrides: ["SWIFT_ENABLE_EXPLICIT_MODULES": "YES"]
+                )
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "KnownFailures": ["aProject"]
-                            }
-                            """
+                    file <<< """
+                        {
+                            "KnownFailures": ["aProject"]
+                        }
+                        """
                 }
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(buildParameters)) { results in checkExplicitBuildOff(results) }
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
@@ -929,7 +966,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                     TestFile("file5.swift"),
                                     TestFile("file6.swift"),
-                                ]),
+                                ]
+                            ),
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -942,7 +980,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "EXECUTABLE_PREFIX": "lib",
                                         "EXECUTABLE_PREFIX[sdk=windows*]": "",
                                         setting: "YES",
-                                    ])
+                                    ]
+                                )
                             ],
                             targets: [
                                 TestStandardTarget(
@@ -951,9 +990,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     buildPhases: [
                                         TestSourcesBuildPhase([
                                             "fileC.c",
-                                            "fileC.h"
-                                        ]),
-                                    ]),
+                                            "fileC.h",
+                                        ])
+                                    ]
+                                ),
                                 TestStandardTarget(
                                     "TargetA",
                                     type: .dynamicLibrary,
@@ -961,8 +1001,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         TestSourcesBuildPhase([
                                             "file1.swift",
                                             "file2.swift",
-                                        ]),
-                                    ]),
+                                        ])
+                                    ]
+                                ),
                                 TestStandardTarget(
                                     "TargetB",
                                     type: .dynamicLibrary,
@@ -976,8 +1017,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         // Explicitly linking dependencies is required. This may cause
                                         // a lot of projects to break though so we may need to make explicit modules
                                         // behave the same way and re-introduce auto-linking.
-                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))])
-                                    ], dependencies: ["TargetA"]),
+                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))]),
+                                    ],
+                                    dependencies: ["TargetA"]
+                                ),
                                 TestStandardTarget(
                                     "TargetC",
                                     type: .dynamicLibrary,
@@ -986,10 +1029,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                             "file5.swift",
                                             "file6.swift",
                                         ]),
-                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA")), TestBuildFile(.target("TargetB"))])
-                                    ], dependencies: ["TargetB", "Target0"])
-                            ])
-                    ])
+                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA")), TestBuildFile(.target("TargetB"))]),
+                                    ],
+                                    dependencies: ["TargetB", "Target0"]
+                                ),
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try tester.fs.createDirectory(moduleCacheDir)
@@ -999,28 +1046,24 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                 // Create the source files.
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.c")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         int foo() { return 11; }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.h")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         int foo();
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         public struct A {
                             public init() {}
                         }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         struct B {
                             let a = A()
                         }
@@ -1028,16 +1071,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         public struct C {
                             public init() {}
                         }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         import TargetA
 
                         struct D {
@@ -1047,14 +1088,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file5.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         struct E {}
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file6.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         import TargetB
 
                         struct F {
@@ -1099,7 +1138,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTargetName("TargetA"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file2.swift", .equal(SRCROOT.join("Sources/file2.swift").str)])) { compileFile2Task in
-                        compileFile2Task.checkCommandLineMatches([.anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file2.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file2.o")])
+                        compileFile2Task.checkCommandLineMatches([.anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file2.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file2.o")])
                     }
 
                     // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
@@ -1112,11 +1151,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTargetName("TargetB"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file3.swift", .equal(SRCROOT.join("Sources/file3.swift").str)])) { compileFile3Task in
-                        compileFile3Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file3.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file3.o")])
+                        compileFile3Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file3.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file3.o")])
                     }
 
                     results.checkTask(.matchTargetName("TargetB"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file4.swift", .equal(SRCROOT.join("Sources/file4.swift").str)])) { compileFile4Task in
-                        compileFile4Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file4.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file4.o")])
+                        compileFile4Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file4.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file4.o")])
                     }
 
                     // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
@@ -1128,11 +1167,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         }
                     }
                     results.checkTask(.matchTargetName("TargetC"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file5.swift", .equal(SRCROOT.join("Sources/file5.swift").str)])) { compileFile3Task in
-                        compileFile3Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file5.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file5.o")])
+                        compileFile3Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file5.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file5.o")])
                     }
 
                     results.checkTask(.matchTargetName("TargetC"), .matchRulePattern(["SwiftCompile", "normal", .any, "Compiling file6.swift", .equal(SRCROOT.join("Sources/file6.swift").str)])) { compileFile4Task in
-                        compileFile4Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file6.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file6.o")])
+                        compileFile4Task.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file6.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file6.o")])
                     }
 
                     // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
@@ -1184,7 +1223,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("Target0.h"),
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1194,8 +1234,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
                                     "DEFINES_MODULE": "YES",
-                                    "CLANG_ENABLE_MODULES": "YES"
-                                ])
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -1203,34 +1244,41 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "fileC.c",
+                                        "fileC.c"
                                     ]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Target0.h", headerVisibility: .public)
-                                    ])
-                                ]),
+                                    ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetA",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ], dependencies: [
+                                        "file1.swift"
+                                    ])
+                                ],
+                                dependencies: [
                                     "Target0"
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file2.swift",
-                                    ]),
-                                ], dependencies: [
+                                        "file2.swift"
+                                    ])
+                                ],
+                                dependencies: [
                                     "Target0"
-                                ]),
-                        ])
-                ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -1239,34 +1287,30 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.c")) { file in
-                file <<<
-                            """
-                            int foo() { return 11; }
-                            """
+                file <<< """
+                    int foo() { return 11; }
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Target0.h")) { file in
-                file <<<
-                            """
-                            int foo();
-                            """
+                file <<< """
+                    int foo();
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                            """
-                            import Target0
-                            public struct A {
-                                public init() { foo() }
-                            }
-                            """
+                file <<< """
+                    import Target0
+                    public struct A {
+                        public init() { foo() }
+                    }
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                            """
-                            import Target0
-                            public struct B {
-                                public init() { foo() }
-                            }
-                            """
+                file <<< """
+                    import Target0
+                    public struct B {
+                        public init() { foo() }
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
@@ -1301,7 +1345,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1312,21 +1357,25 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": arch,
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
-                            TestStandardTarget("TargetA",
-                                               type: .framework,
-                                               buildConfigurations: [
-                                                TestBuildConfiguration("Debug"),
-                                               ],
-                                               buildPhases: [
-                                                TestSourcesBuildPhase([
-                                                    "file1.swift",
-                                                    "file2.swift"
-                                                ]),
-                                               ])
-                        ]),
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug")
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file1.swift",
+                                        "file2.swift",
+                                    ])
+                                ]
+                            )
+                        ]
+                    ),
                     TestProject(
                         "bProject",
                         groupTree: TestGroup(
@@ -1335,7 +1384,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file3.swift"),
                                 TestFile("file4.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1349,32 +1399,40 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     // FIXME: Unfortunately, `BuildOperationTester` doesn't set up a shared `BUILT_PRODUCTS_DIR` for the whole workspace.
                                     "SWIFT_INCLUDE_PATHS": "$(TARGET_BUILD_DIR)/../../../aProject/build/Debug",
                                     "FRAMEWORK_SEARCH_PATHS": "$(TARGET_BUILD_DIR)/../../../aProject/build/Debug",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug"),
+                                    TestBuildConfiguration("Debug")
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file3.swift",
                                         "file4.swift",
                                     ]),
-                                    TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))])
-                                ], dependencies: ["TargetA"])
-                        ])
-                ])
+                                    TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))]),
+                                ],
+                                dependencies: ["TargetA"]
+                            )
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["SWIFT_FORCE_MODULE_LOADING": "only-interface"])
             try tester.fs.createDirectory(moduleCacheDir)
-            let parameters = BuildParameters(configuration: "Debug", overrides: [
-                // Redirect the prebuilt cache so we always build modules from source
-                "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
-            ])
+            let parameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // Redirect the prebuilt cache so we always build modules from source
+                    "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
+                ]
+            )
             let targetsToBuild = tester.workspace.projects.flatMap { project in project.targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }) }
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: targetsToBuild, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOTA = testWorkspace.sourceRoot.join("aProject")
@@ -1382,29 +1440,25 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {\n\tpublic init() {}\n}
-                        """
+                file <<< """
+                    public struct A {\n\tpublic init() {}\n}
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file2.swift")) { file in
-                file <<<
-                        """
-                        struct B {\n\tlet a = A()\n}
-                        """
+                file <<< """
+                    struct B {\n\tlet a = A()\n}
+                    """
             }
 
             try await tester.fs.writeFileContents(SRCROOTB.join("Sources/file3.swift")) { file in
-                file <<<
-                        """
-                        public struct C {\n\tpublic init() {}\n}
-                        """
+                file <<< """
+                    public struct C {\n\tpublic init() {}\n}
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOTB.join("Sources/file4.swift")) { file in
-                file <<<
-                        """
-                        import TargetA\n\nstruct D {\n\tlet a = A()\n}
-                        """
+                file <<< """
+                    import TargetA\n\nstruct D {\n\tlet a = A()\n}
+                    """
             }
 
             // Check that subtasks progress events are reported as expected.
@@ -1448,7 +1502,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
                                 TestFile("file3.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1461,42 +1516,53 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
                                     // Force use of a response file
                                     "GCC_PREPROCESSOR_DEFINITIONS": Array(repeating: "ABCD=1", count: 10000).joined(separator: " "),
-                                    "OTHER_SWIFT_FLAGS": "-Xfrontend -module-load-mode -Xfrontend only-interface"
-                                ])
+                                    "OTHER_SWIFT_FLAGS": "-Xfrontend -module-load-mode -Xfrontend only-interface",
+                                ]
+                            )
                         ],
                         targets: [
-                            TestStandardTarget("TargetC",
-                                               type: .framework,
-                                               buildConfigurations: [
-                                                TestBuildConfiguration("Debug"),
-                                               ],
-                                               buildPhases: [
-                                                TestSourcesBuildPhase([
-                                                    "file3.swift",
-                                                ]),
-                                               ]),
-                            TestStandardTarget("TargetA",
-                                               type: .framework,
-                                               buildConfigurations: [
-                                                TestBuildConfiguration("Debug"),
-                                               ],
-                                               buildPhases: [
-                                                TestSourcesBuildPhase([
-                                                    "file1.swift",
-                                                ]),
-                                               ], dependencies: ["TargetB", "TargetC"]),
-                            TestStandardTarget("TargetB",
-                                               type: .framework,
-                                               buildConfigurations: [
-                                                TestBuildConfiguration("Debug"),
-                                               ],
-                                               buildPhases: [
-                                                TestSourcesBuildPhase([
-                                                    "file2.swift"
-                                                ]),
-                                               ], dependencies: ["TargetC"])
-                        ])
-                ])
+                            TestStandardTarget(
+                                "TargetC",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug")
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file3.swift"
+                                    ])
+                                ]
+                            ),
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug")
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file1.swift"
+                                    ])
+                                ],
+                                dependencies: ["TargetB", "TargetC"]
+                            ),
+                            TestStandardTarget(
+                                "TargetB",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug")
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "file2.swift"
+                                    ])
+                                ],
+                                dependencies: ["TargetC"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try tester.fs.createDirectory(moduleCacheDir)
@@ -1507,24 +1573,21 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file1.swift")) { file in
-                file <<<
-                        """
-                        import TargetC
-                        func foo() { baz() }
-                        """
+                file <<< """
+                    import TargetC
+                    func foo() { baz() }
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file2.swift")) { file in
-                file <<<
-                        """
-                        import TargetC
-                        func bar() { baz() }
-                        """
+                file <<< """
+                    import TargetC
+                    func bar() { baz() }
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOTA.join("Sources/file3.swift")) { file in
-                file <<<
-                        """
-                        public func baz() {}
-                        """
+                file <<< """
+                    public func baz() {}
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
@@ -1559,7 +1622,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                     TestFile("file3.swift"),
                                     TestFile("file4.swift"),
-                                ]),
+                                ]
+                            ),
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -1570,7 +1634,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "ARCHS": arch,
                                         "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                    ])
+                                    ]
+                                )
                             ],
                             targets: [
                                 // Ensure that a target containing both Swift and C sources
@@ -1581,31 +1646,36 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     buildConfigurations: [
                                         // Modify PRODUCT_NAME to ensure we use it downstream
                                         // for target dependency info, instead of target name.
-                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "TargetA_X"]),
+                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "TargetA_X"])
                                     ],
                                     buildPhases: [
                                         TestSourcesBuildPhase([
                                             "fileC.c",
                                             "fileC.h",
                                             "file1.swift",
-                                            "file2.swift"
-                                        ]),
-                                    ]),
+                                            "file2.swift",
+                                        ])
+                                    ]
+                                ),
                                 TestStandardTarget(
                                     "TargetB",
                                     type: .framework,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "TargetB_X"]),
+                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "TargetB_X"])
                                     ],
                                     buildPhases: [
                                         TestSourcesBuildPhase([
                                             "file3.swift",
                                             "file4.swift",
                                         ]),
-                                        TestFrameworksBuildPhase([TestBuildFile(.auto("TargetA_X.framework"))])
-                                    ], dependencies: ["TargetA"])
-                            ])
-                    ])
+                                        TestFrameworksBuildPhase([TestBuildFile(.auto("TargetA_X.framework"))]),
+                                    ],
+                                    dependencies: ["TargetA"]
+                                ),
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 try tester.fs.createDirectory(moduleCacheDir)
@@ -1615,28 +1685,24 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                 // Create the source files.
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.c")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         int foo() { return 11; }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.h")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         int foo();
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         public struct A {
                             public init() {}
                         }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         struct B {
                             let a = A()
                         }
@@ -1644,16 +1710,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         public struct C {
                             public init() {}
                         }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         import TargetA_X
 
                         struct D {
@@ -1685,7 +1749,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTargetName("TargetA"), .matchRule(["SwiftCompile", "normal", arch, "Compiling file2.swift", SRCROOT.join("Sources/file2.swift").str])) { compileFile2Task in
-                        compileFile2Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file2.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file2.o")])
+                        compileFile2Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file2.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file2.o")])
                     }
 
                     // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
@@ -1698,11 +1762,11 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTargetName("TargetB"), .matchRule(["SwiftCompile", "normal", arch, "Compiling file3.swift", SRCROOT.join("Sources/file3.swift").str])) { compileFile3Task in
-                        compileFile3Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file3.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file3.o")])
+                        compileFile3Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .equal(SRCROOT.join("Sources/file3.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file3.o")])
                     }
 
                     results.checkTask(.matchTargetName("TargetB"), .matchRule(["SwiftCompile", "normal", arch, "Compiling file4.swift", SRCROOT.join("Sources/file4.swift").str])) { compileFile4Task in
-                        compileFile4Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file4.swift").str), .anySequence, "-disable-implicit-swift-modules",  .anySequence, "-o", .suffix("file4.o")])
+                        compileFile4Task.checkCommandLineMatches([.suffix("swift-frontend"), .anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/file4.swift").str), .anySequence, "-disable-implicit-swift-modules", .anySequence, "-o", .suffix("file4.o")])
                     }
 
                     // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
@@ -1753,7 +1817,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1764,7 +1829,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -1772,19 +1838,24 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
+                                        "file1.swift"
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file2.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                        "file2.swift"
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -1793,14 +1864,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     open class A1 {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
 
                     final class A2: A1 {}
@@ -1817,8 +1886,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Add method to A1 in TargetA to invalidate TargetA and TargetB planning
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     open class A1 {
                         open func foo() { }
                     }
@@ -1849,8 +1917,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("file1.swift"),
-                            ]),
+                                TestFile("file1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1861,7 +1930,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -1869,11 +1939,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "file1.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -1882,8 +1955,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source file.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift"), waitForNewTimestamp: true) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A1 {}
                     """
             }
@@ -1898,8 +1970,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Change the source file.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift"), waitForNewTimestamp: true) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A1 { }
                     """
             }
@@ -1912,8 +1983,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Change the source file again.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift"), waitForNewTimestamp: true) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A2 { }
                     """
             }
@@ -1943,7 +2013,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1951,7 +2022,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "BUILD_VARIANTS": "normal",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -1961,10 +2033,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file1.swift",
                                         "file2.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -1973,8 +2048,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the sources.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift"), waitForNewTimestamp: true) { file in
-                file <<<
-                    """
+                file <<< """
                     func f() {
                         // We place this code inside a function body so that when we introduce an error, it is emitted by only the compile task, and not the emit-module task as well.
                         let x = y
@@ -1984,8 +2058,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift"), waitForNewTimestamp: true) { file in
-                file <<<
-                    """
+                file <<< """
                     let y = 42
                     """
             }
@@ -2003,8 +2076,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Update file2 such that the compilation of file1 will emit an error and fail.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift"), waitForNewTimestamp: true) { file in
-                file <<<
-                    """
+                file <<< """
                     let z = 42
                     """
             }
@@ -2018,8 +2090,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Revert the changes to file2. The new build should succeed, and both files should recompile, file2 because it was modified and file1 because it failed in the previous build.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift"), waitForNewTimestamp: true) { file in
-                file <<<
-                    """
+                file <<< """
                     let y = 42
                     """
             }
@@ -2055,7 +2126,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("file3.swift"),
                                 TestFile("file4.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2066,7 +2138,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2076,8 +2149,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file1.swift",
                                         "file2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
@@ -2085,10 +2159,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file3.swift",
                                         "file4.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2097,14 +2175,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A1 {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     open class A2 {
                         let a = A1()
                     }
@@ -2112,16 +2188,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
 
                     class B1: A2 {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     class B2: B1 {}
                     """
             }
@@ -2136,8 +2210,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Change B -> Incremental build
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     class B2 { }
                     """
             }
@@ -2171,8 +2244,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Change public API in A
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A1 {}
                     public struct Foo {}
                     """
@@ -2217,7 +2289,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("file3.swift"),
                                 TestFile("file4.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2228,7 +2301,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2238,8 +2312,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file1.swift",
                                         "file2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
@@ -2247,10 +2322,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file3.swift",
                                         "file4.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2259,14 +2338,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A1 {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     open class A2 {
                         let a = A1()
                     }
@@ -2274,16 +2351,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
 
                     class B1: A2 {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     class B2: B1 {}
                     """
             }
@@ -2321,7 +2396,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 (0..<numberOfFilesPerTarget).map { fileNumber in
                                     TestFile("Target\(targetNumber)File\(fileNumber).swift")
                                 }
-                            }),
+                            }
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2332,21 +2408,25 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
-                        targets:
-                            (0..<numberOfTargets).map { targetNumber in
-                                TestStandardTarget(
-                                    "Target\(targetNumber)",
-                                    type: .framework,
-                                    buildPhases: [
-                                        TestSourcesBuildPhase((0..<numberOfFilesPerTarget).map { fileNumber in
+                        targets: (0..<numberOfTargets).map { targetNumber in
+                            TestStandardTarget(
+                                "Target\(targetNumber)",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(
+                                        (0..<numberOfFilesPerTarget).map { fileNumber in
                                             TestBuildFile("Target\(targetNumber)File\(fileNumber).swift")
-                                        })
-                                    ])
-                            }
+                                        }
+                                    )
+                                ]
+                            )
+                        }
                     )
-                ])
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2357,10 +2437,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             for targetNumber in 0..<numberOfTargets {
                 for fileNumber in 0..<numberOfFilesPerTarget {
                     try await tester.fs.writeFileContents(SRCROOT.join("Sources/Target\(targetNumber)File\(fileNumber).swift")) { file in
-                        file <<<
-                                """
-                                public struct Target\(targetNumber)File\(fileNumber) { }
-                                """
+                        file <<< """
+                            public struct Target\(targetNumber)File\(fileNumber) { }
+                            """
                     }
                 }
             }
@@ -2385,7 +2464,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             path: "Sources",
-                            children: [ TestFile("file.swift") ]
+                            children: [TestFile("file.swift")]
                         ),
                         buildConfigurations: [
                             TestBuildConfiguration(
@@ -2399,21 +2478,23 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
 
                                     "OTHER_SWIFT_FLAGS": "$(inherited) " + (0..<numberOfSwiftFlags).map({ "-FLAG\($0)" }).joined(separator: " "),
-                                ])
+                                ]
+                            )
                         ],
-                        targets:
-                            [
-                                TestStandardTarget(
-                                    "TargetA",
-                                    type: .framework,
-                                    buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("file.swift")
-                                        ])
+                        targets: [
+                            TestStandardTarget(
+                                "TargetA",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        TestBuildFile("file.swift")
                                     ])
-                            ]
+                                ]
+                            )
+                        ]
                     )
-                ])
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
@@ -2446,7 +2527,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
                                 TestFile("file3.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2458,7 +2540,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "OTHER_SWIFT_FLAGS": "$(inherited) -driver-batch-count 1",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2469,10 +2552,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "file1.swift",
                                         "file2.swift",
                                         "file3.swift",
-                                    ]),
-                                ])
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2481,23 +2567,20 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A1: DoesNotExist { }
                     """
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A2: DoesAlsoNotExist { }
                     """
             }
 
             // file3.swift has no source error, so the diagnostics path should be an empty file
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A3 { }
                     """
             }
@@ -2548,7 +2631,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("file1.swift"),
                                 TestFile("file2.swift"),
                                 TestFile("file3.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2559,7 +2643,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": arch,
                                     "SWIFT_WHOLE_MODULE_OPTIMIZATION": "YES",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2570,10 +2655,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "file1.swift",
                                         "file2.swift",
                                         "file3.swift",
-                                    ]),
-                                ])
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2582,23 +2670,20 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A1: DoesNotExist { }
                     """
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A2: DoesAlsoNotExist { }
                     """
             }
 
             // file3.swift has no source error, so the diagnostics path should be an empty file
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public class A3 { }
                     """
             }
@@ -2636,17 +2721,22 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestGroup("A",
-                                          path: "A",
-                                          children: [
-                                            TestFile("file.swift", guid: "Afile.swift")
-                                          ]),
-                                TestGroup("B",
-                                          path: "B",
-                                          children: [
-                                            TestFile("file.swift", guid: "Bfile.swift")
-                                          ])
-                            ]),
+                                TestGroup(
+                                    "A",
+                                    path: "A",
+                                    children: [
+                                        TestFile("file.swift", guid: "Afile.swift")
+                                    ]
+                                ),
+                                TestGroup(
+                                    "B",
+                                    path: "B",
+                                    children: [
+                                        TestFile("file.swift", guid: "Bfile.swift")
+                                    ]
+                                ),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2658,7 +2748,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SUPPORTS_TEXT_BASED_API": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2668,10 +2759,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "Afile.swift",
                                         "Bfile.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2705,8 +2799,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("file1.swift"),
-                            ]),
+                                TestFile("file1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2718,7 +2813,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SUPPORTS_TEXT_BASED_API": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2726,11 +2822,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "file1.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2739,14 +2838,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
-
 
             // Check that subtasks progress events are reported as expected.
             tester.userInfo = UserInfo(user: "user", group: "group", uid: 1337, gid: 42, home: tmpDirPath.join("home"), processEnvironment: ["LD_APPLICATION_EXTENSION_SAFE": "1"], buildSystemEnvironment: [:])
@@ -2775,7 +2872,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("fileB1.swift"),
                                 TestFile("fileB2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2786,7 +2884,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2796,8 +2895,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileA1.swift",
                                         "fileA2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
@@ -2805,10 +2905,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileB1.swift",
                                         "fileB2.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2817,16 +2921,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct B {
                         let a = A()
                     }
@@ -2834,14 +2936,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct C {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA\n\nstruct D {\n\tlet a = A()\n}
                     """
             }
@@ -2874,7 +2974,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                         results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem(SRCROOT.join("Sources/file\(targetNameSuffix)1.swift").str))
                         results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem(SRCROOT.join("Sources/file\(targetNameSuffix)2.swift").str))
-                        results.checkTaskRequested(compilationTask , .matchRuleType("SwiftDriver"), .matchTargetName(targetName))
+                        results.checkTaskRequested(compilationTask, .matchRuleType("SwiftDriver"), .matchTargetName(targetName))
                         results.checkTaskRequested(compilationTask, .matchTargetName(targetName), .matchRule(["SwiftEmitModule", "normal", "arm64e", "Emitting module for \(targetName)"]))
                         results.checkNoUncheckedTasksRequested(compilationTask)
                     }
@@ -2917,8 +3017,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("fileC1.swift"),
                                 TestFile("fileC2.swift"),
 
-                                TestFile("libDylib.dylib")
-                            ]),
+                                TestFile("libDylib.dylib"),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -2932,7 +3033,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "EAGER_LINKING": "YES",
                                     "EAGER_LINKING_REQUIRE": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -2943,8 +3045,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "fileA1.swift",
                                         "fileA2.swift",
                                     ]),
-                                    TestFrameworksBuildPhase([TestBuildFile(.target("Fwk")), TestBuildFile("libDylib.dylib")])
-                                ], dependencies: ["Fwk", "DynamicLibrary"]),
+                                    TestFrameworksBuildPhase([TestBuildFile(.target("Fwk")), TestBuildFile("libDylib.dylib")]),
+                                ],
+                                dependencies: ["Fwk", "DynamicLibrary"]
+                            ),
                             TestStandardTarget(
                                 "Fwk",
                                 type: .framework,
@@ -2952,22 +3056,26 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileB1.swift",
                                         "fileB2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "DynamicLibrary",
                                 type: .dynamicLibrary,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "libDylib"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "libDylib"])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "fileC1.swift",
                                         "fileC2.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                    ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -2976,8 +3084,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import Fwk
                     import libDylib
                     @main public struct Tool {
@@ -2990,38 +3097,33 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct InternalStruct {}
                     """
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct FwkStruct {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     extension FwkStruct {}
                     """
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct DylibStruct {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     extension DylibStruct {}
                     """
             }
@@ -3064,7 +3166,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("fileB1.swift"),
                                 TestFile("fileB2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -3079,7 +3182,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "EAGER_LINKING": "YES",
                                     "EAGER_LINKING_REQUIRE": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -3090,8 +3194,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "fileA1.swift",
                                         "fileA2.swift",
                                     ]),
-                                    TestFrameworksBuildPhase([TestBuildFile(.target("Fwk"))])
-                                ], dependencies: ["Fwk"]),
+                                    TestFrameworksBuildPhase([TestBuildFile(.target("Fwk"))]),
+                                ],
+                                dependencies: ["Fwk"]
+                            ),
                             TestStandardTarget(
                                 "Fwk",
                                 type: .framework,
@@ -3099,10 +3205,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileB1.swift",
                                         "fileB2.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                    ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -3111,8 +3220,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import Fwk
                     @main public struct Tool {
                         static func main() {
@@ -3123,23 +3231,20 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct InternalStruct {}
                     """
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct FwkStruct {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     extension FwkStruct {}
                     """
             }
@@ -3179,7 +3284,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("fileB1.swift"),
                                 TestFile("fileB2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -3192,7 +3298,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_ENABLE_LIBRARY_EVOLUTION": "YES",
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -3202,8 +3309,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileA1.swift",
                                         "fileA2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
@@ -3211,10 +3319,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileB1.swift",
                                         "fileB2.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -3223,16 +3335,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct B {
                         let a = A()
                     }
@@ -3240,14 +3350,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct C {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA\n\nstruct D {\n\tlet a = A()\n}
                     """
             }
@@ -3319,7 +3427,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("fileB1.swift"),
                                 TestFile("fileB2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -3332,7 +3441,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_ENABLE_LIBRARY_EVOLUTION": "NO",
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -3342,8 +3452,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileA1.swift",
                                         "fileA2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
@@ -3351,10 +3462,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "fileB1.swift",
                                         "fileB2.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -3363,16 +3478,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct B {
                         let a = A()
                     }
@@ -3380,14 +3493,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct C {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA\n\nstruct D {\n\tlet a = A()\n}
                     """
             }
@@ -3428,7 +3539,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                     TestFile("fileB1.swift"),
                                     TestFile("fileB2.swift"),
-                                ]),
+                                ]
+                            ),
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -3439,7 +3551,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         "ARCHS": arch,
                                         "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                         "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                    ])
+                                    ]
+                                )
                             ],
                             targets: [
                                 TestStandardTarget(
@@ -3449,8 +3562,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         TestSourcesBuildPhase([
                                             "fileA1.swift",
                                             "fileA2.swift",
-                                        ]),
-                                    ]),
+                                        ])
+                                    ]
+                                ),
                                 TestStandardTarget(
                                     "TargetB",
                                     type: .framework,
@@ -3464,46 +3578,49 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         // Explicitly linking dependencies is required. This may cause
                                         // a lot of projects to break though so we may need to make explicit modules
                                         // behave the same way and re-introduce auto-linking.
-                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))])
-                                    ], dependencies: ["TargetA"]),
-                            ])
-                    ])
+                                        TestFrameworksBuildPhase([TestBuildFile(.target("TargetA"))]),
+                                    ],
+                                    dependencies: ["TargetA"]
+                                ),
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["SWIFT_FORCE_MODULE_LOADING": "only-interface"])
-                let parameters = BuildParameters(configuration: "Debug", overrides: [
-                    // Redirect the prebuilt cache so we always build modules from source
-                    "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        // Redirect the prebuilt cache so we always build modules from source
+                        "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
+                    ]
+                )
                 let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 // Create the source files.
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         public struct A {
                             public init() { }
                         }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA2.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         struct B {
                             let a = A()
                         }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB1.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         struct C { }
                         """
                 }
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileB2.swift")) { file in
-                    file <<<
-                        """
+                    file <<< """
                         import TargetA
 
                         struct D {
@@ -3615,9 +3732,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         type: .framework,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "file1.swift",
-                            ]),
-                        ])
+                                "file1.swift"
+                            ])
+                        ]
+                    )
 
                     let testWorkspace = try await TestWorkspace(
                         "Test",
@@ -3629,8 +3747,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "Sources",
                                     path: "Sources",
                                     children: [
-                                        TestFile("file1.swift"),
-                                    ]),
+                                        TestFile("file1.swift")
+                                    ]
+                                ),
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug",
@@ -3647,10 +3766,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                             // Eager linking is not supported when using the driver binary.
                                             "EAGER_LINKING": "NO",
                                             "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
-                                        ])
+                                        ]
+                                    )
                                 ],
-                                targets: [ targetA ])
-                        ])
+                                targets: [targetA]
+                            )
+                        ]
+                    )
 
                     let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                     let parameters = BuildParameters(configuration: "Debug")
@@ -3659,8 +3781,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                     // Create the source files.
                     try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                        file <<<
-                            """
+                        file <<< """
                             public struct A {
                                 public init() { }
                             }
@@ -3723,9 +3844,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 )
 
                 XCTAssertEqualSequences(
-                    integratedInfos.preview.commandLine.filter { $0 != "-disable-cmo" &&
-                                                                                                $0 != "-no-color-diagnostics" &&
-                                                                                                $0 != "-experimental-emit-module-separately" },
+                    integratedInfos.preview.commandLine.filter { $0 != "-disable-cmo" && $0 != "-no-color-diagnostics" && $0 != "-experimental-emit-module-separately" },
                     binaryInfos.preview.commandLine
                 )
             }
@@ -3745,8 +3864,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("file.swift"),
-                            ]),
+                                TestFile("file.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -3757,7 +3877,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -3765,11 +3886,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "file.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -3811,7 +3935,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                                 TestFile("file3.swift"),
                                 TestFile("file4.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -3822,7 +3947,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -3832,8 +3958,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file1.swift",
                                         "file2.swift",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
@@ -3841,10 +3968,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "file3.swift",
                                         "file4.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -3853,16 +3984,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct B {
                         let a = A()
                     }
@@ -3870,14 +3999,12 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file3.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     struct C {}
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file4.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
 
                     struct D {
@@ -3911,8 +4038,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("file1.swift"),
-                            ]),
+                                TestFile("file1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -3923,7 +4051,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal",
                                     "ARCHS": "arm64",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -3931,11 +4060,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .dynamicLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "file1.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(action: .docBuild, configuration: "Debug")
@@ -3944,8 +4076,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
@@ -3989,7 +4120,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("file1.swift"),
 
                                 TestFile("file2.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4000,7 +4132,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -4008,19 +4141,24 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ]),
+                                        "file1.swift"
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file2.swift",
-                                    ]),
-                                ], dependencies: ["TargetA"]),
-                        ])
-                ])
+                                        "file2.swift"
+                                    ])
+                                ],
+                                dependencies: ["TargetA"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -4032,16 +4170,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public static func foo() -> Int { 5 }
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
                     open class B {
                         let a = A.foo()
@@ -4064,8 +4200,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Change B -> Incremental build
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
                     final class B {
                         let a = A.foo()
@@ -4095,8 +4230,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Remove public API in A
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
@@ -4129,8 +4263,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Fix call in B -> Incremental build
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file2.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     import TargetA
                     final class B {
                         let a = A()
@@ -4164,25 +4297,31 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDirPath,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("Source.swift"),
                         TestFile("Source2.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SWIFT_VERSION": swiftVersion
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Foo",
                         type: .framework,
                         buildPhases: [
-                            TestSourcesBuildPhase(["Source.swift", "Source2.swift"]),
-                        ])
-                ])
-
+                            TestSourcesBuildPhase(["Source.swift", "Source2.swift"])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             try await tester.fs.writeFileContents(tmpDirPath.join("Source.swift")) {
@@ -4218,7 +4357,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.swift"),
                                 TestFile("TargetA.h"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4229,7 +4369,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64e",
                                     "SWIFT_OBJC_BRIDGING_HEADER": tmpDirPath.join("Test/aProject/Sources/bridge.h").str,
                                     "DEFINES_MODULE": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -4240,11 +4381,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                         TestBuildFile("TargetA.h", headerVisibility: .public)
                                     ]),
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
+                                        "file1.swift"
                                     ]),
-                                ]),
-                        ])
-                ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -4253,21 +4397,18 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/TargetA.h")) { file in
-                file <<<
-                    """
+                file <<< """
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/bridge.h")) { file in
-                file <<<
-                    """
+                file <<< """
                     @import Foundation;
                     """
             }
@@ -4297,8 +4438,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("file1.swift"),
-                            ]),
+                                TestFile("file1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4307,7 +4449,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "SWIFT_VERSION": swiftVersion,
                                     "BUILD_VARIANTS": "normal",
                                     "ARCHS": "arm64e",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -4316,11 +4459,14 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestShellScriptBuildPhase(name: "A", originalObjectID: "A", contents: "echo 'error: something bad happened'", alwaysOutOfDate: true),
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
+                                        "file1.swift"
                                     ]),
-                                ]),
-                        ])
-                ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -4328,8 +4474,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
@@ -4361,18 +4506,22 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("Framework1.h"),
                                 TestFile("file_1.c"),
                                 TestFile("file_2.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DEFINES_MODULE": "YES",
-                                "VALID_ARCHS": "arm64",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DEFINES_MODULE": "YES",
+                                    "VALID_ARCHS": "arm64",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework1",
@@ -4380,43 +4529,45 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework2",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_2.swift"]),
+                                    TestSourcesBuildPhase(["file_2.swift"])
                                 ],
-                            dependencies: [
-                                "Framework1"
-                            ]),
-                        ])])
+                                dependencies: [
+                                    "Framework1"
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void);
-            """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            #include <Framework1/Framework1.h>
-            void foo(void) {}
-            """
+                stream <<< """
+                    #include <Framework1/Framework1.h>
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
-                stream <<<
-            """
-            import Framework1
-            public func bar() {
-                foo()
-            }
-            """
+                stream <<< """
+                    import Framework1
+                    public func bar() {
+                        foo()
+                    }
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug", overrides: [:])
@@ -4452,19 +4603,23 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("Framework1.h"),
                                 TestFile("file_1.c"),
                                 TestFile("file_2.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DEFINES_MODULE": "YES",
-                                "VALID_ARCHS": "arm64",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                                "MODULEMAP_FILE_CONTENTS": "framework module Framework1 [system] { header \"Framework1.h\" }"
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DEFINES_MODULE": "YES",
+                                    "VALID_ARCHS": "arm64",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                    "MODULEMAP_FILE_CONTENTS": "framework module Framework1 [system] { header \"Framework1.h\" }",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework1",
@@ -4472,43 +4627,45 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework2",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_2.swift"]),
+                                    TestSourcesBuildPhase(["file_2.swift"])
                                 ],
-                            dependencies: [
-                                "Framework1"
-                            ]),
-                        ])])
+                                dependencies: [
+                                    "Framework1"
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void);
-            """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            #include <Framework1/Framework1.h>
-            void foo(void) {}
-            """
+                stream <<< """
+                    #include <Framework1/Framework1.h>
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
-                stream <<<
-            """
-            import Framework1
-            public func bar() {
-                foo()
-            }
-            """
+                stream <<< """
+                    import Framework1
+                    public func bar() {
+                        foo()
+                    }
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug", overrides: [:])
@@ -4545,19 +4702,23 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("file_1.c"),
                                 TestFile("file_2.swift"),
                                 TestFile("file_3.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DEFINES_MODULE": "YES",
-                                "VALID_ARCHS": "arm64",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DEFINES_MODULE": "YES",
+                                    "VALID_ARCHS": "arm64",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework1",
@@ -4565,56 +4726,58 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework2",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_2.swift"]),
-                                ]),
+                                    TestSourcesBuildPhase(["file_2.swift"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework3",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_3.swift"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file_3.swift"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void);
-            """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            #include <Framework1/Framework1.h>
-            void foo(void) {}
-            """
+                stream <<< """
+                    #include <Framework1/Framework1.h>
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
-                stream <<<
-            """
-            public func bar() {}
-            """
+                stream <<< """
+                    public func bar() {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_3.swift")) { stream in
-                stream <<<
-            """
-            import Framework1
-            import Framework2
+                stream <<< """
+                    import Framework1
+                    import Framework2
 
-            public func baz() {
-                foo()
-                bar()
-            }
-            """
+                    public func baz() {
+                        foo()
+                        bar()
+                    }
+                    """
             }
 
             for warningLevel in [BooleanWarningLevel.yes, .yesError] {
@@ -4655,71 +4818,83 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("Framework1.h"),
                                 TestFile("file_1.c"),
                                 TestFile("file_2.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DEFINES_MODULE": "YES",
-                                "VALID_ARCHS": "arm64",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                                "DIAGNOSE_MISSING_TARGET_DEPENDENCIES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DEFINES_MODULE": "YES",
+                                    "VALID_ARCHS": "arm64",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                    "DIAGNOSE_MISSING_TARGET_DEPENDENCIES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework1",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "IMPLICIT_DEPENDENCY_DOMAIN": "One"
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "IMPLICIT_DEPENDENCY_DOMAIN": "One"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework2",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "IMPLICIT_DEPENDENCY_DOMAIN": "Two"
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "IMPLICIT_DEPENDENCY_DOMAIN": "Two"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_2.swift"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file_2.swift"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void);
-            """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            #include <Framework1/Framework1.h>
-            void foo(void) {}
-            """
+                stream <<< """
+                    #include <Framework1/Framework1.h>
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
-                stream <<<
-            """
-            import Framework1
-            public func baz() {
-                foo()
-            }
-            """
+                stream <<< """
+                    import Framework1
+                    public func baz() {
+                        foo()
+                    }
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug")
@@ -4749,7 +4924,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("fileC.c"),
                                 TestFile("Target0.h"),
                                 TestFile("file1.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4759,8 +4935,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal other",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
                                     "DEFINES_MODULE": "YES",
-                                    "CLANG_ENABLE_MODULES": "YES"
-                                ])
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -4768,24 +4945,29 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "fileC.c",
+                                        "fileC.c"
                                     ]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Target0.h", headerVisibility: .public)
-                                    ])
-                                ]),
+                                    ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetA",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "file1.swift",
-                                    ]),
-                                ], dependencies: [
+                                        "file1.swift"
+                                    ])
+                                ],
+                                dependencies: [
                                     "Target0"
-                                ]),
-                        ])
-                ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -4794,25 +4976,22 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileC.c")) { file in
-                file <<<
-                        """
-                        int foo() { return 11; }
-                        """
+                file <<< """
+                    int foo() { return 11; }
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Target0.h")) { file in
-                file <<<
-                        """
-                        int foo();
-                        """
+                file <<< """
+                    int foo();
+                    """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/file1.swift")) { file in
-                file <<<
-                        """
-                        import Target0
-                        public struct A {
-                            public init() { foo() }
-                        }
-                        """
+                file <<< """
+                    import Target0
+                    public struct A {
+                        public init() { foo() }
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
@@ -4825,7 +5004,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
         }
     }
-
 
     @Test(.requireSDKs(.macOS))
     func diagnosingLanguageFeatureEnablement() async throws {
@@ -4843,7 +5021,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             path: "Sources",
                             children: [
                                 TestFile("file.swift")
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -4855,7 +5034,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "ARCHS": "arm64",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "BLOCKLISTS_PATH": tmpDirPath.str,
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -4864,10 +5044,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file.swift"
-                                    ]),
-                                ])
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             var tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let cleanParameters = BuildParameters(action: .clean, configuration: "Debug")
@@ -4880,27 +5063,31 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             let parameterizedBuildRequest = { (_ parameters: BuildParameters) in
-                return BuildRequest(parameters: parameters,
-                                    buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }),
-                                    continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+                return BuildRequest(
+                    parameters: parameters,
+                    buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }),
+                    continueBuildingAfterErrors: true,
+                    useParallelTargets: true,
+                    useImplicitDependencies: false,
+                    useDryRun: false
+                )
             }
 
             // Test with a diagnostic level of "warn".
             do {
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "features": {
-                                    "DeprecateApplicationMain": {
-                                        "level": "warn",
-                                        "buildSettings": ["SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN"],
-                                        "learnMoreURL": "https://www.swift.org/swift-evolution/",
-                                        "moduleExceptions": [""]
-                                    }
+                    file <<< """
+                        {
+                            "features": {
+                                "DeprecateApplicationMain": {
+                                    "level": "warn",
+                                    "buildSettings": ["SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN"],
+                                    "learnMoreURL": "https://www.swift.org/swift-evolution/",
+                                    "moduleExceptions": [""]
                                 }
                             }
-                            """
+                        }
+                        """
                 }
 
                 // Build without DeprecateApplicationMain enabled.
@@ -4916,24 +5103,30 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
 
                 // Build with 'SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN = YES'.
                 do {
-                    let params = BuildParameters(configuration: "Debug",
-                                                 commandLineOverrides: ["SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN": "YES"])
+                    let params = BuildParameters(
+                        configuration: "Debug",
+                        commandLineOverrides: ["SWIFT_UPCOMING_FEATURE_DEPRECATE_APPLICATION_MAIN": "YES"]
+                    )
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
 
                 // Build with '-enable-upcoming-feature DeprecateApplicationMain'.
                 do {
-                    let params = BuildParameters(configuration: "Debug",
-                                                 commandLineOverrides: ["OTHER_SWIFT_FLAGS": "-enable-upcoming-feature DeprecateApplicationMain"])
+                    let params = BuildParameters(
+                        configuration: "Debug",
+                        commandLineOverrides: ["OTHER_SWIFT_FLAGS": "-enable-upcoming-feature DeprecateApplicationMain"]
+                    )
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
 
                 // Build with '-enable-experimental-feature DeprecateApplicationMain'.
                 do {
-                    let params = BuildParameters(configuration: "Debug",
-                                                 commandLineOverrides: ["OTHER_SWIFT_FLAGS": "-enable-experimental-feature DeprecateApplicationMain"])
+                    let params = BuildParameters(
+                        configuration: "Debug",
+                        commandLineOverrides: ["OTHER_SWIFT_FLAGS": "-enable-experimental-feature DeprecateApplicationMain"]
+                    )
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in results.checkNoDiagnostics() }
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
                 }
@@ -4944,18 +5137,17 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             // Test with a diagnostic level of "error".
             do {
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "features": {
-                                    "RegionBasedIsolation": {
-                                        "level": "error",
-                                        "learnMoreURL": "https://www.swift.org/swift-evolution/",
-                                        "moduleExceptions": [""]
-                                    }
+                    file <<< """
+                        {
+                            "features": {
+                                "RegionBasedIsolation": {
+                                    "level": "error",
+                                    "learnMoreURL": "https://www.swift.org/swift-evolution/",
+                                    "moduleExceptions": [""]
                                 }
                             }
-                            """
+                        }
+                        """
                 }
 
                 // Build without RegionBasedIsolation enabled.
@@ -4975,19 +5167,18 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             // Test with a setting which has a MIGRATE mode
             do {
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "features": {
-                                    "MemberImportVisibility": {
-                                        "level": "warn",
-                                         "buildSettings": ["SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY"],
-                                        "learnMoreURL": "https://www.swift.org/swift-evolution/",
-                                        "moduleExceptions": []
-                                    }
+                    file <<< """
+                        {
+                            "features": {
+                                "MemberImportVisibility": {
+                                    "level": "warn",
+                                     "buildSettings": ["SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY"],
+                                    "learnMoreURL": "https://www.swift.org/swift-evolution/",
+                                    "moduleExceptions": []
                                 }
                             }
-                            """
+                        }
+                        """
                 }
 
                 do {
@@ -5000,8 +5191,10 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 }
 
                 do {
-                    let params = BuildParameters(configuration: "Debug",
-                                                 commandLineOverrides: ["SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY": "YES"])
+                    let params = BuildParameters(
+                        configuration: "Debug",
+                        commandLineOverrides: ["SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY": "YES"]
+                    )
                     try await tester.checkBuild(runDestination: .macOS, buildRequest: parameterizedBuildRequest(params)) { results in
                         results.checkNoDiagnostics()
                     }
@@ -5014,18 +5207,17 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             do {
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "features": {
-                                    "InternalImportsByDefault": {
-                                        "level": "warn",
-                                        "learnMoreURL": "https://www.swift.org/swift-evolution/",
-                                        "moduleExceptions": ["TargetA"]
-                                    }
+                    file <<< """
+                        {
+                            "features": {
+                                "InternalImportsByDefault": {
+                                    "level": "warn",
+                                    "learnMoreURL": "https://www.swift.org/swift-evolution/",
+                                    "moduleExceptions": ["TargetA"]
                                 }
                             }
-                            """
+                        }
+                        """
                 }
 
                 // Build without InternalImportsByDefault enabled.
@@ -5051,8 +5243,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("fileA1.swift"),
-                            ]),
+                                TestFile("fileA1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -5062,7 +5255,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -5070,29 +5264,34 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "fileA1.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "fileA1.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["SWIFT_FORCE_MODULE_LOADING": "only-interface"])
-            let parameters = BuildParameters(configuration: "Debug", overrides: [
-                // Redirect the prebuilt cache so we always build modules from source
-                "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
-            ])
+            let parameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // Redirect the prebuilt cache so we always build modules from source
+                    "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
+                ]
+            )
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {
-                            public init() { }
-                        }
-                        """
+                file <<< """
+                    public struct A {
+                        public init() { }
+                    }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
@@ -5122,8 +5321,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("fileA1.swift"),
-                            ]),
+                                TestFile("fileA1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -5133,7 +5333,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                     "BUILD_VARIANTS": "normal",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -5141,29 +5342,34 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "fileA1.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "fileA1.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["SWIFT_FORCE_MODULE_LOADING": "only-interface"])
-            let parameters = BuildParameters(configuration: "Debug", overrides: [
-                // Redirect the prebuilt cache so we always build modules from source
-                "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
-            ])
+            let parameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // Redirect the prebuilt cache so we always build modules from source
+                    "SWIFT_OVERLOAD_PREBUILT_MODULE_CACHE_PATH": tmpDirPath.str
+                ]
+            )
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {
-                            public init() { }
-                        }
-                        """
+                file <<< """
+                    public struct A {
+                        public init() { }
+                    }
+                    """
             }
 
             var cleanResponseFileContents: ByteString? = nil
@@ -5181,14 +5387,13 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                        """
-                        public struct A {
-                            public init() { }
-                        }
+                file <<< """
+                    public struct A {
+                        public init() { }
+                    }
 
-                        public func foo() { }
-                        """
+                    public func foo() { }
+                    """
             }
 
             var incrementalResponseFileContents: ByteString? = nil
@@ -5228,19 +5433,23 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 TestFile("Framework2.h"),
                                 TestFile("file_2.c"),
                                 TestFile("file_3.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DEFINES_MODULE": "YES",
-                                "VALID_ARCHS": "arm64",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                                "SWIFT_ENABLE_COMPILE_CACHE": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DEFINES_MODULE": "YES",
+                                    "VALID_ARCHS": "arm64",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                    "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework1",
@@ -5248,66 +5457,67 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework2",
                                 type: .framework,
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("Framework2.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_2.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework3",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_3.swift"]),
+                                    TestSourcesBuildPhase(["file_3.swift"])
                                 ],
                                 dependencies: [
                                     "Framework1",
-                                    "Framework2"
-                                ]),
-                        ])])
+                                    "Framework2",
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void);
-            """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            void foo(void) {}
-            """
+                stream <<< """
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework2.h")) { stream in
-                stream <<<
-            """
-            void qux(void);
-            """
+                stream <<< """
+                    void qux(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.c")) { stream in
-                stream <<<
-            """
-            void qux(void) {}
-            """
+                stream <<< """
+                    void qux(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_3.swift")) { stream in
-                stream <<<
-            """
-            import Framework1
-            import Framework2
-            public func bar() {
-                foo()
-                qux()
-            }
-            """
+                stream <<< """
+                    import Framework1
+                    import Framework2
+                    public func bar() {
+                        foo()
+                        qux()
+                    }
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug", overrides: [:])
@@ -5323,10 +5533,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void); introduce an error
-            """
+                stream <<< """
+                    void foo(void); introduce an error
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
@@ -5338,10 +5547,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void);
-            """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in

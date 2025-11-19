@@ -36,42 +36,51 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "USE_HEADERMAP": "NO",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
-                        "testTarget", type: .bundle,
+                        "testTarget",
+                        type: .bundle,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "USE_HEADERMAP": "NO",
-                                "DEFINES_MODULE": "YES",
-                                "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
-                                "APPLY_RULES_IN_COPY_FILES": "YES",
-                                // Disable the SetOwnerAndGroup action by setting them to empty values.
-                                "INSTALL_GROUP": "",
-                                "INSTALL_OWNER": "",
-                                // Test only strings validation
-                                "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                                "LM_ENABLE_LINK_GENERATION": "YES",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "USE_HEADERMAP": "NO",
+                                    "DEFINES_MODULE": "YES",
+                                    "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
+                                    "APPLY_RULES_IN_COPY_FILES": "YES",
+                                    // Disable the SetOwnerAndGroup action by setting them to empty values.
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_OWNER": "",
+                                    // Test only strings validation
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                    "LM_ENABLE_LINK_GENERATION": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -79,15 +88,13 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             let parameters = BuildParameters(action: .install, configuration: "Debug")
 
             try await tester.fs.writeFileContents(projectDir.join("source.swift")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     struct Tester {}
                     """
             }
 
             try await tester.fs.writeFileContents(projectDir.join(appShortcutsStringsFileName)) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     "key" = "Invalid strings file"
                     """
             }
@@ -115,42 +122,51 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "USE_HEADERMAP": "NO",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
-                        "testTarget", type: .bundle,
+                        "testTarget",
+                        type: .bundle,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "USE_HEADERMAP": "NO",
-                                "DEFINES_MODULE": "YES",
-                                "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
-                                "APPLY_RULES_IN_COPY_FILES": "YES",
-                                // Disable the SetOwnerAndGroup action by setting them to empty values.
-                                "INSTALL_GROUP": "",
-                                "INSTALL_OWNER": "",
-                                // Test only strings validation
-                                "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                                "LM_ENABLE_LINK_GENERATION": "YES",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "USE_HEADERMAP": "NO",
+                                    "DEFINES_MODULE": "YES",
+                                    "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
+                                    "APPLY_RULES_IN_COPY_FILES": "YES",
+                                    // Disable the SetOwnerAndGroup action by setting them to empty values.
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_OWNER": "",
+                                    // Test only strings validation
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                    "LM_ENABLE_LINK_GENERATION": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -158,8 +174,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             let parameters = BuildParameters(action: .install, configuration: "Debug")
 
             try await tester.fs.writeFileContents(projectDir.join("source.swift")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     import AppIntents
                     struct TestIntent: AppIntent {
                         static let title: LocalizedStringResource = "Play Sound Effect"
@@ -187,8 +202,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(projectDir.join(appShortcutsStringsFileName)) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     /* Valid strings file without correct utterance syntax for \(appShortcutsStringsFileName) */
                     "Call" = "Incorrect utterance syntax 1";
                     """
@@ -202,15 +216,17 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName.asString.hasSuffix("appshortcutstringsprocessor") {
-                        task.checkCommandLine([executableName.asString,
-                                               "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
-                                               "--input-data-path", metadataFolderPath,
-                                               "--platform-family",  "macOS",
-                                               "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
-                                               "--metadata-file-list", "\(tmpDir.str)/build/AppShortcutsProject.build/Debug/testTarget.build/testTarget.DependencyMetadataFileList"
-                                              ])
+                        executableName.asString.hasSuffix("appshortcutstringsprocessor")
+                    {
+                        task.checkCommandLine([
+                            executableName.asString,
+                            "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
+                            "--input-data-path", metadataFolderPath,
+                            "--platform-family", "macOS",
+                            "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                            "--validate-assistant-intents",
+                            "--metadata-file-list", "\(tmpDir.str)/build/AppShortcutsProject.build/Debug/testTarget.build/testTarget.DependencyMetadataFileList",
+                        ])
                     }
                 }
                 // 2 Errors for missing application name as the phrases in the app shortcut are combined with the
@@ -221,8 +237,7 @@ fileprivate struct AppShortcutsStringsValidationTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(projectDir.join(appShortcutsStringsFileName)) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     /* Valid strings file with correct utterance syntax for \(appShortcutsStringsFileName) (contains ${applicationName}) */
                     "key" = "Correct utterance ${applicationName}";
                     """

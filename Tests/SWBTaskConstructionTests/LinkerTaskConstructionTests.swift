@@ -29,26 +29,31 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
                     TestFile("c.c"),
                     TestFile("cxx.cpp"),
                     TestFile("s.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": try await swiftCompilerPath.str,
-                    "SWIFT_VERSION": try await swiftVersion
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": try await swiftCompilerPath.str,
+                        "SWIFT_VERSION": try await swiftVersion,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Library",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["c.c", "cxx.cpp", "s.swift"]),
+                        TestSourcesBuildPhase(["c.c", "cxx.cpp", "s.swift"])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -102,28 +107,33 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("s.swift"),
-                ]),
+                    TestFile("s.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": try await swiftCompilerPath.str,
-                    "SWIFT_VERSION": try await swiftVersion,
-                    "MACOSX_DEPLOYMENT_TARGET": "10.13"
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": try await swiftCompilerPath.str,
+                        "SWIFT_VERSION": try await swiftVersion,
+                        "MACOSX_DEPLOYMENT_TARGET": "10.13",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Library",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["s.swift"]),
+                        TestSourcesBuildPhase(["s.swift"])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 

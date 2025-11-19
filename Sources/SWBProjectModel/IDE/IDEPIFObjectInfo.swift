@@ -22,8 +22,10 @@ public class IDEPIFObjectInfo {
     public internal(set) var generatePIF: PIFGeneratingClosure
 
     /// Initializes the IDEPIFObjectInfo with a \p signature (a sort of digest that indicates whether the PIF needs to be regenerated) and a PIF generation \p block that will be invoked if it does.  The generator block might not be invoked if the signature is the same as in a previous invocation.
-    public init(signature: String,
-                generatePIF: @escaping PIFGeneratingClosure) {
+    public init(
+        signature: String,
+        generatePIF: @escaping PIFGeneratingClosure
+    ) {
         self.signature = signature
         self.generatePIF = generatePIF
     }

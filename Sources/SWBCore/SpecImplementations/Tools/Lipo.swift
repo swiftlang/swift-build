@@ -48,12 +48,12 @@ public final class LipoToolSpec: GenericCommandLineToolSpec, SpecIdentifierType,
 
         var commandLine = [String]()
         if cbc.scope.evaluate(BuiltinMacros.CREATE_UNIVERSAL_STATIC_LIBRARY_USING_LIBTOOL) && cbc.scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib" {
-                    commandLine.append(cbc.producer.libtoolLinkerSpec.libtoolToolPath(cbc).str)
-                    commandLine.append("-static")
-                    for input in cbc.inputs {
-                        commandLine.append(input.absolutePath.str)
-                    }
-                    commandLine += ["-o", outputPath.str]
+            commandLine.append(cbc.producer.libtoolLinkerSpec.libtoolToolPath(cbc).str)
+            commandLine.append("-static")
+            for input in cbc.inputs {
+                commandLine.append(input.absolutePath.str)
+            }
+            commandLine += ["-o", outputPath.str]
 
         } else {
             commandLine.append(lipoToolPath(cbc).str)

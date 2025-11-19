@@ -27,16 +27,13 @@ extension FileToBuild {
     }
 }
 
-
 extension TaskProducerContext: InputFileGroupingStrategyContext {
     public var fs: any FSProxy {
         return workspaceContext.fs
     }
 }
 
-
 // MARK:
-
 
 /// Context for grouping files in the build phase, and processing the groups.
 package final class BuildFilesProcessingContext: BuildFileFilteringContext {
@@ -153,8 +150,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
 
             // If we get here, then either we validated a rule action, or we decided to add the file-to-build as an ungrouped file.
             ruleAction = addAsUngrouped ? nil : provisionalRuleAction
-        }
-        else {
+        } else {
             // If it isn't the output of some task, then we always use the matching rule action (or lack thereof) which we found.
             ruleAction = provisionalRuleAction
         }
@@ -185,8 +181,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
         if let identFromRuleAction = ruleAction?.inputFileGroupingStrategies.lazy.compactMap({ $0.determineGroupIdentifier(groupable: ftb) }).first {
             groupIdent = identFromRuleAction
             isCollectionGroup = true
-        }
-        else {
+        } else {
             groupIdent = path.str
             isCollectionGroup = false
         }
@@ -200,12 +195,14 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
         }
 
         // Find or create the group for the identifier we got back.
-        let group = groupsByIdent[groupIdent] ?? {
-            // We didn’t already have a group for this identifier, so create one now.
-            let group = FileToBuildGroup(groupIdent, action: ruleAction)
-            addFileGroup(group, isCollectionGroup)
-            return group
-        }()
+        let group =
+            groupsByIdent[groupIdent]
+            ?? {
+                // We didn’t already have a group for this identifier, so create one now.
+                let group = FileToBuildGroup(groupIdent, action: ruleAction)
+                addFileGroup(group, isCollectionGroup)
+                return group
+            }()
 
         // Append the file to the group.
         group.files.append(ftb)
@@ -215,8 +212,7 @@ package final class BuildFilesProcessingContext: BuildFileFilteringContext {
         // Add it to the appropriate list.
         if isCollectionGroup {
             collectionGroups.append(group)
-        }
-        else {
+        } else {
             singletonGroups.append(group)
         }
         // We skip adding the group to the index if instructed - typically because the build phase isn't resolving build rules.
@@ -326,7 +322,7 @@ extension PluginManager {
     ///
     /// Asset Catalogs would be one example of this, so that they can generate symbols.
     func fileTypesProducingGeneratedSources() -> [String] {
-        var compileToSwiftFileTypes : [String] = []
+        var compileToSwiftFileTypes: [String] = []
         for groupingStragegyExtensions in extensions(of: InputFileGroupingStrategyExtensionPoint.self) {
             compileToSwiftFileTypes.append(contentsOf: groupingStragegyExtensions.fileTypesCompilingToSwiftSources())
         }
@@ -335,7 +331,6 @@ extension PluginManager {
 }
 
 // MARK:
-
 
 /// Protocol for build phase tasks producers which are based around processing file references.
 protocol FilesBasedBuildPhaseTaskProducer: AnyObject, TaskProducer {
@@ -478,12 +473,11 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                     // If we're processing a single language for installLoc, then unwrap the variant group into a separate item for each of its child references.
                     if installlocSpecificLanguages {
                         try unwrapResolveAndAdd(variantGroup: asVariantGroup, for: buildFile)
-                    }
-                    else {
+                    } else {
                         // If the first item in the variant group is an IB document with Base localization, then we need to handle it specially, since it may contain a mix of IB documents and strings files.
                         // An exception to this is when String Catalogs are in play.
                         if let baseReference = asVariantGroup.children.first as? SWBCore.FileReference, SpecRegistry.interfaceBuilderDocumentFileTypeIdentifiers.contains(baseReference.fileTypeIdentifier), baseReference.regionVariantName == "Base" {
-                            var ibDocRefs = [SWBCore.FileReference]() // These are specifically override nibs, not including Base.
+                            var ibDocRefs = [SWBCore.FileReference]()  // These are specifically override nibs, not including Base.
                             var hasStringCatalog = false
 
                             // Iterate over the children of the group - skipping the first reference - to put them into buckets.
@@ -496,19 +490,15 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                                     if SpecRegistry.interfaceBuilderDocumentFileTypeIdentifiers.contains(fileRef.fileTypeIdentifier) {
                                         // If it's an IB document, then remember it.
                                         ibDocRefs.append(fileRef)
-                                    }
-                                    else if fileRef.fileTypeIdentifier == "text.plist.strings" {
+                                    } else if fileRef.fileTypeIdentifier == "text.plist.strings" {
                                         // If it's a .strings file, then we'll just include it in the variant group.
-                                    }
-                                    else if fileRef.fileTypeIdentifier == "text.json.xcstrings" {
+                                    } else if fileRef.fileTypeIdentifier == "text.json.xcstrings" {
                                         // If it has a String Catalog, remember that.
                                         hasStringCatalog = true
-                                    }
-                                    else {
+                                    } else {
                                         // FIXME: If there's something in the variant group that isn't an IB document or a .strings file, then what should we do about it?
                                     }
-                                }
-                                else {
+                                } else {
                                     // FIXME: If this isn't a file reference, what should we do about it?
                                 }
                             }
@@ -542,14 +532,12 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                                     addResolvedItem(buildFile: nil, path: path, reference: reference, fileType: fileType)
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             // If the first reference is not an IB document, or does not have base localization, then we unwrap the variant group into a separate item for each of its child references.
                             try unwrapResolveAndAdd(variantGroup: asVariantGroup, for: buildFile)
                         }
                     }
-                }
-                else {
+                } else {
                     func isXCFrameworkWrapper(_ path: Path, fileType: FileTypeSpec) -> Bool {
                         guard let xcframeworkFileSpec = context.lookupFileType(identifier: "wrapper.xcframework") else {
                             return false
@@ -582,15 +570,13 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
 
                                 if let fileType = fileTypeSpec(for: library) {
                                     addResolvedItem(buildFile: buildFile, path: libraryTargetPath, reference: reference, fileType: fileType)
-                                }
-                                else {
+                                } else {
                                     // This error should actually never be reached as we should have provided this error earlier.
                                     context.error("Unsupported library type: '\(libraryTargetPath.fileSuffix)'")
                                 }
                             }
                         }
-                    }
-                    else {
+                    } else {
                         // The reference is not a variant group, so add it as a single item.
                         addResolvedItem(buildFile: buildFile, path: path, reference: reference, fileType: fileType)
                     }
@@ -618,7 +604,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         var compileToSwiftFiles = [ResolvedBuildFile]()
         var otherBuildFiles = [ResolvedBuildFile]()
         for resolvedBuildFile in resolvedBuildFiles {
-            if compileToSwiftFileTypes.contains (where: { identifier in resolvedBuildFile.fileTypeSpec.conformsTo(identifier: identifier)}) {
+            if compileToSwiftFileTypes.contains(where: { identifier in resolvedBuildFile.fileTypeSpec.conformsTo(identifier: identifier) }) {
                 compileToSwiftFiles.append(resolvedBuildFile)
             } else {
                 otherBuildFiles.append(resolvedBuildFile)
@@ -747,21 +733,21 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
     }
 
     /// Add the tasks for the given rule.
-    private func addTasksForRule<T: FilesBasedBuildPhaseTaskProducer>( groupContext: inout GroupContext, _ producer: T, _ rule: any BuildRuleAction, _ group: FileToBuildGroup, _ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
+    private func addTasksForRule<T: FilesBasedBuildPhaseTaskProducer>(groupContext: inout GroupContext, _ producer: T, _ rule: any BuildRuleAction, _ group: FileToBuildGroup, _ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         // Do the necessary work, ending up with an array of output paths.
         let outputs: [FileToBuild]
         if let priorOutputs = outputsProducedByArchNeutralToolSpec[group] {
             // If we already have the output paths because the input group has previously been processed by an architecture-neutral tool spec (for a different arch or variant), then we re-use those paths.
             outputs = priorOutputs
-        }
-        else {
+        } else {
             // Otherwise we construct tasks for the input group.
             let result = await appendGeneratedTasks(&tasks) { delegate in
-                let scope = !rule.isArchitectureNeutral ? scope : (
-                    scope
+                let scope =
+                    !rule.isArchitectureNeutral
+                    ? scope
+                    : (scope
                         .subscope(binding: BuiltinMacros.variantCondition, to: "normal")
-                        .subscope(binding: BuiltinMacros.archCondition, to: "undefined_arch")
-                )
+                        .subscope(binding: BuiltinMacros.archCondition, to: "undefined_arch"))
                 await constructTasksForRule(rule, group, buildFilesContext, scope, delegate)
             }
             outputs = result.outputs
@@ -840,8 +826,8 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
         do {
             try context.workspaceContext.fs.traverse(path) { subPath in
                 if let relativePath = subPath.relativeSubpath(from: path),
-                   context.workspaceContext.fs.isDirectory(subPath) &&
-                   subPath.join(".").isValidLocalizedContent(scope) {
+                    context.workspaceContext.fs.isDirectory(subPath) && subPath.join(".").isValidLocalizedContent(scope)
+                {
                     localizedContent.append(Path(relativePath))
                 }
             }
@@ -882,14 +868,14 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
 
         // Don't process output files which are already in a product headers folder.
         let publicDestDirPath = TargetHeaderInfo.destDirPath(for: HeaderVisibility.public, scope: scope)
-            guard !publicDestDirPath.isAncestor(of: ftb.absolutePath) else {
-                return false
-            }
+        guard !publicDestDirPath.isAncestor(of: ftb.absolutePath) else {
+            return false
+        }
 
         let privateDestDirPath = TargetHeaderInfo.destDirPath(for: HeaderVisibility.private, scope: scope)
-            guard !privateDestDirPath.isAncestor(of: ftb.absolutePath) else {
-                return false
-            }
+        guard !privateDestDirPath.isAncestor(of: ftb.absolutePath) else {
+            return false
+        }
 
         return true
     }

@@ -33,7 +33,8 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     TestFile("ObjCAndSwift.private.modulemap"),
                     TestFile("SwiftSource.swift"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "ObjCOnly",
@@ -50,8 +51,8 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("ObjCOnly.h", headerVisibility: .public),
-                        ]),
+                            TestBuildFile("ObjCOnly.h", headerVisibility: .public)
+                        ])
                     ]
                 ),
                 TestStandardTarget(
@@ -67,8 +68,8 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
-                        ]),
+                            "SwiftSource.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
@@ -78,23 +79,27 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                         // If DEFINES_MODULE is off, don't generate a module map file, even when the Objective-C compatibility header is present.
                         try buildConfiguration(withName: "Default", extraSettings: [:]),
                         // Don't copy a module map file.
-                        try buildConfiguration(withName: "ModuleFile", extraSettings: [
-                            "MODULEMAP_FILE": "ObjCAndSwift.modulemap",
-                            "MODULEMAP_PRIVATE_FILE": "ObjCAndSwift.private.modulemap",
-                        ]),
+                        try buildConfiguration(
+                            withName: "ModuleFile",
+                            extraSettings: [
+                                "MODULEMAP_FILE": "ObjCAndSwift.modulemap",
+                                "MODULEMAP_PRIVATE_FILE": "ObjCAndSwift.private.modulemap",
+                            ]
+                        ),
                         // Don't write module map contents.
                         try buildConfiguration(withName: "ModuleContents", extraSettings: ["MODULEMAP_FILE_CONTENTS": "framework module ObjCAndSwift {}"]),
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("ObjCAndSwift.h", headerVisibility: .public),
+                            TestBuildFile("ObjCAndSwift.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
+                            "SwiftSource.swift"
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -102,16 +107,17 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
         let didNotCopyPrivateModuleMapFile = "[targetIntegrity] MODULEMAP_PRIVATE_FILE has no effect if DEFINES_MODULE is not set"
         let didNotWriteModuleMapContents = "[targetIntegrity] MODULEMAP_FILE_CONTENTS has no effect if DEFINES_MODULE is not set"
 
-        let builds = [("ObjCOnly", "Default", []),
-                      ("ObjCOnly", "DefinesModuleNo", []),
-                      ("ObjCOnly", "ModuleFile", [didNotCopyModuleMapFile]),
-                      ("ObjCOnly", "ModuleContents", [didNotWriteModuleMapContents]),
-                      ("SwiftOnly", "Default", []),
-                      ("SwiftOnly", "ModuleFile", [didNotCopyModuleMapFile]),
-                      ("SwiftOnly", "ModuleContents", [didNotWriteModuleMapContents]),
-                      ("ObjCAndSwift", "Default", []),
-                      ("ObjCAndSwift", "ModuleFile", [didNotCopyModuleMapFile, didNotCopyPrivateModuleMapFile]),
-                      ("ObjCAndSwift", "ModuleContents", [didNotWriteModuleMapContents]),
+        let builds = [
+            ("ObjCOnly", "Default", []),
+            ("ObjCOnly", "DefinesModuleNo", []),
+            ("ObjCOnly", "ModuleFile", [didNotCopyModuleMapFile]),
+            ("ObjCOnly", "ModuleContents", [didNotWriteModuleMapContents]),
+            ("SwiftOnly", "Default", []),
+            ("SwiftOnly", "ModuleFile", [didNotCopyModuleMapFile]),
+            ("SwiftOnly", "ModuleContents", [didNotWriteModuleMapContents]),
+            ("ObjCAndSwift", "Default", []),
+            ("ObjCAndSwift", "ModuleFile", [didNotCopyModuleMapFile, didNotCopyPrivateModuleMapFile]),
+            ("ObjCAndSwift", "ModuleContents", [didNotWriteModuleMapContents]),
         ]
         for (targetName, configurationName, warnings) in builds {
             await tester.checkBuild(BuildParameters(configuration: configurationName), runDestination: .macOS, targetName: targetName) { results in
@@ -154,16 +160,20 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     TestFile("SwiftSource.swift"),
                     TestFile("PrivateModuleOnly.private.modulemap"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "DEFINES_MODULE": "YES",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5.0",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "DEFINES_MODULE": "YES",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "5.0",
+                    ]
+                )
             ],
             targets: [
                 // Don't generate a module if there's no umbrella header.
@@ -172,8 +182,8 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("SomeHeader.h", headerVisibility: .public),
-                        ]),
+                            TestBuildFile("SomeHeader.h", headerVisibility: .public)
+                        ])
                     ]
                 ),
                 // Don't generate a module if the thing that looks like an umbrella header is project internal.
@@ -182,8 +192,8 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            "ProjectInternalUmbrellaHeader.h",
-                        ]),
+                            "ProjectInternalUmbrellaHeader.h"
+                        ])
                     ]
                 ),
                 // Don't generate a module if the Objective-C compatibility header isn't generated.
@@ -191,14 +201,17 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "NoObjCCompatibilityHeader",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_OBJC_INTERFACE_HEADER_NAME": ""
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
-                        ]),
+                            "SwiftSource.swift"
+                        ])
                     ]
                 ),
                 // Don't generate a module if the Objective-C compatibility header isn't installed.
@@ -206,14 +219,17 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "ObjCCompatibilityHeaderNotInstalled",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
-                        ]),
+                            "SwiftSource.swift"
+                        ])
                     ]
                 ),
                 // Don't install the private module if there's no public module.
@@ -221,14 +237,17 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "PrivateModuleOnly",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MODULEMAP_PRIVATE_FILE": "PrivateModuleOnly.private.modulemap",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MODULEMAP_PRIVATE_FILE": "PrivateModuleOnly.private.modulemap"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("SomeHeader.h", headerVisibility: .private),
-                        ]),
+                            TestBuildFile("SomeHeader.h", headerVisibility: .private)
+                        ])
                     ]
                 ),
                 // Don't install the private module if there's no public module and the
@@ -237,30 +256,35 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "PrivateModuleInternalSwift",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MODULEMAP_PRIVATE_FILE": "PrivateModuleOnly.private.modulemap",
-                            "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MODULEMAP_PRIVATE_FILE": "PrivateModuleOnly.private.modulemap",
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("SomeHeader.h", headerVisibility: .private),
+                            TestBuildFile("SomeHeader.h", headerVisibility: .private)
                         ]),
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
+                            "SwiftSource.swift"
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        let builds = [("NoUmbrellaHeader", false),
-                      ("ProjectInternalUmbrellaHeader", false),
-                      ("NoObjCCompatibilityHeader", false),
-                      ("ObjCCompatibilityHeaderNotInstalled", false),
-                      ("PrivateModuleOnly", true),
-                      ("PrivateModuleInternalSwift", true),
+        let builds = [
+            ("NoUmbrellaHeader", false),
+            ("ProjectInternalUmbrellaHeader", false),
+            ("NoObjCCompatibilityHeader", false),
+            ("ObjCCompatibilityHeaderNotInstalled", false),
+            ("PrivateModuleOnly", true),
+            ("PrivateModuleInternalSwift", true),
         ]
         for (targetName, hasPrivateModuleMap) in builds {
             await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
@@ -315,16 +339,20 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     TestFile("CSource.c"),
                     TestFile("SwiftSource.swift"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "DEFINES_MODULE": "YES",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5.0",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "DEFINES_MODULE": "YES",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "5.0",
+                    ]
+                )
             ],
             targets: [
                 // Typical cookie cutter framework - matching umbrella header.
@@ -333,10 +361,10 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("CookieCutter.h", headerVisibility: .public),
+                            TestBuildFile("CookieCutter.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
@@ -346,10 +374,10 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("CPlusPlus.hpp", headerVisibility: .public),
+                            TestBuildFile("CPlusPlus.hpp", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
@@ -359,10 +387,10 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("PrivateHeadersOnly.H", headerVisibility: .private),
+                            TestBuildFile("PrivateHeadersOnly.H", headerVisibility: .private)
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
@@ -372,10 +400,10 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("mismatchedcase.hxx", headerVisibility: .public),
+                            TestBuildFile("mismatchedcase.hxx", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
@@ -389,7 +417,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("PublicHeaderPreferred.h", headerVisibility: .private),
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
@@ -404,7 +432,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("ExactMatchPreferred.h", headerVisibility: .private),
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
@@ -419,7 +447,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("NonCPlusPlusPreferred.h", headerVisibility: .private),
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
@@ -433,13 +461,16 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "NoObjCCompatibilityHeader",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_OBJC_INTERFACE_HEADER_NAME": ""
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("NoObjCCompatibilityHeader.h", headerVisibility: .public),
+                            TestBuildFile("NoObjCCompatibilityHeader.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
                             "CSource.c",
@@ -452,13 +483,16 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "ObjCCompatibilityHeaderNotInstalled",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("ObjCCompatibilityHeaderNotInstalled.h", headerVisibility: .public),
+                            TestBuildFile("ObjCCompatibilityHeaderNotInstalled.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
                             "CSource.c",
@@ -472,8 +506,8 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
-                        ]),
+                            "SwiftSource.swift"
+                        ])
                     ]
                 ),
                 // A mixed Objective-C and Swift framework has the Objective-C compatibility header in a submodule.
@@ -482,7 +516,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("ObjCCompatibilityHeader.h", headerVisibility: .public),
+                            TestBuildFile("ObjCCompatibilityHeader.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
                             "CSource.c",
@@ -495,34 +529,39 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "Unifdef",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "COPY_HEADERS_RUN_UNIFDEF": "YES",
-                            "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "COPY_HEADERS_RUN_UNIFDEF": "YES",
+                                "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("Unifdef.h", headerVisibility: .public),
+                            TestBuildFile("Unifdef.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "CSource.c",
+                            "CSource.c"
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        let targetParameters = [("CookieCutter", "CookieCutter.h", false),
-                                ("CPlusPlus", "CPlusPlus.hpp", false),
-                                ("PrivateHeadersOnly", "PrivateHeadersOnly.H", false),
-                                ("MismatchedCase", "mismatchedcase.hxx", false),
-                                ("PublicHeaderPreferred", "publicheaderpreferred.hh", false),
-                                ("ExactMatchPreferred", "ExactMatchPreferred.hp", false),
-                                ("NonCPlusPlusPreferred", "noncpluspluspreferred.H", false),
-                                ("NoObjCCompatibilityHeader", "NoObjCCompatibilityHeader.h", true),
-                                ("ObjCCompatibilityHeaderNotInstalled", "ObjCCompatibilityHeaderNotInstalled.h", true),
-                                ("Unifdef", "Unifdef.h", false),
+        let targetParameters = [
+            ("CookieCutter", "CookieCutter.h", false),
+            ("CPlusPlus", "CPlusPlus.hpp", false),
+            ("PrivateHeadersOnly", "PrivateHeadersOnly.H", false),
+            ("MismatchedCase", "mismatchedcase.hxx", false),
+            ("PublicHeaderPreferred", "publicheaderpreferred.hh", false),
+            ("ExactMatchPreferred", "ExactMatchPreferred.hp", false),
+            ("NonCPlusPlusPreferred", "noncpluspluspreferred.H", false),
+            ("NoObjCCompatibilityHeader", "NoObjCCompatibilityHeader.h", true),
+            ("ObjCCompatibilityHeaderNotInstalled", "ObjCCompatibilityHeaderNotInstalled.h", true),
+            ("Unifdef", "Unifdef.h", false),
         ]
         for (targetName, umbrellaHeader, hasSwiftSource) in targetParameters {
             await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
@@ -535,13 +574,16 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     let copyModuleMap = TaskCondition.matchRule(["Copy", installedModuleMap, generatedModuleMap])
 
                     results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", generatedModuleMap])) { task, contents in
-                        #expect(contents == (OutputByteStream()
-                                             <<< "framework module \(targetName) {\n"
-                                             <<< "  umbrella header \"\(umbrellaHeader)\"\n"
-                                             <<< "  export *\n"
-                                             <<< "\n"
-                                             <<< "  module * { export * }\n"
-                                             <<< "}\n").bytes)
+                        #expect(
+                            contents
+                                == (OutputByteStream()
+                                <<< "framework module \(targetName) {\n"
+                                <<< "  umbrella header \"\(umbrellaHeader)\"\n"
+                                <<< "  export *\n"
+                                <<< "\n"
+                                <<< "  module * { export * }\n"
+                                <<< "}\n").bytes
+                        )
                     }
 
                     results.checkNoTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", unextendedModuleMap]))
@@ -549,7 +591,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
 
                     results.checkTask(.matchTarget(target), copyModuleMap) { _ in }
 
-                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) {tasks in
+                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) { tasks in
                         for task in tasks {
                             results.checkTaskFollows(task, copyModuleMap)
                         }
@@ -581,10 +623,13 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                 let copyModuleMap = TaskCondition.matchRule(["Copy", installedModuleMap, generatedModuleMap])
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", generatedModuleMap])) { task, contents in
-                    #expect(contents == (OutputByteStream()
-                                         <<< "framework module SwiftOnly {\n"
-                                         <<< "  header \"SwiftOnly-Swift.h\"\n"
-                                         <<< "}\n").bytes)
+                    #expect(
+                        contents
+                            == (OutputByteStream()
+                            <<< "framework module SwiftOnly {\n"
+                            <<< "  header \"SwiftOnly-Swift.h\"\n"
+                            <<< "}\n").bytes
+                    )
                 }
 
                 // Swift-only frameworks don't use -import-underlying-module, and so don't use their own clang module
@@ -618,63 +663,72 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                 let copyModuleMap = TaskCondition.matchRule(["Copy", installedModuleMap, generatedModuleMap])
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", generatedModuleMap])) { task, contents in
-                    #expect(contents == (OutputByteStream()
-                                         <<< "framework module ObjCCompatibilityHeader {\n"
-                                         <<< "  umbrella header \"ObjCCompatibilityHeader.h\"\n"
-                                         <<< "  export *\n"
-                                         <<< "\n"
-                                         <<< "  module * { export * }\n"
-                                         <<< "}\n"
-                                         <<< "\n"
-                                         <<< "module ObjCCompatibilityHeader.Swift {\n"
-                                         <<< "  header \"ObjCCompatibilityHeader-Swift.h\"\n"
-                                         <<< "}\n").bytes)
+                    #expect(
+                        contents
+                            == (OutputByteStream()
+                            <<< "framework module ObjCCompatibilityHeader {\n"
+                            <<< "  umbrella header \"ObjCCompatibilityHeader.h\"\n"
+                            <<< "  export *\n"
+                            <<< "\n"
+                            <<< "  module * { export * }\n"
+                            <<< "}\n"
+                            <<< "\n"
+                            <<< "module ObjCCompatibilityHeader.Swift {\n"
+                            <<< "  header \"ObjCCompatibilityHeader-Swift.h\"\n"
+                            <<< "}\n").bytes
+                    )
                 }
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", unextendedModuleMap])) { task, contents in
-                    #expect(contents == (OutputByteStream()
-                                         <<< "framework module ObjCCompatibilityHeader {\n"
-                                         <<< "  umbrella header \"ObjCCompatibilityHeader.h\"\n"
-                                         <<< "  export *\n"
-                                         <<< "\n"
-                                         <<< "  module * { export * }\n"
-                                         <<< "}\n"
-                                         <<< "\n"
-                                         <<< "module ObjCCompatibilityHeader.__Swift {\n"
-                                         <<< "  exclude header \"ObjCCompatibilityHeader-Swift.h\"\n"
-                                         <<< "}\n").bytes)
+                    #expect(
+                        contents
+                            == (OutputByteStream()
+                            <<< "framework module ObjCCompatibilityHeader {\n"
+                            <<< "  umbrella header \"ObjCCompatibilityHeader.h\"\n"
+                            <<< "  export *\n"
+                            <<< "\n"
+                            <<< "  module * { export * }\n"
+                            <<< "}\n"
+                            <<< "\n"
+                            <<< "module ObjCCompatibilityHeader.__Swift {\n"
+                            <<< "  exclude header \"ObjCCompatibilityHeader-Swift.h\"\n"
+                            <<< "}\n").bytes
+                    )
                 }
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", swiftVFS])) { task, contents in
-                    #expect(contents == (OutputByteStream()
-                                         <<< "{\n"
-                                         <<< "  \"version\": 0,\n"
-                                         <<< "  \"use-external-names\": false,\n"
-                                         <<< "  \"case-sensitive\": false,\n"
-                                         <<< "  \"roots\": [{\n"
-                                         <<< "    \"type\": \"directory\",\n"
-                                         <<< "    \"name\": \"\(SRCROOT)/build/Debug/ObjCCompatibilityHeader.framework/Modules\",\n"
-                                         <<< "    \"contents\": [{\n"
-                                         <<< "      \"type\": \"file\",\n"
-                                         <<< "      \"name\": \"module.modulemap\",\n"
-                                         <<< "      \"external-contents\": \"\(unextendedModuleMap)\",\n"
-                                         <<< "    }]\n"
-                                         <<< "    },\n"
-                                         <<< "    {\n"
-                                         <<< "    \"type\": \"directory\",\n"
-                                         <<< "    \"name\": \"\(SRCROOT)/build/Debug/ObjCCompatibilityHeader.framework/Headers\",\n"
-                                         <<< "    \"contents\": [{\n"
-                                         <<< "      \"type\": \"file\",\n"
-                                         <<< "      \"name\": \"ObjCCompatibilityHeader-Swift.h\",\n"
-                                         <<< "      \"external-contents\": \"\(SRCROOT)/build/Project.build/Debug/ObjCCompatibilityHeader.build/unextended-interface-header.h\",\n"
-                                         <<< "    }]\n"
-                                         <<< "  }]\n"
-                                         <<< "}\n").bytes)
+                    #expect(
+                        contents
+                            == (OutputByteStream()
+                            <<< "{\n"
+                            <<< "  \"version\": 0,\n"
+                            <<< "  \"use-external-names\": false,\n"
+                            <<< "  \"case-sensitive\": false,\n"
+                            <<< "  \"roots\": [{\n"
+                            <<< "    \"type\": \"directory\",\n"
+                            <<< "    \"name\": \"\(SRCROOT)/build/Debug/ObjCCompatibilityHeader.framework/Modules\",\n"
+                            <<< "    \"contents\": [{\n"
+                            <<< "      \"type\": \"file\",\n"
+                            <<< "      \"name\": \"module.modulemap\",\n"
+                            <<< "      \"external-contents\": \"\(unextendedModuleMap)\",\n"
+                            <<< "    }]\n"
+                            <<< "    },\n"
+                            <<< "    {\n"
+                            <<< "    \"type\": \"directory\",\n"
+                            <<< "    \"name\": \"\(SRCROOT)/build/Debug/ObjCCompatibilityHeader.framework/Headers\",\n"
+                            <<< "    \"contents\": [{\n"
+                            <<< "      \"type\": \"file\",\n"
+                            <<< "      \"name\": \"ObjCCompatibilityHeader-Swift.h\",\n"
+                            <<< "      \"external-contents\": \"\(SRCROOT)/build/Project.build/Debug/ObjCCompatibilityHeader.build/unextended-interface-header.h\",\n"
+                            <<< "    }]\n"
+                            <<< "  }]\n"
+                            <<< "}\n").bytes
+                    )
                 }
                 // unextended-interface-header.h doesn't get written and doesn't exist.
 
                 results.checkTask(.matchTarget(target), copyModuleMap) { _ in }
 
-                results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) {tasks in
+                results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) { tasks in
                     for task in tasks {
                         results.checkTaskFollows(task, copyModuleMap)
                     }
@@ -706,17 +760,21 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     TestFile("ObjCCompatibilityHeader.swift"),
                     TestFile("ObjCSource.m"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "DEFINES_MODULE": "YES",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "MODULEMAP_FILE_CONTENTS": "framework module Framework {}",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5.0",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "DEFINES_MODULE": "YES",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "MODULEMAP_FILE_CONTENTS": "framework module Framework {}",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "5.0",
+                    ]
+                )
             ],
             targets: [
                 // Don't generate a module map for the umbrella header, use the provided contents.
@@ -725,10 +783,10 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("ObjCOnly.h", headerVisibility: .public),
+                            TestBuildFile("ObjCOnly.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "ObjCSource.m",
+                            "ObjCSource.m"
                         ]),
                     ]
                 ),
@@ -738,14 +796,17 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     "ObjCCompatibilityHeader",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "COPY_HEADERS_RUN_UNIFDEF": "YES",
-                            "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "COPY_HEADERS_RUN_UNIFDEF": "YES",
+                                "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("ObjCCompatibilityHeader.h", headerVisibility: .public),
+                            TestBuildFile("ObjCCompatibilityHeader.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
                             "ObjCSource.m",
@@ -753,12 +814,14 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
-        let targetParameters = [("ObjCOnly", false),
-                                ("ObjCCompatibilityHeader", true),
+        let targetParameters = [
+            ("ObjCOnly", false),
+            ("ObjCCompatibilityHeader", true),
         ]
         for (targetName, hasSwiftSource) in targetParameters {
             await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
@@ -771,8 +834,11 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     let copyModuleMap = TaskCondition.matchRule(["Copy", installedModuleMap, generatedModuleMap])
 
                     results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", generatedModuleMap])) { task, contents in
-                        #expect(contents == (OutputByteStream()
-                                             <<< "framework module Framework {}").bytes)
+                        #expect(
+                            contents
+                                == (OutputByteStream()
+                                <<< "framework module Framework {}").bytes
+                        )
                     }
 
                     results.checkNoTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", unextendedModuleMap]))
@@ -780,7 +846,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
 
                     results.checkTask(.matchTarget(target), copyModuleMap) { _ in }
 
-                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) {tasks in
+                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) { tasks in
                         for task in tasks {
                             results.checkTaskFollows(task, copyModuleMap)
                         }
@@ -821,36 +887,49 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     TestFile("ObjCSource.m"),
                     TestFile("SwiftSource.swift"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "ObjCOnly",
                     type: .framework,
                     buildConfigurations: [
                         // MODULEMAP_FILE supersedes MODULEMAP_FILE_CONTENTS, and doesn't require MODULEMAP_PRIVATE_FILE.
-                        try buildConfiguration(withName: "PublicModuleOnly", extraSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_FILE": "ObjCOnly.modulemap",
-                            "MODULEMAP_FILE_CONTENTS": "ERROR",
-                        ]),
+                        try buildConfiguration(
+                            withName: "PublicModuleOnly",
+                            extraSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE": "ObjCOnly.modulemap",
+                                "MODULEMAP_FILE_CONTENTS": "ERROR",
+                            ]
+                        ),
                         // MODULEMAP_PRIVATE_FILE requires a public module map to be installed in some way.
-                        try buildConfiguration(withName: "GeneratedPublicWithPrivate", extraSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_PRIVATE_FILE": "ObjCOnly.private.modulemap",
-                        ]),
-                        try buildConfiguration(withName: "ContentsPublicWithPrivate", extraSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_FILE_CONTENTS": "framework module ObjCOnly {}\n",
-                            "MODULEMAP_PRIVATE_FILE": "ObjCOnly.private.modulemap",
-                        ]),
+                        try buildConfiguration(
+                            withName: "GeneratedPublicWithPrivate",
+                            extraSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_PRIVATE_FILE": "ObjCOnly.private.modulemap",
+                            ]
+                        ),
+                        try buildConfiguration(
+                            withName: "ContentsPublicWithPrivate",
+                            extraSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE_CONTENTS": "framework module ObjCOnly {}\n",
+                                "MODULEMAP_PRIVATE_FILE": "ObjCOnly.private.modulemap",
+                            ]
+                        ),
                         // MODULEMAP_FILE and MODULEMAP_PRIVATE_FILE get unifdef'ed.
-                        try buildConfiguration(withName: "FilePublicWithPrivate", extraSettings: [
-                            "COPY_HEADERS_RUN_UNIFDEF": "YES",
-                            "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_FILE": "ObjCOnly.modulemap",
-                            "MODULEMAP_PRIVATE_FILE": "ObjCOnly.private.modulemap",
-                        ]),
+                        try buildConfiguration(
+                            withName: "FilePublicWithPrivate",
+                            extraSettings: [
+                                "COPY_HEADERS_RUN_UNIFDEF": "YES",
+                                "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE": "ObjCOnly.modulemap",
+                                "MODULEMAP_PRIVATE_FILE": "ObjCOnly.private.modulemap",
+                            ]
+                        ),
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -858,7 +937,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("ObjCOnly_Private.h", headerVisibility: .private),
                         ]),
                         TestSourcesBuildPhase([
-                            "ObjCSource.m",
+                            "ObjCSource.m"
                         ]),
                     ]
                 ),
@@ -867,19 +946,22 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildConfigurations: [
                         // MODULEMAP_PRIVATE_FILE works when the public module is only Swift.
-                        try buildConfiguration(withName: "GeneratedPublicWithPrivate", extraSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_PRIVATE_FILE": "PublicSwiftPrivateObjC.private.modulemap",
-                        ]),
+                        try buildConfiguration(
+                            withName: "GeneratedPublicWithPrivate",
+                            extraSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_PRIVATE_FILE": "PublicSwiftPrivateObjC.private.modulemap",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("PublicSwiftPrivateObjC_Private.h", headerVisibility: .private),
+                            TestBuildFile("PublicSwiftPrivateObjC_Private.h", headerVisibility: .private)
                         ]),
                         TestSourcesBuildPhase([
                             "ObjCSource.m",
                             "SwiftSource.swift",
-                        ])
+                        ]),
                     ]
                 ),
                 TestStandardTarget(
@@ -887,18 +969,24 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildConfigurations: [
                         // Swift contents are appended to the end of the public module map.
-                        buildConfiguration(withName: "PublicModuleOnly", extraSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_FILE": "$(DERIVED_FILE_DIR)/ObjCAndSwift.modulemap",
-                        ]),
+                        buildConfiguration(
+                            withName: "PublicModuleOnly",
+                            extraSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE": "$(DERIVED_FILE_DIR)/ObjCAndSwift.modulemap",
+                            ]
+                        ),
                         // The private module doesn't get Swift contents.
-                        buildConfiguration(withName: "FilePublicWithPrivate", extraSettings: [
-                            "COPY_HEADERS_RUN_UNIFDEF": "YES",
-                            "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_FILE": "$(DERIVED_FILE_DIR)/ObjCAndSwift.modulemap",
-                            "MODULEMAP_PRIVATE_FILE": "$(DERIVED_FILE_DIR)/ObjCAndSwift.private.modulemap",
-                        ]),
+                        buildConfiguration(
+                            withName: "FilePublicWithPrivate",
+                            extraSettings: [
+                                "COPY_HEADERS_RUN_UNIFDEF": "YES",
+                                "COPY_HEADERS_UNIFDEF_FLAGS": "-DENABLE_FEATURE",
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE": "$(DERIVED_FILE_DIR)/ObjCAndSwift.modulemap",
+                                "MODULEMAP_PRIVATE_FILE": "$(DERIVED_FILE_DIR)/ObjCAndSwift.private.modulemap",
+                            ]
+                        ),
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -911,14 +999,16 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                             outputs: [
                                 "$(DERIVED_FILE_DIR)/ObjCAndSwift.modulemap",
                                 "$(DERIVED_FILE_DIR)/ObjCAndSwift.private.modulemap",
-                            ]),
+                            ]
+                        ),
                         TestSourcesBuildPhase([
                             "ObjCSource.m",
                             "SwiftSource.swift",
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let sourceRoot = tester.workspace.projects[0].sourceRoot
 
@@ -937,21 +1027,23 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
         }
 
         let SRCROOT = sourceRoot.str
-        let builds = [("ObjCOnly", "PublicModuleOnly", true, false, false, false, false),
-                      ("ObjCOnly", "GeneratedPublicWithPrivate", false, false, true, false, false),
-                      ("ObjCOnly", "ContentsPublicWithPrivate", false, false, true, false, false),
-                      ("ObjCOnly", "FilePublicWithPrivate", true, false, true, false, true),
-                      ("PublicSwiftPrivateObjC", "GeneratedPublicWithPrivate", false, true, true, false, false),
-                      ("ObjCAndSwift", "PublicModuleOnly", true, true, false, true, false),
-                      ("ObjCAndSwift", "FilePublicWithPrivate", true, true, true, true, true),
+        let builds = [
+            ("ObjCOnly", "PublicModuleOnly", true, false, false, false, false),
+            ("ObjCOnly", "GeneratedPublicWithPrivate", false, false, true, false, false),
+            ("ObjCOnly", "ContentsPublicWithPrivate", false, false, true, false, false),
+            ("ObjCOnly", "FilePublicWithPrivate", true, false, true, false, true),
+            ("PublicSwiftPrivateObjC", "GeneratedPublicWithPrivate", false, true, true, false, false),
+            ("ObjCAndSwift", "PublicModuleOnly", true, true, false, true, false),
+            ("ObjCAndSwift", "FilePublicWithPrivate", true, true, true, true, true),
         ]
         for (targetName, configurationName, copiesPublicModuleMap, hasSwiftExtension, copiesPrivateModuleMap, generatesSourceModuleMaps, copiesUseUnifdef) in builds {
             await tester.checkBuild(BuildParameters(configuration: configurationName), runDestination: .macOS, targetName: targetName, fs: fs) { results in
                 results.checkTarget(targetName) { target in
                     // The build directories are hard coded to "Debug" and don't use the configuration name being built.
-                    let sourceModuleMap = generatesSourceModuleMaps
-                    ? "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/DerivedSources/\(targetName).modulemap"
-                    : "\(SRCROOT)/\(targetName).modulemap"
+                    let sourceModuleMap =
+                        generatesSourceModuleMaps
+                        ? "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/DerivedSources/\(targetName).modulemap"
+                        : "\(SRCROOT)/\(targetName).modulemap"
                     let originalGeneratedModuleMap = "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/module-original.modulemap"
                     let moduleMapExtension = "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/module-swiftextension.modulemap"
                     let generatedModuleMap = "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/module.modulemap"
@@ -959,9 +1051,10 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     let unextendedModuleMap = "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/unextended-module.modulemap"
                     let swiftVFS = "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/unextended-module-overlay.yaml"
                     let installedModuleMap = "\(SRCROOT)/build/Debug/\(targetName).framework/Versions/A/Modules/module.modulemap"
-                    let sourcePrivateModuleMap = generatesSourceModuleMaps
-                    ? "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/DerivedSources/\(targetName).private.modulemap"
-                    : "\(SRCROOT)/\(targetName).private.modulemap"
+                    let sourcePrivateModuleMap =
+                        generatesSourceModuleMaps
+                        ? "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/DerivedSources/\(targetName).private.modulemap"
+                        : "\(SRCROOT)/\(targetName).private.modulemap"
                     let generatedPrivateModuleMap = "\(SRCROOT)/build/Project.build/Debug/\(targetName).build/module.private.modulemap"
                     let installedPrivateModuleMap = "\(SRCROOT)/build/Debug/\(targetName).framework/Versions/A/Modules/module.private.modulemap"
 
@@ -972,11 +1065,14 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                     if copiesPublicModuleMap {
                         if hasSwiftExtension {
                             results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", moduleMapExtension])) { task, contents in
-                                #expect(contents == (OutputByteStream()
-                                                     <<< "\n"
-                                                     <<< "module \(targetName).Swift {\n"
-                                                     <<< "  header \"\(targetName)-Swift.h\"\n"
-                                                     <<< "}\n").bytes)
+                                #expect(
+                                    contents
+                                        == (OutputByteStream()
+                                        <<< "\n"
+                                        <<< "module \(targetName).Swift {\n"
+                                        <<< "  header \"\(targetName)-Swift.h\"\n"
+                                        <<< "}\n").bytes
+                                )
                             }
 
                             let concatenateSourceModuleMap: String
@@ -998,38 +1094,44 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                             }
 
                             results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", moduleMapUnextension])) { task, contents in
-                                #expect(contents == (OutputByteStream()
-                                                     <<< "\n"
-                                                     <<< "module \(targetName).__Swift {\n"
-                                                     <<< "  exclude header \"\(targetName)-Swift.h\"\n"
-                                                     <<< "}\n").bytes)
+                                #expect(
+                                    contents
+                                        == (OutputByteStream()
+                                        <<< "\n"
+                                        <<< "module \(targetName).__Swift {\n"
+                                        <<< "  exclude header \"\(targetName)-Swift.h\"\n"
+                                        <<< "}\n").bytes
+                                )
                             }
                             results.checkTask(.matchTarget(target), .matchRule(["Concatenate", unextendedModuleMap, concatenateSourceModuleMap, moduleMapUnextension])) { _ in }
                             results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", swiftVFS])) { task, contents in
-                                #expect(contents == (OutputByteStream()
-                                                     <<< "{\n"
-                                                     <<< "  \"version\": 0,\n"
-                                                     <<< "  \"use-external-names\": false,\n"
-                                                     <<< "  \"case-sensitive\": false,\n"
-                                                     <<< "  \"roots\": [{\n"
-                                                     <<< "    \"type\": \"directory\",\n"
-                                                     <<< "    \"name\": \"\(SRCROOT)/build/Debug/\(targetName).framework/Modules\",\n"
-                                                     <<< "    \"contents\": [{\n"
-                                                     <<< "      \"type\": \"file\",\n"
-                                                     <<< "      \"name\": \"module.modulemap\",\n"
-                                                     <<< "      \"external-contents\": \"\(unextendedModuleMap)\",\n"
-                                                     <<< "    }]\n"
-                                                     <<< "    },\n"
-                                                     <<< "    {\n"
-                                                     <<< "    \"type\": \"directory\",\n"
-                                                     <<< "    \"name\": \"\(SRCROOT)/build/Debug/\(targetName).framework/Headers\",\n"
-                                                     <<< "    \"contents\": [{\n"
-                                                     <<< "      \"type\": \"file\",\n"
-                                                     <<< "      \"name\": \"\(targetName)-Swift.h\",\n"
-                                                     <<< "      \"external-contents\": \"\(SRCROOT)/build/Project.build/Debug/\(targetName).build/unextended-interface-header.h\",\n"
-                                                     <<< "    }]\n"
-                                                     <<< "  }]\n"
-                                                     <<< "}\n").bytes)
+                                #expect(
+                                    contents
+                                        == (OutputByteStream()
+                                        <<< "{\n"
+                                        <<< "  \"version\": 0,\n"
+                                        <<< "  \"use-external-names\": false,\n"
+                                        <<< "  \"case-sensitive\": false,\n"
+                                        <<< "  \"roots\": [{\n"
+                                        <<< "    \"type\": \"directory\",\n"
+                                        <<< "    \"name\": \"\(SRCROOT)/build/Debug/\(targetName).framework/Modules\",\n"
+                                        <<< "    \"contents\": [{\n"
+                                        <<< "      \"type\": \"file\",\n"
+                                        <<< "      \"name\": \"module.modulemap\",\n"
+                                        <<< "      \"external-contents\": \"\(unextendedModuleMap)\",\n"
+                                        <<< "    }]\n"
+                                        <<< "    },\n"
+                                        <<< "    {\n"
+                                        <<< "    \"type\": \"directory\",\n"
+                                        <<< "    \"name\": \"\(SRCROOT)/build/Debug/\(targetName).framework/Headers\",\n"
+                                        <<< "    \"contents\": [{\n"
+                                        <<< "      \"type\": \"file\",\n"
+                                        <<< "      \"name\": \"\(targetName)-Swift.h\",\n"
+                                        <<< "      \"external-contents\": \"\(SRCROOT)/build/Project.build/Debug/\(targetName).build/unextended-interface-header.h\",\n"
+                                        <<< "    }]\n"
+                                        <<< "  }]\n"
+                                        <<< "}\n").bytes
+                                )
                             }
                         } else if copiesUseUnifdef {
                             results.checkTask(.matchTarget(target), .matchRule(["Unifdef", generatedModuleMap, sourceModuleMap])) { task in
@@ -1072,7 +1174,7 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
                         results.checkNoTask(.matchTarget(target), .matchRule(["Copy", installedPrivateModuleMap, generatedPrivateModuleMap]))
                     }
 
-                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) {tasks in
+                    results.checkTasks(.matchTarget(target), .matchRuleType("CompileC")) { tasks in
                         for task in tasks {
                             results.checkTaskFollows(task, copyModuleMap)
                             if hasSwiftExtension && copiesPublicModuleMap {
@@ -1107,13 +1209,16 @@ fileprivate struct ModuleMapTaskConstructionTests: CoreBasedTests {
     }
 
     private func buildConfiguration(withName name: String, extraSettings: [String: String]) async throws -> TestBuildConfiguration {
-        return try await TestBuildConfiguration(name, buildSettings: [
-            "CODE_SIGN_IDENTITY": "",
-            "INFOPLIST_FILE": "Info.plist",
-            "PRODUCT_NAME": "$(TARGET_NAME)",
-            "SWIFT_EXEC": swiftCompilerPath.str,
-            "SWIFT_VERSION": swiftVersion,
-        ].merging(extraSettings, uniquingKeysWith: { a, b in a }))
+        return try await TestBuildConfiguration(
+            name,
+            buildSettings: [
+                "CODE_SIGN_IDENTITY": "",
+                "INFOPLIST_FILE": "Info.plist",
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "SWIFT_EXEC": swiftCompilerPath.str,
+                "SWIFT_VERSION": swiftVersion,
+            ].merging(extraSettings, uniquingKeysWith: { a, b in a })
+        )
     }
 
     private func checkExpectedTasks(in planningResults: TaskConstructionTester.PlanningResults, for target: ConfiguredTarget) {

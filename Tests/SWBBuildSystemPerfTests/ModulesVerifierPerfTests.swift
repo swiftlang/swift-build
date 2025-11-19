@@ -23,39 +23,51 @@ fileprivate struct ModulesVerifierPerfTests: CoreBasedTests, PerfTests {
     func modulesVerifierPerf(verify: Bool) async throws {
         try await withTemporaryDirectory { tmpDir in
             let srcRoot = tmpDir.join("VerifyModulePerfTest")
-            let testProject = TestProject("MyProject",
-                                          sourceRoot: srcRoot,
-                                          groupTree: TestGroup("SomeFiles", path: "", children: [
-                                            TestFile("MyFramework.h"),
-                                            TestFile("MyFramework_Private.h"),
-                                            TestFile("PublicHeader.h"),
-                                            TestFile("PrivateHeader.h"),
-                                            TestFile("SourceFile.m"),
-                                          ]),
-                                          buildConfigurations: [
-                                            TestBuildConfiguration("Debug", buildSettings: [
-                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                "GENERATE_INFOPLIST_FILE": "YES",
-                                                "DEFINES_MODULE": "YES",
-                                                "MODULEMAP_FILE": "public.modulemap",
-                                                "MODULEMAP_PRIVATE_FILE": "private.modulemap",
-                                                "INSTALL_OWNER": "",
-                                                "INSTALL_GROUP": "staff",
-                                            ])
-                                          ],
-                                          targets: [
-                                            TestStandardTarget("MyFramework", type: .framework, buildPhases: [
-                                                TestHeadersBuildPhase([
-                                                    TestBuildFile("MyFramework.h", headerVisibility: .public),
-                                                    TestBuildFile("MyFramework_Private.h", headerVisibility: .private),
-                                                    TestBuildFile("PublicHeader.h", headerVisibility: .public),
-                                                    TestBuildFile("PrivateHeader.h", headerVisibility: .private),
-                                                ]),
-                                                TestSourcesBuildPhase([
-                                                    "SourceFile.m"
-                                                ])
-                                            ])
-                                          ]
+            let testProject = TestProject(
+                "MyProject",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    path: "",
+                    children: [
+                        TestFile("MyFramework.h"),
+                        TestFile("MyFramework_Private.h"),
+                        TestFile("PublicHeader.h"),
+                        TestFile("PrivateHeader.h"),
+                        TestFile("SourceFile.m"),
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "DEFINES_MODULE": "YES",
+                            "MODULEMAP_FILE": "public.modulemap",
+                            "MODULEMAP_PRIVATE_FILE": "private.modulemap",
+                            "INSTALL_OWNER": "",
+                            "INSTALL_GROUP": "staff",
+                        ]
+                    )
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "MyFramework",
+                        type: .framework,
+                        buildPhases: [
+                            TestHeadersBuildPhase([
+                                TestBuildFile("MyFramework.h", headerVisibility: .public),
+                                TestBuildFile("MyFramework_Private.h", headerVisibility: .private),
+                                TestBuildFile("PublicHeader.h", headerVisibility: .public),
+                                TestBuildFile("PrivateHeader.h", headerVisibility: .private),
+                            ]),
+                            TestSourcesBuildPhase([
+                                "SourceFile.m"
+                            ]),
+                        ]
+                    )
+                ]
             )
 
             let core = try await getCore()
@@ -96,9 +108,13 @@ fileprivate struct ModulesVerifierPerfTests: CoreBasedTests, PerfTests {
                 stream <<< "}\n"
             }
 
-            let params = BuildParameters(action: .build, configuration: "Debug", overrides: [
-                "ENABLE_MODULE_VERIFIER": verify ? "YES" : "NO",
-            ])
+            let params = BuildParameters(
+                action: .build,
+                configuration: "Debug",
+                overrides: [
+                    "ENABLE_MODULE_VERIFIER": verify ? "YES" : "NO"
+                ]
+            )
 
             try await tester.checkBuild(parameters: params, runDestination: .macOS, serial: true) { results in
             }
@@ -106,7 +122,7 @@ fileprivate struct ModulesVerifierPerfTests: CoreBasedTests, PerfTests {
             let filesToTouch = [srcRoot.join("PublicHeader.h"), srcRoot.join("PrivateHeader.h")]
 
             try await measure {
-                for _ in 0..<5 { // loop enough to make the measured time longer, and the standard deviation relatively low
+                for _ in 0..<5 {  // loop enough to make the measured time longer, and the standard deviation relatively low
                     for file in filesToTouch {
                         try tester.fs.touch(file)
                     }

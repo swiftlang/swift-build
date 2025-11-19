@@ -27,23 +27,27 @@ fileprivate struct LibtoolTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("SourceFile.m"),
-                ]),
+                    TestFile("SourceFile.m")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "LIBTOOL": libtoolPath.str,
-                    "PRODUCT_NAME": "$(TARGET_NAME)"
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "LIBTOOL": libtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Deterministic",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["LIBTOOL_DETERMINISTIC_MODE": "YES"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["LIBTOOL_DETERMINISTIC_MODE": "YES"])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ],
                     dependencies: ["Nondeterministic"]
                 ),
@@ -51,13 +55,14 @@ fileprivate struct LibtoolTaskConstructionTests: CoreBasedTests {
                     "Nondeterministic",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["LIBTOOL_DETERMINISTIC_MODE": "NO"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["LIBTOOL_DETERMINISTIC_MODE": "NO"])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str

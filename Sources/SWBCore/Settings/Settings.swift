@@ -106,7 +106,7 @@ fileprivate struct PreOverridesSettings {
     }
 
     fileprivate var universalDefaults: MacroValueAssignmentTable { return universalDefaultsCache.getValue(self) }
-    private let universalDefaultsCache = LazyCache{ (settings: CoreSettings) -> MacroValueAssignmentTable in settings.computeUniversalDefaults() }
+    private let universalDefaultsCache = LazyCache { (settings: CoreSettings) -> MacroValueAssignmentTable in settings.computeUniversalDefaults() }
     private func computeUniversalDefaults() -> MacroValueAssignmentTable {
         var table = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
 
@@ -227,35 +227,35 @@ fileprivate struct PreOverridesSettings {
 
     // FIXME: This never actually pushed anything to the table, so I've disabled it for now.
     #if false
-    private var unionedCustomizedCompilerDefaultsCache = Registry<String, MacroValueAssignmentTable>()
-    fileprivate func unionedCustomizedCompilerDefaults(domain: String) -> MacroValueAssignmentTable {
-        // FIXME: This table is barely used (for Xcode proper it is almost empty). We should figure out if there might be a simpler solution to this problem.
-        //
-        // That said, it would likely be used a lot more often if we started to pull compiler specific defaults out of the unioned table, although if we had alternate support for them (for example, recognizing the macro type as compiler specific and error out on access from invalid contents), then we might still be able to push them as a single unioned table.
-        return unionedCustomizedCompilerDefaultsCache.getOrInsert(domain) {
-            // Add the defaults from all the registered tools in the given domain.
+        private var unionedCustomizedCompilerDefaultsCache = Registry<String, MacroValueAssignmentTable>()
+        fileprivate func unionedCustomizedCompilerDefaults(domain: String) -> MacroValueAssignmentTable {
+            // FIXME: This table is barely used (for Xcode proper it is almost empty). We should figure out if there might be a simpler solution to this problem.
             //
-            // FIXME: This is somewhat wasteful, as we end up duplicating values for super specifications. However, that lets us keep the condition set required to enable a particular compiler very simple.
-            let unionedDefaults = unionedToolDefaults(domain: domain).table
-            let customizedDefaults = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
-            for spec in core.specRegistry.findSpecs(CompilerSpec.self, domain: domain) {
-                // Add all the necessary defaults.
-                for option in core.specRegistry.effectiveFlattenedBuildOptions(spec).values {
-                    if let defaultValue = option.defaultValue {
-                        // Only push the default value if it diverges from the existing default.
-                        //
-                        // FIXME: This optimization could be subsumed by the macro assignment table itself, but for now we do it here as an important special case.
-                        if let existingDefault = unionedDefaults.lookupMacro(option.macro)?.expression, existingDefault == defaultValue {
-                            continue
-                        }
+            // That said, it would likely be used a lot more often if we started to pull compiler specific defaults out of the unioned table, although if we had alternate support for them (for example, recognizing the macro type as compiler specific and error out on access from invalid contents), then we might still be able to push them as a single unioned table.
+            return unionedCustomizedCompilerDefaultsCache.getOrInsert(domain) {
+                // Add the defaults from all the registered tools in the given domain.
+                //
+                // FIXME: This is somewhat wasteful, as we end up duplicating values for super specifications. However, that lets us keep the condition set required to enable a particular compiler very simple.
+                let unionedDefaults = unionedToolDefaults(domain: domain).table
+                let customizedDefaults = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+                for spec in core.specRegistry.findSpecs(CompilerSpec.self, domain: domain) {
+                    // Add all the necessary defaults.
+                    for option in core.specRegistry.effectiveFlattenedBuildOptions(spec).values {
+                        if let defaultValue = option.defaultValue {
+                            // Only push the default value if it diverges from the existing default.
+                            //
+                            // FIXME: This optimization could be subsumed by the macro assignment table itself, but for now we do it here as an important special case.
+                            if let existingDefault = unionedDefaults.lookupMacro(option.macro)?.expression, existingDefault == defaultValue {
+                                continue
+                            }
 
-                        // FIXME: Need ability to push conditional assignments.
+                            // FIXME: Need ability to push conditional assignments.
+                        }
                     }
                 }
+                return customizedDefaults
             }
-            return customizedDefaults
         }
-    }
     #endif
 
     /// The cache for system build rules.
@@ -477,8 +477,8 @@ final class WorkspaceSettings: Sendable {
             // Add the compiler specific settings.
             //
             // This is necessary to support tools that have distinct values for the same settings (otherwise the tool defaults above would covert it), and is used in conjunction with a compiler condition asserted by the build phase processing.
-            #if false // This never did anything, see comments at `unionedCustomizedCompilerDefaults`
-            push(coreSettings.unionedCustomizedCompilerDefaults(domain: domain))
+            #if false  // This never did anything, see comments at `unionedCustomizedCompilerDefaults`
+                push(coreSettings.unionedCustomizedCompilerDefaults(domain: domain))
             #endif
 
             return BuiltinSettingsInfo(table: builtinsTable, exportedMacros: exportedMacros, errors: errors)
@@ -588,7 +588,6 @@ final class WorkspaceSettings: Sendable {
         return table
     }
 }
-
 
 /// This class represents the computed settings of a project and (optionally) target.
 public final class Settings: PlatformBuildContext, Sendable {
@@ -756,9 +755,9 @@ public final class Settings: PlatformBuildContext, Sendable {
             supportsMacCatalystMacros.formUnion(sdkVariantInfoExtension.supportsMacCatalystMacroNames)
         }
 
-        return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue } ||
+        return supportsMacCatalystMacros.contains { scope.evaluate(scope.namespace.parseString("$(\($0)")).boolValue }
             // For index build ensure zippered frameworks can be configured separately for both macOS and macCatalyst.
-            (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
+            || (scope.evaluate(BuiltinMacros.IS_ZIPPERED) && scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA))
     }
 
     public var enableTargetPlatformSpecialization: Bool {
@@ -766,8 +765,7 @@ public final class Settings: PlatformBuildContext, Sendable {
     }
 
     public static func targetPlatformSpecializationEnabled(scope: MacroEvaluationScope) -> Bool {
-        return scope.evaluate(BuiltinMacros.ALLOW_TARGET_PLATFORM_SPECIALIZATION) ||
-            SWBFeatureFlag.allowTargetPlatformSpecialization.value
+        return scope.evaluate(BuiltinMacros.ALLOW_TARGET_PLATFORM_SPECIALIZATION) || SWBFeatureFlag.allowTargetPlatformSpecialization.value
     }
 
     public var enableBuildRequestOverrides: Bool {
@@ -826,7 +824,7 @@ public final class Settings: PlatformBuildContext, Sendable {
 
         // Construct the settings table.
         let builder = SettingsBuilder(workspaceContext, buildRequestContext, parameters, settingsContext, provisioningTaskInputs, impartedBuildProperties, artifactBundleInfo, includeExports: includeExports, sdkRegistry)
-        let (boundProperties, boundDeploymentTarget) = MacroNamespace.withExpressionInterningEnabled{ builder.construct() }
+        let (boundProperties, boundDeploymentTarget) = MacroNamespace.withExpressionInterningEnabled { builder.construct() }
 
         // Extract the constructed data.
         self.targetConfiguration = builder.targetConfiguration
@@ -990,9 +988,11 @@ extension WorkspaceContext {
             }
 
             // Add the search paths from each loaded plugin.
-            paths.append(contentsOf: core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
-                ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
-            }.sorted())
+            paths.append(
+                contentsOf: core.pluginManager.extensions(of: SpecificationsExtensionPoint.self).flatMap { ext in
+                    ext.specificationSearchPaths(resourceSearchPaths: core.resourceSearchPaths).compactMap { try? $0.filePath }
+                }.sorted()
+            )
 
             // Add the binary paths for each toolchain.
             for toolchain in toolchains {
@@ -1150,11 +1150,12 @@ private class SettingsBuilder {
             let pathDeclarations: [PathMacroDeclaration: String]
             let pathListDeclarations: [PathListMacroDeclaration: Array<String>]
 
-            init(_ scope: MacroEvaluationScope,
-                 _ stringDeclarations: [StringMacroDeclaration],
-                 _ stringListDeclarations: [StringListMacroDeclaration],
-                 _ pathDeclarations: [PathMacroDeclaration],
-                 _ pathListDeclarations: [PathListMacroDeclaration]
+            init(
+                _ scope: MacroEvaluationScope,
+                _ stringDeclarations: [StringMacroDeclaration],
+                _ stringListDeclarations: [StringListMacroDeclaration],
+                _ pathDeclarations: [PathMacroDeclaration],
+                _ pathListDeclarations: [PathListMacroDeclaration]
             ) {
                 self.stringDeclarations = Dictionary(uniqueKeysWithValues: stringDeclarations.map { ($0, scope.evaluate($0)) })
                 self.stringListDeclarations = Dictionary(uniqueKeysWithValues: stringListDeclarations.map { ($0, scope.evaluate($0)) })
@@ -1255,12 +1256,10 @@ private class SettingsBuilder {
     /// The namespace for user macros.  Its parent is the namespace of the `WorkspaceContext` for the settings.
     let userNamespace: MacroNamespace
 
-
     // Properties derived from the properties the builder was initialized with.
 
     /// The bound build configuration for the target.
     var targetConfiguration: BuildConfiguration? = nil
-
 
     // Bound properties of the builder.  These will sometimes come from the BoundProperties struct and are included here for convenience.  The builder should be careful not to access these methods before they are added.
     // FIXME: We should find some compile-time way to enforce that these properties can't be used before they are added.
@@ -1278,7 +1277,6 @@ private class SettingsBuilder {
     var moduleDependencies: [ModuleDependency] = []
     var headerDependencies: [HeaderDependency] = []
 
-
     // Mutable state of the builder as we're building up the settings table.
 
     /// The table we build up of macro assignments.
@@ -1290,8 +1288,8 @@ private class SettingsBuilder {
     var exportedNativeIDs = Set<Int>()
 
     var errors = OrderedSet<String>()
-    var warnings =  OrderedSet<String>()
-    var notes =  OrderedSet<String>()
+    var warnings = OrderedSet<String>()
+    var notes = OrderedSet<String>()
     var diagnostics = OrderedSet<Diagnostic>()
 
     /// Target-specific counterpart of `diagnostics`.
@@ -1368,7 +1366,6 @@ private class SettingsBuilder {
         self.includeExports = includeExports && !forBindingProperties
     }
 
-
     // MARK: Settings construction
 
     /// Construct the settings data.
@@ -1411,7 +1408,7 @@ private class SettingsBuilder {
         // Add the toolchain settings.
         //
         // We push in reverse order to honor the precedence correctly.
-        for (idx,toolchain) in boundProperties.toolchains.enumerated().reversed() {
+        for (idx, toolchain) in boundProperties.toolchains.enumerated().reversed() {
             addToolchainSettings(toolchain, isPrimary: idx == 0)
         }
 
@@ -1419,7 +1416,7 @@ private class SettingsBuilder {
             var table = MacroValueAssignmentTable(namespace: userNamespace)
 
             // The order should match the order of TOOLCHAINS.
-            table.push(BuiltinMacros.EFFECTIVE_TOOLCHAINS_DIRS, literal: boundProperties.toolchains.map{ $0.path.str })
+            table.push(BuiltinMacros.EFFECTIVE_TOOLCHAINS_DIRS, literal: boundProperties.toolchains.map { $0.path.str })
 
             push(table)
         }
@@ -1560,8 +1557,7 @@ private class SettingsBuilder {
         if scope.evaluate(BuiltinMacros.ENABLE_ON_DEMAND_RESOURCES) {
             if let productType = self.productType, !scope.evaluate(BuiltinMacros.SUPPORTS_ON_DEMAND_RESOURCES) {
                 self.errors.append("On-Demand Resources is enabled (ENABLE_ON_DEMAND_RESOURCES = YES), but is not supported for \(productType.name.lowercased()) targets")
-            }
-            else {
+            } else {
                 if scope.evaluate(BuiltinMacros.WRAP_ASSET_PACKS_IN_SEPARATE_DIRECTORIES) {
                     self.errors.append("WRAP_ASSET_PACKS_IN_SEPARATE_DIRECTORIES=YES is not supported")
                 }
@@ -1626,9 +1622,11 @@ private class SettingsBuilder {
             }
         }
 
-        if scope.evaluate(BuiltinMacros.ENABLE_PROJECT_OVERRIDE_SPECS), let projectOverrideSpec = core.specRegistry.findSpecs(ProjectOverridesSpec.self, domain: "").filter({ spec in
-            spec.projectName == (scope.evaluate(BuiltinMacros.RC_ProjectName).nilIfEmpty ?? scope.evaluate(BuiltinMacros.SRCROOT).basename)
-        }).only {
+        if scope.evaluate(BuiltinMacros.ENABLE_PROJECT_OVERRIDE_SPECS),
+            let projectOverrideSpec = core.specRegistry.findSpecs(ProjectOverridesSpec.self, domain: "").filter({ spec in
+                spec.projectName == (scope.evaluate(BuiltinMacros.RC_ProjectName).nilIfEmpty ?? scope.evaluate(BuiltinMacros.SRCROOT).basename)
+            }).only
+        {
             push(projectOverrideSpec.buildSettings)
             self.warnings.append("Applying Swift Build settings override to project for \(projectOverrideSpec.bugReport).")
         }
@@ -1656,14 +1654,12 @@ private class SettingsBuilder {
 
         do {
             self.moduleDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.MODULE_DEPENDENCIES).map { try ModuleDependency(entry: $0) }
-        }
-        catch {
+        } catch {
             errors.append("Failed to parse \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(error)")
         }
         do {
             self.headerDependencies = try createScope(sdkToUse: boundProperties.sdk).evaluate(BuiltinMacros.HEADER_DEPENDENCIES).map { try HeaderDependency(entry: $0) }
-        }
-        catch {
+        } catch {
             errors.append("Failed to parse \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(error)")
         }
 
@@ -1674,7 +1670,6 @@ private class SettingsBuilder {
 
         return (boundProperties, boundDeploymentTarget)
     }
-
 
     // MARK: Computing the bound properties
 
@@ -1695,7 +1690,7 @@ private class SettingsBuilder {
         }
 
         // Add the target settings, if configured.
-        if let target = self.target, let config = effectiveTargetConfig  {
+        if let target = self.target, let config = effectiveTargetConfig {
             addTargetSettings(target, SpecLookupCtxt(specRegistry: core.specRegistry, platform: nil), config, nil)
         }
 
@@ -1735,7 +1730,7 @@ private class SettingsBuilder {
         // - Then, we let the run destination override the SDK if needed.
         // - If the SDK or Platform changed, we do a second pass to add the new SDK/Platform settings. This ensures that we can resolve TOOLCHAINS accurately later.
         var sdkroot: String! = nil
-        for i in 0 ..< 2 {
+        for i in 0..<2 {
             // Perform the initial SDK resolution (this may drive the platform).
             sdkroot = createScope(effectiveTargetConfig, sdkToUse: sdk).evaluate(BuiltinMacros.SDKROOT).str
 
@@ -1750,8 +1745,7 @@ private class SettingsBuilder {
                 let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
                 if destinationIsMacCatalyst && supportsMacCatalyst {
                     usesReplaceableAutomaticSDKRoot = true
-                }
-                else {
+                } else {
                     usesReplaceableAutomaticSDKRoot = runDestinationIsSupported
                 }
             } else {
@@ -1821,7 +1815,7 @@ private class SettingsBuilder {
             }
 
             // Add the target settings, if configured.
-            if let target = self.target, let config = effectiveTargetConfig  {
+            if let target = self.target, let config = effectiveTargetConfig {
                 addTargetSettings(target, specLookupContext, config, nil)
             }
 
@@ -1865,8 +1859,7 @@ private class SettingsBuilder {
         if project != nil && foundAmbiguousErrors.isEmpty {
             if sdk == nil {
                 errors.append("unable to find sdk '\(sdkroot!)'")
-            }
-            else if platform == nil {
+            } else if platform == nil {
                 errors.append("unable to find platform for sdk '\(sdkroot!)'")
             }
         }
@@ -1885,14 +1878,12 @@ private class SettingsBuilder {
             // Look up the SDK from the workspace context's SDK registry.  Here we let the registry detect whether the string we're looking up is the name of the SDK, or the path to one.
             if let sdk = try? sdkRegistry.lookup(nameOrPath: sparseSDKLookupStr, basePath: project.sourceRoot, activeRunDestination: parameters.activeRunDestination) {
                 return sdk
-            }
-            else {
+            } else {
                 // If we didn't find an SDK, then we treat the lookup string as a path and look for it inside the project directory.
                 let lookupPath = project.sourceRoot.join(sparseSDKLookupStr)
                 if let sdk = sdkRegistry.lookup(lookupPath) {
                     return sdk
-                }
-                else {
+                } else {
                     self.warnings.append("can't find additional SDK '\(sparseSDKLookupStr)'")
                 }
             }
@@ -1919,7 +1910,8 @@ private class SettingsBuilder {
         // If the build system was initialized as part of a swift toolchain, push that toolchain ahead of the default toolchain, if they are not the same (e.g. when on macOS where an Xcode install exists).
         if case .swiftToolchain(let path, xcodeDeveloperPath: _) = core.developerPath {
             if let developerPathToolchain = core.toolchainRegistry.toolchains.first(where: { $0.path.normalize() == path.normalize() }),
-               developerPathToolchain != coreSettings.defaultToolchain {
+                developerPathToolchain != coreSettings.defaultToolchain
+            {
                 toolchains.append(developerPathToolchain)
             }
         }
@@ -1931,7 +1923,7 @@ private class SettingsBuilder {
 
         // Determine the deployment targets that would be used. For enabling macCatalyst, we need to know the pre-mapped versions so we can inject that as SDK overrides.
         let scope = createScope(effectiveTargetConfig, sdkToUse: sdk)
-        let settings = BoundProperties.BoundSettings(scope, [BuiltinMacros.IPHONEOS_DEPLOYMENT_TARGET, BuiltinMacros.DEVELOPMENT_TEAM], [BuiltinMacros.OTHER_LDFLAGS,BuiltinMacros.PRODUCT_SPECIFIC_LDFLAGS],[BuiltinMacros.SDKROOT], [])
+        let settings = BoundProperties.BoundSettings(scope, [BuiltinMacros.IPHONEOS_DEPLOYMENT_TARGET, BuiltinMacros.DEVELOPMENT_TEAM], [BuiltinMacros.OTHER_LDFLAGS, BuiltinMacros.PRODUCT_SPECIFIC_LDFLAGS], [BuiltinMacros.SDKROOT], [])
 
         return BoundProperties(sdk: sdk, sdkVariant: sdkVariant, platform: platform, toolchains: toolchains, sparseSDKs: sparseSDKs, preOverrides: preOverrides, settings: settings)
     }
@@ -2010,7 +2002,6 @@ private class SettingsBuilder {
         push(table, exportType)
     }
 
-
     // MARK: Methods for pushing groups of properties
 
     /// Adds the base layer of build settings, including the environment and builtin defaults.
@@ -2020,7 +2011,7 @@ private class SettingsBuilder {
         // FIXME: <rdar://69032664> Remove rev-lock hack for new CopyStringsFile build setting
         pushTable(.exported) { $0.push(BuiltinMacros.STRINGS_FILE_INFOPLIST_RENAME, literal: true) }
         exportedMacroNames.formUnion(info.exportedMacros)
-        errors.append(contentsOf:info.errors)
+        errors.append(contentsOf: info.errors)
 
         // Default to preserving the module cache directory.
         pushTable(.exported) {
@@ -2117,8 +2108,7 @@ private class SettingsBuilder {
         table.push(BuiltinMacros.IS_UNOPTIMIZED_BUILD, literal: (scope.evaluate(BuiltinMacros.GCC_OPTIMIZATION_LEVEL) == "0" || scope.evaluate(BuiltinMacros.SWIFT_OPTIMIZATION_LEVEL) == "-Onone"))
 
         // If unset, infer the default SWIFT_LIBRARY_LEVEL from the INSTALL_PATH.
-        if scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).isEmpty &&
-           scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib" {
+        if scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).isEmpty && scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_dylib" {
             let privateInstallPaths = scope.evaluate(BuiltinMacros.__KNOWN_SPI_INSTALL_PATHS).map { Path($0) }
             let publicInstallPaths = [
                 Path("/System/Library/Frameworks"),
@@ -2126,7 +2116,8 @@ private class SettingsBuilder {
                 Path("/usr/lib"),
                 Path("/System/iOSSupport/System/Library/Frameworks"),
                 Path("/System/iOSSupport/System/Library/SubFrameworks"),
-                Path("/System/iOSSupport/usr/lib"),]
+                Path("/System/iOSSupport/usr/lib"),
+            ]
             let installPath = scope.evaluate(BuiltinMacros.INSTALL_PATH)
 
             if table.contains(BuiltinMacros.SKIP_INSTALL) {
@@ -2212,8 +2203,7 @@ private class SettingsBuilder {
             if scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) {
                 if scope.evaluate(BuiltinMacros.IS_UNOPTIMIZED_BUILD) {
                     table.push(BuiltinMacros.ADD_MERGEABLE_DEBUG_HOOK, literal: true)
-                }
-                else {
+                } else {
                     table.push(BuiltinMacros.MAKE_MERGEABLE, literal: true)
                 }
             }
@@ -2307,8 +2297,7 @@ private class SettingsBuilder {
                 if target.type == .external {
                     // External targets are special - they only look to see if SKIP_INSTALL is enabled in the target itself, and ignore the value of $(INSTALL_PATH).
                     skipInstall = MacroEvaluationScope(table: config.buildSettings).evaluate(BuiltinMacros.SKIP_INSTALL)
-                }
-                else {
+                } else {
                     skipInstall = scope.evaluate(BuiltinMacros.SKIP_INSTALL) || scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty
                 }
                 // If we're skipping the install (or don't have a path to install to), then TARGET_BUILD_DIR is set to an UninstalledProducts location.  Note that the external
@@ -2337,7 +2326,7 @@ private class SettingsBuilder {
             // Handle support for not using per-configuration build directories.
             if !usePerConfigurationBuildLocations {
                 table.push(BuiltinMacros.CONFIGURATION_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(BUILD_DIR") })
-                table.push(BuiltinMacros.CONFIGURATION_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(PROJECT_TEMP_DIR")})
+                table.push(BuiltinMacros.CONFIGURATION_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(PROJECT_TEMP_DIR") })
             }
         }
 
@@ -2362,7 +2351,7 @@ private class SettingsBuilder {
             "-Xfrontend",
             "LiveExecutionResultsLogger",
             "-F",
-            "\(platformFrameworksDir)"
+            "\(platformFrameworksDir)",
         ]
 
         table.push(BuiltinMacros.OTHER_SWIFT_FLAGS, BuiltinMacros.namespace.parseStringList(["$(inherited)"] + otherSwiftFlags))
@@ -2416,7 +2405,8 @@ private class SettingsBuilder {
                 platformTable.push(BuiltinMacros.CORRESPONDING_DEVICE_PLATFORM_NAME, literal: correspondingPlatform.name)
                 platformTable.push(BuiltinMacros.CORRESPONDING_DEVICE_PLATFORM_DIR, literal: correspondingPlatform.path.str)
                 if let correspondingSDKName = correspondingPlatform.sdkCanonicalName,
-                    let correspondingSDK = try? sdkRegistry.lookup(correspondingSDKName, activeRunDestination: parameters.activeRunDestination) {
+                    let correspondingSDK = try? sdkRegistry.lookup(correspondingSDKName, activeRunDestination: parameters.activeRunDestination)
+                {
                     platformTable.push(BuiltinMacros.CORRESPONDING_DEVICE_SDK_NAME, literal: correspondingSDK.canonicalName)
                     platformTable.push(BuiltinMacros.CORRESPONDING_DEVICE_SDK_DIR, literal: correspondingSDK.path.str)
                 }
@@ -2425,17 +2415,20 @@ private class SettingsBuilder {
                 platformTable.push(BuiltinMacros.CORRESPONDING_SIMULATOR_PLATFORM_NAME, literal: correspondingPlatform.name)
                 platformTable.push(BuiltinMacros.CORRESPONDING_SIMULATOR_PLATFORM_DIR, literal: correspondingPlatform.path.str)
                 if let correspondingSDKName = correspondingPlatform.sdkCanonicalName,
-                    let correspondingSDK = try? sdkRegistry.lookup(correspondingSDKName, activeRunDestination: parameters.activeRunDestination) {
+                    let correspondingSDK = try? sdkRegistry.lookup(correspondingSDKName, activeRunDestination: parameters.activeRunDestination)
+                {
                     platformTable.push(BuiltinMacros.CORRESPONDING_SIMULATOR_SDK_NAME, literal: correspondingSDK.canonicalName)
                     platformTable.push(BuiltinMacros.CORRESPONDING_SIMULATOR_SDK_DIR, literal: correspondingSDK.path.str)
                 }
             }
 
             // Add the default for SUPPORTED_PLATFORMS.
-            platformTable.push(BuiltinMacros.SUPPORTED_PLATFORMS, literal: core.platformRegistry.platforms.compactMap {
+            platformTable.push(
+                BuiltinMacros.SUPPORTED_PLATFORMS,
+                literal: core.platformRegistry.platforms.compactMap {
                     return $0.familyName == platform.familyName ? $0.name : nil
-                })
-
+                }
+            )
 
             // Add the platform default settings.
             platformTable.pushContentsOf(platform.defaultSettingsTable)
@@ -2841,8 +2834,7 @@ private class SettingsBuilder {
             let info = buildRequestContext.getCachedMacroConfigFile(path, project: project, context: .baseConfiguration)
             if let sdk = sdk, settingsContext.purpose.bindToSDK {
                 bindConditionParameters(bindTargetCondition(info.table), sdk)
-            }
-            else {
+            } else {
                 // No bound SDK, so push the project's build settings unmodified.
                 push(bindTargetCondition(info.table), .exported)
             }
@@ -2869,8 +2861,7 @@ private class SettingsBuilder {
         // Add the project's config settings.
         if let sdk, settingsContext.purpose.bindToSDK {
             bindConditionParameters(bindTargetCondition(config.buildSettings), sdk)
-        }
-        else {
+        } else {
             // No bound SDK, so push the project's build settings unmodified.
             push(bindTargetCondition(config.buildSettings), .exported)
         }
@@ -2894,8 +2885,7 @@ private class SettingsBuilder {
                     let message = "`\(macro)` is not supported. Remove the build setting and conditionalize `PRODUCT_BUNDLE_IDENTIFIER` instead."
                     if scope.evaluate(BuiltinMacros.__DIAGNOSE_DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER_ERROR) {
                         self.errors.append(message)
-                    }
-                    else {
+                    } else {
                         self.warnings.append(message)
                     }
                 }
@@ -2959,14 +2949,14 @@ private class SettingsBuilder {
         }
 
         #if !RC_PLAYGROUNDS
-        // Xcode version settings.
-        let xcodeMajorStr = (core.xcodeVersion[0] * 100).toString(format: "%04d")
-        let xcodeMinorStr = (core.xcodeVersion[0] * 100 + core.xcodeVersion[1] * 10).toString(format: "%04d")
-        let xcodeActualStr = (core.xcodeVersion[0] * 100 + core.xcodeVersion[1] * 10 + core.xcodeVersion[2]).toString(format: "%04d")
-        table.push(BuiltinMacros.XCODE_VERSION_MAJOR, literal: xcodeMajorStr)
-        table.push(BuiltinMacros.XCODE_VERSION_MINOR, literal: xcodeMinorStr)
-        table.push(BuiltinMacros.XCODE_VERSION_ACTUAL, literal: xcodeActualStr)
-        table.push(BuiltinMacros.XCODE_PRODUCT_BUILD_VERSION, literal: core.xcodeProductBuildVersionString)
+            // Xcode version settings.
+            let xcodeMajorStr = (core.xcodeVersion[0] * 100).toString(format: "%04d")
+            let xcodeMinorStr = (core.xcodeVersion[0] * 100 + core.xcodeVersion[1] * 10).toString(format: "%04d")
+            let xcodeActualStr = (core.xcodeVersion[0] * 100 + core.xcodeVersion[1] * 10 + core.xcodeVersion[2]).toString(format: "%04d")
+            table.push(BuiltinMacros.XCODE_VERSION_MAJOR, literal: xcodeMajorStr)
+            table.push(BuiltinMacros.XCODE_VERSION_MINOR, literal: xcodeMinorStr)
+            table.push(BuiltinMacros.XCODE_VERSION_ACTUAL, literal: xcodeActualStr)
+            table.push(BuiltinMacros.XCODE_PRODUCT_BUILD_VERSION, literal: core.xcodeProductBuildVersionString)
         #endif
 
         // Backward compatibility settings.
@@ -3048,8 +3038,7 @@ private class SettingsBuilder {
             let info = buildRequestContext.getCachedMacroConfigFile(path, project: project, context: .baseConfiguration)
             if let sdk = sdk, settingsContext.purpose.bindToSDK {
                 bindConditionParameters(bindTargetCondition(info.table), sdk)
-            }
-            else {
+            } else {
                 // No bound SDK, so push the target xcconfig's build settings unmodified.
                 push(bindTargetCondition(info.table), .exported)
             }
@@ -3070,8 +3059,7 @@ private class SettingsBuilder {
         // FIXME: Cache this table, but we can only do that once we share the namespace.
         if let sdk, settingsContext.purpose.bindToSDK {
             bindConditionParameters(bindTargetCondition(config.buildSettings), sdk)
-        }
-        else {
+        } else {
             // No bound SDK, so push the target's build settings unmodified.
             push(bindTargetCondition(config.buildSettings), .exported)
         }
@@ -3191,8 +3179,7 @@ private class SettingsBuilder {
         if let toolchain = core.toolchainRegistry.lookup(toolchainIdentifier), !toolchain.overrideSettings.isEmpty {
             do {
                 push(try userNamespace.parseTable(toolchain.overrideSettings, allowUserDefined: true), .exported)
-            }
-            catch {
+            } catch {
                 self.errors.append("unable to create override build settings table from toolchain `\(toolchainIdentifier)`")
             }
         }
@@ -3412,8 +3399,7 @@ private class SettingsBuilder {
                             BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_MAPPED_PLATFORM,
                             table.namespace.parseLiteralString("\(appleLDPreviousPlatform)")
                         )
-                    }
-                    else {
+                    } else {
                         table.push(
                             BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_INSTALL_NAME,
                             table.namespace.parseString("@rpath/$(EXECUTABLE_NAME).debug.dylib")
@@ -3428,9 +3414,9 @@ private class SettingsBuilder {
         }
 
         if isExecutableProduct,
-           scope.evaluate(BuiltinMacros.ENABLE_HARDENED_RUNTIME),
-           // Check for ad-hoc
-           scope.evaluate(BuiltinMacros.CODE_SIGN_IDENTITY) == "-"
+            scope.evaluate(BuiltinMacros.ENABLE_HARDENED_RUNTIME),
+            // Check for ad-hoc
+            scope.evaluate(BuiltinMacros.CODE_SIGN_IDENTITY) == "-"
         {
             // Hardened runtime was enabled with ad-hoc codesigning. This is not compatible
             // with debug dylib mode so we'll ignore it and emit a note.
@@ -3446,7 +3432,7 @@ private class SettingsBuilder {
     }
 
     static func targetSupportedPlatforms(scope: MacroEvaluationScope, core: Core, runDestinationPlatform: Platform, emitWarning: (String) -> Void = { _ in }) -> [Platform] {
-        let targetSupportedPlatforms = scope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS).compactMap{ core.platformRegistry.lookup(name: $0) }
+        let targetSupportedPlatforms = scope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS).compactMap { core.platformRegistry.lookup(name: $0) }
 
         // Warn if we couldn't find a supported platform for the given list.
         if targetSupportedPlatforms.isEmpty {
@@ -3467,7 +3453,7 @@ private class SettingsBuilder {
             if Settings.targetPlatformSpecializationEnabled(scope: scope) && sdk != nil {
                 return
             }
-        } catch { /* fallthrough */ }
+        } catch { /* fallthrough */  }
 
         // Destination info: since runDestination.{platform,sdk} were set by the IDE, we expect them to resolve in Swift Build correctly
         guard let runDestination = self.parameters.activeRunDestination else { return }
@@ -3544,8 +3530,7 @@ private class SettingsBuilder {
                 } else {
                     requiredSDKCanonicalName = destinationSDK.canonicalName
                 }
-            }
-            else if destinationPlatform.isSimulator, targetPlatform == nil || (targetPlatform !== destinationPlatform && targetPlatform?.familyName == destinationPlatform.familyName) {
+            } else if destinationPlatform.isSimulator, targetPlatform == nil || (targetPlatform !== destinationPlatform && targetPlatform?.familyName == destinationPlatform.familyName) {
                 // Simulator: If the target specifies an SDK for a platform in the destination platform family, use the equivalent SDK for the destination platform.  For example, if the target specifies iphoneos4.2 as its SDK, use iphonesimulator4.2 if such an SDK exists.
                 let targetSuffix = targetSDK.canonicalNameSuffix?.nilIfEmpty.map { ".\($0)" } ?? ""
                 let candidates: [String] = [
@@ -3558,16 +3543,13 @@ private class SettingsBuilder {
                 let resolvedCandidates = candidates.map { ($0, try? sdkRegistry.lookup($0, activeRunDestination: runDestination)?.canonicalName) }
 
                 requiredSDKCanonicalName = resolvedCandidates.compactMap { $0.1 }.first
-            }
-            else if (destinationPlatformIsMacOS || destinationPlatformIsLinux || destinationPlatform.isSimulator) && targetPlatform === destinationPlatform {
+            } else if (destinationPlatformIsMacOS || destinationPlatformIsLinux || destinationPlatform.isSimulator) && targetPlatform === destinationPlatform {
                 // If the target specifies an SDK for the destination platform, don't override its choice of SDK.
-            }
-            else {
+            } else {
                 // The target specifies an SDK not for the destination platform, but claims to support the destination platform.
                 requiredSDKCanonicalName = getLatestSDKCanonicalName(for: destinationPlatform)
             }
-        }
-        else if destinationPlatformIsDeviceOrSimulator {
+        } else if destinationPlatformIsDeviceOrSimulator {
             // For multiplatform builds, we want to ensure consistency between simulator- vs non-simulator environments, so if this target supports a platform that matches the simulator-ness of the destination platform, then use it.
             let isDeployment = destinationPlatform.isDeploymentPlatform
 
@@ -3618,7 +3600,8 @@ private class SettingsBuilder {
 
     func pushHostTargetPlatformSettingsIfNeeded(for runDestination: RunDestinationInfo, to scope: MacroEvaluationScope) {
         if let hostTargetedPlatform = runDestination.hostTargetedPlatform,
-           scope.evaluate(BuiltinMacros.SUPPORTED_HOST_TARGETED_PLATFORMS).contains(hostTargetedPlatform) {
+            scope.evaluate(BuiltinMacros.SUPPORTED_HOST_TARGETED_PLATFORMS).contains(hostTargetedPlatform)
+        {
             pushTable(.exported) { $0.push(BuiltinMacros.HOST_TARGETED_PLATFORM_NAME, literal: hostTargetedPlatform) }
         }
     }
@@ -3654,9 +3637,11 @@ private class SettingsBuilder {
                 BuiltinMacros.PROVISIONING_PROFILE_SPECIFIER,
             ])
 
-            targetDiagnostics.append(contentsOf: inputs.warnings.map {
-                Diagnostic(behavior: .warning, location: signingDiagnosticsLocation, data: DiagnosticData($0))
-            })
+            targetDiagnostics.append(
+                contentsOf: inputs.warnings.map {
+                    Diagnostic(behavior: .warning, location: signingDiagnosticsLocation, data: DiagnosticData($0))
+                }
+            )
 
             let errors = inputs.errors.map { error -> String in
                 var errorString = error.description
@@ -3670,9 +3655,11 @@ private class SettingsBuilder {
                 return errorString
             }
 
-            targetDiagnostics.append(contentsOf: errors.map {
-                Diagnostic(behavior: UserDefaults.disableSigningProvisioningErrors ? .warning : .error, location: signingDiagnosticsLocation, data: DiagnosticData($0))
-            })
+            targetDiagnostics.append(
+                contentsOf: errors.map {
+                    Diagnostic(behavior: UserDefaults.disableSigningProvisioningErrors ? .warning : .error, location: signingDiagnosticsLocation, data: DiagnosticData($0))
+                }
+            )
 
             if !errors.isEmpty {
                 return
@@ -3713,8 +3700,7 @@ private class SettingsBuilder {
                     identityName = "Ad Hoc"
 
                     warnings.append("\(target.name) isn't code signed but requires entitlements. Falling back to ad hoc signing.")
-                }
-                else if !platformRequiresEntitlements {
+                } else if !platformRequiresEntitlements {
                     // Warn the user when code signing is disabled, is not required, but they are specifying entitlements that cannot be used without code signing.
                     warnings.append("\(target.name) isn't code signed but requires entitlements. It is not possible to add entitlements to a binary without signing it.")
                 }
@@ -3828,8 +3814,9 @@ private class SettingsBuilder {
         table.push(BuiltinMacros.INDEX_DIRECTORY_REMAP_VFS_FILE, Static { BuiltinMacros.namespace.parseString("$(OBJROOT)/index-overlay.yaml") })
 
         if let arena = parameters.arena,
-           let productsPath = arena.indexRegularBuildProductsPath,
-           let intermediatesPath = arena.indexRegularBuildIntermediatesPath {
+            let productsPath = arena.indexRegularBuildProductsPath,
+            let intermediatesPath = arena.indexRegularBuildIntermediatesPath
+        {
             table.push(BuiltinMacros.INDEX_REGULAR_BUILD_PRODUCTS_DIR, BuiltinMacros.namespace.parseString(productsPath.str))
             table.push(BuiltinMacros.INDEX_REGULAR_BUILD_INTERMEDIATES_DIR, BuiltinMacros.namespace.parseString(intermediatesPath.str))
         }
@@ -3886,10 +3873,12 @@ private class SettingsBuilder {
 
         table.push(BuiltinMacros.DERIVED_DATA_DIR, BuiltinMacros.namespace.parseString(derivedDataPath!.str))
         if let arena = parameters.arena {
-            for (macro,path) in [(BuiltinMacros.SYMROOT, arena.buildProductsPath),
-                                 (BuiltinMacros.OBJROOT, arena.buildIntermediatesPath),
-                                 (BuiltinMacros.SHARED_PRECOMPS_DIR, arena.pchPath),
-                                 (BuiltinMacros.INDEX_PRECOMPS_DIR, arena.indexPCHPath)] {
+            for (macro, path) in [
+                (BuiltinMacros.SYMROOT, arena.buildProductsPath),
+                (BuiltinMacros.OBJROOT, arena.buildIntermediatesPath),
+                (BuiltinMacros.SHARED_PRECOMPS_DIR, arena.pchPath),
+                (BuiltinMacros.INDEX_PRECOMPS_DIR, arena.indexPCHPath),
+            ] {
                 if !path.isEmpty {
                     table.push(macro, BuiltinMacros.namespace.parseString(path.str))
                 }
@@ -4054,7 +4043,8 @@ private class SettingsBuilder {
                 // contains only a single architecture, use that. This is the code path for generic run destinations,
                 // where the supportedArchitectures should not be treated as priority-ordered.
                 if activeRunDestination.disableOnlyActiveArch,
-                    let supportedArch = Set(activeRunDestination.supportedArchitectures).intersection(archsSet).only {
+                    let supportedArch = Set(activeRunDestination.supportedArchitectures).intersection(archsSet).only
+                {
                     return supportedArch
                 }
 
@@ -4062,7 +4052,8 @@ private class SettingsBuilder {
                 // which is also in the proposed archs list. This is the code path for concrete run destinations,
                 // where the supportedArchitectures should be treated as priority-ordered.
                 if !activeRunDestination.disableOnlyActiveArch,
-                    let supportedArch = activeRunDestination.supportedArchitectures.first(where: archsSet.contains) {
+                    let supportedArch = activeRunDestination.supportedArchitectures.first(where: archsSet.contains)
+                {
                     return supportedArch
                 }
 
@@ -4071,7 +4062,8 @@ private class SettingsBuilder {
                     // Have a matching compatible architecture, so use that (eg. arm64e when the run destination is
                     // arm64).
                     if let compatibleArchs = compatibilityArchMap[activeRunDestination.targetArchitecture],
-                       let compatibleArch = Set(compatibleArchs).intersection(archsSet).only {
+                        let compatibleArch = Set(compatibleArchs).intersection(archsSet).only
+                    {
                         return compatibleArch
                     }
 
@@ -4118,16 +4110,13 @@ private class SettingsBuilder {
                 if spec.deprecatedError {
                     errors.append(deprecatedArchMessage)
                     return false
-                }
-                else if !supportedArchDeploymentTarget && spec.errorOutsideDeploymentTargetRange {
+                } else if !supportedArchDeploymentTarget && spec.errorOutsideDeploymentTargetRange {
                     errors.append(deprecatedArchDeploymentTargetMessage)
                     return false
-                }
-                else if spec.deprecated {
+                } else if spec.deprecated {
                     warnings.append(deprecatedArchMessage)
                     return true
-                }
-                else if !supportedArchDeploymentTarget {
+                } else if !supportedArchDeploymentTarget {
                     warnings.append(deprecatedArchDeploymentTargetMessage)
                     return true
                 }
@@ -4151,11 +4140,14 @@ private class SettingsBuilder {
         // Detect discouraged overrides of SWIFT_PLATFORM_TARGET_PREFIX and use this as a signal to suppress
         // module only architectures
         let tripleOverridesApplied = scope.evaluate(BuiltinMacros.SWIFT_PLATFORM_TARGET_PREFIX) != scope.evaluate(BuiltinMacros.__ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS)
-        let moduleOnlyArchs = (onlyActiveArchApplied || tripleOverridesApplied) ? [] : originalModuleOnlyArchs
-            .filter { validArchs.contains($0) }
-            .filter { !excludedArchs.contains($0) }
-            .filter { !effectiveArchs.contains($0) }
-            .removingDuplicates()
+        let moduleOnlyArchs =
+            (onlyActiveArchApplied || tripleOverridesApplied)
+            ? []
+            : originalModuleOnlyArchs
+                .filter { validArchs.contains($0) }
+                .filter { !excludedArchs.contains($0) }
+                .filter { !effectiveArchs.contains($0) }
+                .removingDuplicates()
 
         table.push(BuiltinMacros.__SWIFT_MODULE_ONLY_ARCHS__, literal: originalModuleOnlyArchs)
         table.push(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, literal: moduleOnlyArchs)
@@ -4176,12 +4168,11 @@ private class SettingsBuilder {
             BuiltinMacros.CCHROOT,
             BuiltinMacros.CONFIGURATION_BUILD_DIR, BuiltinMacros.SHARED_PRECOMPS_DIR,
             BuiltinMacros.CONFIGURATION_TEMP_DIR, BuiltinMacros.TARGET_TEMP_DIR, BuiltinMacros.TEMP_DIR,
-            BuiltinMacros.PROJECT_DIR, BuiltinMacros.BUILT_PRODUCTS_DIR
+            BuiltinMacros.PROJECT_DIR, BuiltinMacros.BUILT_PRODUCTS_DIR,
         ]
         for macro in macrosToNormalize {
             table.push(macro, literal: (project?.sourceRoot ?? workspaceContext.workspace.path.dirname).join(scope.evaluate(macro), normalize: true).str)
         }
-
 
         // FIXME: Xcode also normalizes SDKROOT to an absolute path here, although native targets also do this (in a different place).
 
@@ -4235,9 +4226,12 @@ private class SettingsBuilder {
 
             let shellCodec: any CommandSequenceEncodable = UNIXShellCommandCodec(encodingStrategy: .backslashes, encodingBehavior: .argumentsOnly)
 
-            table.push(BuiltinMacros.ALL_SETTINGS, literal: macros.map({ macro in
-                "\(macro)=" + shellCodec.encode([scope.evaluate(scope.namespace.parseString("$\(macro)"))])
-            }))
+            table.push(
+                BuiltinMacros.ALL_SETTINGS,
+                literal: macros.map({ macro in
+                    "\(macro)=" + shellCodec.encode([scope.evaluate(scope.namespace.parseString("$\(macro)"))])
+                })
+            )
         }
 
         // If testability is enabled, then that overrides certain other settings, and in a way that the user cannot override: They're either using testability, or they're not.
@@ -4320,7 +4314,7 @@ private class SettingsBuilder {
 
         let toolchainPath = Path(scope.evaluateAsString(BuiltinMacros.TOOLCHAIN_DIR))
         guard let toolchain = core.toolchainRegistry.toolchains.first(where: { $0.path == toolchainPath }),
-              let defaultToolchain = core.toolchainRegistry.defaultToolchain
+            let defaultToolchain = core.toolchainRegistry.defaultToolchain
         else {
             return []
         }
@@ -4363,7 +4357,8 @@ private class SettingsBuilder {
         // Ensure only a single variant is set if we're in an index build - either the first from `BUILD_VARIANTS` or `INDEX_BUILD_VARIANT` if it's set.
         var variants: [String] = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
         if parameters.action == .indexBuild,
-           let firstVariant = variants.first {
+            let firstVariant = variants.first
+        {
             let indexVariant = scope.evaluate(BuiltinMacros.INDEX_BUILD_VARIANT)
             if indexVariant.isEmpty || !variants.contains(indexVariant) {
                 variants = [firstVariant]
@@ -4428,8 +4423,7 @@ private class SettingsBuilder {
         let allSDKs: [SDK]
         if let baseSDK {
             allSDKs = [baseSDK].appending(contentsOf: sparseSDKs)
-        }
-        else {
+        } else {
             allSDKs = sparseSDKs
         }
         // Collect all the macros and SDKs into a map of [macro: [(macro, sdk)] entries, so we know if there are any collisions.
@@ -4533,8 +4527,7 @@ private class SettingsBuilder {
         }
 
         // If any sanitizer is enabled, and this product type has a runpath to its Frameworks directory defined, then we want to add that path to the runpath search path if it's not already present.
-        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER)
-        {
+        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) {
             if let frameworksRunpath = productType?.frameworksRunpathSearchPath(in: scope)?.str {
                 if !scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS).contains(frameworksRunpath) {
                     tableSet.push(.none, BuiltinMacros.LD_RUNPATH_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", frameworksRunpath]))
@@ -4560,9 +4553,9 @@ private class SettingsBuilder {
                 if scope.evaluateAsString(macro).isEmpty || scope.evaluate(macro) {
                     switch searchPathMacro {
                     case BuiltinMacros.HEADER_SEARCH_PATHS:
-                        tableSet.push(.none, searchPathMacro, Static { BuiltinMacros.namespace.parseStringList(["$(BUILT_PRODUCTS_DIR)/include", "$(inherited)"]) } )
+                        tableSet.push(.none, searchPathMacro, Static { BuiltinMacros.namespace.parseStringList(["$(BUILT_PRODUCTS_DIR)/include", "$(inherited)"]) })
                     default:
-                        tableSet.push(.none, searchPathMacro, Static { BuiltinMacros.namespace.parseStringList(["$(BUILT_PRODUCTS_DIR)", "$(inherited)"]) } )
+                        tableSet.push(.none, searchPathMacro, Static { BuiltinMacros.namespace.parseStringList(["$(BUILT_PRODUCTS_DIR)", "$(inherited)"]) })
                     }
                 }
             }
@@ -4603,7 +4596,7 @@ private class SettingsBuilder {
             /// Helper function to process the SDK remapping for a specific `variant` and `arch`.
             func processRemapping(_ scope: MacroEvaluationScope, _ originalValues: [Path], variant: String? = nil, arch: String? = nil) {
                 // Get the evaluated paths for this search path build setting, and remap them into the SDKs as appropriate.
-                let values = originalValues.flatMap{ (path: Path) -> [Path] in
+                let values = originalValues.flatMap { (path: Path) -> [Path] in
                     var results = [Path]()
 
                     // Remap into the sparse SDKs.  This effectively adds search paths into the sparse SDKs.
@@ -4646,7 +4639,7 @@ private class SettingsBuilder {
                             MacroCondition(parameter: BuiltinMacros.archCondition, valuePattern: arch),
                         ])
                     }
-                    table.push(macro, literal: values.map{ $0.str }, conditions: conditions)
+                    table.push(macro, literal: values.map { $0.str }, conditions: conditions)
                 }
             }
 
@@ -4669,13 +4662,13 @@ private class SettingsBuilder {
                     for arch in archs {
                         let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                         let originalValues = scope.evaluate(macro)
-                        processRemapping(scope, originalValues.map{ Path($0) }, variant: variant, arch: arch)
+                        processRemapping(scope, originalValues.map { Path($0) }, variant: variant, arch: arch)
                     }
                 }
             } else {
                 // If CURRENT_* macros were not found while evaluating the macro, then use the original values already parsed
                 // to process the remapping.
-                processRemapping(scope, originalValues.map{ Path($0) })
+                processRemapping(scope, originalValues.map { Path($0) })
             }
         }
 
@@ -4738,8 +4731,7 @@ private class SettingsBuilder {
             let assignedSDKVariantDeploymentTarget: Version
             if let deploymentTarget = try? Version(assignedSDKVariantDeploymentTargetString) {
                 assignedSDKVariantDeploymentTarget = deploymentTarget
-            }
-            else {
+            } else {
                 self.notes.append("The \(buildTarget) deployment target '\(sdkVariantDeploymentTargetMacro!.name)' is set to '\(assignedSDKVariantDeploymentTargetString)' - setting to default value '\(defaultSDKVariantDeploymentTarget.description)'.")
                 assignedSDKVariantDeploymentTarget = defaultSDKVariantDeploymentTarget
             }
@@ -4777,8 +4769,7 @@ private class SettingsBuilder {
                     getMacOSDeploymentTargetFromIOSDeploymentTarget = true
                 }
                 // If macOS deployment target is already defined, we do not check it against a macCatalyst-specific minimum value.  Building a macCatalyst target with a macOS deployment target earlier than the release in which macCatalyst first shipped (10.15) is allowed for zippered products.
-            }
-            else {
+            } else {
                 getMacOSDeploymentTargetFromIOSDeploymentTarget = true
             }
             if getMacOSDeploymentTargetFromIOSDeploymentTarget {
@@ -4787,8 +4778,7 @@ private class SettingsBuilder {
                 platformDeploymentTarget = macOSDeploymentTarget
                 table.push(BuiltinMacros.MACOSX_DEPLOYMENT_TARGET, literal: macOSDeploymentTarget.description)
             }
-        }
-        else {
+        } else {
             sdkVariantDeploymentTargetMacro = nil
             sdkVariantDeploymentTarget = nil
 
@@ -4805,8 +4795,7 @@ private class SettingsBuilder {
                     if let macOSDeploymentTarget = platformDeploymentTarget {
                         // 13.0 is a backstop in case anything isn't defined here.
                         candidateiOSDeploymentTarget = sdk?.versionMap["macOS_iOSMac"]?[macOSDeploymentTarget] ?? Version(13, 0)
-                    }
-                    else {
+                    } else {
                         candidateiOSDeploymentTarget = Version(13, 0)
                     }
                 }
@@ -4865,7 +4854,7 @@ private class SettingsBuilder {
             for setting in [
                 // We should move the check for ONLY_ACTIVE_ARCH here from getCommonTargetTaskOverrides().
                 //BuiltinMacros.ONLY_ACTIVE_ARCH,
-                BuiltinMacros.VALID_ARCHS,
+                BuiltinMacros.VALID_ARCHS
             ] {
                 let definedAtLevels = allProjectSettingsLevels.compactMap { settings in
                     settings.table?.contains(setting) == true ? settings.level : nil
@@ -4930,7 +4919,7 @@ private class SettingsBuilder {
         // Check settings which should either not be defined at all, or which we warn if defined to a specific value.
         for (setting, values, explanation): (MacroDeclaration, [String]?, String?) in [
             // We no longer ship libstdc++ so we warn about it specifically.  c.f. <rdar://83768231>
-            (BuiltinMacros.CLANG_CXX_LIBRARY, ["libstdc++"], "The 'libstdc++' C++ Standard Library is no longer available, and this setting can be removed."),
+            (BuiltinMacros.CLANG_CXX_LIBRARY, ["libstdc++"], "The 'libstdc++' C++ Standard Library is no longer available, and this setting can be removed.")
         ] {
             if let values, !values.isEmpty {
                 // If values is not empty, then we only emit warnings is we detect that the setting is defined to one of the given values.
@@ -4942,8 +4931,7 @@ private class SettingsBuilder {
                         break
                     }
                 }
-            }
-            else {
+            } else {
                 // If values is empty then we emit a warning if the setting is defined at all.
                 let assignedValue = scope.evaluateAsString(setting)
                 if !assignedValue.isEmpty {
@@ -4984,8 +4972,8 @@ private class SettingsBuilder {
             // .append because this setting is commonly used to work around rdar://73504582
             (BuiltinMacros.PRODUCT_SPECIFIC_LDFLAGS, .append),
 
-            (BuiltinMacros.__108704016_DEVELOPER_TOOLCHAIN_DIR_MISUSE_IS_WARNING, .none), // don't allow this to be overridden at the project level
-            (BuiltinMacros.RESCHEDULE_INDEPENDENT_HEADERS_PHASES, .none), // don't allow this to be overridden at the project level
+            (BuiltinMacros.__108704016_DEVELOPER_TOOLCHAIN_DIR_MISUSE_IS_WARNING, .none),  // don't allow this to be overridden at the project level
+            (BuiltinMacros.RESCHEDULE_INDEPENDENT_HEADERS_PHASES, .none),  // don't allow this to be overridden at the project level
         ] as [(MacroDeclaration, SettingMutability)] {
             let definedAtLevels = allProjectSettingsLevels.compactMap { settings -> String? in
                 guard let assignment = settings.table?.valueAssignments[setting] else {
@@ -5125,8 +5113,9 @@ private class SettingsBuilder {
         let paths: [Path] = buildFiles.compactMap { buildFile in
             // Considering only file references.
             guard case let .reference(guid) = buildFile.buildableItem,
-                  let reference = workspaceContext.workspace.lookupReference(for: guid),
-                  let fileRef = reference as? FileReference else {
+                let reference = workspaceContext.workspace.lookupReference(for: guid),
+                let fileRef = reference as? FileReference
+            else {
                 return nil
             }
 
@@ -5198,9 +5187,11 @@ private class SettingsBuilder {
                 // when they have certain localization file extensions but not others.
 
                 // A pattern prefix here is a pattern up to but not including the file extension suffix.
-                var fileExtensionsToMatchingPatternPrefixes: [String: Set<Substring>] = Dictionary(uniqueKeysWithValues: locFileExtensions.map({ locExtension in
-                    return (locExtension, [])
-                }))
+                var fileExtensionsToMatchingPatternPrefixes: [String: Set<Substring>] = Dictionary(
+                    uniqueKeysWithValues: locFileExtensions.map({ locExtension in
+                        return (locExtension, [])
+                    })
+                )
                 for pattern in patterns {
                     guard let fileExtensionDotIndex = indexOfFileExtensionDot(inPattern: pattern) else {
                         continue
@@ -5298,17 +5289,25 @@ extension BuildConfiguration {
 }
 
 extension StandardTarget {
-    public func linksAnyFramework(names: [String], in scope: MacroEvaluationScope, workspaceContext: WorkspaceContext, specLookupContext: any SpecLookupContext, boundSettings: [StringListMacroDeclaration:[String]], filePathResolver: FilePathResolver) -> Bool {
+    public func linksAnyFramework(names: [String], in scope: MacroEvaluationScope, workspaceContext: WorkspaceContext, specLookupContext: any SpecLookupContext, boundSettings: [StringListMacroDeclaration: [String]], filePathResolver: FilePathResolver) -> Bool {
         // Look for an explicit reference to any of the frameworks in the target's linked frameworks
         let frameworkNames = names.map({ return "\($0).framework" })
         if let frameworkFileType = specLookupContext.lookupFileType(identifier: "wrapper.framework"),
             let buildPhase = frameworksBuildPhase,
-            buildPhase.containsFiles(ofType: frameworkFileType, workspaceContext.workspace, specLookupContext, scope, filePathResolver, { fileRef in
-                if let basename = fileRef.path.asLiteralString.map(Path.init)?.basename {
-                    return frameworkNames.contains(basename)
+            buildPhase.containsFiles(
+                ofType: frameworkFileType,
+                workspaceContext.workspace,
+                specLookupContext,
+                scope,
+                filePathResolver,
+                { fileRef in
+                    if let basename = fileRef.path.asLiteralString.map(Path.init)?.basename {
+                        return frameworkNames.contains(basename)
+                    }
+                    return false
                 }
-                return false
-            }) {
+            )
+        {
             return true
         }
 

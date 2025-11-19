@@ -16,8 +16,10 @@ import SWBUtil
 
 @Suite(.skipHostOS(.windows))
 fileprivate struct SessionCommandsTests {
-    @Test(.skipHostOS(.windows), // PTY not supported on Windows
-        .requireHostOS(.macOS)) // something with terminal echo is different on macOS vs Linux
+    @Test(
+        .skipHostOS(.windows),  // PTY not supported on Windows
+        .requireHostOS(.macOS)
+    )  // something with terminal echo is different on macOS vs Linux
     func sessionCommands() async throws {
         try await withCLIConnection { cli in
             // Create a session and send a mock PIF.
@@ -30,7 +32,7 @@ fileprivate struct SessionCommandsTests {
                 "selectSession x",
                 "selectSession S0",
                 "deleteSession S0",
-                "exit"
+                "exit",
             ]
             for command in commands {
                 try cli.send(command: command)

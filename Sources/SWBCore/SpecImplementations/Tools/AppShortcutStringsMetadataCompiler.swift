@@ -91,16 +91,18 @@ final public class AppShortcutStringsMetadataCompilerSpec: GenericCommandLineToo
         }
 
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
-        delegate.createTask(type: self,
-                            ruleInfo: defaultRuleInfo(cbc, delegate),
-                            commandLine: commandLine,
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: inputs,
-                            outputs: [outputOrderingNode],
-                            action: nil,
-                            execDescription: resolveExecutionDescription(cbc, delegate),
-                            enableSandboxing: enableSandboxing)
+        delegate.createTask(
+            type: self,
+            ruleInfo: defaultRuleInfo(cbc, delegate),
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: inputs,
+            outputs: [outputOrderingNode],
+            action: nil,
+            execDescription: resolveExecutionDescription(cbc, delegate),
+            enableSandboxing: enableSandboxing
+        )
     }
 
     public override func customOutputParserType(for task: any ExecutableTask) -> (any TaskOutputParser.Type)? {
@@ -133,7 +135,8 @@ public final class AppShortcutStringsValidationOutputParser: TaskOutputParser {
         var diagnosticLocation: Diagnostic.Location {
             guard let path else { return .unknown }
             if let languageCode,
-               let key {
+                let key
+            {
                 return .path(Path(path), fileLocation: .object(identifier: "\(languageCode):\(key)"))
             }
             return .path(Path(path), line: line)

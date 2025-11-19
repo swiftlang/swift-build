@@ -26,23 +26,28 @@ fileprivate struct EmbeddedBinaryValidationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDirPath,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("AppSource.m"),
                         TestFile("AppExSource.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration( "Debug", buildSettings: [
-                        "COPY_PHASE_STRIP": "NO",
-                        "DEBUG_INFORMATION_FORMAT": "dwarf",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
-                        "SDKROOT": "iphoneos",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                        "SUPPORTS_MACCATALYST": "YES",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "COPY_PHASE_STRIP": "NO",
+                            "DEBUG_INFORMATION_FORMAT": "dwarf",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
+                            "SDKROOT": "iphoneos",
+                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            "SUPPORTS_MACCATALYST": "YES",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -50,11 +55,15 @@ fileprivate struct EmbeddedBinaryValidationTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "AppSource.m",
+                                "AppSource.m"
                             ]),
-                            TestCopyFilesBuildPhase([
-                                TestBuildFile("Extending.appex", codeSignOnCopy: true),
-                            ], destinationSubfolder: .plugins, onlyForDeployment: false),
+                            TestCopyFilesBuildPhase(
+                                [
+                                    TestBuildFile("Extending.appex", codeSignOnCopy: true)
+                                ],
+                                destinationSubfolder: .plugins,
+                                onlyForDeployment: false
+                            ),
                         ],
                         dependencies: ["Extending"]
                     ),
@@ -63,8 +72,8 @@ fileprivate struct EmbeddedBinaryValidationTests: CoreBasedTests {
                         type: .applicationExtension,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "AppExSource.m",
-                            ]),
+                                "AppExSource.m"
+                            ])
                         ]
                     ),
                 ]

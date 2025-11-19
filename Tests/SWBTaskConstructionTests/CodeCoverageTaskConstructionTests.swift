@@ -23,33 +23,37 @@ fileprivate struct CodeCoverageTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("SwiftFile.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "SWIFT_EXEC": swiftCompilerPath.str,
-                                        "SWIFT_VERSION": swiftVersion,
-                                        "CLANG_USE_RESPONSE_FILE": "NO",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Target",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "SourceFile.m",
                             "SwiftFile.swift",
-                        ]),
+                        ])
                     ],
                     dependencies: [
                         TestTargetDependency("NoCoverageTarget")
@@ -59,18 +63,22 @@ fileprivate struct CodeCoverageTaskConstructionTests: CoreBasedTests {
                     "NoCoverageTarget",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ENABLE_CODE_COVERAGE" : "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ENABLE_CODE_COVERAGE": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "SourceFile.m",
                             "SwiftFile.swift",
-                        ]),
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try TaskConstructionTester(try await getCore(), testProject)
 
         // Check that coverage flags are present when compiling and linking with CLANG_COVERAGE_MAPPING set
@@ -134,5 +142,5 @@ fileprivate struct CodeCoverageTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
         }
-        }
+    }
 }

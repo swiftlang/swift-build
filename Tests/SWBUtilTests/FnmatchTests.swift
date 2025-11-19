@@ -238,9 +238,16 @@ import SWBUtil
         try assertFnmatch(pattern: "fo[ob]", input: "foO", options: [.caseInsensitive])
         try assertFnmatch(pattern: "fo[!BA]", input: "foO", options: [.caseInsensitive])
         try assertFnmatch(
-            pattern: "foO[ba]", input: "foo", shouldMatch: false, options: [.caseInsensitive])
+            pattern: "foO[ba]",
+            input: "foo",
+            shouldMatch: false,
+            options: [.caseInsensitive]
+        )
         try assertFnmatch(
-            pattern: "fo[oO]/???/*/baz", input: "foO/bar/baz/baz", options: [.caseInsensitive])
+            pattern: "fo[oO]/???/*/baz",
+            input: "foO/bar/baz/baz",
+            options: [.caseInsensitive]
+        )
         try assertFnmatch(pattern: "[A-Z]", input: "m", options: [.caseInsensitive])
         try assertFnmatch(pattern: "[a-z]", input: "M", options: [.caseInsensitive])
     }
@@ -272,7 +279,13 @@ import SWBUtil
     }
 
     func assertFnmatch(
-        pattern: String, input: String, shouldMatch: Bool = true, options: FnmatchOptions = .default, separators: (some Collection<Character>)? = ([Character]?).none, sourceLocation: SourceLocation = #_sourceLocation) throws {
+        pattern: String,
+        input: String,
+        shouldMatch: Bool = true,
+        options: FnmatchOptions = .default,
+        separators: (some Collection<Character>)? = ([Character]?).none,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) throws {
         let comment = Comment(stringLiteral: "\(pattern) \(shouldMatch ? "should" : "should not") match \(input)")
         let result = try fnmatch(pattern: pattern, input: input, options: options, pathSeparators: separators)
         shouldMatch ? #expect(result, comment, sourceLocation: sourceLocation) : #expect(!result, comment, sourceLocation: sourceLocation)

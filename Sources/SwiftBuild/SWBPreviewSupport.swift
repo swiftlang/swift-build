@@ -32,11 +32,11 @@ public struct SWBPreviewInfo: SWBPreviewInfoContext, Equatable, Sendable {
     public let pifGUID: String
 
     public let compileCommandLine: [String]
-    public let linkCommandLine: [String] // empty when XOJIT is active
+    public let linkCommandLine: [String]  // empty when XOJIT is active
 
     public let thunkSourceFile: String
     public let thunkObjectFile: String
-    public let thunkLibrary: String // empty when XOJIT is active
+    public let thunkLibrary: String  // empty when XOJIT is active
 
     @_spi(Testing) public init(sdkRoot: String, sdkVariant: String?, buildVariant: String, architecture: String, compileCommandLine: [String], linkCommandLine: [String], thunkSourceFile: String, thunkObjectFile: String, thunkLibrary: String, pifGUID: String) {
         self.sdkRoot = sdkRoot
@@ -113,7 +113,7 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         architecture: String,
         pifGUID: String,
         productModuleName: String,
-        objectFileInputMap: [String : Set<String>],
+        objectFileInputMap: [String: Set<String>],
         linkCommandLine: [String],
         linkerWorkingDirectory: String?,
         swiftEnableOpaqueTypeErasure: Bool,

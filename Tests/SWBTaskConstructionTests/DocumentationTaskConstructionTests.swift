@@ -31,9 +31,9 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
     }
 
     private static let sourceLanguageConfigurationsToTest: [SourceLanguageConfiguration] = [
-        .init(withSwift: true,  withObjectiveCLevel: nil),
+        .init(withSwift: true, withObjectiveCLevel: nil),
         .init(withSwift: false, withObjectiveCLevel: .public),
-        .init(withSwift: true,  withObjectiveCLevel: .public),
+        .init(withSwift: true, withObjectiveCLevel: .public),
     ]
 
     @Test(.requireSDKs(.macOS))
@@ -73,16 +73,20 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func buildActionsWithoutBuildComponentDoesNotBuildDocumentationWhenBuildSettingIsSet() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
-            let buildActionsWithoutBuildComponents = BuildAction.allCases.filter{ !$0.buildComponents.contains("build") }
+            let buildActionsWithoutBuildComponents = BuildAction.allCases.filter { !$0.buildComponents.contains("build") }
 
             #expect(!buildActionsWithoutBuildComponents.isEmpty, "This test should check at least one build action")
 
             let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: .public)
             for buildAction in buildActionsWithoutBuildComponents {
-                let (tester, fs, _) = try await setUpTesterForTestProject(withDocsCatalog: true, sourceLanguages: sourceLanguages, extraBuildSettings: [
-                    "RUN_DOCUMENTATION_COMPILER": "YES",
-                    "SUPPORTS_TEXT_BASED_API": "YES" // This is needed to avoid some diagnostics
-                ])
+                let (tester, fs, _) = try await setUpTesterForTestProject(
+                    withDocsCatalog: true,
+                    sourceLanguages: sourceLanguages,
+                    extraBuildSettings: [
+                        "RUN_DOCUMENTATION_COMPILER": "YES",
+                        "SUPPORTS_TEXT_BASED_API": "YES",  // This is needed to avoid some diagnostics
+                    ]
+                )
 
                 // Check the debug build.
                 await tester.checkBuild(BuildParameters(action: buildAction, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
@@ -102,10 +106,14 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
 
             let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: .public)
-            let (tester, fs, _) = try await setUpTesterForTestProject(withDocsCatalog: true, sourceLanguages: sourceLanguages, extraBuildSettings: [
-                "SKIP_BUILDING_DOCUMENTATION": "YES",
-                "SUPPORTS_TEXT_BASED_API": "YES" // This is needed to avoid some diagnostics
-            ])
+            let (tester, fs, _) = try await setUpTesterForTestProject(
+                withDocsCatalog: true,
+                sourceLanguages: sourceLanguages,
+                extraBuildSettings: [
+                    "SKIP_BUILDING_DOCUMENTATION": "YES",
+                    "SUPPORTS_TEXT_BASED_API": "YES",  // This is needed to avoid some diagnostics
+                ]
+            )
 
             // Check the debug build.
             await tester.checkBuild(BuildParameters(action: .docBuild, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
@@ -123,10 +131,14 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
     func buildWithSymbolExtractWithoutDocumentation() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: .public)
-            let (tester, fs, SRCROOT) = try await setUpTesterForTestProject(withDocsCatalog: true, sourceLanguages: sourceLanguages, extraBuildSettings: [
-                "RUN_SYMBOL_GRAPH_EXTRACT": "YES",
-                "SYMBOL_GRAPH_EXTRACTOR_OUTPUT_BASE": "/symbol_graph_extractor_output_base"
-            ])
+            let (tester, fs, SRCROOT) = try await setUpTesterForTestProject(
+                withDocsCatalog: true,
+                sourceLanguages: sourceLanguages,
+                extraBuildSettings: [
+                    "RUN_SYMBOL_GRAPH_EXTRACT": "YES",
+                    "SYMBOL_GRAPH_EXTRACTOR_OUTPUT_BASE": "/symbol_graph_extractor_output_base",
+                ]
+            )
 
             // Check the debug build.
             try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
@@ -145,16 +157,20 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func buildActionsWithoutBuildComponentDoesNotBuildRunSymbolExtractWhenBuildSettingIsSet() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
-            let buildActionsWithoutBuildComponents = BuildAction.allCases.filter{ !$0.buildComponents.contains("build") }
+            let buildActionsWithoutBuildComponents = BuildAction.allCases.filter { !$0.buildComponents.contains("build") }
 
             #expect(!buildActionsWithoutBuildComponents.isEmpty, "This test should check at least one build action")
 
             let sourceLanguages = SourceLanguageConfiguration(withSwift: true, withObjectiveCLevel: .public)
             for buildAction in buildActionsWithoutBuildComponents {
-                let (tester, fs, _) = try await setUpTesterForTestProject(withDocsCatalog: true, sourceLanguages: sourceLanguages, extraBuildSettings: [
-                    "RUN_SYMBOL_GRAPH_EXTRACT": "YES",
-                    "SUPPORTS_TEXT_BASED_API": "YES" // This is needed to avoid some diagnostics
-                ])
+                let (tester, fs, _) = try await setUpTesterForTestProject(
+                    withDocsCatalog: true,
+                    sourceLanguages: sourceLanguages,
+                    extraBuildSettings: [
+                        "RUN_SYMBOL_GRAPH_EXTRACT": "YES",
+                        "SUPPORTS_TEXT_BASED_API": "YES",  // This is needed to avoid some diagnostics
+                    ]
+                )
 
                 // Check the debug build.
                 await tester.checkBuild(BuildParameters(action: buildAction, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
@@ -282,7 +298,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                     // There shouldn't be any task construction diagnostics.
                     results.checkNoDiagnostics()
 
-                    try await checkDocumentationTasksAreConstructed(sourceLanguages: sourceLanguages, withDocsCatalog: true, zipperedAlternateProduct: nil, core: tester.core, results: results, SRCROOT: SRCROOT, customTemplatePath: "/path/to/some/template") // the custom template is normalized
+                    try await checkDocumentationTasksAreConstructed(sourceLanguages: sourceLanguages, withDocsCatalog: true, zipperedAlternateProduct: nil, core: tester.core, results: results, SRCROOT: SRCROOT, customTemplatePath: "/path/to/some/template")  // the custom template is normalized
                 }
             }
         }
@@ -420,11 +436,15 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
     func buildDocumentationWithContradictingObjectiveCRelatedBuildSettings() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest where sourceLanguages.withSwift == true {
-                let (tester, fs, SRCROOT) = try await setUpTesterForTestProject(withDocsCatalog: true, sourceLanguages: sourceLanguages, extraBuildSettings: [
-                    // These two settings are contradictory
-                    "DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS": "YES",
-                    "SWIFT_INSTALL_OBJC_HEADER": "NO"
-                ])
+                let (tester, fs, SRCROOT) = try await setUpTesterForTestProject(
+                    withDocsCatalog: true,
+                    sourceLanguages: sourceLanguages,
+                    extraBuildSettings: [
+                        // These two settings are contradictory
+                        "DOCC_EXTRACT_OBJC_INFO_FOR_SWIFT_SYMBOLS": "YES",
+                        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                    ]
+                )
 
                 // Check the debug build.
                 try await tester.checkBuild(BuildParameters(action: .docBuild, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
@@ -465,10 +485,14 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
     func objectiveCDeclarationsForSwiftSymbolsWithoutModule() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
             for sourceLanguages in Self.sourceLanguageConfigurationsToTest {
-                let (tester, fs, SRCROOT) = try await setUpTesterForTestProject(withDocsCatalog: true, sourceLanguages: sourceLanguages, extraBuildSettings: [
-                    "DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS": "YES",
-                    "DEFINES_MODULE": "NO"
-                ])
+                let (tester, fs, SRCROOT) = try await setUpTesterForTestProject(
+                    withDocsCatalog: true,
+                    sourceLanguages: sourceLanguages,
+                    extraBuildSettings: [
+                        "DOCC_EXTRACT_SWIFT_INFO_FOR_OBJC_SYMBOLS": "YES",
+                        "DEFINES_MODULE": "NO",
+                    ]
+                )
 
                 // Check the debug build.
                 try await tester.checkBuild(BuildParameters(action: .docBuild, configuration: "Debug"), runDestination: .anyMac, fs: fs) { results in
@@ -563,7 +587,6 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         }
     }
 
-
     @Test(.requireSDKs(.macOS))
     func buildAppDocumentationWithoutHeaderBuildPhase() async throws {
         try await ObjectiveCSymbolExtractorImplementationSelector.runWithAllImplementations {
@@ -626,7 +649,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
             sourceLanguages: sourceLanguages,
             extraBuildSettings: [
                 "BUILD_VARIANTS": "normal asan",
-                "OTHER_SWIFT_FLAGS[variant=asan]": "-sanitize=address"
+                "OTHER_SWIFT_FLAGS[variant=asan]": "-sanitize=address",
             ]
         )
 
@@ -731,7 +754,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
             case .staticLibrary, .dynamicLibrary, .objectFile:
                 return [builtProductsDir + "/usr/local/include"]
             case .commandLineTool:
-                return nil // command-line tools have no product headers
+                return nil  // command-line tools have no product headers
             case .application:
                 expectedProductHeaderParentDir = builtProductsDir + "/Framework.app/Contents"
             case .xpcService:
@@ -832,14 +855,14 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                 TestBuildFile("ExcludedObjCHeaderFilePublic.h", headerVisibility: .public),
             ])
             testSourcesBuildPhaseFiles.append("ObjCSourceFile.m")
-            fallthrough // Public implies private and project
+            fallthrough  // Public implies private and project
 
         case .private?:
             testFiles.append(TestFile("ObjCHeaderFilePrivate.h"))
             testHeaderBuildPhaseFiles.append(TestBuildFile("ObjCHeaderFilePrivate.h", headerVisibility: .private))
-            fallthrough // Private implies project
+            fallthrough  // Private implies project
 
-        case .some: // project visibility
+        case .some:  // project visibility
             testFiles.append(TestFile("ObjCHeaderFileProject.h"))
             testHeaderBuildPhaseFiles.append(TestBuildFile("ObjCHeaderFileProject.h", headerVisibility: nil))
 
@@ -892,7 +915,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                                 // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                 "TAPI_EXEC": tapiToolPath.str,
                                 "LIBTOOL": libtoolPath.str,
-                                "INFOPLIST_FILE":"SomeFiles/Info.plist",
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "PRODUCT_BUNDLE_IDENTIFIER": "test.bundle.identifier",
                                 "CURRENT_PROJECT_VERSION": "0.0.1",
@@ -927,7 +950,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                             buildSettings: [
                                 // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                 "TAPI_EXEC": tapiToolPath.str,
-                                "INFOPLIST_FILE":"SomeFiles/Info.plist",
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
                                 "MODULEMAP_PATH": "platform_specific_dependency_module_map_path",
                             ]
                         )
@@ -942,12 +965,12 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                             buildSettings: [
                                 // Set the real TAPI tool path so that we can check its version to determine what version of the "headers info" JSON file to pass to `tapi extractapi`.
                                 "TAPI_EXEC": tapiToolPath.str,
-                                "INFOPLIST_FILE":"SomeFiles/Info.plist",
+                                "INFOPLIST_FILE": "SomeFiles/Info.plist",
                                 "MODULEMAP_PATH": "expected_dependency_module_map_path",
                             ]
                         )
                     ]
-                )
+                ),
             ]
         )
 
@@ -997,7 +1020,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         SRCROOT: String,
         customTemplatePath: String? = nil,
         expectedDisplayName: String = "Framework",
-        expectedDocCatalogIdentifier: String = "test.bundle.identifier", // this default value is the same as target's bundle identifier.
+        expectedDocCatalogIdentifier: String = "test.bundle.identifier",  // this default value is the same as target's bundle identifier.
         expectedHostingBasePath: String? = nil,
         expectedToTransformForStaticHosting: Bool = true,
         expectedTargetValues: ExpectedTargetValues? = nil,
@@ -1113,7 +1136,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         task.checkOutputs([
                             .path(objectsNormalDir + "/Framework Swift Compilation Finished"),
                             .path(objectsNormalDir + "/SwiftSourceFile.o"),
-                            .path(objectsNormalDir + "/SwiftSourceFile.swiftconstvalues")
+                            .path(objectsNormalDir + "/SwiftSourceFile.swiftconstvalues"),
                         ])
                     }
 
@@ -1146,8 +1169,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                 }
             }
 
-            if (sourceLanguages.withObjectiveC && expectedTargetValues.expectedToProcessAnyHeaders) || expectedTargetValues.expectedToProcessGeneratedSwiftInterfaceHeader == .always
-            {
+            if (sourceLanguages.withObjectiveC && expectedTargetValues.expectedToProcessAnyHeaders) || expectedTargetValues.expectedToProcessGeneratedSwiftInterfaceHeader == .always {
                 let expectedToProcessGeneratedSwiftInterfaceHeader: Bool
                 switch expectedTargetValues.expectedToProcessGeneratedSwiftInterfaceHeader {
                 case .always:
@@ -1163,15 +1185,16 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
 
                     // Check the headers info file write task
                     try results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", headersInfoPath])) {
-                        task, content in
+                        task,
+                        content in
 
                         task.checkCommandLine([
                             "write-file",
-                            headersInfoPath
+                            headersInfoPath,
                         ])
 
                         task.checkInputs([
-                            .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--immediate"))),
+                            .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--immediate")))
                         ])
 
                         task.checkOutputs([
@@ -1236,12 +1259,12 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         if SWBFeatureFlag.enableClangExtractAPI.value {
                             task.checkCommandLineContains([
                                 "clang",
-                                "-extract-api"
+                                "-extract-api",
                             ])
 
                             task.checkCommandLineContainsUninterrupted([
                                 "-o",
-                                symbolGraphPath
+                                symbolGraphPath,
                             ])
                         } else {
                             task.checkCommandLineContainsUninterrupted([
@@ -1254,7 +1277,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         }
 
                         task.checkCommandLineContains([
-                            "--target=\(targetTriple)",
+                            "--target=\(targetTriple)"
                         ])
 
                         task.checkCommandLineContainsUninterrupted([
@@ -1264,7 +1287,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         if expectedTargetValues.expectedToExtractWithModuleSupport {
                             task.checkCommandLineContains([
                                 "-fmodules",
-                                "-fmodules-cache-path=module_cache_dir"
+                                "-fmodules-cache-path=module_cache_dir",
                             ])
                         } else {
                             task.checkCommandLineDoesNotContain("-fmodules")
@@ -1272,7 +1295,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         }
                         if expectedTargetValues.expectedToExtractWithARCSupport {
                             task.checkCommandLineContains([
-                                "-fobjc-arc",
+                                "-fobjc-arc"
                             ])
                         } else {
                             task.checkCommandLineDoesNotContain("-fobjc-arc")
@@ -1280,7 +1303,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
 
                         task.checkCommandLineContains([
                             "-Fframework_search_paths1",
-                            "-Fframework_search_paths2"
+                            "-Fframework_search_paths2",
                         ])
                         task.checkCommandLineContains([
                             "-Iheader_search_paths1",
@@ -1289,13 +1312,13 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
 
                         task.checkCommandLineContains([
                             "-I\(frameworkBuildDir)/Framework-own-target-headers.hmap",
-                            "-I\(frameworkBuildDir)/Framework-all-target-headers.hmap"
+                            "-I\(frameworkBuildDir)/Framework-all-target-headers.hmap",
                         ])
                         task.checkCommandLineContains([
                             "-iquote",
                             "\(frameworkBuildDir)/Framework-generated-files.hmap",
                             "-iquote",
-                            "\(frameworkBuildDir)/Framework-project-headers.hmap"
+                            "\(frameworkBuildDir)/Framework-project-headers.hmap",
                         ])
 
                         if targetTriplePlatform == "-ios-macabi" {
@@ -1324,11 +1347,13 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                             task.checkCommandLineContainsUninterrupted(["-x", "objective-c-header"])
                         }
 
-                        task.checkInputs(contain: [
-                            SWBFeatureFlag.enableClangExtractAPI.value ? nil : .path(frameworkBuildDir + "/Framework-extractapi-headers.json"),
-                            .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--ModuleVerifierTaskProducer"))),
-                            .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--entry")))
-                        ].compactMap({ $0 }))
+                        task.checkInputs(
+                            contain: [
+                                SWBFeatureFlag.enableClangExtractAPI.value ? nil : .path(frameworkBuildDir + "/Framework-extractapi-headers.json"),
+                                .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--ModuleVerifierTaskProducer"))),
+                                .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--entry"))),
+                            ].compactMap({ $0 })
+                        )
 
                         task.checkCommandLineDoesNotContain(
                             "-fmodule-map-file=platform_specific_dependency_module_map_path"
@@ -1342,31 +1367,31 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                             case let (publicHeadersDir?, privateHeadersDir?):
                                 if expectedTargetValues.expectedToProcessPublicHeaders {
                                     task.checkInputs(contain: [
-                                        .path("\(publicHeadersDir)/Framework.h"),
+                                        .path("\(publicHeadersDir)/Framework.h")
                                     ])
                                 } else {
                                     task.checkNoInputs(contain: [
-                                        .path("\(publicHeadersDir)/Framework.h"),
+                                        .path("\(publicHeadersDir)/Framework.h")
                                     ])
                                 }
 
                                 if expectedTargetValues.expectedToProcessPrivateHeaders {
                                     task.checkInputs(contain: [
-                                        .path("\(privateHeadersDir)/ObjCHeaderFilePrivate.h"),
+                                        .path("\(privateHeadersDir)/ObjCHeaderFilePrivate.h")
                                     ])
                                 } else {
                                     task.checkNoInputs(contain: [
-                                        .path("\(privateHeadersDir)/ObjCHeaderFilePrivate.h"),
+                                        .path("\(privateHeadersDir)/ObjCHeaderFilePrivate.h")
                                     ])
                                 }
 
                                 if expectedTargetValues.expectedToProcessProjectVisibleHeaders {
                                     task.checkInputs(contain: [
-                                        .path("/tmp/Test/aProject/ObjCHeaderFileProject.h"),
+                                        .path("/tmp/Test/aProject/ObjCHeaderFileProject.h")
                                     ])
                                 } else {
                                     task.checkNoInputs(contain: [
-                                        .path("/tmp/Test/aProject/ObjCHeaderFileProject.h"),
+                                        .path("/tmp/Test/aProject/ObjCHeaderFileProject.h")
                                     ])
                                 }
                                 task.checkNoInputs(contain: [
@@ -1376,26 +1401,26 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                             case let (headersDir?, nil):
                                 if expectedTargetValues.expectedToProcessPublicHeaders {
                                     task.checkInputs(contain: [
-                                        .path("\(headersDir)/Framework.h"),
+                                        .path("\(headersDir)/Framework.h")
                                     ])
                                 } else {
                                     task.checkNoInputs(contain: [
-                                        .path("\(headersDir)/Framework.h"),
+                                        .path("\(headersDir)/Framework.h")
                                     ])
                                 }
 
                                 if expectedTargetValues.expectedToProcessPrivateHeaders {
                                     task.checkInputs(contain: [
-                                        .path("\(headersDir)/ObjCHeaderFilePrivate.h"),
+                                        .path("\(headersDir)/ObjCHeaderFilePrivate.h")
                                     ])
                                 } else {
                                     task.checkNoInputs(contain: [
-                                        .path("\(headersDir)/ObjCHeaderFilePrivate.h"),
+                                        .path("\(headersDir)/ObjCHeaderFilePrivate.h")
                                     ])
                                 }
 
                                 task.checkNoInputs(contain: [
-                                    .path("/tmp/Test/aProject/ObjCHeaderFileProject.h"),
+                                    .path("/tmp/Test/aProject/ObjCHeaderFileProject.h")
                                 ])
                                 task.checkNoInputs(contain: [
                                     .path("\(headersDir)/iOSOnlyObjCHeaderFilePublic.h"),
@@ -1407,11 +1432,11 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         }
                         if expectedToProcessGeneratedSwiftInterfaceHeader {
                             task.checkInputs(contain: [
-                                .pathPattern(.suffix("/Framework-Swift.h")),
+                                .pathPattern(.suffix("/Framework-Swift.h"))
                             ])
                         } else {
                             task.checkNoInputs(contain: [
-                                .pathPattern(.suffix("/Framework-Swift.h")),
+                                .pathPattern(.suffix("/Framework-Swift.h"))
                             ])
                         }
 
@@ -1429,14 +1454,14 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                                 core.developerPath.path.dirname.join("SharedFrameworks/CoreDocumentation.framework/Resources/sdkdb_to_symgraph").str,
                                 sdkdbOutputPath,
                                 "Framework",
-                                symbolGraphPath
+                                symbolGraphPath,
                             ])
 
                             task.checkInputs([
                                 .path(sdkdbOutputPath),
 
-                                    .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--ModuleVerifierTaskProducer"))),
-                                .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--entry")))
+                                .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--ModuleVerifierTaskProducer"))),
+                                .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--entry"))),
                             ])
 
                             task.checkOutputs([
@@ -1473,12 +1498,12 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         ])
                         task.checkCommandLineContainsUninterrupted([
                             "-swift-version",
-                            "5"
+                            "5",
                         ])
 
                         task.checkCommandLineContains([
                             "-Fframework_search_paths1",
-                            "-Fframework_search_paths2"
+                            "-Fframework_search_paths2",
                         ])
                         task.checkCommandLineContains([
                             "-Iheader_search_paths1",
@@ -1499,7 +1524,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                             "-I",
                             "\(frameworkBuildDir)/Framework-generated-files.hmap",
                             "-I",
-                            "\(frameworkBuildDir)/Framework-project-headers.hmap"
+                            "\(frameworkBuildDir)/Framework-project-headers.hmap",
                         ])
 
                         if targetTriplePlatform == "-ios-macabi" {
@@ -1561,7 +1586,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
 
                     if let expectedHostingBasePath = expectedHostingBasePath {
                         expectedCommandLine += [
-                            "--hosting-base-path", expectedHostingBasePath
+                            "--hosting-base-path", expectedHostingBasePath,
                         ]
                     }
 
@@ -1615,7 +1640,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         ])
                         if !sourceLanguages.withObjectiveC {
                             task.checkInputs(contain: [
-                                .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--ModuleVerifierTaskProducer"))),
+                                .namePattern(.and(.prefix("target-Framework-T-Framework-"), .suffix("--ModuleVerifierTaskProducer")))
                             ])
                         }
 
@@ -1654,10 +1679,10 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         .path
                     task.checkOutputs([
                         .path(outputDir),
-                        .path(diagnosticFileOutputPath)
+                        .path(diagnosticFileOutputPath),
                     ])
                     task.checkEnvironment([
-                        "DOCC_HTML_DIR": customTemplatePath.map { .equal($0)} ?? .none
+                        "DOCC_HTML_DIR": customTemplatePath.map { .equal($0) } ?? .none
                     ])
                 }
             }
@@ -1685,7 +1710,7 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineDoesNotContain(symbolGraphOutputDir)
 
                         task.checkNoOutputs(contain: [
-                            .path(frameworkBuildDir + "/symbol-graph/swift/\(targetTriple)/Framework.symbols.json"),
+                            .path(frameworkBuildDir + "/symbol-graph/swift/\(targetTriple)/Framework.symbols.json")
                         ])
                     }
                 }
@@ -1707,9 +1732,10 @@ fileprivate struct DocumentationTaskConstructionTests: CoreBasedTests {
         var targetTriple = "\(arch)-apple\(targetTriplePlatform)"
         if forObjectiveC {
             // The tapi target triple includes the deployment target
-            targetTriple = targetTriplePlatform == "-ios-macabi"
-            ? targetTriple.replacingOccurrences(of: "-ios-macabi", with: "-ios\(core.macCatalystSDKVariant.defaultDeploymentTarget)-macabi")
-            : targetTriple + core.loadSDK(.macOS).defaultDeploymentTarget
+            targetTriple =
+                targetTriplePlatform == "-ios-macabi"
+                ? targetTriple.replacingOccurrences(of: "-ios-macabi", with: "-ios\(core.macCatalystSDKVariant.defaultDeploymentTarget)-macabi")
+                : targetTriple + core.loadSDK(.macOS).defaultDeploymentTarget
         }
 
         let symbolGraphSubDir = forObjectiveC ? "clang" : "swift"

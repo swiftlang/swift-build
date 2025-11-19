@@ -27,16 +27,26 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             defaultConfigurationName: "Release",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("foo.c"),
-                TestFile("bar.s"),
-            ]),
-            targets: [TestStandardTarget("Lib", type: .dynamicLibrary,
-                                         buildPhases: [
-                                            TestSourcesBuildPhase([
-                                                "foo.c",
-                                                "bar.s", // should not get analyzed
-                                            ])])])
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("foo.c"),
+                    TestFile("bar.s"),
+                ]
+            ),
+            targets: [
+                TestStandardTarget(
+                    "Lib",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "foo.c",
+                            "bar.s",  // should not get analyzed
+                        ])
+                    ]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -83,14 +93,15 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
             }
         }
         let runDestination: RunDestinationInfo = .host
-        let architectures: [String] = switch runDestination {
-        case .macOS:
-            ["armv7", "x86_64"]
-        case .linux, .windows:
-            ["aarch64, x86_64"]
-        default:
-            [""]
-        }
+        let architectures: [String] =
+            switch runDestination {
+            case .macOS:
+                ["armv7", "x86_64"]
+            case .linux, .windows:
+                ["aarch64, x86_64"]
+            default:
+                [""]
+            }
 
         if architectures.count == 2 {
             // Test that analyzing multiple archs produces only one analyze rule.
@@ -99,7 +110,7 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
                 "ONLY_ACTIVE_ARCH": "NO",
                 "RUN_CLANG_STATIC_ANALYZER": "YES",
                 "CLANG_STATIC_ANALYZER_MODE": "deep",
-                "VALID_ARCHS": architectures.joined(separator: " ")
+                "VALID_ARCHS": architectures.joined(separator: " "),
             ]
             await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: overrides), runDestination: .host) { results in
                 results.checkTarget("Lib") { target in
@@ -130,14 +141,24 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             defaultConfigurationName: "Release",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("foo.c"),
-            ]),
-            targets: [TestStandardTarget("Lib", type: .dynamicLibrary,
-                                         buildPhases: [
-                                            TestSourcesBuildPhase([
-                                                "foo.c",
-                                            ])])])
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("foo.c")
+                ]
+            ),
+            targets: [
+                TestStandardTarget(
+                    "Lib",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "foo.c"
+                        ])
+                    ]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
 
         try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES", "CLANG_ANALYZER_EXEC": "clang-custom"]), runDestination: .macOS) { results in
@@ -156,36 +177,50 @@ fileprivate struct ClangStaticAnalyzerTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             defaultConfigurationName: "Release",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("foo.c"),
-            ]),
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("foo.c")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
-                TestStandardTarget("AnalyzedLib",
-                                   type: .dynamicLibrary,
-                                   buildPhases: [
-                                    TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ])
-                                   ],
-                                   dependencies: ["UnanalyzedLib"]),
-                TestStandardTarget("UnanalyzedLib",
-                                   type: .dynamicLibrary,
-                                   buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "SKIP_CLANG_STATIC_ANALYZER": "YES",
-                                    ])
-                                   ],
-                                   buildPhases: [
-                                    TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ])
-                                   ])
-            ])
+                TestStandardTarget(
+                    "AnalyzedLib",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "foo.c"
+                        ])
+                    ],
+                    dependencies: ["UnanalyzedLib"]
+                ),
+                TestStandardTarget(
+                    "UnanalyzedLib",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_CLANG_STATIC_ANALYZER": "YES"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "foo.c"
+                        ])
+                    ]
+                ),
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
 
         try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(BuildParameters(configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), runDestination: .macOS) { results in

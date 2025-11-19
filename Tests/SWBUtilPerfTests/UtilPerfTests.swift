@@ -25,8 +25,8 @@ fileprivate struct UtilPerfTests: PerfTests {
                 "value2.key0": .plString("value2.value0"),
                 "value2.key1": .plString("value2.value1"),
                 "value2.key2": .plString("value2.value2"),
-                "value2.key3": .plString("value2.value3")
-            ])
+                "value2.key3": .plString("value2.value3"),
+            ]),
         ])
 
         let iterations = 10000

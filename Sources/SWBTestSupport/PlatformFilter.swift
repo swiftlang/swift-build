@@ -32,18 +32,21 @@ extension CoreBasedTests {
         }
 
         //try await XCTContext.runActivity(named: "Destination \(runDestination.platformFilterString) with filters \(platformFilters)") { _ in
-            let swiftCompilerPath = try await self.swiftCompilerPath
-            let testProject = TestProject(
-                "aProject",
-                groupTree: TestGroup(
-                    "SomeFiles",
-                    children: [
-                        TestFile("AppSource.m"),
-                        TestFile("AppFilteredSource.m"),
-                        TestFile("FwkSource.m"),
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration( "Debug", buildSettings: [
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("AppSource.m"),
+                    TestFile("AppFilteredSource.m"),
+                    TestFile("FwkSource.m"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
                         "CODE_SIGNING_ALLOWED": "NO",
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -51,52 +54,59 @@ extension CoreBasedTests {
                         "SDK_VARIANT": runDestination.sdkVariant ?? "",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: targetType,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "AppSource.m",
+                            TestBuildFile("AppFilteredSource.m", platformFilters: platformFilters),
                         ]),
-                ],
-                targets: [
-                    TestStandardTarget(
-                        "AppTarget",
-                        type: targetType,
-                        buildPhases: [
-                            TestSourcesBuildPhase([
-                                "AppSource.m",
-                                TestBuildFile("AppFilteredSource.m", platformFilters: platformFilters),
-                            ]),
-                            TestFrameworksBuildPhase([
-                                TestBuildFile(.target("FwkTarget"), platformFilters: platformFilters),
-                                TestBuildFile(.target("PackageProduct::PkgTarget"), platformFilters: platformFilters)
-                            ]),
-                        ],
-                        dependencies: [
-                            TestTargetDependency("FwkTarget", platformFilters: platformFilters),
-                            TestTargetDependency("PackageProduct::PkgTarget", platformFilters: platformFilters)
-                        ]
-                    ),
-                    TestStandardTarget(
-                        "FwkTarget",
-                        type: .framework,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("FwkTarget"), platformFilters: platformFilters),
+                            TestBuildFile(.target("PackageProduct::PkgTarget"), platformFilters: platformFilters),
+                        ]),
+                    ],
+                    dependencies: [
+                        TestTargetDependency("FwkTarget", platformFilters: platformFilters),
+                        TestTargetDependency("PackageProduct::PkgTarget", platformFilters: platformFilters),
+                    ]
+                ),
+                TestStandardTarget(
+                    "FwkTarget",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"
-                                ]),
-                        ],
-                        buildPhases: [
-                            TestSourcesBuildPhase([
-                                "FwkSource.m",
-                                ]),
-                        ]
-                    ),
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "FwkSource.m"
+                        ])
+                    ]
+                ),
+            ]
+        )
+        let testPackage = TestPackageProject(
+            "Package",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("PkgSource.swift")
                 ]
-            )
-            let testPackage = TestPackageProject(
-                "Package",
-                groupTree: TestGroup(
-                    "SomeFiles",
-                    children: [
-                        TestFile("PkgSource.swift"),
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration( "Debug", buildSettings: [
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
                         "CODE_SIGNING_ALLOWED": "NO",
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -104,73 +114,75 @@ extension CoreBasedTests {
                         "SDK_VARIANT": runDestination.sdkVariant ?? "",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
-                        ]),
-                ],
-                targets: [
-                    TestPackageProductTarget(
-                        "PackageProduct::PkgTarget",
-                        frameworksBuildPhase: TestFrameworksBuildPhase([
-                            TestBuildFile(.target("PkgTarget"))
-                        ]),
-                        dependencies: ["PkgTarget"]
-                    ),
-                    TestStandardTarget(
-                        "PkgTarget", type: .objectFile,
-                        buildPhases: [
-                            TestSourcesBuildPhase(["PkgSource.swift"])
-                        ]
-                    ),
-                ]
-            )
-            let testWorkspace = TestWorkspace("Test", projects: [testProject, testPackage])
+                    ]
+                )
+            ],
+            targets: [
+                TestPackageProductTarget(
+                    "PackageProduct::PkgTarget",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PkgTarget"))
+                    ]),
+                    dependencies: ["PkgTarget"]
+                ),
+                TestStandardTarget(
+                    "PkgTarget",
+                    type: .objectFile,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["PkgSource.swift"])
+                    ]
+                ),
+            ]
+        )
+        let testWorkspace = TestWorkspace("Test", projects: [testProject, testPackage])
 
-            let filtersString = platformFilters.sorted().map { $0.platform + ($0.environment.nilIfEmpty.map { "-\($0)"} ?? "") }.joined(separator: ", ") // Just for test logging.
+        let filtersString = platformFilters.sorted().map { $0.platform + ($0.environment.nilIfEmpty.map { "-\($0)" } ?? "") }.joined(separator: ", ")  // Just for test logging.
 
-            try await TaskConstructionTester(core, testWorkspace).checkBuild(BuildParameters(configuration: "Debug"), runDestination: runDestination, userPreferences: UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)) { results in
-                results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "CreateUniversalBinary", "Gate", "GenerateDSYMFile", "Ld", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "Validate"])
+        try await TaskConstructionTester(core, testWorkspace).checkBuild(BuildParameters(configuration: "Debug"), runDestination: runDestination, userPreferences: UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)) { results in
+            results.consumeTasksMatchingRuleTypes(["CreateBuildDirectory", "CreateUniversalBinary", "Gate", "GenerateDSYMFile", "Ld", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "Validate"])
 
-                // We should always build this
-                results.checkTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("AppSource.m")) { tasks in
-                    #expect(tasks.count != 0)
-                }
-
-                // This build file should potentially be filtered out
-                if expectFiltered {
-                    results.checkNoTask(.matchRuleType("CompileC"), .matchRuleItemBasename("AppFilteredSource.m"))
-                    results.checkNoTask(.matchRuleType("CompileSwiftSources"))
-
-                    results.checkNote("Skipping '/tmp/Test/aProject/AppFilteredSource.m' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
-                } else {
-                    results.checkTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("AppFilteredSource.m")) { tasks in
-                        #expect(tasks.count != 0, "Expected at least one task for conditionalized Objective-C source file, but the source file was incorrectly filtered out")
-                    }
-                    results.checkTasks(.matchRuleType("SwiftDriver Compilation")) { tasks in
-                        #expect(tasks.count != 0, "Expected at least one task for conditionalized Swift source file, but the source file was incorrectly filtered out")
-                    }
-                }
-
-                // This target dependency should potentially be filtered out
-                if expectFiltered {
-                    results.checkNoTask(.matchTargetName("FwkTarget"))
-                    results.checkNoTask(.matchTargetName("PkgTarget"))
-
-                    results.checkNote("Skipping '/tmp/Test/aProject/build/Debug\(runDestination.builtProductsDirSuffix)/FwkTarget.framework' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
-
-                    results.checkNote("Skipping '/tmp/Test/Package/build/Debug\(runDestination.builtProductsDirSuffix)/PackageProduct::PkgTarget' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
-                } else {
-                    results.checkTasks(.matchTargetName("FwkTarget")) { tasks in
-                        #expect(tasks.count != 0, "Expected at least one task for dependent framework target, but the dependent target was incorrectly filtered out")
-                    }
-                    results.checkTasks(.matchTargetName("PkgTarget")) { tasks in
-                        #expect(tasks.count != 0, "Expected at least one task for dependent package target, but the dependent target was incorrectly filtered out")
-                    }
-                }
-
-                results.checkNoTask(sourceLocation: sourceLocation)
-
-                // There shouldn't be any other diagnostics.
-                results.checkNoDiagnostics()
+            // We should always build this
+            results.checkTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("AppSource.m")) { tasks in
+                #expect(tasks.count != 0)
             }
+
+            // This build file should potentially be filtered out
+            if expectFiltered {
+                results.checkNoTask(.matchRuleType("CompileC"), .matchRuleItemBasename("AppFilteredSource.m"))
+                results.checkNoTask(.matchRuleType("CompileSwiftSources"))
+
+                results.checkNote("Skipping '/tmp/Test/aProject/AppFilteredSource.m' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
+            } else {
+                results.checkTasks(.matchRuleType("CompileC"), .matchRuleItemBasename("AppFilteredSource.m")) { tasks in
+                    #expect(tasks.count != 0, "Expected at least one task for conditionalized Objective-C source file, but the source file was incorrectly filtered out")
+                }
+                results.checkTasks(.matchRuleType("SwiftDriver Compilation")) { tasks in
+                    #expect(tasks.count != 0, "Expected at least one task for conditionalized Swift source file, but the source file was incorrectly filtered out")
+                }
+            }
+
+            // This target dependency should potentially be filtered out
+            if expectFiltered {
+                results.checkNoTask(.matchTargetName("FwkTarget"))
+                results.checkNoTask(.matchTargetName("PkgTarget"))
+
+                results.checkNote("Skipping '/tmp/Test/aProject/build/Debug\(runDestination.builtProductsDirSuffix)/FwkTarget.framework' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
+
+                results.checkNote("Skipping '/tmp/Test/Package/build/Debug\(runDestination.builtProductsDirSuffix)/PackageProduct::PkgTarget' because its platform filter (\(filtersString)) does not match the platform filter of the current context (\(runDestination.platformFilterString)). (in target 'AppTarget' from project 'aProject')")
+            } else {
+                results.checkTasks(.matchTargetName("FwkTarget")) { tasks in
+                    #expect(tasks.count != 0, "Expected at least one task for dependent framework target, but the dependent target was incorrectly filtered out")
+                }
+                results.checkTasks(.matchTargetName("PkgTarget")) { tasks in
+                    #expect(tasks.count != 0, "Expected at least one task for dependent package target, but the dependent target was incorrectly filtered out")
+                }
+            }
+
+            results.checkNoTask(sourceLocation: sourceLocation)
+
+            // There shouldn't be any other diagnostics.
+            results.checkNoDiagnostics()
+        }
         //}
     }
 }

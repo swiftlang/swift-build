@@ -16,7 +16,7 @@ import SWBUtil
 // FIXME: Presently we have no good way during grouping to detect whether we're matching a single file against tiffutil or multiple files against tiffutil.  In principle we could handle that in FilesBasedBuildPhaseTaskProducer once all grouping is completed.  But at present this is handled in a hackier manner in TiffUtilToolSpec.constructTasks() - see the FIXME comment therein for more about this.
 //
 /// A grouping strategy that groups image files containing scale factors of the form "@<n>x" at the end of their base names.
-@_spi(Testing) public final class ImageScaleFactorsInputFileGroupingStrategy : InputFileGroupingStrategy {
+@_spi(Testing) public final class ImageScaleFactorsInputFileGroupingStrategy: InputFileGroupingStrategy {
 
     /// Name of the tool to which the grouping strategy belongs (used as a part of the returned group identifier).
     let toolName: String

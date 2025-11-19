@@ -74,9 +74,11 @@ extension BuildDescription {
     func generateDocumentationInfo(workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, input: TaskGenerateDocumentationInfoInput) -> [DocumentationInfoOutput] {
         var output: [DocumentationInfoOutput] = []
         taskStore.forEachTask { task in
-            output.append(contentsOf: task.generateDocumentationInfo(input: input).map { info in
-                DocumentationInfoOutput(outputPath: info.outputPath, targetIdentifier: info.targetIdentifier)
-            })
+            output.append(
+                contentsOf: task.generateDocumentationInfo(input: input).map { info in
+                    DocumentationInfoOutput(outputPath: info.outputPath, targetIdentifier: info.targetIdentifier)
+                }
+            )
         }
         return output
     }

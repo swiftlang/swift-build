@@ -308,7 +308,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     ///
     /// We override this to auto-attach tasks to the generated headers completion ordering gate.
     @discardableResult
-    package override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+    package override func appendGeneratedTasks(_ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
         return await super.appendGeneratedTasks(&tasks, options: options) { delegate in
             await body(SourcesPhaseBasedTaskGenerationDelegate(producer: self, userPreferences: context.workspaceContext.userPreferences, delegate: delegate))
         }
@@ -354,7 +354,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }
             case .namedReference(let name, let fileTypeIdentifier):
                 settingsForRef = nil
-                absolutePath = Path(name) // This path isn't actually absolute, but `LinkerSpec.LibrarySpecifier` supports that case.
+                absolutePath = Path(name)  // This path isn't actually absolute, but `LinkerSpec.LibrarySpecifier` supports that case.
                 if let type = context.lookupFileType(identifier: fileTypeIdentifier) {
                     fileType = type
                 } else {
@@ -475,8 +475,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             if fileType.isEmbeddableInProduct {
                                 return absolutePath
                             }
-                        }
-                        catch {}
+                        } catch {}
                     default:
                         return nil
                     }
@@ -554,8 +553,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     topLevelItemPath = absolutePath
                     if shouldGenerateDSYM(settingsForRef.globalScope) {
                         dsymPath = scope.evaluate(BuiltinMacros.DWARF_DSYM_FOLDER_PATH).join(scope.evaluate(BuiltinMacros.DWARF_DSYM_FILE_NAME))
-                    }
-                    else {
+                    } else {
                         dsymPath = nil
                     }
                 } else {
@@ -659,8 +657,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let metadata: ArtifactBundleMetadata
                 do {
                     metadata = try context.globalProductPlan.artifactBundleMetadataCache.getOrInsert(absolutePath) {
-                       try ArtifactBundleMetadata.parse(at: absolutePath, fileSystem: context.fs)
-                   }
+                        try ArtifactBundleMetadata.parse(at: absolutePath, fileSystem: context.fs)
+                    }
                 } catch {
                     context.error("failed to parse artifact bundle metadata for '\(absolutePath)': \(error.localizedDescription)")
                     return nil
@@ -674,9 +672,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         var foundMatch = false
                         let currentTripleString = scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
                         for variant in artifact.variants {
-                            if variant.supportedTriples == nil || variant.supportedTriples?.contains(where: {
-                                normalizedTriplesCompareDisregardingOSVersions($0, currentTripleString)
-                            }) == true {
+                            if variant.supportedTriples == nil
+                                || variant.supportedTriples?.contains(where: {
+                                    normalizedTriplesCompareDisregardingOSVersions($0, currentTripleString)
+                                }) == true
+                            {
                                 foundMatch = true
                                 return LinkerSpec.LibrarySpecifier(
                                     kind: .static,
@@ -717,7 +717,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         let newInputs = inputs.filter { !prepareTargetForIndexInputsObjectSet.contains(ObjectIdentifier($0)) }
         prepareTargetForIndexInputs.append(contentsOf: newInputs)
-        prepareTargetForIndexInputsObjectSet.formUnion(newInputs.map{ ObjectIdentifier($0) })
+        prepareTargetForIndexInputsObjectSet.formUnion(newInputs.map { ObjectIdentifier($0) })
     }
 
     package func prepare() {
@@ -828,7 +828,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
         var dsymBundle: Path!
         var dsymutilOutputs = [Path]()
-        var perVariantOutputPaths: [String:Set<Path>] = [:]
+        var perVariantOutputPaths: [String: Set<Path>] = [:]
         var allLinkedLibraries = [LinkerSpec.LibrarySpecifier]()
         for variant in buildVariants {
             // Enter the per-variant scope.
@@ -849,7 +849,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             assert(
                 (linkedBinaryPreviewDylibNode == nil && linkedBinaryPreviewBlankInjectionDylibNode == nil)
-                || (linkedBinaryPreviewDylibNode != nil && linkedBinaryPreviewBlankInjectionDylibNode != nil),
+                    || (linkedBinaryPreviewDylibNode != nil && linkedBinaryPreviewBlankInjectionDylibNode != nil),
                 "A debug dylib and blank injection dylib are either both present or absent."
             )
 
@@ -877,35 +877,43 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 // FIXME: We should do this in parallel.
                 let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
                 var perArchTasks: [any PlannedTask] = []
-                await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
-                    var result: [(Path, FileTypeSpec, Bool)] = []
+                await groupAndAddTasksForFiles(
+                    self,
+                    buildFilesContext,
+                    scope,
+                    filterToAPIRules: isForAPI,
+                    filterToHeaderRules: isForHeaders,
+                    &perArchTasks,
+                    extraResolvedBuildFiles: {
+                        var result: [(Path, FileTypeSpec, Bool)] = []
 
-                    if let generateVersionInfoFileTask {
-                        result.append((generateVersionInfoFileTask.outputs.first!.path, context.lookupFileType(languageDialect: .c)!, /* shouldUsePrefixHeader */ false))
-                    }
+                        if let generateVersionInfoFileTask {
+                            result.append((generateVersionInfoFileTask.outputs.first!.path, context.lookupFileType(languageDialect: .c)!, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    if let generateKernelExtensionModuleInfoFileTask {
-                        result.append((generateKernelExtensionModuleInfoFileTask.outputs.first!.path, context.lookupFileType(languageDialect: .c)!, /* shouldUsePrefixHeader */ false))
-                    }
+                        if let generateKernelExtensionModuleInfoFileTask {
+                            result.append((generateKernelExtensionModuleInfoFileTask.outputs.first!.path, context.lookupFileType(languageDialect: .c)!, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    if let packageTargetBundleAccessorResult {
-                        result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
-                    }
+                        if let packageTargetBundleAccessorResult {
+                            result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    if let bundleLookupHelperResult {
-                        result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
-                    }
+                        if let bundleLookupHelperResult {
+                            result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    if let embedInCodeAccessorResult {
-                        result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
-                    }
+                        if let embedInCodeAccessorResult {
+                            result.append((embedInCodeAccessorResult.fileToBuild, embedInCodeAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
-                        result.append((scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_PATH), context.lookupFileType(fileName: "sourcecode.swift")!,  /* shouldUsePrefixHeader */ false))
-                    }
+                        if scope.evaluate(BuiltinMacros.GENERATE_TEST_ENTRY_POINT) {
+                            result.append((scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_PATH), context.lookupFileType(fileName: "sourcecode.swift")!, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    return result
-                }())
+                        return result
+                    }()
+                )
 
                 // Collect the list of object files.
                 var linkerInputNodes: [any PlannedNode] = []
@@ -948,8 +956,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
-                let objectsInFrameworkPhase = librariesToLink.filter{ $0.kind == .object }
-                linkerInputNodes.append(contentsOf: objectsInFrameworkPhase.map{ $0.path }.map(context.createNode))
+                let objectsInFrameworkPhase = librariesToLink.filter { $0.kind == .object }
+                linkerInputNodes.append(contentsOf: objectsInFrameworkPhase.map { $0.path }.map(context.createNode))
 
                 if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
                     // If this flag isn't enabled we still want the dylib to be a dependency for this task.
@@ -1027,8 +1035,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     if let outputPreviewDylib, let outputPreviewBlankInjectionDylib {
                         singleArchPreviewDylibBinaries.append(outputPreviewDylib)
                         singleArchInjectionDylibBinaries.append(outputPreviewBlankInjectionDylib)
-                    }
-                    else {
+                    } else {
                         singleArchBinaries.append(output)
                     }
 
@@ -1146,32 +1153,35 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                 // rdar://127248825 (Pre-link the debug dylib and emit a new empty dylib that Previews can load to get in front of dyld)
                                 libraries = [outputPreviewDylibLibrary]
 
-                                ldflags = [
-                                    // Create a __TEXT section with the relative path to the preview dylib (we don't want to statically link it; instead the entry point provided by libPreviewsJITStubExecutor.a will load it on demand)
-                                    "-Xlinker", "-sectcreate",
-                                    "-Xlinker", "__TEXT",
-                                    "-Xlinker", "__debug_dylib",
-                                    "-Xlinker", previewsDylibRelativePathFile.str,
-                                ] + (entryPointFile.map {
+                                ldflags =
                                     [
-                                        // Create a __TEXT section with the name of the original entry point
+                                        // Create a __TEXT section with the relative path to the preview dylib (we don't want to statically link it; instead the entry point provided by libPreviewsJITStubExecutor.a will load it on demand)
                                         "-Xlinker", "-sectcreate",
                                         "-Xlinker", "__TEXT",
-                                        "-Xlinker", "__debug_entry",
-                                        "-Xlinker", $0.str,
+                                        "-Xlinker", "__debug_dylib",
+                                        "-Xlinker", previewsDylibRelativePathFile.str,
                                     ]
-                                } ?? []) + (installNameFile.map {
-                                    [
-                                        // Create a __TEXT section with the client name of the original binary, which
-                                        // becomes the install name of the debug/blank dylib
-                                        "-Xlinker", "-sectcreate",
-                                        "-Xlinker", "__TEXT",
-                                        "-Xlinker", "__debug_instlnm",
-                                        "-Xlinker", $0.str,
+                                    + (entryPointFile.map {
+                                        [
+                                            // Create a __TEXT section with the name of the original entry point
+                                            "-Xlinker", "-sectcreate",
+                                            "-Xlinker", "__TEXT",
+                                            "-Xlinker", "__debug_entry",
+                                            "-Xlinker", $0.str,
+                                        ]
+                                    } ?? [])
+                                    + (installNameFile.map {
+                                        [
+                                            // Create a __TEXT section with the client name of the original binary, which
+                                            // becomes the install name of the debug/blank dylib
+                                            "-Xlinker", "-sectcreate",
+                                            "-Xlinker", "__TEXT",
+                                            "-Xlinker", "__debug_instlnm",
+                                            "-Xlinker", $0.str,
+                                        ]
+                                    } ?? []) + [
+                                        "-Xlinker", "-filelist", "-Xlinker", executorLinkFileListPath.str,
                                     ]
-                                } ?? []) + [
-                                    "-Xlinker", "-filelist", "-Xlinker", executorLinkFileListPath.str,
-                                ]
                             } else {
                                 libraries = [outputPreviewDylibLibrary]
                                 ldflags = []
@@ -1221,19 +1231,27 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 // FIXME: We should do this in parallel.
                 let buildFilesContext = BuildFilesProcessingContext(scope, belongsToPreferredArch: preferredArch == nil || preferredArch == arch, currentArchSpec: currentArchSpec)
                 var perArchTasks: [any PlannedTask] = []
-                await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
-                    var result: [(Path, FileTypeSpec, Bool)] = []
+                await groupAndAddTasksForFiles(
+                    self,
+                    buildFilesContext,
+                    scope,
+                    filterToAPIRules: isForAPI,
+                    filterToHeaderRules: isForHeaders,
+                    &perArchTasks,
+                    extraResolvedBuildFiles: {
+                        var result: [(Path, FileTypeSpec, Bool)] = []
 
-                    if let packageTargetBundleAccessorResult {
-                        result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
-                    }
+                        if let packageTargetBundleAccessorResult {
+                            result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    if let bundleLookupHelperResult {
-                        result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
-                    }
+                        if let bundleLookupHelperResult {
+                            result.append((bundleLookupHelperResult.fileToBuild, bundleLookupHelperResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
+                        }
 
-                    return result
-                }())
+                        return result
+                    }()
+                )
 
                 // Add all the collected per-arch tasks.
                 tasks.append(contentsOf: perArchTasks)
@@ -1253,8 +1271,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
                     await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: singleArchBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryOutput, commandOrderingOutputs: [linkedBinaryNode]), delegate)
                 }
-            }
-            else if singleArchBinaries.count == 1, archs.count > 1, let singleArchBinaryPath = singleArchBinaries.first {
+            } else if singleArchBinaries.count == 1, archs.count > 1, let singleArchBinaryPath = singleArchBinaries.first {
                 // If there's only one binary but multiple architectures defined for the target, then for some reason we didn't produce a binary for any of the others - probably due to a strange target configuration.  If so, then we should create a copy task to copy the single-arch binary to the final location.
                 let productBinaryPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
                 if singleArchBinaryPath != productBinaryPath {
@@ -1266,7 +1283,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             if singleArchPreviewDylibBinaries.count > 1,
                 let binaryPreviewDylibOutput,
-                let linkedBinaryPreviewDylibNode {
+                let linkedBinaryPreviewDylibNode
+            {
                 await appendGeneratedTasks(&tasks, options: [.linking, .linkingRequirement, .unsignedProductRequirement]) { delegate in
                     await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: singleArchPreviewDylibBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryPreviewDylibOutput, commandOrderingOutputs: [linkedBinaryPreviewDylibNode]), delegate)
                 }
@@ -1274,7 +1292,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
             if singleArchInjectionDylibBinaries.count > 1,
                 binaryPreviewDylibOutput != nil,
-                let linkedBinaryPreviewBlankInjectionDylibNode {
+                let linkedBinaryPreviewBlankInjectionDylibNode
+            {
                 await appendGeneratedTasks(&tasks, options: [.linking, .unsignedProductRequirement]) { delegate in
                     await context.lipoSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: singleArchInjectionDylibBinaries.map { FileToBuild(context: context, absolutePath: $0) }, output: binaryPreviewBlankInjectionDylibOutput, commandOrderingOutputs: [linkedBinaryPreviewBlankInjectionDylibNode]), delegate)
                 }
@@ -1296,7 +1315,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let binary = binaryPreviewDylibOutput ?? binaryOutput
                 let binaryOrderingInput = linkedBinaryPreviewDylibNode ?? linkedBinaryNode
 
-                let output = dsymBundle
+                let output =
+                    dsymBundle
                     .join("Contents").join("Resources").join("DWARF")
                     .join(binary.basename)
 
@@ -1326,8 +1346,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         // If the library has a known dSYM file, then pass the path to the directory of that dSYM.  If there isn'r one, then pass the path to the directory containing the library, since our best guess is that the dSYM will be alongside the library.
                         if let dsymPath = library.dsymPath {
                             dsymSearchPaths.append(dsymPath.dirname.str)
-                        }
-                        else {
+                        } else {
                             dsymSearchPaths.append(libraryPath.dirname.str)
                         }
                     }
@@ -1341,7 +1360,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                 if binaryPreviewDylibOutput != nil {
                     let inputs = [FileToBuild(context: context, absolutePath: binaryOutput)]
-                    let output = dsymBundle
+                    let output =
+                        dsymBundle
                         .join("Contents").join("Resources").join("DWARF")
                         .join(binaryOutput.basename)
                     await appendGeneratedTasks(&tasks, usePhasedOrdering: false) { delegate in
@@ -1470,8 +1490,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                 if strParts.count > 1, firstPart == firstPartToRemove {
                                     let subpath = strParts[1...].joined(separator: Path.pathSeparatorString)
                                     subpathsToInclude.append(subpath)
-                                }
-                                else if firstPart != firstPartToRemove {
+                                } else if firstPart != firstPartToRemove {
                                     // If string is *only* firstPartToRemove then we don't add it.
                                     subpathsToInclude.append(string)
                                 }
@@ -1506,13 +1525,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                         }
                                         additionalPresumedOutputs.append(pathToSign.join(copiedFileSettings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_NAME)))
                                     }
-                                }
-                                else {
+                                } else {
                                     // Don't add any paths - this will result in us just copying the unwrapped product.
                                 }
                             }
-                        }
-                        else if let xcframeworkSourcePath = library.xcframeworkSourcePath {
+                        } else if let xcframeworkSourcePath = library.xcframeworkSourcePath {
                             // Copying an XCFramework component which is marked as mergeable.
                             var xcFramework: XCFramework? = nil
                             do {
@@ -1559,7 +1576,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                         addSubpath(contentsPath.join("_CodeSignature").str, removingFirstPartIfEqualTo: library.libraryPath.str)
                                         addSubpath(contentsPath.join("Info.plist").str, removingFirstPartIfEqualTo: library.libraryPath.str)
                                         if library.supportedPlatform == "macos" {
-                                        // For deep frameworks (macOS), we also need to copy the symlinks for the binary and the Versions/Current directory, since those are how dyld accesses the binary.
+                                            // For deep frameworks (macOS), we also need to copy the symlinks for the binary and the Versions/Current directory, since those are how dyld accesses the binary.
                                             addSubpath(binaryPath.basename, removingFirstPartIfEqualTo: library.libraryPath.str)
                                             addSubpath(contentsPath.dirname.join("Current").str, removingFirstPartIfEqualTo: library.libraryPath.str)
                                         }
@@ -1866,51 +1883,51 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let escapedBundleName = bundleName.asLegalCIdentifier
 
         let headerFileContents = """
-        #import <Foundation/Foundation.h>
+            #import <Foundation/Foundation.h>
 
-        __BEGIN_DECLS
+            __BEGIN_DECLS
 
-        NSBundle* \(escapedBundleName)_SWIFTPM_MODULE_BUNDLE(void);
+            NSBundle* \(escapedBundleName)_SWIFTPM_MODULE_BUNDLE(void);
 
-        #define SWIFTPM_MODULE_BUNDLE \(escapedBundleName)_SWIFTPM_MODULE_BUNDLE()
+            #define SWIFTPM_MODULE_BUNDLE \(escapedBundleName)_SWIFTPM_MODULE_BUNDLE()
 
-        __END_DECLS
-        """
+            __END_DECLS
+            """
 
         let implFileContents = """
-        #import <Foundation/Foundation.h>
+            #import <Foundation/Foundation.h>
 
-        NS_ASSUME_NONNULL_BEGIN
+            NS_ASSUME_NONNULL_BEGIN
 
-        @interface \(escapedBundleName)_SWIFTPM_MODULE_BUNDLER_FINDER : NSObject
-        @end
+            @interface \(escapedBundleName)_SWIFTPM_MODULE_BUNDLER_FINDER : NSObject
+            @end
 
-        @implementation \(escapedBundleName)_SWIFTPM_MODULE_BUNDLER_FINDER
-        @end
+            @implementation \(escapedBundleName)_SWIFTPM_MODULE_BUNDLER_FINDER
+            @end
 
-        NSBundle* \(escapedBundleName)_SWIFTPM_MODULE_BUNDLE() {
-            NSString *bundleName = @"\(escapedBundleName)";
+            NSBundle* \(escapedBundleName)_SWIFTPM_MODULE_BUNDLE() {
+                NSString *bundleName = @"\(escapedBundleName)";
 
-            NSArray<NSURL*> *candidates = @[
-                NSBundle.mainBundle.resourceURL,
-                [NSBundle bundleForClass:[\(escapedBundleName)_SWIFTPM_MODULE_BUNDLER_FINDER class]].resourceURL,
-                NSBundle.mainBundle.bundleURL
-            ];
+                NSArray<NSURL*> *candidates = @[
+                    NSBundle.mainBundle.resourceURL,
+                    [NSBundle bundleForClass:[\(escapedBundleName)_SWIFTPM_MODULE_BUNDLER_FINDER class]].resourceURL,
+                    NSBundle.mainBundle.bundleURL
+                ];
 
-            for (NSURL* candidate in candidates) {
-                NSURL *bundlePath = [candidate URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.bundle", bundleName]];
+                for (NSURL* candidate in candidates) {
+                    NSURL *bundlePath = [candidate URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.bundle", bundleName]];
 
-                NSBundle *bundle = [NSBundle bundleWithURL:bundlePath];
-                if (bundle != nil) {
-                    return bundle;
+                    NSBundle *bundle = [NSBundle bundleWithURL:bundlePath];
+                    if (bundle != nil) {
+                        return bundle;
+                    }
                 }
+
+                @throw [[NSException alloc] initWithName:@"SwiftPMResourcesAccessor" reason:[NSString stringWithFormat:@"unable to find bundle named %@", bundleName] userInfo:nil];
             }
 
-            @throw [[NSException alloc] initWithName:@"SwiftPMResourcesAccessor" reason:[NSString stringWithFormat:@"unable to find bundle named %@", bundleName] userInfo:nil];
-        }
-
-        NS_ASSUME_NONNULL_END
-        """
+            NS_ASSUME_NONNULL_END
+            """
 
         var tasks = [any PlannedTask]()
         await appendGeneratedTasks(&tasks) { delegate in
@@ -1925,7 +1942,9 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     private func generatePackageTargetBundleAccessorForSwift(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult {
         let filePath = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.swift")
 
-        let contents = bundleName.isEmpty ? """
+        let contents =
+            bundleName.isEmpty
+            ? """
             import class Foundation.Bundle
 
             extension Foundation.Bundle {
@@ -1934,7 +1953,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     return Foundation.Bundle(for: BundleFinder.self)
                 }()
             }
-            """ : """
+            """
+            : """
             import class Foundation.Bundle
             import class Foundation.ProcessInfo
             import struct Foundation.URL
@@ -2065,10 +2085,12 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     }
 
     private func generateKernelExtensionModuleInfoFile(_ scope: MacroEvaluationScope) -> (Path, ByteString) {
-        let module = (name:    scope.evaluate(BuiltinMacros.MODULE_NAME),
-                      version: scope.evaluate(BuiltinMacros.MODULE_VERSION),
-                      start:   scope.evaluate(BuiltinMacros.MODULE_START),
-                      stop:    scope.evaluate(BuiltinMacros.MODULE_STOP))
+        let module = (
+            name: scope.evaluate(BuiltinMacros.MODULE_NAME),
+            version: scope.evaluate(BuiltinMacros.MODULE_VERSION),
+            start: scope.evaluate(BuiltinMacros.MODULE_START),
+            stop: scope.evaluate(BuiltinMacros.MODULE_STOP)
+        )
 
         let path = scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR).join(scope.evaluate(BuiltinMacros.PRODUCT_NAME) + "_info.c")
 
@@ -2108,16 +2130,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     /// enabled and we should return that as a library to link!
     private func previewsDylibForTestHost() -> [LinkerSpec.LibrarySpecifier] {
         guard let target = self.context.configuredTarget,
-              let testHost = self.context.globalProductPlan.hostTargetForTargets[target] else
-        {
+            let testHost = self.context.globalProductPlan.hostTargetForTargets[target]
+        else {
             return []
         }
 
         // Only consider linking the debug dylib if it is present in the test host.
         let hostSettings = self.context.globalProductPlan.getTargetSettings(testHost)
         guard let targetBuildDir = hostSettings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).nilIfEmpty,
-              let previewsDylibPath = hostSettings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH).nilIfEmpty else
-        {
+            let previewsDylibPath = hostSettings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_DEBUG_DYLIB_PATH).nilIfEmpty
+        else {
             return []
         }
 
@@ -2129,14 +2151,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         let fullPath = targetBuildDir.join(Path(previewsDylibPath))
 
-        return [.init(
-            kind: .dynamic,
-            path: fullPath,
-            mode: .normal,
-            useSearchPaths: false,
-            swiftModulePaths: [:],
-            swiftModuleAdditionalLinkerArgResponseFilePaths: [:]
-        )]
+        return [
+            .init(
+                kind: .dynamic,
+                path: fullPath,
+                mode: .normal,
+                useSearchPaths: false,
+                swiftModulePaths: [:],
+                swiftModuleAdditionalLinkerArgResponseFilePaths: [:]
+            )
+        ]
     }
 
 }

@@ -51,13 +51,13 @@ public final class PlatformFilter: ProjectModelItem, Hashable, Codable {
         hasher.combine(environment)
     }
 
-    public static func ==(lhs: PlatformFilter, rhs: PlatformFilter) -> Bool {
+    public static func == (lhs: PlatformFilter, rhs: PlatformFilter) -> Bool {
         return lhs.platform == rhs.platform && lhs.environment == rhs.environment
     }
 }
 
 extension PlatformFilter: Comparable {
-    public static func <(lhs: PlatformFilter, rhs: PlatformFilter) -> Bool {
+    public static func < (lhs: PlatformFilter, rhs: PlatformFilter) -> Bool {
         return lhs.comparisonString < rhs.comparisonString
     }
 
@@ -68,16 +68,18 @@ extension PlatformFilter: Comparable {
 
 extension PlatformFilter {
     static func fromBuildConditionParameterString(_ string: String) -> Set<PlatformFilter> {
-        return Set(string.components(separatedBy: ";").compactMap {
-            let parameters = $0.components(separatedBy: "-")
-            switch parameters.count {
-            case 1:
-                return PlatformFilter(platform: parameters[0])
-            case 2:
-                return PlatformFilter(platform: parameters[0], environment: parameters[1])
-            default:
-                return nil
+        return Set(
+            string.components(separatedBy: ";").compactMap {
+                let parameters = $0.components(separatedBy: "-")
+                switch parameters.count {
+                case 1:
+                    return PlatformFilter(platform: parameters[0])
+                case 2:
+                    return PlatformFilter(platform: parameters[0], environment: parameters[1])
+                default:
+                    return nil
+                }
             }
-        })
+        )
     }
 }

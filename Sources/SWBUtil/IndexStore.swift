@@ -89,7 +89,7 @@ private final class IndexStoreImpl {
 
         for objectFile in objectFiles {
             // Get the records of this object file.
-            guard let unitReader = try? self.api.call ({ self.api.fn.unit_reader_create(store, unitName(object: objectFile), &$0) }) else {
+            guard let unitReader = try? self.api.call({ self.api.fn.unit_reader_create(store, unitName(object: objectFile), &$0) }) else {
                 continue
             }
             let records = try getRecords(unitReader: unitReader)
@@ -113,7 +113,7 @@ private final class IndexStoreImpl {
 
             if let parentClassName = inheritance[moduleName]?[className] {
                 let parentMethods = flatten(moduleName: moduleName, className: parentClassName)
-                allMethods.merge(parentMethods, uniquingKeysWith:  { (lhs, _) in lhs })
+                allMethods.merge(parentMethods, uniquingKeysWith: { (lhs, _) in lhs })
             }
 
             for method in testMethods[moduleName]?[className] ?? [] {
@@ -136,11 +136,10 @@ private final class IndexStoreImpl {
         return testCaseClasses
     }
 
-
     @available(*, deprecated, message: "use listTests(in:) instead")
     public func listTests(inObjectFile object: Path) throws -> [TestCaseClass] {
         // Get the records of this object file.
-        let unitReader = try api.call{ self.api.fn.unit_reader_create(store, unitName(object: object), &$0) }
+        let unitReader = try api.call { self.api.fn.unit_reader_create(store, unitName(object: object), &$0) }
         let records = try getRecords(unitReader: unitReader)
 
         // Get the test classes.
@@ -178,15 +177,15 @@ private final class IndexStoreImpl {
         return testCaseClasses
     }
 
-    private func getTestsInfo(record: String) throws -> (inheritance: [String: String], testMethods: [String: [(name: String, async: Bool)]] ) {
-        let recordReader = try api.call{ self.api.fn.record_reader_create(store, record, &$0) }
+    private func getTestsInfo(record: String) throws -> (inheritance: [String: String], testMethods: [String: [(name: String, async: Bool)]]) {
+        let recordReader = try api.call { self.api.fn.record_reader_create(store, record, &$0) }
 
         // scan for inheritance
 
         let inheritanceStoreRef = StoreRef([String: String](), api: self.api)
         let inheritancePointer = unsafeBitCast(Unmanaged.passUnretained(inheritanceStoreRef), to: UnsafeMutableRawPointer.self)
 
-        _ = self.api.fn.record_reader_occurrences_apply_f(recordReader, inheritancePointer) { inheritancePointer , occ -> Bool in
+        _ = self.api.fn.record_reader_occurrences_apply_f(recordReader, inheritancePointer) { inheritancePointer, occ -> Bool in
             let inheritanceStoreRef = Unmanaged<StoreRef<[String: String?]>>.fromOpaque(inheritancePointer!).takeUnretainedValue()
             let fn = inheritanceStoreRef.api.fn
 
@@ -197,7 +196,7 @@ private final class IndexStoreImpl {
             if symbolProperties & UInt64(INDEXSTORE_SYMBOL_PROPERTY_UNITTEST.rawValue) == 0 {
                 return true
             }
-            if fn.symbol_get_kind(sym) != INDEXSTORE_SYMBOL_KIND_CLASS{
+            if fn.symbol_get_kind(sym) != INDEXSTORE_SYMBOL_KIND_CLASS {
                 return true
             }
 
@@ -232,7 +231,7 @@ private final class IndexStoreImpl {
         let testMethodsStoreRef = StoreRef([String: [(name: String, async: Bool)]](), api: api)
         let testMethodsPointer = unsafeBitCast(Unmanaged.passUnretained(testMethodsStoreRef), to: UnsafeMutableRawPointer.self)
 
-        _ = self.api.fn.record_reader_occurrences_apply_f(recordReader, testMethodsPointer) { testMethodsPointer , occ -> Bool in
+        _ = self.api.fn.record_reader_occurrences_apply_f(recordReader, testMethodsPointer) { testMethodsPointer, occ -> Bool in
             let testMethodsStoreRef = Unmanaged<StoreRef<[String: [(name: String, async: Bool)]]>>.fromOpaque(testMethodsPointer!).takeUnretainedValue()
             let fn = testMethodsStoreRef.api.fn
 
@@ -285,7 +284,7 @@ private final class IndexStoreImpl {
         let builder = StoreRef([String](), api: api)
 
         let ctx = unsafeBitCast(Unmanaged.passUnretained(builder), to: UnsafeMutableRawPointer.self)
-        _ = self.api.fn.unit_reader_dependencies_apply_f(unitReader, ctx) { ctx , unit -> Bool in
+        _ = self.api.fn.unit_reader_dependencies_apply_f(unitReader, ctx) { ctx, unit -> Bool in
             let store = Unmanaged<StoreRef<[String]>>.fromOpaque(ctx!).takeUnretainedValue()
             let fn = store.api.fn
             if fn.unit_dependency_get_kind(unit) == INDEXSTORE_UNIT_DEPENDENCY_RECORD {
@@ -356,22 +355,22 @@ private final class IndexStoreAPIImpl {
 
         var api = swiftbuild_indexstore_functions_t()
         api.store_create = Library.lookup(dylib, "indexstore_store_create")
-        api.store_get_unit_name_from_output_path = Library.lookup(dylib,  "indexstore_store_get_unit_name_from_output_path")
-        api.unit_reader_create = Library.lookup(dylib,  "indexstore_unit_reader_create")
-        api.error_get_description = Library.lookup(dylib,  "indexstore_error_get_description")
-        api.unit_reader_dependencies_apply_f = Library.lookup(dylib,  "indexstore_unit_reader_dependencies_apply_f")
-        api.unit_reader_get_module_name = Library.lookup(dylib,  "indexstore_unit_reader_get_module_name")
-        api.unit_dependency_get_kind = Library.lookup(dylib,  "indexstore_unit_dependency_get_kind")
-        api.unit_dependency_get_name = Library.lookup(dylib,  "indexstore_unit_dependency_get_name")
-        api.record_reader_create = Library.lookup(dylib,  "indexstore_record_reader_create")
-        api.symbol_get_name = Library.lookup(dylib,  "indexstore_symbol_get_name")
-        api.symbol_get_properties = Library.lookup(dylib,  "indexstore_symbol_get_properties")
-        api.symbol_get_kind = Library.lookup(dylib,  "indexstore_symbol_get_kind")
-        api.record_reader_occurrences_apply_f = Library.lookup(dylib,  "indexstore_record_reader_occurrences_apply_f")
-        api.occurrence_get_symbol = Library.lookup(dylib,  "indexstore_occurrence_get_symbol")
-        api.occurrence_relations_apply_f = Library.lookup(dylib,  "indexstore_occurrence_relations_apply_f")
-        api.symbol_relation_get_symbol = Library.lookup(dylib,  "indexstore_symbol_relation_get_symbol")
-        api.symbol_relation_get_roles = Library.lookup(dylib,  "indexstore_symbol_relation_get_roles")
+        api.store_get_unit_name_from_output_path = Library.lookup(dylib, "indexstore_store_get_unit_name_from_output_path")
+        api.unit_reader_create = Library.lookup(dylib, "indexstore_unit_reader_create")
+        api.error_get_description = Library.lookup(dylib, "indexstore_error_get_description")
+        api.unit_reader_dependencies_apply_f = Library.lookup(dylib, "indexstore_unit_reader_dependencies_apply_f")
+        api.unit_reader_get_module_name = Library.lookup(dylib, "indexstore_unit_reader_get_module_name")
+        api.unit_dependency_get_kind = Library.lookup(dylib, "indexstore_unit_dependency_get_kind")
+        api.unit_dependency_get_name = Library.lookup(dylib, "indexstore_unit_dependency_get_name")
+        api.record_reader_create = Library.lookup(dylib, "indexstore_record_reader_create")
+        api.symbol_get_name = Library.lookup(dylib, "indexstore_symbol_get_name")
+        api.symbol_get_properties = Library.lookup(dylib, "indexstore_symbol_get_properties")
+        api.symbol_get_kind = Library.lookup(dylib, "indexstore_symbol_get_kind")
+        api.record_reader_occurrences_apply_f = Library.lookup(dylib, "indexstore_record_reader_occurrences_apply_f")
+        api.occurrence_get_symbol = Library.lookup(dylib, "indexstore_occurrence_get_symbol")
+        api.occurrence_relations_apply_f = Library.lookup(dylib, "indexstore_occurrence_relations_apply_f")
+        api.symbol_relation_get_symbol = Library.lookup(dylib, "indexstore_symbol_relation_get_symbol")
+        api.symbol_relation_get_roles = Library.lookup(dylib, "indexstore_symbol_relation_get_roles")
 
         self.fn = api
     }

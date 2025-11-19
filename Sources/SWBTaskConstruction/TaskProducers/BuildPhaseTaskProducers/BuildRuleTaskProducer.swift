@@ -42,14 +42,15 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
     }
 
     func pathForResolvedFileList(_ scope: MacroEvaluationScope, prefix: String, fileList: Path) -> Path {
-        let checksumRawData = [
-            scope.evaluate(BuiltinMacros.EFFECTIVE_PLATFORM_NAME),
-            buildPhase.guid,
-            action.identifier,
-            scope.evaluate(BuiltinMacros.CURRENT_VARIANT),
-            scope.evaluate(BuiltinMacros.CURRENT_ARCH),
-            fileList.str,
-        ] + cbc.inputs.map { $0.absolutePath.str }
+        let checksumRawData =
+            [
+                scope.evaluate(BuiltinMacros.EFFECTIVE_PLATFORM_NAME),
+                buildPhase.guid,
+                action.identifier,
+                scope.evaluate(BuiltinMacros.CURRENT_VARIANT),
+                scope.evaluate(BuiltinMacros.CURRENT_ARCH),
+                fileList.str,
+            ] + cbc.inputs.map { $0.absolutePath.str }
 
         return scope.evaluate(BuiltinMacros.TEMP_DIR).join("\(prefix)-\(checksumRawData.joined(separator: "\n").md5())-\(fileList.basenameWithoutSuffix)-resolved.xcfilelist")
     }
@@ -95,7 +96,7 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
         let inputPath = input.absolutePath
         let inputDir = inputPath.dirname
         let inputName = inputPath.basename
-        let (inputBase,inputSuffix) = Path(inputName).splitext()
+        let (inputBase, inputSuffix) = Path(inputName).splitext()
         var inputVariables: [MacroDeclaration: String] = [
             BuiltinMacros.INPUT_FILE_PATH: inputPath.str,
             BuiltinMacros.INPUT_FILE_DIR: inputDir.str,
@@ -137,7 +138,7 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
         }
 
         // Add the input file variables.
-        for (macro,name) in inputVariables {
+        for (macro, name) in inputVariables {
             environment[macro.name] = name
         }
 
@@ -196,7 +197,7 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
                 dependencyData = .dependencyInfo(path)
 
             case .makefiles(let paths):
-                let paths = paths.map{ context.makeAbsolute(Path(cbc.scope.evaluate($0, lookup: lookup))).normalize() }
+                let paths = paths.map { context.makeAbsolute(Path(cbc.scope.evaluate($0, lookup: lookup))).normalize() }
                 outputs.append(contentsOf: paths)
                 dependencyData = .makefiles(paths)
             }
@@ -204,8 +205,8 @@ final class BuildRuleTaskProducer: StandardTaskProducer, TaskProducer, ShellBase
             dependencyData = nil
         }
 
-        var inputNodes = inputs.map{ createNodeForRule(delegate, cbc: cbc, context: context, path: $0) }
-        var outputNodes = outputs.map{ delegate.createNode($0) as (any PlannedNode) }
+        var inputNodes = inputs.map { createNodeForRule(delegate, cbc: cbc, context: context, path: $0) }
+        var outputNodes = outputs.map { delegate.createNode($0) as (any PlannedNode) }
 
         await handleFileLists(&tasks, &inputNodes, &outputNodes, &environment, cbc.scope, inputFileLists, outputFileLists, lookup: lookup)
 

@@ -17,7 +17,7 @@ import SWBLibc
 /// A wrapper for a libclang library.
 public final class Libclang {
     public enum Error: Swift.Error {
-    case unableToGetDriverActions(String)
+        case unableToGetDriverActions(String)
     }
 
     fileprivate let lib: libclang_t
@@ -66,11 +66,14 @@ public final class Libclang {
         // let envp = CStringArray(environment.map{ "\($0.0)=\($0.1)" })
         var error: String? = nil
         let success = libclang_driver_get_actions(
-            lib, CInt(args.cArray.count - 1), args.cArray, nil,
+            lib,
+            CInt(args.cArray.count - 1),
+            args.cArray,
+            nil,
             workingDirectory,
             /*callback: */ { (argc, argv) in
                 let argc = Int(argc)
-                result.append((0 ..< argc).map{ String(cString: argv![$0]!) })
+                result.append((0..<argc).map { String(cString: argv![$0]!) })
             },
             /*error_callback:*/ { (string: UnsafePointer<CChar>?) -> Void in
                 let errString = String(cString: string!)
@@ -79,7 +82,8 @@ public final class Libclang {
                 } else {
                     error = errString
                 }
-            })
+            }
+        )
         guard success else {
             assert(error != nil)
             throw Error.unableToGetDriverActions(error!)
@@ -211,12 +215,20 @@ public final class DependencyScanner {
         var result: FileDependencies?
         // The count is `- 1` here, because CStringArray appends a trailing nullptr.
         let success = libclang_scanner_scan_dependencies(
-            scanner, CInt(args.cArray.count - 1), args.cArray, workingDirectory,
-            /*lookup_output:*/ { (cmoduleName: UnsafePointer<CChar>?, ccontextHash: UnsafePointer<CChar>?,
-                                  ckind: clang_output_kind_t, coutput: UnsafeMutablePointer<CChar>?,
-                                  maxLen: size_t) -> size_t in
+            scanner,
+            CInt(args.cArray.count - 1),
+            args.cArray,
+            workingDirectory,
+            /*lookup_output:*/ {
+                (
+                    cmoduleName: UnsafePointer<CChar>?,
+                    ccontextHash: UnsafePointer<CChar>?,
+                    ckind: clang_output_kind_t,
+                    coutput: UnsafeMutablePointer<CChar>?,
+                    maxLen: size_t
+                ) -> size_t in
                 guard let kind = ModuleOutputKind(ckind) else {
-                    return 0 // Unknown output
+                    return 0  // Unknown output
                 }
                 let moduleName = String(cString: cmoduleName!)
                 let contextHash: String = String(cString: ccontextHash!)
@@ -229,7 +241,7 @@ public final class DependencyScanner {
                     }
                 } else {
                     assert(kind != .moduleFile, "moduleFile is a required output")
-                    return 0 // Empty
+                    return 0  // Empty
                 }
             },
             /*modules_callback:*/ { (modules: clang_module_dependency_set_t, topologicallySorted: Bool) -> Void in
@@ -243,14 +255,16 @@ public final class DependencyScanner {
             /*callback:*/ { (fileDeps: clang_file_dependencies_t) -> Void in
                 var commands: [Command] = []
                 for i in 0..<fileDeps.num_commands {
-                    commands.append(Command(
-                        context_hash: String(cString: fileDeps.commands[i].context_hash),
-                        file_deps: Array<String>.fromCStringArray(fileDeps.commands[i].file_deps),
-                        module_deps: Array<String>.fromCStringArray(fileDeps.commands[i].module_deps),
-                        cache_key: fileDeps.commands[i].cache_key.map{String(cString:$0)},
-                        executable: fileDeps.commands[i].executable.map({String(cString:$0)}),
-                        build_arguments: Array<String>.fromCStringArray(fileDeps.commands[i].build_arguments)
-                    ))
+                    commands.append(
+                        Command(
+                            context_hash: String(cString: fileDeps.commands[i].context_hash),
+                            file_deps: Array<String>.fromCStringArray(fileDeps.commands[i].file_deps),
+                            module_deps: Array<String>.fromCStringArray(fileDeps.commands[i].module_deps),
+                            cache_key: fileDeps.commands[i].cache_key.map { String(cString: $0) },
+                            executable: fileDeps.commands[i].executable.map({ String(cString: $0) }),
+                            build_arguments: Array<String>.fromCStringArray(fileDeps.commands[i].build_arguments)
+                        )
+                    )
                 }
                 result = FileDependencies(includeTreeID: fileDeps.include_tree_id.map { String(cString: $0) }, commands: commands)
             },
@@ -265,7 +279,8 @@ public final class DependencyScanner {
             },
             /*error_callback:*/ { (string: UnsafePointer<CChar>?) -> Void in
                 error = String(cString: string!)
-            })
+            }
+        )
         guard success, let fileDeps = result else {
             if let diagnostics = diagnostics {
                 throw Error.dependencyScanDiagnostics(diagnostics)
@@ -280,12 +295,15 @@ public final class DependencyScanner {
 
     public func diagnoseInvalidNegativeStatCacheEntries() -> [String] {
         var entries: [String] = []
-        libclang_scanner_diagnose_invalid_negative_stat_cache_entries(scanner, { cString in
-            guard let cString else {
-                return
+        libclang_scanner_diagnose_invalid_negative_stat_cache_entries(
+            scanner,
+            { cString in
+                guard let cString else {
+                    return
+                }
+                entries.append(String(cString: cString))
             }
-            entries.append(String(cString: cString))
-        })
+        )
         return entries
     }
 
@@ -317,9 +335,11 @@ fileprivate struct ClangDiagnosticSet {
     public init(_ libclang: Libclang, filePath: String) throws {
         var error: UnsafePointer<Int8>!
         defer { error?.deallocate() }
-        guard let diagnosticSet = filePath.withCString({ path in
-            return libclang_read_diagnostics(libclang.lib, path, &error)
-        }) else {
+        guard
+            let diagnosticSet = filePath.withCString({ path in
+                return libclang_read_diagnostics(libclang.lib, path, &error)
+            })
+        else {
             throw Error.error(String(cString: error))
         }
 
@@ -494,9 +514,14 @@ public final class ClangCASDatabases {
         }
         self.libclang = libclang
         var error: Error? = nil
-        guard let dbs = libclang_casdatabases_create(options.options, { cerror in
-            error = .creationFailed(String(cString: cerror!))
-        }) else {
+        guard
+            let dbs = libclang_casdatabases_create(
+                options.options,
+                { cerror in
+                    error = .creationFailed(String(cString: cerror!))
+                }
+            )
+        else {
             throw error!
         }
         self.dbs = dbs
@@ -508,9 +533,12 @@ public final class ClangCASDatabases {
 
     public func getOndiskSize() throws -> Int64? {
         var error: ClangCASDatabases.Error? = nil
-        let ret = libclang_casdatabases_get_ondisk_size(dbs, { c_error in
-            error = .operationFailed(String(cString: c_error!))
-        })
+        let ret = libclang_casdatabases_get_ondisk_size(
+            dbs,
+            { c_error in
+                error = .operationFailed(String(cString: c_error!))
+            }
+        )
         if let error {
             throw error
         }
@@ -522,9 +550,13 @@ public final class ClangCASDatabases {
 
     public func setOndiskSizeLimit(_ limit: Int64?) throws {
         var error: ClangCASDatabases.Error? = nil
-        libclang_casdatabases_set_ondisk_size_limit(dbs, limit ?? 0, { c_error in
-            error = .operationFailed(String(cString: c_error!))
-        })
+        libclang_casdatabases_set_ondisk_size_limit(
+            dbs,
+            limit ?? 0,
+            { c_error in
+                error = .operationFailed(String(cString: c_error!))
+            }
+        )
         if let error {
             throw error
         }
@@ -532,9 +564,12 @@ public final class ClangCASDatabases {
 
     public func pruneOndiskData() throws {
         var error: ClangCASDatabases.Error? = nil
-        libclang_casdatabases_prune_ondisk_data(dbs, { c_error in
-            error = .operationFailed(String(cString: c_error!))
-        })
+        libclang_casdatabases_prune_ondisk_data(
+            dbs,
+            { c_error in
+                error = .operationFailed(String(cString: c_error!))
+            }
+        )
         if let error {
             throw error
         }
@@ -550,9 +585,14 @@ public final class ClangCASDatabases {
     /// Query the CAS for the associated outputs of a cache key.
     public func getCachedCompilation(cacheKey: String, globally: Bool) throws -> ClangCASCachedCompilation? {
         var error: ClangCASDatabases.Error? = nil
-        let c_cachedComp = libclang_cas_get_cached_compilation(dbs, cacheKey, globally, { c_error in
-            error = .operationFailed(String(cString: c_error!))
-        })
+        let c_cachedComp = libclang_cas_get_cached_compilation(
+            dbs,
+            cacheKey,
+            globally,
+            { c_error in
+                error = .operationFailed(String(cString: c_error!))
+            }
+        )
         if let error {
             throw error
         }
@@ -569,7 +609,7 @@ public final class ClangCASDatabases {
     public func getCachedCompilation(cacheKey: String) async throws -> ClangCASCachedCompilation? {
         let libclang = self.libclang
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ClangCASCachedCompilation?, Swift.Error>) in
-            libclang_cas_get_cached_compilation_async(dbs, cacheKey, /*globally*/true) { c_cachedComp, c_error in
+            libclang_cas_get_cached_compilation_async(dbs, cacheKey, /*globally*/ true) { c_cachedComp, c_error in
                 if let c_error {
                     continuation.resume(throwing: Error.operationFailed(String(cString: c_error)))
                     return

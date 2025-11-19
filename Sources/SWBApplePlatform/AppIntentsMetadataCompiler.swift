@@ -27,7 +27,7 @@ private struct AppIntentsLocalizationPayload: TaskPayload {
             self.path = path
         }
 
-        func serialize<T>(to serializer: T) where T : Serializer {
+        func serialize<T>(to serializer: T) where T: Serializer {
             serializer.serializeAggregate(3) {
                 serializer.serialize(buildVariant)
                 serializer.serialize(architecture)
@@ -51,7 +51,7 @@ private struct AppIntentsLocalizationPayload: TaskPayload {
         self.stringsdata = stringsdata
     }
 
-    func serialize<T>(to serializer: T) where T : Serializer {
+    func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(2) {
             serializer.serialize(effectivePlatformName)
             serializer.serialize(stringsdata)
@@ -68,9 +68,7 @@ private struct AppIntentsLocalizationPayload: TaskPayload {
 final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.appintentsmetadata"
     public func shouldConstructAppIntentsMetadataTask(_ cbc: CommandBuildContext) -> Bool {
-        return cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT) == "normal" &&
-        cbc.producer.canConstructAppIntentsMetadataTask &&
-        !cbc.inputs.filter({ $0.fileType.extensions.contains("swift") }).isEmpty
+        return cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT) == "normal" && cbc.producer.canConstructAppIntentsMetadataTask && !cbc.inputs.filter({ $0.fileType.extensions.contains("swift") }).isEmpty
     }
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -185,8 +183,9 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
                 return cbc.scope.table.namespace.parseLiteralStringList(stringDataFiles.map(\.path.str))
             case BuiltinMacros.LM_COMPILE_TIME_EXTRACTION:
                 if cbc.scope.evaluate(BuiltinMacros.LM_COMPILE_TIME_EXTRACTION),
-                   let toolSpecInfo,
-                   toolSpecInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.constExtractCompleteMetadata.rawValue) {
+                    let toolSpecInfo,
+                    toolSpecInfo.hasFeature(DiscoveredSwiftCompilerToolSpecInfo.FeatureFlag.constExtractCompleteMetadata.rawValue)
+                {
                     return cbc.scope.table.namespace.parseLiteralString("YES")
                 }
                 return cbc.scope.table.namespace.parseLiteralString("NO")
@@ -210,17 +209,19 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         let nodeName = (isObject || isStaticLibrary) ? "ExtractAppIntentsMetadata \(cbc.scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)) \(cbc.scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME) + "/Metadata.appintents")" : "ExtractAppIntentsMetadata \(cbc.resourcesDir?.join("Metadata.appintents").str ?? "")"
         let orderingNode = delegate.createVirtualNode(nodeName)
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
-        delegate.createTask(type: self,
-                            payload: payload,
-                            ruleInfo: defaultRuleInfo(cbc, delegate),
-                            commandLine: commandLine,
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: allInputs,
-                            outputs: outputs + [orderingNode],
-                            action: nil,
-                            execDescription: resolveExecutionDescription(cbc, delegate),
-                            enableSandboxing: enableSandboxing)
+        delegate.createTask(
+            type: self,
+            payload: payload,
+            ruleInfo: defaultRuleInfo(cbc, delegate),
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: allInputs,
+            outputs: outputs + [orderingNode],
+            action: nil,
+            execDescription: resolveExecutionDescription(cbc, delegate),
+            enableSandboxing: enableSandboxing
+        )
     }
 
     public override var payloadType: (any TaskPayload.Type)? { return AppIntentsLocalizationPayload.self }

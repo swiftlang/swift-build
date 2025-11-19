@@ -35,32 +35,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -82,11 +89,10 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Modify the source file to trigger a new scan.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 2;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 2;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -117,33 +123,40 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": Path.null.str,
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": Path.null.str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -167,39 +180,45 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             children: [
                                 TestFile("file.c"),
                                 TestFile("other.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c", "other.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c", "other.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/other.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int otherthing = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int otherthing = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host) { results in
@@ -232,39 +251,45 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             children: [
                                 TestFile("file.c"),
                                 TestFile("other.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c", "other.m"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c", "other.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/other.m")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                int otherthing = 1;
-                """
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    int otherthing = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -299,58 +324,62 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("mod.h"),
                                 TestFile("pch.h"),
                                 TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["GCC_PREFIX_HEADER": "pch.h"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["GCC_PREFIX_HEADER": "pch.h"])
                                 ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-                """
-                module Mod { header "mod.h" }
-                """
+                stream <<< """
+                    module Mod { header "mod.h" }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
-                stream <<<
-                """
-                typedef int mod_int;
-                """
+                stream <<< """
+                    typedef int mod_int;
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/pch.h")) { stream in
-                stream <<<
-                """
-                #include "mod.h"
-                typedef mod_int pch_int;
-                """
+                stream <<< """
+                    #include "mod.h"
+                    typedef mod_int pch_int;
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include "mod.h"
-                mod_int some = 1;
-                pch_int thing = 2;
-                """
+                stream <<< """
+                    #include "mod.h"
+                    mod_int some = 1;
+                    pch_int thing = 2;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host) { results in
@@ -373,8 +402,11 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .disabled("setting global environment interferes concurrent tests"),
-          .bug("https://github.com/swiftlang/swift-build/issues/835"))
+    @Test(
+        .requireSDKs(.macOS),
+        .disabled("setting global environment interferes concurrent tests"),
+        .bug("https://github.com/swiftlang/swift-build/issues/835")
+    )
     func explicitModulesEnvironment() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -386,32 +418,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "OTHER_CFLAGS": "-Wmain -Werror",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "OTHER_CFLAGS": "-Wmain -Werror",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                int main(int argc) {}
-                """
+                stream <<< """
+                    int main(int argc) {}
+                    """
             }
 
             // FIXME: These two lines shouldn't be necessary. clang directly recognizes the same of this environment variable (coincidentally the same as our build setting). llbuild's shell tool has an `inherit-env` property which is true by default, and causes the _process_ environment of the build service to be propagated to build tasks like clang. Instead we should set `inherit-env` to false and merge `processEnvironment` from UserInfo into the task's environment, so that it is overridable from tests.
@@ -445,40 +484,47 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     "Includes",
                                     children: [
                                         TestFile("header.h")
-                                    ]),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "SYSTEM_HEADER_SEARCH_PATHS": "Includes",
-                            ])],
+                                    ]
+                                ),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "SYSTEM_HEADER_SEARCH_PATHS": "Includes",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <header.h>
-                int main() {}
-                """
+                stream <<< """
+                    #include <header.h>
+                    int main() {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Includes/header.h")) { stream in
-                stream <<<
-                """
-                typedef int header_int;
-                """
+                stream <<< """
+                    typedef int header_int;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host) { results in
@@ -505,14 +551,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -526,58 +576,61 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework.h", headerVisibility: .public),
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <Framework/Framework.h>
+                stream <<< """
+                    #include <Framework/Framework.h>
 
-                void test() {
-                    NSLog(@"%@", [[Shared alloc] init]);
-                }
+                    void test() {
+                        NSLog(@"%@", [[Shared alloc] init]);
+                    }
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
-                """
+                stream <<< """
+                    #include <Framework/Shared.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -611,55 +664,61 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("mod.h"),
                                 TestFile("module.modulemap"),
                                 TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                // This makes the Clang driver invocation expand into multiple -cc1 invocations.
-                                "OTHER_CFLAGS": "-save-temps=obj",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    // This makes the Clang driver invocation expand into multiple -cc1 invocations.
+                                    "OTHER_CFLAGS": "-save-temps=obj",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-                """
-                module mod { header "mod.h" }
-                """
+                stream <<< """
+                    module mod { header "mod.h" }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
-                stream <<<
-                """
-                typedef int int_mod;
-                """
+                stream <<< """
+                    typedef int int_mod;
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include "mod.h"
-                int_mod x = 42;
-                """
+                stream <<< """
+                    #include "mod.h"
+                    int_mod x = 42;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
                 results.checkTask(.matchRuleType("ScanDependencies")) { _ in }
                 results.checkTask(.matchRuleType("PrecompileModule")) { _ in }
-                var outputs = results.checkTask(.matchRuleType("CompileC")) { task in
-                    task.outputPaths
-                } ?? []
+                var outputs =
+                    results.checkTask(.matchRuleType("CompileC")) { task in
+                        task.outputPaths
+                    } ?? []
 
                 results.checkNoDiagnostics()
 
@@ -695,48 +754,53 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     TestFile("mod.h"),
                                     TestFile("module.modulemap"),
                                     TestFile("file.c"),
-                                ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "C_COMPILER_LAUNCHER": "/usr/bin/time",
-                                    "CLANG_ENABLE_MODULES": "YES",
-                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER": allowLauncher ? "YES" : "NO",
-                                ])],
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "C_COMPILER_LAUNCHER": "/usr/bin/time",
+                                        "CLANG_ENABLE_MODULES": "YES",
+                                        "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                        "CLANG_ENABLE_EXPLICIT_MODULES_WITH_COMPILER_LAUNCHER": allowLauncher ? "YES" : "NO",
+                                    ]
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
                                     "Library",
                                     type: .staticLibrary,
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["file.c"]),
-                                    ]),
-                            ])])
+                                        TestSourcesBuildPhase(["file.c"])
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(self.getCore(), testWorkspace, simulated: false)
                 tester.userPreferences = UserPreferences.defaultForTesting.with(enableDebugActivityLogs: true)
 
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                    stream <<<
-                    """
-                    module mod { header "mod.h" }
-                    """
+                    stream <<< """
+                        module mod { header "mod.h" }
+                        """
                 }
 
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
-                    stream <<<
-                    """
-                    typedef int int_mod;
-                    """
+                    stream <<< """
+                        typedef int int_mod;
+                        """
                 }
 
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<<
-                    """
-                    #include "mod.h"
-                    int_mod x = 42;
-                    """
+                    stream <<< """
+                        #include "mod.h"
+                        int_mod x = 42;
+                        """
                 }
 
                 return tester
@@ -797,14 +861,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -818,62 +886,65 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework.h", headerVisibility: .public),
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <Framework/Framework.h>
+                stream <<< """
+                    #include <Framework/Framework.h>
 
-                void test() {
-                    NSLog(@"%@", [[Shared alloc] init]);
-                }
+                    void test() {
+                        NSLog(@"%@", [[Shared alloc] init]);
+                    }
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
+                stream <<< """
+                    #include <Framework/Shared.h>
 
-                int foo(void) {
-                    return
-                }
-                """
+                    int foo(void) {
+                        return
+                    }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -897,14 +968,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                            ])],
+                                TestFile("file.m")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -913,20 +988,22 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     TestSourcesBuildPhase(["file.m"])
                                 ]
                             )
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                @import Foundation;
+                stream <<< """
+                    @import Foundation;
 
-                void test() {
-                    int x;
-                    NSLog(@"%d", x);
-                }
-                """
+                    void test() {
+                        int x;
+                        NSLog(@"%d", x);
+                    }
+                    """
             }
 
             try await tester.checkBuild(parameters: BuildParameters(action: .analyze, configuration: "Debug", overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), runDestination: .macOS) { results in
@@ -952,35 +1029,41 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.m"]),
+                                    TestSourcesBuildPhase(["file.m"])
                                 ]
                             )
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <DoesNotExist/DoesNotExist.h>
+                stream <<< """
+                    #include <DoesNotExist/DoesNotExist.h>
 
-                void test() {
-                    NSLog(@"%@", [[Shared alloc] init]);
-                }
-                """
+                    void test() {
+                        NSLog(@"%@", [[Shared alloc] init]);
+                    }
+                    """
             }
 
             // The build should produce structured diagnostics.
@@ -1008,56 +1091,60 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("mod.h"),
                                 TestFile("module.modulemap"),
                                 TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CC": "\(efiClang.str)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CC": "\(efiClang.str)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(self.getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(efiClang) { stream in
                 stream <<< """
-                #!/usr/bin/env sh
-                \(clangCompilerPath.str) -v $@
-                """
+                    #!/usr/bin/env sh
+                    \(clangCompilerPath.str) -v $@
+                    """
             }
             try tester.fs.setFilePermissions(efiClang, permissions: 0o755)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-                """
-                module mod { header "mod.h" }
-                """
+                stream <<< """
+                    module mod { header "mod.h" }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
-                stream <<<
-                """
-                typedef int int_mod;
-                """
+                stream <<< """
+                    typedef int int_mod;
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include "mod.h"
-                int_mod x = 42;
-                """
+                stream <<< """
+                    #include "mod.h"
+                    int_mod x = 42;
+                    """
             }
-
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoTask(.matchRuleType("ScanDependencies"))
@@ -1078,9 +1165,10 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
     func outputPath() async throws {
         try await withTemporaryDirectory { tmpDir in
             func outputPathTest(given outputPathBuildSetting: String?, expected outputPath: Path, sourceLocation: SourceLocation = #_sourceLocation) async throws {
-                let outputBuildSettings: [String: String] = outputPathBuildSetting.map {
-                    ["CLANG_EXPLICIT_MODULES_OUTPUT_PATH": $0]
-                } ?? [:]
+                let outputBuildSettings: [String: String] =
+                    outputPathBuildSetting.map {
+                        ["CLANG_EXPLICIT_MODULES_OUTPUT_PATH": $0]
+                    } ?? [:]
 
                 let testWorkspace = TestWorkspace(
                     "Test",
@@ -1091,32 +1179,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             groupTree: TestGroup(
                                 "Sources",
                                 children: [
-                                    TestFile("file.c"),
-                                ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "CLANG_ENABLE_MODULES": "YES",
-                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                ].merging(outputBuildSettings, uniquingKeysWith: { a, b in b }))],
+                                    TestFile("file.c")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "CLANG_ENABLE_MODULES": "YES",
+                                        "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    ].merging(outputBuildSettings, uniquingKeysWith: { a, b in b })
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
                                     "Library",
                                     type: .staticLibrary,
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["file.c"]),
-                                    ]),
-                            ])])
+                                        TestSourcesBuildPhase(["file.c"])
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<<
-            """
-            #include <stdio.h>
-            int something = 1;
-            """
+                    stream <<< """
+                        #include <stdio.h>
+                        int something = 1;
+                        """
                 }
 
                 try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -1166,73 +1261,78 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("module.modulemap"),
                                 TestFile("file_1.c"),
                                 TestFile("file_2.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "$OBJROOT/ExplicitModules/$TARGET_NAME",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "$OBJROOT/ExplicitModules/$TARGET_NAME",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library_1",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                    TestSourcesBuildPhase(["file_1.c"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Library_2",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_2.c"]),
-                                ]),
+                                    TestSourcesBuildPhase(["file_2.c"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Library_1_2",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_1.c", "file_2.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file_1.c", "file_2.c"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-                """
-                module mod_nested { header "mod_nested.h" }
-                module mod        { header "mod.h"        }
-                """
+                stream <<< """
+                    module mod_nested { header "mod_nested.h" }
+                    module mod        { header "mod.h"        }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod_nested.h")) { stream in
-                stream <<<
-                """
-                """
+                stream <<< """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
-                stream <<<
-                """
-                #include "mod_nested.h"
-                """
+                stream <<< """
+                    #include "mod_nested.h"
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-                """
-                #include "mod.h"
-                void foo(void) {}
-                """
+                stream <<< """
+                    #include "mod.h"
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.c")) { stream in
-                stream <<<
-                """
-                #include "mod.h"
-                void bar(void) {}
-                """
+                stream <<< """
+                    #include "mod.h"
+                    void bar(void) {}
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug")
@@ -1296,66 +1396,70 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("module.modulemap"),
                                 TestFile("file_1.c"),
                                 TestFile("file_2.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library_1",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                    TestSourcesBuildPhase(["file_1.c"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Library_2",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_2.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file_2.c"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-            """
-            module mod_nested { header "mod_nested.h" }
-            module mod        { header "mod.h"        }
-            """
+                stream <<< """
+                    module mod_nested { header "mod_nested.h" }
+                    module mod        { header "mod.h"        }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod_nested.h")) { stream in
-                stream <<<
-            """
-            """
+                stream <<< """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
-                stream <<<
-            """
-            #include "mod_nested.h"
-            """
+                stream <<< """
+                    #include "mod_nested.h"
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            #include "mod.h"
-            void foo(void) {}
-            """
+                stream <<< """
+                    #include "mod.h"
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.c")) { stream in
-                stream <<<
-            """
-            #include "mod.h"
-            void bar(void) {}
-            """
+                stream <<< """
+                    #include "mod.h"
+                    void bar(void) {}
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug")
@@ -1393,31 +1497,40 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("mod.h"),
                                 TestFile("module.modulemap"),
                                 TestFile("file_1.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "OBJROOT": tmpDir.join("objroot").str,
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "OBJROOT": tmpDir.join("objroot").str,
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library_1",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
-                        ]), TestProject(
-                            "aProject2",
-                            groupTree: TestGroup(
-                                "Sources",
-                                children: [
-                                    TestFile("file_2.c"),
-                                ]),
-                            buildConfigurations: [TestBuildConfiguration(
+                                    TestSourcesBuildPhase(["file_1.c"])
+                                ]
+                            )
+                        ]
+                    ),
+                    TestProject(
+                        "aProject2",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file_2.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "OBJROOT": tmpDir.join("objroot").str,
@@ -1426,44 +1539,46 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                     "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test").join("aProject").strWithPosixSlashes)",
                                     "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").strWithPosixSlashes)",
-                                ])],
-                            targets: [
-                                TestStandardTarget(
-                                    "Library_2",
-                                    type: .staticLibrary,
-                                    buildPhases: [
-                                        TestSourcesBuildPhase(["file_2.c"]),
-                                    ]),
-                            ])])
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Library_2",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_2.c"])
+                                ]
+                            )
+                        ]
+                    ),
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-            """
-            module mod { header "mod.h" }
-            """
+                stream <<< """
+                    module mod { header "mod.h" }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/mod.h")) { stream in
-                stream <<<
-            """
-            void foo(void) {}
-            """
+                stream <<< """
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            #include "mod.h"
-            """
+                stream <<< """
+                    #include "mod.h"
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject2/file_2.c")) { stream in
-                stream <<<
-            """
-            #include "mod.h"
-            """
+                stream <<< """
+                    #include "mod.h"
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug")
@@ -1498,32 +1613,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-            """
-            #include <stdio.h>
-            int something = 1;
-            """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             // Clean build
@@ -1541,11 +1663,10 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Touch the source file to trigger a new scan.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-            """
-            #include <stdio.h>
-            int something = 2;
-            """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 2;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -1571,32 +1692,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-            """
-            #include <stdio.h>
-            int something = 1;
-            """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             // Clean build
@@ -1613,11 +1741,10 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Touch the source file to trigger a new scan.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-            """
-            #include <stdio.h>
-            int something = 2;
-            """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 2;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -1649,14 +1776,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -1670,58 +1801,61 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework.h", headerVisibility: .public),
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <Framework/Framework.h>
+                stream <<< """
+                    #include <Framework/Framework.h>
 
-                void test() {
-                    NSLog(@"%@", [[Shared alloc] init]);
-                }
+                    void test() {
+                        NSLog(@"%@", [[Shared alloc] init]);
+                    }
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
-                """
+                stream <<< """
+                    #include <Framework/Shared.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             // Build and check that we build the Framework module once, and we build other module dependencies.
@@ -1766,14 +1900,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -1787,58 +1925,61 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework.h", headerVisibility: .public),
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <Framework/Framework.h>
+                stream <<< """
+                    #include <Framework/Framework.h>
 
-                void test() {
-                    NSLog(@"%@", [[Shared alloc] init]);
-                }
+                    void test() {
+                        NSLog(@"%@", [[Shared alloc] init]);
+                    }
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
-                """
+                stream <<< """
+                    #include <Framework/Shared.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -1850,15 +1991,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                @interface SharedTwo: NSObject {}
-                @end
-                """
+                    @interface SharedTwo: NSObject {}
+                    @end
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -1885,16 +2025,15 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Introduce a new module dependency
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                #include <SceneKit/SceneKit.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    #include <SceneKit/SceneKit.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                @interface SharedTwo: NSObject {}
-                @end
-                """
+                    @interface SharedTwo: NSObject {}
+                    @end
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -1936,14 +2075,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -1957,58 +2100,61 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework.h", headerVisibility: .public),
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <Framework/Framework.h>
+                stream <<< """
+                    #include <Framework/Framework.h>
 
-                void test() {
-                    NSLog(@"%@", [[Shared alloc] init]);
-                }
+                    void test() {
+                        NSLog(@"%@", [[Shared alloc] init]);
+                    }
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
-                """
+                stream <<< """
+                    #include <Framework/Shared.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             // Build and check that we build the Framework module once.
@@ -2046,14 +2192,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             children: [
                                 TestFile("file.m"),
                                 TestFile("Framework.h"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -2067,36 +2217,41 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestHeadersBuildPhase([
-                                        TestBuildFile("Framework.h", headerVisibility: .public),
-                                    ]),
-                                ]),
-                        ])])
+                                        TestBuildFile("Framework.h", headerVisibility: .public)
+                                    ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #import <Framework/Framework.h>
+                stream <<< """
+                    #import <Framework/Framework.h>
 
-                void test() {
-                }
+                    void test() {
+                    }
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #import <Foundation/Foundation.h>
-                """
+                stream <<< """
+                    #import <Foundation/Foundation.h>
+                    """
             }
 
             // Build and check that we build the Framework module once.
@@ -2109,11 +2264,10 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Update a header in the module to add a new module dependency. We should only build the new copy of the module, as we no longer need the old one.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #import <Foundation/Foundation.h>
-                #import <CoreData/CoreData.h>
-                """
+                stream <<< """
+                    #import <Foundation/Foundation.h>
+                    #import <CoreData/CoreData.h>
+                    """
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // There be 2 scanning actions.
@@ -2145,14 +2299,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework2.h"),
                                 TestFile("Shared2.h"),
                                 TestFile("Shared2.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -2166,11 +2324,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
@@ -2178,89 +2339,91 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
                                     TestFrameworksBuildPhase(["Framework2.framework"]),
-                                ], dependencies: ["Framework2"]),
+                                ],
+                                dependencies: ["Framework2"]
+                            ),
                             TestStandardTarget(
                                 "Framework2",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared2.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework2.h", headerVisibility: .public),
                                         TestBuildFile("Shared2.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <Framework/Framework.h>
+                stream <<< """
+                    #include <Framework/Framework.h>
 
-                void test() {
-                    NSLog(@"%@", [[Shared alloc] init]);
-                }
+                    void test() {
+                        NSLog(@"%@", [[Shared alloc] init]);
+                    }
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
-                """
+                stream <<< """
+                    #include <Framework/Shared.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                #include <Framework2/Framework2.h>
-                @interface Shared: Shared2 {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    #include <Framework2/Framework2.h>
+                    @interface Shared: Shared2 {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework2.h")) { stream in
-                stream <<<
-                """
-                #include <Framework2/Shared2.h>
-                """
+                stream <<< """
+                    #include <Framework2/Shared2.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared2.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared2: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared2: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared2.m")) { stream in
-                stream <<<
-                """
-                #include "Shared2.h"
-                @implementation Shared2 {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared2.h"
+                    @implementation Shared2 {}
+                    @end
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -2317,14 +2480,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Shared.h"),
                                 TestFile("SharedNew.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -2338,11 +2505,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
@@ -2350,14 +2520,17 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                         TestBuildFile("SharedNew.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, temporaryDirectory: tmpDir)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/Framework.h>
 
                     void test() {
@@ -2368,15 +2541,13 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/Shared.h>
                     """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Foundation/Foundation.h>
                     @interface Shared: NSObject {}
                     @end
@@ -2385,8 +2556,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include "Shared.h"
                     @implementation Shared {}
                     @end
@@ -2400,15 +2570,13 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             try tester.fs.move(testWorkspace.sourceRoot.join("aProject/Shared.h"), to: testWorkspace.sourceRoot.join("aProject/SharedNew.h"))
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/SharedNew.h>
                     """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include "SharedNew.h"
                     @implementation Shared {}
                     @end
@@ -2446,14 +2614,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Shared.h"),
                                 TestFile("Shared2.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -2467,11 +2639,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
@@ -2479,14 +2654,17 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                         TestBuildFile("Shared2.h", headerVisibility: .public),
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, temporaryDirectory: tmpDir)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/Framework.h>
 
                     void test() {
@@ -2497,16 +2675,14 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/Shared.h>
                     #include <Framework/Shared2.h>
                     """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.h")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Foundation/Foundation.h>
                     @interface Shared: NSObject {}
                     @end
@@ -2519,8 +2695,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Shared.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include "Shared.h"
                     @implementation Shared {}
                     @end
@@ -2534,8 +2709,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             try tester.fs.remove(testWorkspace.sourceRoot.join("aProject/Shared2.h"))
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/Shared.h>
                     """
             }
@@ -2568,14 +2742,18 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("file2.m"),
                                 TestFile("Framework.h"),
                                 TestFile("Framework.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -2589,24 +2767,30 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Framework.m"]),
                                     TestHeadersBuildPhase([
-                                        TestBuildFile("Framework.h", headerVisibility: .public),
+                                        TestBuildFile("Framework.h", headerVisibility: .public)
                                     ]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, temporaryDirectory: tmpDir)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/Framework.h>
 
                     void test() {
@@ -2617,8 +2801,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.h")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Foundation/Foundation.h>
                     @interface Shared: NSObject {}
                     @end
@@ -2626,8 +2809,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include "Framework.h"
                     @implementation Shared {}
                     @end
@@ -2639,8 +2821,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.m")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #include <Framework/Framework.h>
 
                     void test2() {
@@ -2670,33 +2851,40 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "CLANG_ENABLE_EXPLICIT_MODULES_OBJECT_FILE_VERIFIER": "YES",
-                            ])],
+                                TestFile("file.m")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES_OBJECT_FILE_VERIFIER": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.m"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -2732,32 +2920,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-            """
-            #include <stdio.h>
-            int something = 1;
-            """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             // Clean build
@@ -2797,33 +2992,40 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "CLANG_USE_RESPONSE_FILE": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "CLANG_USE_RESPONSE_FILE": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -2849,32 +3051,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-            """
-            #include <stdio.h>
-            int something = 1;
-            """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -2905,17 +3114,21 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("Framework2.h"),
                                 TestFile("file_1.c"),
                                 TestFile("file_2.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "DEFINES_MODULE": "YES",
-                                "VALID_ARCHS": "arm64",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "DEFINES_MODULE": "YES",
+                                    "VALID_ARCHS": "arm64",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework1",
@@ -2923,7 +3136,8 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("Framework1.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_1.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Framework2",
                                 type: .framework,
@@ -2932,40 +3146,40 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     TestShellScriptBuildPhase(name: "Sleep", originalObjectID: "A", contents: "sleep 5", alwaysOutOfDate: true),
                                     TestHeadersBuildPhase([TestBuildFile("Framework2.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file_2.c"]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework1.h")) { stream in
-                stream <<<
-            """
-            void foo(void);
-            """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.c")) { stream in
-                stream <<<
-            """
-            #include <Framework1/Framework1.h>
-            void foo(void) {}
-            """
+                stream <<< """
+                    #include <Framework1/Framework1.h>
+                    void foo(void) {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Framework2.h")) { stream in
-                stream <<<
-            """
-            #include <Framework1/Framework1.h>
-            void bar(void);
-            """
+                stream <<< """
+                    #include <Framework1/Framework1.h>
+                    void bar(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.c")) { stream in
-                stream <<<
-            """
-            #include <Framework2/Framework2.h>
-            void bar(void) { foo(); }
-            """
+                stream <<< """
+                    #include <Framework2/Framework2.h>
+                    void bar(void) { foo(); }
+                    """
             }
 
             for (warningLevel, destination) in [(BooleanWarningLevel.yes, RunDestinationInfo.iOS), (BooleanWarningLevel.yes, RunDestinationInfo.macOS), (BooleanWarningLevel.no, RunDestinationInfo.macOS)] {
@@ -3008,77 +3222,88 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 TestFile("A.h"),
                                 TestFile("file2.c"),
                                 TestFile("file3.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget("All", dependencies: ["A", "B", "C"]),
                             TestStandardTarget(
                                 "A",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["file.c"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "B",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file2.c"]),
-                                ], dependencies: ["A"]),
+                                    TestSourcesBuildPhase(["file2.c"])
+                                ],
+                                dependencies: ["A"]
+                            ),
                             TestStandardTarget(
                                 "C",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file3.c"]),
-                                ], dependencies: ["B"]),
-                        ])])
+                                    TestSourcesBuildPhase(["file3.c"])
+                                ],
+                                dependencies: ["B"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                int foo(void) {
-                    return 42;
-                }
-                """
+                stream <<< """
+                    int foo(void) {
+                        return 42;
+                    }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/A.h")) { stream in
-                stream <<<
-                """
-                int foo(void);
-                """
+                stream <<< """
+                    int foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.c")) { stream in
-                stream <<<
-                """
-                #include <A/A.h>
-                void f(void) {
-                    int x = foo();
-                }
-                """
+                stream <<< """
+                    #include <A/A.h>
+                    void f(void) {
+                        int x = foo();
+                    }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file3.c")) { stream in
-                stream <<<
-                """
-                #include <A/A.h>
-                void f(void) {
-                    int y = foo();
-                }
-                """
+                stream <<< """
+                    #include <A/A.h>
+                    void f(void) {
+                        int y = foo();
+                    }
+                    """
             }
 
             // Run a clean build
@@ -3090,11 +3315,10 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
 
             // Touch A's header
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/A.h")) { stream in
-                stream <<<
-                """
-                // Comment
-                int foo(void);
-                """
+                stream <<< """
+                    // Comment
+                    int foo(void);
+                    """
             }
 
             // Run an incremental build. Both B and C should rescan and recompile.
@@ -3124,32 +3348,39 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             // The build should succeed if we produced dependency info which can be parsed correctly.

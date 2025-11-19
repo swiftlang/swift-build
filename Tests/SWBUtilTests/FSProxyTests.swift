@@ -18,27 +18,27 @@ import SWBTestSupport
 @_spi(TestSupport) import SWBUtil
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 @Suite fileprivate struct FSProxyTests {
 
-#if !os(Windows)
-    /// Utility method to check the modes of an item at the given path.
-    private func checkModes(_ path: Path, modes: [mode_t], sourceLocation: SourceLocation = #_sourceLocation) {
-        var sbuf = stat()
-        let rv = stat(path.str, &sbuf)
-        guard rv == 0 else {
-            Issue.record("Invalid stat return value \(rv) for \(path)", sourceLocation: sourceLocation)
-            return
+    #if !os(Windows)
+        /// Utility method to check the modes of an item at the given path.
+        private func checkModes(_ path: Path, modes: [mode_t], sourceLocation: SourceLocation = #_sourceLocation) {
+            var sbuf = stat()
+            let rv = stat(path.str, &sbuf)
+            guard rv == 0 else {
+                Issue.record("Invalid stat return value \(rv) for \(path)", sourceLocation: sourceLocation)
+                return
+            }
+            for mode in modes {
+                #expect(mode_t(sbuf.st_mode) & mode > 0, "mode \(mode) not found on \(path)", sourceLocation: sourceLocation)
+            }
         }
-        for mode in modes {
-            #expect(mode_t(sbuf.st_mode) & mode > 0, "mode \(mode) not found on \(path)", sourceLocation: sourceLocation)
-        }
-    }
-#endif
+    #endif
 
     // MARK: LocalFS Tests
 
@@ -50,9 +50,9 @@ import SystemPackage
                 let testPath = tmpDir.join("new-dir")
                 #expect(!localFS.exists(testPath))
                 try localFS.createDirectory(testPath)
-#if !os(Windows)
-                checkModes(testPath, modes: [S_IRWXU, S_IRWXG, S_IRWXO])
-#endif
+                #if !os(Windows)
+                    checkModes(testPath, modes: [S_IRWXU, S_IRWXG, S_IRWXO])
+                #endif
                 #expect(localFS.exists(testPath))
                 #expect(localFS.isDirectory(testPath))
             }
@@ -102,8 +102,7 @@ import SystemPackage
                 var didThrow = false
                 do {
                     try localFS.createDirectory(filePath)
-                }
-                catch {
+                } catch {
                     didThrow = true
                     #expect(error.localizedDescription == "File exists but is not a directory: \(filePath.str)")
                 }
@@ -114,13 +113,12 @@ import SystemPackage
                 didThrow = false
                 do {
                     try localFS.createDirectory(dirPath, recursive: true)
-                }
-                catch {
+                } catch {
                     didThrow = true
                     #if os(Windows)
-                    #expect(error.localizedDescription == "File exists but is not a directory: \(filePath.str)")
+                        #expect(error.localizedDescription == "File exists but is not a directory: \(filePath.str)")
                     #else
-                    #expect(error.localizedDescription == "File exists but is not a directory: \(dirPath.str)")
+                        #expect(error.localizedDescription == "File exists but is not a directory: \(dirPath.str)")
                     #endif
                 }
                 #expect(didThrow)
@@ -137,8 +135,7 @@ import SystemPackage
                 var didThrow = false
                 do {
                     try localFS.createDirectory(symlinkPath)
-                }
-                catch {
+                } catch {
                     didThrow = true
                     #expect(error.localizedDescription == "File is a broken symbolic link: \(symlinkPath.str)")
                 }
@@ -149,8 +146,7 @@ import SystemPackage
                 didThrow = false
                 do {
                     try localFS.createDirectory(dirPath, recursive: true)
-                }
-                catch {
+                } catch {
                     didThrow = true
                     #expect(error.localizedDescription == "File is a broken symbolic link: \(symlinkPath.str)")
                 }
@@ -174,8 +170,7 @@ import SystemPackage
                 var didThrow = false
                 do {
                     try localFS.createDirectory(symlinkPath)
-                }
-                catch {
+                } catch {
                     didThrow = true
                     #expect(error.localizedDescription == "File is a symbolic link which references a path which is not a directory: \(symlinkPath.str)")
                 }
@@ -186,13 +181,12 @@ import SystemPackage
                 didThrow = false
                 do {
                     try localFS.createDirectory(dirPath, recursive: true)
-                }
-                catch {
+                } catch {
                     didThrow = true
                     #if os(Windows)
-                    #expect(error.localizedDescription == "File is a symbolic link which references a path which is not a directory: \(symlinkPath.str)")
+                        #expect(error.localizedDescription == "File is a symbolic link which references a path which is not a directory: \(symlinkPath.str)")
                     #else
-                    #expect(error.localizedDescription == "File exists but is not a directory: \(dirPath.str)")
+                        #expect(error.localizedDescription == "File exists but is not a directory: \(dirPath.str)")
                     #endif
                 }
                 #expect(didThrow)
@@ -313,7 +307,7 @@ import SystemPackage
         }
     }
 
-    @Test(.requireHostOS(.macOS)) // `moveInSameVolume` just does nothing on Linux, apparently
+    @Test(.requireHostOS(.macOS))  // `moveInSameVolume` just does nothing on Linux, apparently
     func localMoveInSameVolume() throws {
         let fs = localFS
         try withTemporaryDirectory(fs: fs) { tmpDirPath in
@@ -350,7 +344,7 @@ import SystemPackage
         }
     }
 
-    @Test(.skipHostOS(.windows)) // POSIX permissions model is inapplicable to Windows
+    @Test(.skipHostOS(.windows))  // POSIX permissions model is inapplicable to Windows
     func localSetPermissions() throws {
         try withTemporaryDirectory { tmpDir in
             // Test setting file permissions.
@@ -437,11 +431,14 @@ import SystemPackage
                 #expect(symLinkFileInfo.isSymlink)
             }
 
-            #expect(performing: {
-                _ = try localFS.realpath(realTmpPath.join("nonexistent"))
-            }, throws: { error in
-                (error as? SWBUtil.POSIXError)?.code == ENOENT
-            })
+            #expect(
+                performing: {
+                    _ = try localFS.realpath(realTmpPath.join("nonexistent"))
+                },
+                throws: { error in
+                    (error as? SWBUtil.POSIXError)?.code == ENOENT
+                }
+            )
         }
     }
 
@@ -1088,7 +1085,7 @@ import SystemPackage
         try _testFileSignatureHonorIgnoreDeviceInodeChangesSetting(simulated: true, at: Path.root.join("base"))
     }
 
-    @Test(.requireHostOS(.macOS)) // copying the file doesn't guarantee a new inode on Windows or Linux
+    @Test(.requireHostOS(.macOS))  // copying the file doesn't guarantee a new inode on Windows or Linux
     func fileSignatureHonorIgnoreDeviceInodeChangesSettingLocalFS() throws {
         try withTemporaryDirectory { tmpDir in
             try _testFileSignatureHonorIgnoreDeviceInodeChangesSetting(simulated: false, at: tmpDir)

@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ModulesVerifierToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class ModulesVerifierToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.modules-verifier"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -29,17 +29,21 @@ public final class ModulesVerifierToolSpec : GenericCommandLineToolSpec, SpecIde
 
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), specialArgs: specialArguments).map(\.asString)
 
-        let inputs = cbc.inputs.map{ delegate.createNode($0.absolutePath) } + cbc.commandOrderingInputs
+        let inputs = cbc.inputs.map { delegate.createNode($0.absolutePath) } + cbc.commandOrderingInputs
         let outputs = cbc.outputs.map { delegate.createNode($0) } + cbc.commandOrderingOutputs
 
-        delegate.createTask(type: self,
-                            ruleInfo: ruleInfo,
-                            commandLine: commandLine,
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: inputs, outputs: outputs, action: nil,
-                            execDescription: resolveExecutionDescription(cbc, delegate),
-                            enableSandboxing: enableSandboxing,
-                            alwaysExecuteTask: alwaysExecuteTask)
+        delegate.createTask(
+            type: self,
+            ruleInfo: ruleInfo,
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: inputs,
+            outputs: outputs,
+            action: nil,
+            execDescription: resolveExecutionDescription(cbc, delegate),
+            enableSandboxing: enableSandboxing,
+            alwaysExecuteTask: alwaysExecuteTask
+        )
     }
 }

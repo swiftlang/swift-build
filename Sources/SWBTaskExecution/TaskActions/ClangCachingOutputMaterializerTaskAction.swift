@@ -41,11 +41,13 @@ public final class ClangCachingOutputMaterializerTaskAction: TaskAction {
         outputDelegate: any TaskOutputDelegate
     ) async -> CommandResult {
         let clangModuleDependencyGraph = dynamicExecutionDelegate.operationContext.clangModuleDependencyGraph
-        do  {
-            guard let casDBs = try clangModuleDependencyGraph.getCASDatabases(
-                libclangPath: key.libclangPath,
-                casOptions: key.casOptions
-            ) else {
+        do {
+            guard
+                let casDBs = try clangModuleDependencyGraph.getCASDatabases(
+                    libclangPath: key.libclangPath,
+                    casOptions: key.casOptions
+                )
+            else {
                 throw StubError.error("unable to use CAS databases")
             }
 

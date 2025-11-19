@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class MacroConditionSet : Serializable, CustomStringConvertible, Sendable {
+public final class MacroConditionSet: Serializable, CustomStringConvertible, Sendable {
     /// The conditions, ordered from highest to lowest priority.
     public let conditions: Array<MacroCondition>
 
@@ -23,7 +23,7 @@ public final class MacroConditionSet : Serializable, CustomStringConvertible, Se
 
     /// Returns the condition for the parameter, if any.
     public subscript(_ parameter: MacroConditionParameter) -> MacroCondition? {
-        return conditions.first{ $0.parameter === parameter }
+        return conditions.first { $0.parameter === parameter }
     }
 
     /// Evaluates the condition against the dictionary of parameter values, returning `true` if there’s a match and `false` if not.  Missing values are interpreted as the empty value, and only match the condition if the `fnmatch()`-style pattern is `*` (meaning that it matches everything).
@@ -33,7 +33,7 @@ public final class MacroConditionSet : Serializable, CustomStringConvertible, Se
     }
 
     public var description: String {
-        return conditions.map{ "[\($0)]" }.joined(separator: "")
+        return conditions.map { "[\($0)]" }.joined(separator: "")
     }
 
     // Serialization
@@ -51,7 +51,7 @@ public final class MacroConditionSet : Serializable, CustomStringConvertible, Se
 }
 
 extension MacroConditionSet: Equatable {
-    public static func ==(lhs: MacroConditionSet, rhs: MacroConditionSet) -> Bool {
+    public static func == (lhs: MacroConditionSet, rhs: MacroConditionSet) -> Bool {
         return lhs.conditions == rhs.conditions
     }
 }

@@ -18,7 +18,7 @@ import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
 
-@Suite(.requireHostOS(.macOS)) // `LSRegisterURL` only exists on macOS
+@Suite(.requireHostOS(.macOS))  // `LSRegisterURL` only exists on macOS
 fileprivate struct LSRegisterURLTests {
     @Test
     func diagnostics() async {
@@ -50,7 +50,12 @@ fileprivate struct LSRegisterURLTests {
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister", "-f", "-R", "-trusted", Path.null.str], workingDirectory: .root, outputs: [], action: action, execDescription: "")
         let executionDelegate = MockExecutionDelegate()
         let outputDelegate = MockTaskOutputDelegate()
-        let result = await action.performTaskAction(task, dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(), executionDelegate: executionDelegate, clientDelegate: MockTaskExecutionClientDelegate(), outputDelegate: outputDelegate
+        let result = await action.performTaskAction(
+            task,
+            dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
+            executionDelegate: executionDelegate,
+            clientDelegate: MockTaskExecutionClientDelegate(),
+            outputDelegate: outputDelegate
         )
         #expect(result == .succeeded)
         #expect(outputDelegate.messages == [])

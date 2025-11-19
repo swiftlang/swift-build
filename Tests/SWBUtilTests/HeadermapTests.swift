@@ -28,37 +28,37 @@ extension Headermap {
 
         // Manually construct the expected output, so we have at least one test based on the fixed output.
         var expected = [UInt8]()
-        expected += [112, 97, 109, 104]                  // magic
-        expected += [1, 0]                               // version
-        expected += [0, 0]                               // reserved
-        expected += [36, 0, 0, 0]                        // string table offset (== header size (24) + bucket size (12) * bucket count (1))
-        expected += [0, 0, 0, 0]                         // num entries
-        expected += [1, 0, 0, 0]                         // num buckets
-        expected += [0, 0, 0, 0]                         // max value length
-        expected += [UInt8](repeating: 0, count: 12) // bucket
-        expected += [0]                                  // string table
+        expected += [112, 97, 109, 104]  // magic
+        expected += [1, 0]  // version
+        expected += [0, 0]  // reserved
+        expected += [36, 0, 0, 0]  // string table offset (== header size (24) + bucket size (12) * bucket count (1))
+        expected += [0, 0, 0, 0]  // num entries
+        expected += [1, 0, 0, 0]  // num buckets
+        expected += [0, 0, 0, 0]  // max value length
+        expected += [UInt8](repeating: 0, count: 12)  // bucket
+        expected += [0]  // string table
         #expect(hmap.toBytes() == ByteString(expected))
     }
 
     @Test
     func readMinimalHmap() throws {
         var input = [UInt8]()
-        input += [112, 97, 109, 104]                  // magic
-        input += [1, 0]                               // version
-        input += [0, 0]                               // reserved
-        input += [72, 0, 0, 0]                        // string table offset (== header size (24) + bucket size (12) * bucket count (4))
-        input += [1, 0, 0, 0]                         // num entries
-        input += [4, 0, 0, 0]                         // num buckets
-        input += [8, 0, 0, 0]                         // max value length
-        input += [UInt8](repeating: 0, count: 12) // bucket
-        input += [UInt8](repeating: 0, count: 12) // bucket
-        input += [UInt8](repeating: 0, count: 12) // bucket
-        input += [1, 0, 0, 0]                         // bucket (key index)
-        input += [5, 0, 0, 0]                         // bucket (prefix index)
-        input += [1, 0, 0, 0]                         // bucket (suffix index)
-        input += [0]                                  // string-table (offset: 0, "")
-        input += [UInt8]("a.h".utf8) + [0]            // string-table (offset: 1, "")
-        input += [UInt8]("/tmp/".utf8) + [0]          // string-table (offset: 5, "")
+        input += [112, 97, 109, 104]  // magic
+        input += [1, 0]  // version
+        input += [0, 0]  // reserved
+        input += [72, 0, 0, 0]  // string table offset (== header size (24) + bucket size (12) * bucket count (4))
+        input += [1, 0, 0, 0]  // num entries
+        input += [4, 0, 0, 0]  // num buckets
+        input += [8, 0, 0, 0]  // max value length
+        input += [UInt8](repeating: 0, count: 12)  // bucket
+        input += [UInt8](repeating: 0, count: 12)  // bucket
+        input += [UInt8](repeating: 0, count: 12)  // bucket
+        input += [1, 0, 0, 0]  // bucket (key index)
+        input += [5, 0, 0, 0]  // bucket (prefix index)
+        input += [1, 0, 0, 0]  // bucket (suffix index)
+        input += [0]  // string-table (offset: 0, "")
+        input += [UInt8]("a.h".utf8) + [0]  // string-table (offset: 1, "")
+        input += [UInt8]("/tmp/".utf8) + [0]  // string-table (offset: 5, "")
         let hmap = try Headermap(bytes: input)
         #expect(hmap.debugBindings == ["a.h -> /tmp/a.h"])
     }

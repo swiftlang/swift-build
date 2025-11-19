@@ -96,7 +96,7 @@ fileprivate struct BuildServicePerfTests: PerfTests {
                 "guid": "W1",
                 "name": "aWorkspace",
                 "path": "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
-                "projects": ["P1"]
+                "projects": ["P1"],
             ]
             let projectPIF: SWBPropertyListItem = [
                 "guid": "P1",
@@ -106,7 +106,7 @@ fileprivate struct BuildServicePerfTests: PerfTests {
                     "type": "group",
                     "name": "SomeFiles",
                     "sourceTree": "PROJECT_DIR",
-                    "path": "/tmp/SomeProject/SomeFiles"
+                    "path": "/tmp/SomeProject/SomeFiles",
                 ],
                 "buildConfigurations": [
                     [
@@ -114,12 +114,12 @@ fileprivate struct BuildServicePerfTests: PerfTests {
                         "name": "Config1",
                         "buildSettings": [
                             "USER_PROJECT_SETTING": "USER_PROJECT_VALUE"
-                        ]
+                        ],
                     ]
                 ],
                 "targets": ["T1"],
                 "defaultConfigurationName": "Config1",
-                "developmentRegion": "English"
+                "developmentRegion": "English",
             ]
             let targetPIF: SWBPropertyListItem = [
                 "guid": "T1",
@@ -128,7 +128,7 @@ fileprivate struct BuildServicePerfTests: PerfTests {
                 "productTypeIdentifier": "com.apple.product-type.application",
                 "productReference": [
                     "guid": "PR1",
-                    "name": "MyApp.app"
+                    "name": "MyApp.app",
                 ],
                 "buildPhases": [],
                 "buildConfigurations": [
@@ -137,28 +137,28 @@ fileprivate struct BuildServicePerfTests: PerfTests {
                         "name": "Config1",
                         "buildSettings": [
                             "PRODUCT_NAME": "MyApp"
-                        ]
+                        ],
                     ]
                 ],
                 "dependencies": [],
-                "buildRules": []
+                "buildRules": [],
             ]
             let topLevelPIF: SWBPropertyListItem = [
                 [
                     "type": "workspace",
                     "signature": "W1",
-                    "contents": workspacePIF
+                    "contents": workspacePIF,
                 ],
                 [
                     "type": "project",
                     "signature": "P1",
-                    "contents": projectPIF
+                    "contents": projectPIF,
                 ],
                 [
                     "type": "target",
                     "signature": "T1",
-                    "contents": targetPIF
-                ]
+                    "contents": targetPIF,
+                ],
             ]
 
             try await session.sendPIF(topLevelPIF)

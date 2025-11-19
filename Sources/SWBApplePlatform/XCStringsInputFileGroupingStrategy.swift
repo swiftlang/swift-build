@@ -30,7 +30,7 @@ import SWBUtil
         return "tool:\(toolName) name:\(groupable.absolutePath.basenameWithoutSuffix)"
     }
 
-    public func groupAdditionalFiles<S>(to target: FileToBuildGroup, from source: S, context: any InputFileGroupingStrategyContext) -> [FileToBuildGroup] where S : Sequence, S.Element == FileToBuildGroup {
+    public func groupAdditionalFiles<S>(to target: FileToBuildGroup, from source: S, context: any InputFileGroupingStrategyContext) -> [FileToBuildGroup] where S: Sequence, S.Element == FileToBuildGroup {
         // Additionally include .strings and .stringsdict files with the same basename.
 
         guard let xcstringsBasenameWithoutSuffix = Set(target.files.map({ $0.absolutePath.basenameWithoutSuffix })).only else {

@@ -271,7 +271,7 @@ import SWBTestSupport
         }
     }
 
-    @Test(.requireHostOS(.macOS)) // swift-foundation has "Unsupported until __PlistDictionaryDecoder is available", which seems to apply only to top-level dictionaries (but not arrays)
+    @Test(.requireHostOS(.macOS))  // swift-foundation has "Unsupported until __PlistDictionaryDecoder is available", which seems to apply only to top-level dictionaries (but not arrays)
     func decodable() throws {
         func checkError(_ error: any Error) -> Bool {
             switch error {
@@ -287,11 +287,15 @@ import SWBTestSupport
         #expect(try decoder.decode(Version.self, from: "15".data(using: .utf8)!) == Version("15"))
         #expect(try decoder.decode(Version.self, from: "15.2.1".data(using: .utf8)!) == Version("15.2.1"))
 
-        #expect("Version should have thrown an error decoding.", performing: {
-            try decoder.decode(Version.self, from: "15a.wer".data(using: .utf8)!)
-        }, throws: { error in
-            checkError(error)
-        })
+        #expect(
+            "Version should have thrown an error decoding.",
+            performing: {
+                try decoder.decode(Version.self, from: "15a.wer".data(using: .utf8)!)
+            },
+            throws: { error in
+                checkError(error)
+            }
+        )
     }
 
     @Test

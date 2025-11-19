@@ -201,7 +201,8 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
         // Build the default target.
         #expect(buildSystem.build())
 
-        #expect(delegate.log == [
+        #expect(
+            delegate.log == [
                 "determined-rule-needs-to-run: <BuildKey.Target name=>",
                 "determined-rule-needs-to-run: <BuildKey.Node path=<all>>",
                 "command-status-changed: <all>, to: isScanning",
@@ -211,7 +212,8 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
                 "command-started: <all>",
                 "command-finished: <all>",
                 "command-status-changed: <all>, to: isComplete",
-            ])
+            ]
+        )
 
         // Ensure coverage of a couple random things we can't test directly.
         #expect(Diagnostic.Kind.note.description == "note")
@@ -243,9 +245,12 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
             // Build the default target.
             #expect(!buildSystem.build())
 
-            #expect(delegate.log == [
-                "error: unable to configure client",
-                "error: unable to load build file"])
+            #expect(
+                delegate.log == [
+                    "error: unable to configure client",
+                    "error: unable to load build file",
+                ]
+            )
         }
 
         // Check reading a non-existing path.
@@ -257,9 +262,12 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
             // Build the default target.
             #expect(!buildSystem.build())
 
-            #expect(delegate.log == [
-                "error: unable to open '\(bogusPath.str)'",
-                "error: unable to load build file"])
+            #expect(
+                delegate.log == [
+                    "error: unable to open '\(bogusPath.str)'",
+                    "error: unable to load build file",
+                ]
+            )
         }
     }
 
@@ -301,10 +309,16 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
             // Build the default target.
             #expect(!buildSystem.build())
 
-            #expect(delegate.log.filter({ $0.hasPrefix("command-process-started") }) == [
-                "command-process-started: �� -- ��"])
-            #expect(delegate.errors == [
-                "commandCannotBuildOutputDueToMissingInputs: <all> <all> [\"relative-path\"]"])
+            #expect(
+                delegate.log.filter({ $0.hasPrefix("command-process-started") }) == [
+                    "command-process-started: �� -- ��"
+                ]
+            )
+            #expect(
+                delegate.errors == [
+                    "commandCannotBuildOutputDueToMissingInputs: <all> <all> [\"relative-path\"]"
+                ]
+            )
         }
     }
 
@@ -342,14 +356,19 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
 
         do {
             let delegate = LoggingDelegate(fs: fs)
-            let buildSystem = BuildSystem(buildFile: manifestPath, delegate: delegate, environment: [
-                    "ENV_KEY": "ENV_VALUE"])
+            let buildSystem = BuildSystem(
+                buildFile: manifestPath,
+                delegate: delegate,
+                environment: [
+                    "ENV_KEY": "ENV_VALUE"
+                ]
+            )
 
             // Build the default target.
             #expect(buildSystem.build())
 
             // We expect a single output event, with the total environment.
-            let outputEvents = delegate.log.filter{ $0.hasPrefix("command-process-output") }
+            let outputEvents = delegate.log.filter { $0.hasPrefix("command-process-output") }
             #expect(outputEvents.count > 0)
             XCTAssertMatch(outputEvents, [.and(.contains("command-process-output: <all>:"), .contains("ENV_KEY=ENV_VALUE\(literalNewline)"))])
         }
@@ -456,7 +475,7 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
         #expect(gen.next() == "command-process-finished: \(Path.root.join("fail.txt").str)")
         #expect(gen.next() == "command-finished: \(Path.root.join("fail.txt").str)")
         #expect(gen.next() == "had-command-failure")
-        #expect(gen.map({$0}) == [])
+        #expect(gen.map({ $0 }) == [])
     }
 
     @Test(.requireProcessSpawning) func fileSystemHandling() throws {
@@ -499,9 +518,13 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
             #expect(!buildSystem.build())
 
             // Verify the input shows as missing.
-            #expect([] != delegate.log.filter({
-                $0 == "commandCannotBuildOutputDueToMissingInputs: <all> <all> [\"\(Path.root.join("input.txt").str.escapedForJSON)\"]"
-                    }), "missing expected error in log: \(delegate.log)")
+            #expect(
+                []
+                    != delegate.log.filter({
+                        $0 == "commandCannotBuildOutputDueToMissingInputs: <all> <all> [\"\(Path.root.join("input.txt").str.escapedForJSON)\"]"
+                    }),
+                "missing expected error in log: \(delegate.log)"
+            )
         }
 
         // Now write the file, and rebuild.
@@ -643,16 +666,18 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
         // Build the default target.
         #expect(buildSystem.build())
 
-        #expect(delegate.log == [
-            "determined-rule-needs-to-run: <BuildKey.Target name=>",
-            "determined-rule-needs-to-run: <BuildKey.Node path=<all>>",
-            "command-status-changed: <all>, to: isScanning",
-            "determined-rule-needs-to-run: <BuildKey.Command name=<all>>",
-            "command-preparing: <all>",
-            "should-command-start: <all>",
-            "command-finished: <all>",
-            "command-status-changed: <all>, to: isComplete",
-            ])
+        #expect(
+            delegate.log == [
+                "determined-rule-needs-to-run: <BuildKey.Target name=>",
+                "determined-rule-needs-to-run: <BuildKey.Node path=<all>>",
+                "command-status-changed: <all>, to: isScanning",
+                "determined-rule-needs-to-run: <BuildKey.Command name=<all>>",
+                "command-preparing: <all>",
+                "should-command-start: <all>",
+                "command-finished: <all>",
+                "command-status-changed: <all>, to: isComplete",
+            ]
+        )
     }
 
     @Test(.requireLLBuild(apiVersion: 15)) func cycle() throws {
@@ -697,18 +722,20 @@ fileprivate class LoggingDelegate: BuildSystemDelegate {
         // Build the default target.
         #expect(!buildSystem.build())
 
-        #expect(delegate.log == [
-            "determined-rule-needs-to-run: <BuildKey.Target name=>",
-            "determined-rule-needs-to-run: <BuildKey.Node path=<all>>",
-            "command-status-changed: <all>, to: isScanning",
-            "determined-rule-needs-to-run: <BuildKey.Command name=<all>>",
-            "command-preparing: <all>",
-            "determined-rule-needs-to-run: <BuildKey.Node path=foo>",
-            "command-status-changed: foo, to: isScanning",
-            "determined-rule-needs-to-run: <BuildKey.Command name=foo>",
-            "command-preparing: foo",
-            "cycle-detected: [\"\", \"<all>\", \"<all>\", \"foo\", \"foo\", \"<all>\"]",
-            ])
+        #expect(
+            delegate.log == [
+                "determined-rule-needs-to-run: <BuildKey.Target name=>",
+                "determined-rule-needs-to-run: <BuildKey.Node path=<all>>",
+                "command-status-changed: <all>, to: isScanning",
+                "determined-rule-needs-to-run: <BuildKey.Command name=<all>>",
+                "command-preparing: <all>",
+                "determined-rule-needs-to-run: <BuildKey.Node path=foo>",
+                "command-status-changed: foo, to: isScanning",
+                "determined-rule-needs-to-run: <BuildKey.Command name=foo>",
+                "command-preparing: foo",
+                "cycle-detected: [\"\", \"<all>\", \"<all>\", \"foo\", \"foo\", \"<all>\"]",
+            ]
+        )
     }
 }
 

@@ -19,7 +19,7 @@ import class Foundation.NSRegularExpression
 @_spi(Testing)
 public enum ModuleMapKind: String {
     case publicModule = "public"
-    case privateModule =  "private"
+    case privateModule = "private"
 }
 
 @_spi(Testing)
@@ -53,7 +53,7 @@ public struct ModuleVerifierModuleMap: Hashable {
             let regularExpression = try! NSRegularExpression(pattern: pattern, options: .dotMatchesLineSeparators)
             // The range conversions are all real awkward, <rdar://78800247&78800081&78800042>.
             let wholeString = NSRange(moduleContents.startIndex..., in: moduleContents)
-            return regularExpression.matches(in: moduleContents, range: wholeString).map {match in
+            return regularExpression.matches(in: moduleContents, range: wholeString).map { match in
                 return String(moduleContents[Range(match.range(at: 1), in: moduleContents)!])
             }
         }
@@ -117,7 +117,7 @@ public struct ModuleVerifierModuleMap: Hashable {
         ]
 
         let lines = moduleContents.components(separatedBy: "\n")
-        let moduleNames:[String] = lines.filter { line in
+        let moduleNames: [String] = lines.filter { line in
             let line = line.trimmingCharacters(in: .whitespacesAndNewlines)
             return line.starts(withOneOf: moduleNamesPrefix) && !line.contains(oneOf: notModuleNameFilters)
         }.compactMap { line in
@@ -141,7 +141,7 @@ extension ModuleVerifierModuleMap: Comparable {
 }
 
 extension String {
-    fileprivate func contains(oneOf strings:[String]) -> Bool {
+    fileprivate func contains(oneOf strings: [String]) -> Bool {
         for string in strings {
             if self.contains(string) {
                 return true
@@ -150,7 +150,7 @@ extension String {
         return false
     }
 
-    fileprivate func starts(withOneOf strings:[String]) -> Bool {
+    fileprivate func starts(withOneOf strings: [String]) -> Bool {
         for string in strings {
             if self.hasPrefix(string) {
                 return true
@@ -159,7 +159,7 @@ extension String {
         return false
     }
 
-    fileprivate func remove(strings:[String], options mask: CompareOptions = []) -> String {
+    fileprivate func remove(strings: [String], options mask: CompareOptions = []) -> String {
         var finalString = self
 
         for string in strings {

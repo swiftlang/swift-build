@@ -28,22 +28,26 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 children: [
                     TestFile("main.swift"),
                     TestFile("static.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "$(ARCHS_STANDARD)",
-                    "CODE_SIGNING_ALLOWED": "YES",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                    "DEFINES_MODULE": "YES",
-                    "ENABLE_SDK_IMPORTS": "YES",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "$(HOST_PLATFORM)",
-                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                    "SWIFT_VERSION": swiftVersion,
-                    "OTHER_LDFLAGS": ldFlags,
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "DEFINES_MODULE": "YES",
+                        "ENABLE_SDK_IMPORTS": "YES",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "OTHER_LDFLAGS": ldFlags,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -52,21 +56,22 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("staticlib")),
-                        ])
+                            TestBuildFile(.target("staticlib"))
+                        ]),
                     ],
                     dependencies: [
-                        "staticlib",
+                        "staticlib"
                     ]
                 ),
                 TestStandardTarget(
                     "staticlib",
                     type: .staticLibrary,
                     buildPhases: [
-                        TestSourcesBuildPhase(["static.swift"]),
+                        TestSourcesBuildPhase(["static.swift"])
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -96,7 +101,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
             let tester = try await makeTester(tmpDir: tmpDir)
             let provisioningInputs = [
                 "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
-                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
             ]
 
             let destination: RunDestinationInfo = .host
@@ -132,36 +137,42 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("lib.swift"),
-                    ]),
+                        TestFile("lib.swift")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "ENABLE_SDK_IMPORTS": "YES",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "ENABLE_SDK_IMPORTS": "YES",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "lib",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["lib.swift"]),
-                        ], dependencies: [
-                            "resources",
+                            TestSourcesBuildPhase(["lib.swift"])
+                        ],
+                        dependencies: [
+                            "resources"
                         ]
                     ),
                     TestStandardTarget(
                         "resources",
                         type: .bundle
-                    )
-                ])
+                    ),
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -198,7 +209,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 let tester = try await makeTester(ldFlags: flags, tmpDir: tmpDir)
                 let provisioningInputs = [
                     "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
-                    "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+                    "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
                 ]
 
                 let destination: RunDestinationInfo = .host
@@ -216,4 +227,3 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
         }
     }
 }
-

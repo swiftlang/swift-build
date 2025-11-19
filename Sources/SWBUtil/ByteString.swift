@@ -91,11 +91,11 @@ public struct ByteString: ExpressibleByArrayLiteral, Sendable {
         _bytes.hasSuffix(suffix._bytes)
     }
 
-    public static func +=(lhs: inout ByteString, rhs: ByteString) {
+    public static func += (lhs: inout ByteString, rhs: ByteString) {
         lhs = lhs + rhs
     }
 
-    public static func +(lhs: ByteString, rhs: ByteString) -> ByteString {
+    public static func + (lhs: ByteString, rhs: ByteString) -> ByteString {
         return ByteString(lhs._bytes + rhs.bytes)
     }
 }
@@ -109,10 +109,10 @@ extension ByteString: CustomStringConvertible {
 }
 
 /// Hashable conformance for a ByteString.
-extension ByteString: Hashable { }
+extension ByteString: Hashable {}
 
 /// Comparison with strings (as UTF8).
-public func ==(lhs: ByteString, rhs: String) -> Bool {
+public func == (lhs: ByteString, rhs: String) -> Bool {
     // FIXME: Is Swift's String.UTF8View.count O(1)?
     let utf8 = rhs.utf8
     if lhs.bytes.count != utf8.count {

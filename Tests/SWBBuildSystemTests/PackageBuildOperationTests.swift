@@ -39,46 +39,59 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("main.swift"),
-                    ]),
+                        TestFile("main.swift")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "GENERATE_RESOURCE_ACCESSORS": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SWIFT_VERSION": "5"]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_RESOURCE_ACCESSORS": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_VERSION": "5",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
-                        "swifttool", type: .commandLineTool,
+                        "swifttool",
+                        type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["main.swift"]),
+                            TestSourcesBuildPhase(["main.swift"])
                         ],
                         dependencies: ["mallory"]
                     ),
                     TestStandardTarget(
-                        "mallory", type: .bundle,
+                        "mallory",
+                        type: .bundle,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
+                                ]
+                            )
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false, fileSystem: localFS)
 
             let projectDir = tester.workspace.projects[0].sourceRoot
             try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     import Foundation
 
                     let bundle = Bundle.module
@@ -110,50 +123,63 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("main.mm"),
-                    ]),
+                        TestFile("main.mm")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "GENERATE_RESOURCE_ACCESSORS": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "USE_HEADERMAP": "NO"]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_RESOURCE_ACCESSORS": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
-                        "objcpptool", type: .commandLineTool,
+                        "objcpptool",
+                        type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "USE_HEADERMAP": "NO",
-                                "DEFINES_MODULE": "YES",
-                                "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "USE_HEADERMAP": "NO",
+                                    "DEFINES_MODULE": "YES",
+                                    "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["main.mm"]),
+                            TestSourcesBuildPhase(["main.mm"])
                         ],
                         dependencies: ["mallory"]
                     ),
                     TestStandardTarget(
-                        "mallory", type: .bundle,
+                        "mallory",
+                        type: .bundle,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "USE_HEADERMAP": "NO",
-                                "DEFINES_MODULE": "YES",
-                                "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "USE_HEADERMAP": "NO",
+                                    "DEFINES_MODULE": "YES",
+                                    "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
+                                ]
+                            )
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false, fileSystem: localFS)
 
             let projectDir = tester.workspace.projects[0].sourceRoot
             try await tester.fs.writeFileContents(projectDir.join("main.mm")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     #import <Foundation/Foundation.h>
 
                     int main(int argc, const char * argv[]) {
@@ -192,7 +218,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                             "SDKROOT": "xros",
                             "CODE_SIGNING_ALLOWED": "NO",
                             "SWIFT_VERSION": swiftVersion,
-                            "PACKAGE_RESOURCE_TARGET_KIND": "resource"
+                            "PACKAGE_RESOURCE_TARGET_KIND": "resource",
                         ]
                     )
                 ],
@@ -209,7 +235,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                             "SDKROOT": "xros",
                             "CODE_SIGNING_ALLOWED": "NO",
                             "SWIFT_VERSION": swiftVersion,
-                            "PACKAGE_RESOURCE_TARGET_KIND": "regular"
+                            "PACKAGE_RESOURCE_TARGET_KIND": "regular",
                         ]
                     )
                 ],
@@ -251,7 +277,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                         "-o", "\(workspace.sourceRoot.str)/aProject/build/Debug-xros/PackageLib.bundle/test.reality",
                         "\(packageRKAssetsFile.str)",
                         "--schema-file",
-                        "\(workspace.sourceRoot.str)/aProject/build/aProject.build/Debug-xros/PackageResourceBundle.build/DerivedSources/RealityAssetsGenerated/CustomComponentUSDInitializers.usda"
+                        "\(workspace.sourceRoot.str)/aProject/build/aProject.build/Debug-xros/PackageResourceBundle.build/DerivedSources/RealityAssetsGenerated/CustomComponentUSDInitializers.usda",
                     ])
                     try results.checkTaskFollows(task, .matchRuleType("RealityAssetsSchemaGen"))
                 }
@@ -260,12 +286,15 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             }
 
             // modify the test.swift file in the package with the .rkassets so the schema file changes
-            try tester.fs.write(packageSwiftFileTest, contents: """
-            import RealityKit
-            public struct MyComponent: Component, Codable {
-                public init() {}
-            }
-            """)
+            try tester.fs.write(
+                packageSwiftFileTest,
+                contents: """
+                    import RealityKit
+                    public struct MyComponent: Component, Codable {
+                        public init() {}
+                    }
+                    """
+            )
 
             // Check that the next build is NOT null after touching the .swift file.
             try await tester.checkBuild(runDestination: .xrOS, persistent: true) { results in
@@ -279,7 +308,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                         "-o", "\(workspace.sourceRoot.str)/aProject/build/Debug-xros/PackageLib.bundle/test.reality",
                         "\(packageRKAssetsFile.str)",
                         "--schema-file",
-                        "\(workspace.sourceRoot.str)/aProject/build/aProject.build/Debug-xros/PackageResourceBundle.build/DerivedSources/RealityAssetsGenerated/CustomComponentUSDInitializers.usda"
+                        "\(workspace.sourceRoot.str)/aProject/build/aProject.build/Debug-xros/PackageResourceBundle.build/DerivedSources/RealityAssetsGenerated/CustomComponentUSDInitializers.usda",
                     ])
                     try results.checkTaskFollows(task, .matchRuleType("RealityAssetsSchemaGen"))
                 }
@@ -304,7 +333,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                             "SDKROOT": "watchos",
                             "CODE_SIGNING_ALLOWED": "NO",
                             "SWIFT_VERSION": swiftVersion,
-                            "PACKAGE_RESOURCE_TARGET_KIND": "resource"
+                            "PACKAGE_RESOURCE_TARGET_KIND": "resource",
                         ]
                     )
                 ],
@@ -321,7 +350,7 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                             "SDKROOT": "watchos",
                             "CODE_SIGNING_ALLOWED": "NO",
                             "SWIFT_VERSION": swiftVersion,
-                            "PACKAGE_RESOURCE_TARGET_KIND": "regular"
+                            "PACKAGE_RESOURCE_TARGET_KIND": "regular",
                         ]
                     )
                 ],
@@ -369,61 +398,92 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             let prodTarget = try await TestPackageProductTarget(
                 "AppProduct",
                 frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("App"))]),
+                    TestBuildFile(.target("App"))
+                ]),
                 buildConfigurations: [
                     // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                        "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "auto",
+                            "SDK_VARIANT": "auto",
+                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 dependencies: ["App"]
             )
             let appTarget =
-            try await TestStandardTarget("App", type: .objectFile,
-                                         buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: [
-                                            "PRODUCT_NAME": "App",
-                                            "SDKROOT": "auto",
-                                            "SWIFT_PACKAGE_NAME": "appPkg",
-                                            "SDK_VARIANT": "auto",
-                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                            "SWIFT_VERSION": swiftVersion,
-                                         ]) ],
-                                         buildPhases: [TestSourcesBuildPhase(["app.swift"]),
-                                                       TestFrameworksBuildPhase([
-                                                        TestBuildFile(.target("LibA")),
-                                                        TestBuildFile(.target("LibB"))
-                                                       ])],
-                                         dependencies: ["LibA", "LibB"])
+                try await TestStandardTarget(
+                    "App",
+                    type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "App",
+                                "SDKROOT": "auto",
+                                "SWIFT_PACKAGE_NAME": "appPkg",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["app.swift"]),
+                        TestFrameworksBuildPhase([
+                            TestBuildFile(.target("LibA")),
+                            TestBuildFile(.target("LibB")),
+                        ]),
+                    ],
+                    dependencies: ["LibA", "LibB"]
+                )
             let childTargetA =
-            try await TestStandardTarget("LibA", type: .objectFile,
-                                         buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: [
-                                            "PRODUCT_NAME": "LibA",
-                                            "SWIFT_PACKAGE_NAME": "libPkg",
-                                            "SDKROOT": "auto",
-                                            "SDK_VARIANT": "auto",
-                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                            "SWIFT_VERSION": swiftVersion,
-                                         ]) ],
-                                         buildPhases: [TestSourcesBuildPhase(["libA.swift"])])
+                try await TestStandardTarget(
+                    "LibA",
+                    type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "LibA",
+                                "SWIFT_PACKAGE_NAME": "libPkg",
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["libA.swift"])]
+                )
             let childTargetB =
-            try await TestStandardTarget("LibB", type: .objectFile,
-                                         buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: [
-                                            "PRODUCT_NAME": "LibB",
-                                            "SDKROOT": "auto",
-                                            "SDK_VARIANT": "auto",
-                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                            "SWIFT_VERSION": swiftVersion,
-                                         ]) ],
-                                         buildPhases: [TestSourcesBuildPhase(["libB.swift"])])
+                try await TestStandardTarget(
+                    "LibB",
+                    type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "LibB",
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["libB.swift"])]
+                )
 
             let package = TestPackageProject("rootPkg", groupTree: TestGroup("Package", children: [TestFile("app.swift"), TestFile("libA.swift"), TestFile("libB.swift")]), targets: [prodTarget, appTarget, childTargetA, childTargetB])
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
-                projects: [package])
+                projects: [package]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("rootPkg/app.swift")) { stream in
@@ -477,48 +537,71 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             let prodTarget = try await TestPackageProductTarget(
                 "PackageLibProduct",
                 frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
+                    TestBuildFile(.target("PackageLib"))
+                ]),
                 buildConfigurations: [
                     // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                        "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "auto",
+                            "SDK_VARIANT": "auto",
+                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 dependencies: ["PackageLib"]
             )
             let stdTarget =
-            try await TestStandardTarget("PackageLib", type: .objectFile,
-                                         buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: [
-                                            "PRODUCT_NAME": "PackageLib",
-                                            "SDKROOT": "auto",
-                                            "SWIFT_MODULE_ALIASES": "ChildLib=MyLib",
-                                            "SDK_VARIANT": "auto",
-                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                            "SWIFT_VERSION": swiftVersion,
-                                         ]) ],
-                                         buildPhases: [TestSourcesBuildPhase(["test.swift"]),
-                                                       TestFrameworksBuildPhase([TestBuildFile(.target("MyLib"))])],
-                                         dependencies: ["MyLib"])
+                try await TestStandardTarget(
+                    "PackageLib",
+                    type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "PackageLib",
+                                "SDKROOT": "auto",
+                                "SWIFT_MODULE_ALIASES": "ChildLib=MyLib",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["test.swift"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("MyLib"))]),
+                    ],
+                    dependencies: ["MyLib"]
+                )
             let childTarget =
-            try await TestStandardTarget("MyLib", type: .objectFile,
-                                         buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: [
-                                            "PRODUCT_NAME": "MyLib",
-                                            "SWIFT_MODULE_ALIASES": "ChildLib=MyLib",
-                                            "SDKROOT": "auto",
-                                            "SDK_VARIANT": "auto",
-                                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                            "SWIFT_VERSION": swiftVersion,
-                                         ]) ],
-                                         buildPhases: [TestSourcesBuildPhase(["childtest.swift"])])
+                try await TestStandardTarget(
+                    "MyLib",
+                    type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "MyLib",
+                                "SWIFT_MODULE_ALIASES": "ChildLib=MyLib",
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["childtest.swift"])]
+                )
 
             let package = TestPackageProject("aPackage", groupTree: TestGroup("Package", children: [TestFile("test.swift"), TestFile("childtest.swift")]), targets: [prodTarget, stdTarget, childTarget])
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
-                projects: [package])
+                projects: [package]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aPackage/test.swift")) { stream in
@@ -536,11 +619,11 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                         #expect(targetName != "ChildLib")
                         if targetName == "MyLib" {
                             #expect(["-module-name", "MyLib"].allSatisfy(task.commandLine.contains))
-                            #expect(["-module-alias",  "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
+                            #expect(["-module-alias", "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
                         }
                         if targetName == "PackageLib" {
-                            #expect(["-module-name",  "PackageLib"].allSatisfy(task.commandLine.contains))
-                            #expect(["-module-alias",  "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
+                            #expect(["-module-name", "PackageLib"].allSatisfy(task.commandLine.contains))
+                            #expect(["-module-alias", "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
                         }
                     }
                 }
@@ -548,15 +631,15 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                     for task in tasks {
                         let targetName = task.forTarget?.target.name ?? ""
                         if targetName == "MyLib" {
-                            #expect(["-module-name",  "MyLib"].allSatisfy(task.commandLine.contains))
-                            #expect(["-module-alias",  "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
-                            #expect(!task.commandLine.filter {$0.asString.contains("MyLib.swiftmodule")}.isEmpty)
-                            #expect(task.commandLine.filter {$0.asString.contains("ChildLib.swiftmodule")}.isEmpty)
+                            #expect(["-module-name", "MyLib"].allSatisfy(task.commandLine.contains))
+                            #expect(["-module-alias", "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
+                            #expect(!task.commandLine.filter { $0.asString.contains("MyLib.swiftmodule") }.isEmpty)
+                            #expect(task.commandLine.filter { $0.asString.contains("ChildLib.swiftmodule") }.isEmpty)
                         }
                         if targetName == "PackageLib" {
-                            #expect(["-module-name",  "PackageLib"].allSatisfy(task.commandLine.contains))
-                            #expect(["-module-alias",  "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
-                            #expect(!task.commandLine.filter {$0.asString.contains("PackageLib.swiftmodule")}.isEmpty)
+                            #expect(["-module-name", "PackageLib"].allSatisfy(task.commandLine.contains))
+                            #expect(["-module-alias", "ChildLib=MyLib"].allSatisfy(task.commandLine.contains))
+                            #expect(!task.commandLine.filter { $0.asString.contains("PackageLib.swiftmodule") }.isEmpty)
                         }
                     }
                 }
@@ -623,32 +706,48 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
     }
 
     func testerForBasicPackageProject(tmpDirPath: Path, configurationToBuild: String) async throws -> BuildOperationTester {
-        let package = try await TestPackageProject("aPackage", groupTree: TestGroup("Package", children: [TestFile("test.swift")]), targets: [
-            TestPackageProductTarget(
-                "PackageLibProduct",
-                frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                        "SWIFT_VERSION": swiftVersion,
+        let package = try await TestPackageProject(
+            "aPackage",
+            groupTree: TestGroup("Package", children: [TestFile("test.swift")]),
+            targets: [
+                TestPackageProductTarget(
+                    "PackageLibProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PackageLib"))
                     ]),
-                ],
-                dependencies: ["PackageLib"]
-            ),
-            TestStandardTarget("PackageLib", type: .objectFile,
-                               buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: [
+                    buildConfigurations: [
+                        // Targets need to opt-in to specialization.
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
+                    ],
+                    dependencies: ["PackageLib"]
+                ),
+                TestStandardTarget(
+                    "PackageLib",
+                    type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
                                 "PRODUCT_NAME": "PackageLib",
                                 "SDKROOT": "auto",
                                 "SDK_VARIANT": "auto",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                 "SWIFT_VERSION": swiftVersion,
-                               ]) ],
-                               buildPhases: [TestSourcesBuildPhase(["test.swift"])])
-        ])
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["test.swift"])]
+                ),
+            ]
+        )
 
         let buildSettings = try await [
             "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -663,23 +762,33 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
             projects: [
                 TestProject(
                     "aProject",
-                    groupTree: TestGroup("Sources", children: [
-                        TestFile("Source.swift"),
-                    ]),
+                    groupTree: TestGroup(
+                        "Sources",
+                        children: [
+                            TestFile("Source.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration("BestDevelopment", buildSettings: buildSettings),
                         TestBuildConfiguration("BestDeployment", buildSettings: buildSettings),
                     ],
                     targets: [
                         TestStandardTarget(
-                            "Foo", type: .framework,
+                            "Foo",
+                            type: .framework,
                             buildConfigurations: [TestBuildConfiguration("Debug"), TestBuildConfiguration("Release")],
                             buildPhases: [
                                 TestSourcesBuildPhase(["Source.swift"]),
                                 TestFrameworksBuildPhase([
-                                    TestBuildFile(.target("PackageLibProduct"))])
+                                    TestBuildFile(.target("PackageLibProduct"))
+                                ]),
                             ],
-                            dependencies: ["PackageLibProduct"])]), package])
+                            dependencies: ["PackageLibProduct"]
+                        )
+                    ]
+                ), package,
+            ]
+        )
         let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
         try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Source.swift")) { stream in
             stream.write("import PackageLib")

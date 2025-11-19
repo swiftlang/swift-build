@@ -19,25 +19,41 @@ import Testing
     func roundTrip() throws {
         let depInfo = DependencyInfo(version: "foo", inputs: ["/bar", "/bazz"], missing: [], outputs: ["/cool-output"])
         let bytes = try depInfo.asBytes()
-        #expect(bytes == [0x00, 102, 111, 111, 0,
-                          0x10, 47, 98, 97, 114, 0,
-                          0x10, 47, 98, 97, 122, 122, 0,
-                          0x40, 47, 99, 111, 111, 108, 45, 111, 117, 116, 112, 117, 116, 0])
+        #expect(
+            bytes == [
+                0x00, 102, 111, 111, 0,
+                0x10, 47, 98, 97, 114, 0,
+                0x10, 47, 98, 97, 122, 122, 0,
+                0x40, 47, 99, 111, 111, 108, 45, 111, 117, 116, 112, 117, 116, 0,
+            ]
+        )
         #expect(try depInfo == DependencyInfo(bytes: bytes))
     }
 
     @Test
     func encoding() throws {
         let depInfo1 = DependencyInfo(version: "foo", inputs: ["/bar"])
-        #expect(try depInfo1.asBytes() == [0x00, 102, 111, 111, 0,
-                                           0x10, 47, 98, 97, 114, 0])
+        #expect(
+            try depInfo1.asBytes() == [
+                0x00, 102, 111, 111, 0,
+                0x10, 47, 98, 97, 114, 0,
+            ]
+        )
         let depInfo2 = DependencyInfo(version: "foo", missing: ["/bar", "/bar"])
-        #expect(try depInfo2.asBytes() == [0x00, 102, 111, 111, 0,
-                                           0x11, 47, 98, 97, 114, 0,
-                                           0x11, 47, 98, 97, 114, 0])
+        #expect(
+            try depInfo2.asBytes() == [
+                0x00, 102, 111, 111, 0,
+                0x11, 47, 98, 97, 114, 0,
+                0x11, 47, 98, 97, 114, 0,
+            ]
+        )
         let depInfo3 = DependencyInfo(version: "foo", outputs: ["/bar"])
-        #expect(try depInfo3.asBytes() == [0x00, 102, 111, 111, 0,
-                                           0x40, 47, 98, 97, 114, 0])
+        #expect(
+            try depInfo3.asBytes() == [
+                0x00, 102, 111, 111, 0,
+                0x40, 47, 98, 97, 114, 0,
+            ]
+        )
     }
 
     @Test
@@ -69,16 +85,28 @@ import Testing
 
     @Test
     func decoding() throws {
-        #expect(try DependencyInfo(bytes: [0x00, 102, 111, 111, 0,
-                                           0x10, 47, 98, 97, 114, 0,
-                                           0x10, 47, 98, 97, 115, 0]) == DependencyInfo(version: "foo", inputs: ["/bar", "/bas"]))
+        #expect(
+            try DependencyInfo(bytes: [
+                0x00, 102, 111, 111, 0,
+                0x10, 47, 98, 97, 114, 0,
+                0x10, 47, 98, 97, 115, 0,
+            ]) == DependencyInfo(version: "foo", inputs: ["/bar", "/bas"])
+        )
 
-        #expect(try DependencyInfo(bytes: [0x00, 102, 111, 111, 0,
-                                           0x11, 47, 98, 97, 114, 0]) == DependencyInfo(version: "foo", missing: ["/bar"]))
+        #expect(
+            try DependencyInfo(bytes: [
+                0x00, 102, 111, 111, 0,
+                0x11, 47, 98, 97, 114, 0,
+            ]) == DependencyInfo(version: "foo", missing: ["/bar"])
+        )
 
-        #expect(try DependencyInfo(bytes: [0x00, 102, 111, 111, 0,
-                                           0x40, 47, 98, 97, 114, 0,
-                                           0x40, 47, 98, 97, 113, 0]) == DependencyInfo(version: "foo", outputs: ["/bar", "/baq"]))
+        #expect(
+            try DependencyInfo(bytes: [
+                0x00, 102, 111, 111, 0,
+                0x40, 47, 98, 97, 114, 0,
+                0x40, 47, 98, 97, 113, 0,
+            ]) == DependencyInfo(version: "foo", outputs: ["/bar", "/baq"])
+        )
     }
 
     @Test

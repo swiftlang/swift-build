@@ -20,17 +20,17 @@ public import class Foundation.NSNumber
 public import class Foundation.NSString
 
 #if canImport(Darwin)
-import class CoreFoundation.CFString
-import var CoreFoundation.kCFStringEncodingInvalidId
-import func CoreFoundation.CFStringConvertEncodingToNSStringEncoding
-import func CoreFoundation.CFStringConvertEncodingToIANACharSetName
-import func CoreFoundation.CFStringConvertIANACharSetNameToEncoding
-import func CoreFoundation.CFStringConvertNSStringEncodingToEncoding
+    import class CoreFoundation.CFString
+    import var CoreFoundation.kCFStringEncodingInvalidId
+    import func CoreFoundation.CFStringConvertEncodingToNSStringEncoding
+    import func CoreFoundation.CFStringConvertEncodingToIANACharSetName
+    import func CoreFoundation.CFStringConvertIANACharSetNameToEncoding
+    import func CoreFoundation.CFStringConvertNSStringEncodingToEncoding
 #endif
 
 #if canImport(Darwin)
-import struct CoreFoundation.ObjCBool
-public import struct Foundation.StringEncodingDetectionOptionsKey
+    import struct CoreFoundation.ObjCBool
+    public import struct Foundation.StringEncodingDetectionOptionsKey
 #endif
 
 // The naming convention in Foundation is rather unfortunate.
@@ -39,11 +39,11 @@ public import struct Foundation.StringEncodingDetectionOptionsKey
 public extension FileTextEncoding {
     init?(stringEncoding: String.Encoding) {
         #if canImport(Darwin)
-        let cfencoding = CFStringConvertNSStringEncodingToEncoding(stringEncoding.rawValue)
-        if cfencoding != kCFStringEncodingInvalidId, let name = CFStringConvertEncodingToIANACharSetName(cfencoding).map(String.init) {
-            self.init(name)
-            return
-        }
+            let cfencoding = CFStringConvertNSStringEncodingToEncoding(stringEncoding.rawValue)
+            if cfencoding != kCFStringEncodingInvalidId, let name = CFStringConvertEncodingToIANACharSetName(cfencoding).map(String.init) {
+                self.init(name)
+                return
+            }
         #endif
         return nil
     }
@@ -51,10 +51,10 @@ public extension FileTextEncoding {
     /// Convert the given encoding to an `NSStringEncoding`.
     var stringEncoding: String.Encoding? {
         #if canImport(Darwin)
-        let cfencoding = CFStringConvertIANACharSetNameToEncoding(rawValue.asCFString)
-        if cfencoding != kCFStringEncodingInvalidId {
-            return String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(cfencoding))
-        }
+            let cfencoding = CFStringConvertIANACharSetNameToEncoding(rawValue.asCFString)
+            if cfencoding != kCFStringEncodingInvalidId {
+                return String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(cfencoding))
+            }
         #endif
         return nil
     }
@@ -75,13 +75,13 @@ public extension FileTextEncoding {
         }
 
         #if canImport(Darwin)
-        var convertedString: NSString?
-        var usedLossyConversion: ObjCBool = true
-        let stringEncoding = String.Encoding(rawValue: NSString.stringEncoding(for: Data(bytes), encodingOptions: [.allowLossyKey: NSNumber(value: false)], convertedString: &convertedString, usedLossyConversion: &usedLossyConversion))
-        if let convertedString = convertedString as String?, let discoveredEncoding = FileTextEncoding(stringEncoding: stringEncoding), !usedLossyConversion.boolValue {
-            // Always detect ASCII as UTF-8, because we want to prefer Unicode encodings
-            return (convertedString, stringEncoding == .ascii ? FileTextEncoding.utf8 : discoveredEncoding)
-        }
+            var convertedString: NSString?
+            var usedLossyConversion: ObjCBool = true
+            let stringEncoding = String.Encoding(rawValue: NSString.stringEncoding(for: Data(bytes), encodingOptions: [.allowLossyKey: NSNumber(value: false)], convertedString: &convertedString, usedLossyConversion: &usedLossyConversion))
+            if let convertedString = convertedString as String?, let discoveredEncoding = FileTextEncoding(stringEncoding: stringEncoding), !usedLossyConversion.boolValue {
+                // Always detect ASCII as UTF-8, because we want to prefer Unicode encodings
+                return (convertedString, stringEncoding == .ascii ? FileTextEncoding.utf8 : discoveredEncoding)
+            }
         #endif
 
         return nil
@@ -89,7 +89,7 @@ public extension FileTextEncoding {
 }
 
 fileprivate extension String {
-    init?<C: RandomAccessCollection>(_ bytes: C, encoding: FileTextEncoding) where C.Index : SignedInteger, C.Element == UInt8 {
+    init?<C: RandomAccessCollection>(_ bytes: C, encoding: FileTextEncoding) where C.Index: SignedInteger, C.Element == UInt8 {
         switch encoding {
         case .utf8:
             self.init(decodingBytes: bytes, as: Unicode.UTF8.self)

@@ -54,7 +54,7 @@ public final class DynamicTaskOperationContext {
 
 /// Opaque "token" used to enforce that ``DynamicTaskOperationContext/waitForCompletion()`` is always called immediately prior to invoking ``DynamicTaskOperationContext/reset(completionToken:)``.
 package struct DynamicTaskOperationContextCompletionToken: Sendable {
-    fileprivate init() { }
+    fileprivate init() {}
     consuming fileprivate func run(body: () -> Void) {
         body()
     }

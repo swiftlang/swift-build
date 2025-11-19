@@ -17,9 +17,9 @@ import SWBUtil
 public import Foundation
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SWBDispatchData) -> Void
@@ -155,10 +155,10 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
         _isClosed.withLock { closed in
             if !closed {
                 #if os(Windows)
-                // FIXME: This is getting hit sometimes in the test suite
-                print("connection wasn’t closed before being deallocated")
+                    // FIXME: This is getting hit sometimes in the test suite
+                    print("connection wasn’t closed before being deallocated")
                 #else
-                assertionFailure("connection wasn’t closed before being deallocated")
+                    assertionFailure("connection wasn’t closed before being deallocated")
                 #endif
             }
         }
@@ -178,7 +178,8 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 
             guard let binaryFile = FileHandle(forReadingAtPath: asanDylib),
                 let macho = try? MachO(data: binaryFile),
-                let rpaths = try? macho.slices()[0].rpaths() else {
+                let rpaths = try? macho.slices()[0].rpaths()
+            else {
                 throw StubError.error("Could not open client library executable at \(asanDylib)")
             }
 
@@ -188,25 +189,26 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
                 //  - From xcodebuild.
                 //  - Environments in which DEVELOPER_DIR is set in the environment, such as our tests being run by the xctest agent.  This will be used instead of looking at the main bundle.
                 // Note that we can't assume the Xcode bundle is named 'Xcode.app' - people name that bundle all sorts of things.
-                let currentXcodeApp = getEnvironmentVariable("DEVELOPER_DIR").map({ Path($0).normalize().dirname.dirname.str }) ?? { () -> String in
-                    let executablePath = Path(Bundle.main.executablePath ?? "")
-                    switch executablePath {
-                    case _ where executablePath.basename.hasPrefix("xcodebuild"):
-                        // Remove 'Contents/Developer/usr/bin/xcodebuild*'.
-                        return executablePath.dirname.dirname.dirname.dirname.dirname.str
-                    default:
-                        // Otherwise we assume we were called from Xcode.app and we return our main bundle's path.
-                        return Bundle.main.bundlePath
-                    }
-                }()
+                let currentXcodeApp =
+                    getEnvironmentVariable("DEVELOPER_DIR").map({ Path($0).normalize().dirname.dirname.str })
+                    ?? { () -> String in
+                        let executablePath = Path(Bundle.main.executablePath ?? "")
+                        switch executablePath {
+                        case _ where executablePath.basename.hasPrefix("xcodebuild"):
+                            // Remove 'Contents/Developer/usr/bin/xcodebuild*'.
+                            return executablePath.dirname.dirname.dirname.dirname.dirname.str
+                        default:
+                            // Otherwise we assume we were called from Xcode.app and we return our main bundle's path.
+                            return Bundle.main.bundlePath
+                        }
+                    }()
                 for rpath in rpaths {
                     // Now we look for the rpath the linker added.  We expect it to end in "lib/darwin".  Additionally we expect it to either contain "/Applications/Xcode.app/", or be a path into DEVELOPER_DIR (for unit testing, since the main bundle will be the test runner).
                     if rpath.hasSuffix("lib/darwin") {
                         var xcodeRelativeRpath: String? = nil
                         if rpath.starts(with: currentXcodeApp + "/") {
                             xcodeRelativeRpath = "\(rpath.dropFirst((currentXcodeApp + "/").count))"
-                        }
-                        else if rpath.contains("/Applications/Xcode.app/") {
+                        } else if rpath.contains("/Applications/Xcode.app/") {
                             if let endOfXcodeApp = rpath.range(of: "/Applications/Xcode.app/")?.upperBound {
                                 xcodeRelativeRpath = String(rpath[endOfXcodeApp...])
                             }
@@ -224,12 +226,18 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 
             // Only launch in asan mode if we were able to find the dylib, matching Xcode's behavior.
             if let asanDylib = asanDylibPath, let url = serviceExecutableURL(for: variant, serviceBundleURL: serviceBundleURL), url.lastPathComponent.hasSuffix("_asan") {
-                return (url, environment.merging([
-                    "DYLD_INSERT_LIBRARIES": asanDylib,
+                return (
+                    url,
+                    environment.merging(
+                        [
+                            "DYLD_INSERT_LIBRARIES": asanDylib,
 
-                    // If asan is enabled, inject the DYLD_IMAGE_SUFFIX environment variable so that the service loads up the _asan framework variants if they're present.
-                    "DYLD_IMAGE_SUFFIX": "_asan"
-                ], uniquingKeysWith: { _, new in new }))
+                            // If asan is enabled, inject the DYLD_IMAGE_SUFFIX environment variable so that the service loads up the _asan framework variants if they're present.
+                            "DYLD_IMAGE_SUFFIX": "_asan",
+                        ],
+                        uniquingKeysWith: { _, new in new }
+                    )
+                )
             }
         }
 
@@ -266,8 +274,8 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
         }
 
         // Wait for any ongoing dispatch I/O to finish.
-        _stateQueue.blocking_sync { _stdinWriter }?.barrier { }
-        _stateQueue.blocking_sync { _stdoutReader }?.barrier { }
+        _stateQueue.blocking_sync { _stdinWriter }?.barrier {}
+        _stateQueue.blocking_sync { _stdoutReader }?.barrier {}
     }
 
     /// Resumes the connection.  Does nothing if the connection isn’t currently suspended.
@@ -351,10 +359,10 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
 
         // Close down the send and receive queues.
         await _stateQueue.sync { [self] in
-            _stdinWriter?.barrier { }
+            _stdinWriter?.barrier {}
             _stdinWriter?.close()
             _stdinWriter = nil
-            _stdoutReader?.barrier { }
+            _stdoutReader?.barrier {}
             _stdoutReader?.close()
             _stdoutReader = nil
         }
@@ -406,7 +414,7 @@ extension SWBBuildServiceConnection {
         // Create the header, which consists of the channel number followed by the payload size.
         var headerData = withUnsafeBytes(of: channel.littleEndian) { SWBDispatchData(bytes: $0) }
         withUnsafeBytes(of: UInt32(data.count).littleEndian) { headerData.append($0) }
-        assert(headerData.count == 12) // UInt64 + UInt32
+        assert(headerData.count == 12)  // UInt64 + UInt32
         headerData.append(data)
 
         // Schedule the dispatch I/O operation to write the header followed by the payload.
@@ -467,19 +475,16 @@ extension SWBBuildServiceConnection {
             let bundleURL: URL? =
                 if case let candidateURL = executableURL.deletingLastPathComponent(), candidateURL.pathExtension == "bundle" {
                     candidateURL
-                }
-                else if case let candidateURL = executableURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent(), candidateURL.pathExtension == "bundle" {
+                } else if case let candidateURL = executableURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent(), candidateURL.pathExtension == "bundle" {
                     candidateURL
-                }
-                else {
+                } else {
                     nil
                 }
 
             let bundle: Bundle? =
                 if let bundleURL {
                     Bundle(url: bundleURL)
-                }
-                else {
+                } else {
                     nil
                 }
 
@@ -500,7 +505,8 @@ extension SWBBuildServiceConnection {
         // Look for the service inside a PlugIns bundle.
         if let buildServiceBundleURL = Bundle(for: SWBBuildServiceConnection.self).builtInPlugInsURL?.appendingPathComponent("SWBBuildService.bundle"),
             let bundle = Bundle(url: buildServiceBundleURL),
-            let executableURL = bundle.executableURL {
+            let executableURL = bundle.executableURL
+        {
             if useASanMode, let asanExecutableURL = executableURL.asanURLVariant {
                 return BuildServiceLocation(executable: asanExecutableURL, bundle: bundle)
             }
@@ -646,9 +652,9 @@ extension SWBBuildServiceConnectionMode {
             return try InProcessConnection(variant: variant, serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe)
         case .outOfProcess:
             #if os(macOS) || targetEnvironment(macCatalyst) || !canImport(Darwin)
-            return try OutOfProcessConnection(variant: variant, serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe)
+                return try OutOfProcessConnection(variant: variant, serviceBundleURL: serviceBundleURL, stdinPipe: stdinPipe, stdoutPipe: stdoutPipe)
             #else
-            throw StubError.error("Out-of-process mode is unavailable; use in-process mode.")
+                throw StubError.error("Out-of-process mode is unavailable; use in-process mode.")
             #endif
         }
     }
@@ -712,16 +718,21 @@ fileprivate final class InProcessStaticConnection: ConnectionTransport {
             buildServicePlugInsDirectory = URL(fileURLWithPath: path.dirname.str, isDirectory: true)
         }
         launched = true
-        self.startFunc(Int32(inputFD), Int32(outputFD), buildServicePlugInsDirectory, { [done, terminationHandler] error in
-            defer { done.signal() }
+        self.startFunc(
+            Int32(inputFD),
+            Int32(outputFD),
+            buildServicePlugInsDirectory,
+            { [done, terminationHandler] error in
+                defer { done.signal() }
 
-            #if !canImport(Darwin)
-            // Workaround for a compiler crash presumably related to Objective-C bridging on non-Darwin platforms (rdar://130826719&136043295)
-            terminationHandler?(error as! (any Error)?)
-            #else
-            terminationHandler?(error)
-            #endif
-        })
+                #if !canImport(Darwin)
+                    // Workaround for a compiler crash presumably related to Objective-C bridging on non-Darwin platforms (rdar://130826719&136043295)
+                    terminationHandler?(error as! (any Error)?)
+                #else
+                    terminationHandler?(error)
+                #endif
+            }
+        )
     }
 
     func terminate() async {
@@ -783,8 +794,7 @@ fileprivate final class InProcessConnection: ConnectionTransport {
             let buildServiceFrameworkExecutableURL: URL
             if variant.useASanMode {
                 buildServiceFrameworkExecutableURL = normalBuildServiceFrameworkExecutableURL.asanURLVariant ?? normalBuildServiceFrameworkExecutableURL
-            }
-            else {
+            } else {
                 buildServiceFrameworkExecutableURL = normalBuildServiceFrameworkExecutableURL
             }
 
@@ -813,10 +823,10 @@ fileprivate final class InProcessConnection: ConnectionTransport {
 
         let entryPointName = "swiftbuildServiceEntryPoint"
         #if !canImport(Darwin)
-        // Workaround for a compiler crash presumably related to Objective-C bridging on non-Darwin platforms (rdar://130826719&136043295)
-        typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, URL?, @Sendable @escaping (Any) -> Void) -> Void
+            // Workaround for a compiler crash presumably related to Objective-C bridging on non-Darwin platforms (rdar://130826719&136043295)
+            typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, URL?, @Sendable @escaping (Any) -> Void) -> Void
         #else
-        typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void
+            typealias swiftbuildServiceEntryPoint_t = @convention(c) (Int32, Int32, URL?, @Sendable @escaping ((any Error)?) -> Void) -> Void
         #endif
         guard let entryPointFunc: swiftbuildServiceEntryPoint_t = Library.lookup(handle, entryPointName) else {
             throw StubError.error("unable to find \(entryPointName) function in service executable")
@@ -827,16 +837,21 @@ fileprivate final class InProcessConnection: ConnectionTransport {
 
         // Launch the service, in process (on background queues).
         launched = true
-        entryPointFunc(Int32(inputFD), Int32(outputFD), buildServicePlugInsDirectory, { [done, terminationHandler] error in
-            defer { done.signal() }
+        entryPointFunc(
+            Int32(inputFD),
+            Int32(outputFD),
+            buildServicePlugInsDirectory,
+            { [done, terminationHandler] error in
+                defer { done.signal() }
 
-            #if !canImport(Darwin)
-            // Workaround for a compiler crash presumably related to Objective-C bridging on non-Darwin platforms (rdar://130826719&136043295)
-            terminationHandler?(error as! (any Error)?)
-            #else
-            terminationHandler?(error)
-            #endif
-        })
+                #if !canImport(Darwin)
+                    // Workaround for a compiler crash presumably related to Objective-C bridging on non-Darwin platforms (rdar://130826719&136043295)
+                    terminationHandler?(error as! (any Error)?)
+                #else
+                    terminationHandler?(error)
+                #endif
+            }
+        )
     }
 
     func terminate() async {
@@ -851,127 +866,127 @@ fileprivate final class InProcessConnection: ConnectionTransport {
 }
 
 #if os(macOS) || targetEnvironment(macCatalyst) || !canImport(Darwin)
-fileprivate final class OutOfProcessConnection: ConnectionTransport {
-    private let task: SWBUtil.Process
-    private let done = WaitCondition()
+    fileprivate final class OutOfProcessConnection: ConnectionTransport {
+        private let task: SWBUtil.Process
+        private let done = WaitCondition()
 
-    init(variant: SWBBuildServiceVariant, serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe) throws {
-        /// Create and configure an NSTask for launching the Swift Build subprocess.
-        task = Process()
+        init(variant: SWBBuildServiceVariant, serviceBundleURL: URL?, stdinPipe: IOPipe, stdoutPipe: IOPipe) throws {
+            /// Create and configure an NSTask for launching the Swift Build subprocess.
+            task = Process()
 
-        // Compute the launch path and environment.
-        var updatedEnvironment = ProcessInfo.processInfo.environment
-        // Add the contents of the SWBBuildServiceEnvironmentOverrides user default.
-        updatedEnvironment = updatedEnvironment.addingContents(of: (UserDefaults.standard.dictionary(forKey: "SWBBuildServiceEnvironmentOverrides") as? [String: String]) ?? [:])
-        // Remove inferior DYLD_LIBRARY_PATH paths into toolchains, or which contain a compiler library known to cause issues when mismatched. Swift Build does not need these when used by an inferior Xcode, and they can interfere with loading of correct clang and swift libraries.
-        if let libraryPaths = updatedEnvironment["DYLD_LIBRARY_PATH"]?.components(separatedBy: ":") {
-            updatedEnvironment["DYLD_LIBRARY_PATH"] = try libraryPaths.filter {
-                var path = Path($0).normalize()
-                let libExt = try ProcessInfo.processInfo.hostOperatingSystem().imageFormat.dynamicLibraryExtension
-                for knownCompilerLibrary in ["libclang.\(libExt)", "lib_InternalSwiftScan.\(libExt)"] {
-                    if localFS.exists(path.join(knownCompilerLibrary)) {
-                        return false
+            // Compute the launch path and environment.
+            var updatedEnvironment = ProcessInfo.processInfo.environment
+            // Add the contents of the SWBBuildServiceEnvironmentOverrides user default.
+            updatedEnvironment = updatedEnvironment.addingContents(of: (UserDefaults.standard.dictionary(forKey: "SWBBuildServiceEnvironmentOverrides") as? [String: String]) ?? [:])
+            // Remove inferior DYLD_LIBRARY_PATH paths into toolchains, or which contain a compiler library known to cause issues when mismatched. Swift Build does not need these when used by an inferior Xcode, and they can interfere with loading of correct clang and swift libraries.
+            if let libraryPaths = updatedEnvironment["DYLD_LIBRARY_PATH"]?.components(separatedBy: ":") {
+                updatedEnvironment["DYLD_LIBRARY_PATH"] = try libraryPaths.filter {
+                    var path = Path($0).normalize()
+                    let libExt = try ProcessInfo.processInfo.hostOperatingSystem().imageFormat.dynamicLibraryExtension
+                    for knownCompilerLibrary in ["libclang.\(libExt)", "lib_InternalSwiftScan.\(libExt)"] {
+                        if localFS.exists(path.join(knownCompilerLibrary)) {
+                            return false
+                        }
                     }
-                }
-                while !path.isRoot && !path.isEmpty {
-                    if path.fileExtension == "xctoolchain" {
-                        return false
+                    while !path.isRoot && !path.isEmpty {
+                        if path.fileExtension == "xctoolchain" {
+                            return false
+                        }
+                        path = path.dirname
                     }
-                    path = path.dirname
-                }
-                return true
-            }.joined(separator: ":")
-        }
-        let (launchURL, environment) = try SWBBuildServiceConnection.effectiveLaunchURL(for: variant, serviceBundleURL: serviceBundleURL, environment: updatedEnvironment)
-
-        #if os(macOS) || targetEnvironment(macCatalyst)
-        let hostVersion = try Version(ProcessInfo.processInfo.operatingSystemVersion)
-        if let buildVersion = try MachO(reader: BinaryReader(data: FileHandle(forReadingFrom: launchURL))).slices().flatMap({ try $0.buildVersions() }).filter({ $0.platform == .macOS }).only {
-            if buildVersion.minOSVersion > hostVersion {
-                throw StubError.error("Couldn't launch the build service process '\(try launchURL.filePath.str)' because it requires macOS \(buildVersion.minOSVersion.canonicalDeploymentTargetForm) or later (running macOS \(hostVersion.canonicalDeploymentTargetForm)).")
+                    return true
+                }.joined(separator: ":")
             }
-        }
-        #endif
+            let (launchURL, environment) = try SWBBuildServiceConnection.effectiveLaunchURL(for: variant, serviceBundleURL: serviceBundleURL, environment: updatedEnvironment)
 
-        task.executableURL = launchURL
-        task.currentDirectoryURL = launchURL.deletingLastPathComponent()
-        task.environment = environment
-
-        // Similar to the rationale for giving 'userInitiated' QoS for the 'SWBBuildService.ServiceHostConnection.receiveQueue' queue (see comments for that).
-        // Start the service subprocess with the max QoS so it is setup to service 'userInitiated' requests if required.
-        task.qualityOfService = .userInitiated
-
-        task.standardInput = FileHandle(fileDescriptor: stdinPipe.readEnd.rawValue)
-        task.standardOutput = FileHandle(fileDescriptor: stdoutPipe.writeEnd.rawValue)
-    }
-
-    var state: SWBBuildServiceConnection.State {
-        if task.isRunning {
-            return .running
-        } else {
-            switch task.terminationReason {
-            case .exit:
-                return .exited
-            case .uncaughtSignal:
-                return .crashed
-            #if canImport(Foundation.NSTask) || !canImport(Darwin)
-            @unknown default:
-                preconditionFailure()
+            #if os(macOS) || targetEnvironment(macCatalyst)
+                let hostVersion = try Version(ProcessInfo.processInfo.operatingSystemVersion)
+                if let buildVersion = try MachO(reader: BinaryReader(data: FileHandle(forReadingFrom: launchURL))).slices().flatMap({ try $0.buildVersions() }).filter({ $0.platform == .macOS }).only {
+                    if buildVersion.minOSVersion > hostVersion {
+                        throw StubError.error("Couldn't launch the build service process '\(try launchURL.filePath.str)' because it requires macOS \(buildVersion.minOSVersion.canonicalDeploymentTargetForm) or later (running macOS \(hostVersion.canonicalDeploymentTargetForm)).")
+                    }
+                }
             #endif
+
+            task.executableURL = launchURL
+            task.currentDirectoryURL = launchURL.deletingLastPathComponent()
+            task.environment = environment
+
+            // Similar to the rationale for giving 'userInitiated' QoS for the 'SWBBuildService.ServiceHostConnection.receiveQueue' queue (see comments for that).
+            // Start the service subprocess with the max QoS so it is setup to service 'userInitiated' requests if required.
+            task.qualityOfService = .userInitiated
+
+            task.standardInput = FileHandle(fileDescriptor: stdinPipe.readEnd.rawValue)
+            task.standardOutput = FileHandle(fileDescriptor: stdoutPipe.writeEnd.rawValue)
+        }
+
+        var state: SWBBuildServiceConnection.State {
+            if task.isRunning {
+                return .running
+            } else {
+                switch task.terminationReason {
+                case .exit:
+                    return .exited
+                case .uncaughtSignal:
+                    return .crashed
+                #if canImport(Foundation.NSTask) || !canImport(Darwin)
+                    @unknown default:
+                        preconditionFailure()
+                #endif
+                }
             }
         }
-    }
 
-    var subprocessPID: pid_t? {
-        return task.processIdentifier
-    }
+        var subprocessPID: pid_t? {
+            return task.processIdentifier
+        }
 
-    func start(terminationHandler: (@Sendable ((any Error)?) -> Void)?) throws {
-        // Install a termination handler that suspends us if we detect the termination of the subprocess.
-        task.terminationHandler = { [self] task in
-            defer { done.signal() }
+        func start(terminationHandler: (@Sendable ((any Error)?) -> Void)?) throws {
+            // Install a termination handler that suspends us if we detect the termination of the subprocess.
+            task.terminationHandler = { [self] task in
+                defer { done.signal() }
+
+                do {
+                    try terminationHandler?(RunProcessNonZeroExitError(task))
+                } catch {
+                    terminationHandler?(error)
+                }
+            }
 
             do {
-                try terminationHandler?(RunProcessNonZeroExitError(task))
+                // Launch the Swift Build subprocess.
+                try task.run()
             } catch {
-                terminationHandler?(error)
+                // terminationHandler isn't going to be called if `run()` throws.
+                done.signal()
+                throw error
             }
+
+            #if os(macOS)
+                do {
+                    // If IBAutoAttach is enabled, send the message so Xcode will attach to the inferior.
+                    try Debugger.requestXcodeAutoAttachIfEnabled(task.processIdentifier)
+                } catch {
+                    // Terminate the subprocess if start() is going to throw, so that close() will not get stuck.
+                    task.terminate()
+                }
+            #endif
         }
 
-        do {
-            // Launch the Swift Build subprocess.
-            try task.run()
-        } catch {
-            // terminationHandler isn't going to be called if `run()` throws.
-            done.signal()
-            throw error
-        }
-
-        #if os(macOS)
-        do {
-            // If IBAutoAttach is enabled, send the message so Xcode will attach to the inferior.
-            try Debugger.requestXcodeAutoAttachIfEnabled(task.processIdentifier)
-        } catch {
-            // Terminate the subprocess if start() is going to throw, so that close() will not get stuck.
+        func terminate() async {
+            assert(task.processIdentifier > 0)
             task.terminate()
+            await done.wait()
+            assert(!task.isRunning)
         }
-        #endif
-    }
 
-    func terminate() async {
-        assert(task.processIdentifier > 0)
-        task.terminate()
-        await done.wait()
-        assert(!task.isRunning)
+        /// Wait for the subprocess to terminate.
+        func close() async {
+            assert(task.processIdentifier > 0)
+            await done.wait()
+            assert(!task.isRunning)
+        }
     }
-
-    /// Wait for the subprocess to terminate.
-    func close() async {
-        assert(task.processIdentifier > 0)
-        await done.wait()
-        assert(!task.isRunning)
-    }
-}
 #endif
 
 extension UnsafePointer where Pointee == UInt8 {

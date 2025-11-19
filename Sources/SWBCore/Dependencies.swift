@@ -97,7 +97,8 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         Diagnostic(
             behavior: .warning,
             location: .unknown,
-            data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)"))
+            data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_MODULE_DEPENDENCIES.name)")
+        )
     }
 
     /// Compute missing module dependencies.
@@ -130,31 +131,36 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
             let fixIt = fixItContext?.makeFixIt(newModules: missingDependencies.map { $0.0 })
             let fixIts = fixIt.map { [$0] } ?? []
 
-            let importDiags: [Diagnostic] = missingDependencies
+            let importDiags: [Diagnostic] =
+                missingDependencies
                 .flatMap { dep in
                     dep.1.map {
                         return Diagnostic(
                             behavior: behavior,
                             location: $0,
                             data: DiagnosticData("Missing entry in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(dep.0.asBuildSettingEntryQuotedIfNeeded)"),
-                            fixIts: fixIts)
+                            fixIts: fixIts
+                        )
                     }
                 }
 
             let message = "Missing entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(missingDependencies.map { $0.0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
 
-            let location: Diagnostic.Location = fixIt.map {
-                Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
-            } ?? Diagnostic.Location.buildSetting(BuiltinMacros.MODULE_DEPENDENCIES)
+            let location: Diagnostic.Location =
+                fixIt.map {
+                    Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
+                } ?? Diagnostic.Location.buildSetting(BuiltinMacros.MODULE_DEPENDENCIES)
 
-            missingDiagnostics = [Diagnostic(
-                behavior: behavior,
-                location: location,
-                data: DiagnosticData(message),
-                fixIts: fixIts,
-                childDiagnostics: importDiags)]
-        }
-        else {
+            missingDiagnostics = [
+                Diagnostic(
+                    behavior: behavior,
+                    location: location,
+                    data: DiagnosticData(message),
+                    fixIts: fixIts,
+                    childDiagnostics: importDiags
+                )
+            ]
+        } else {
             missingDiagnostics = []
         }
 
@@ -162,13 +168,15 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
         if !unusedDependencies.isEmpty {
             let message = "Unused entries in \(BuiltinMacros.MODULE_DEPENDENCIES.name): \(unusedDependencies.map { $0.name }.sorted().joined(separator: " "))"
             // TODO location & fixit
-            unusedDiagnostics = [Diagnostic(
-                behavior: validateUnused == .yesError ? .error : .warning,
-                location: .unknown,
-                data: DiagnosticData(message),
-                fixIts: [])]
-        }
-        else {
+            unusedDiagnostics = [
+                Diagnostic(
+                    behavior: validateUnused == .yesError ? .error : .warning,
+                    location: .unknown,
+                    data: DiagnosticData(message),
+                    fixIts: []
+                )
+            ]
+        } else {
             unusedDiagnostics = []
         }
 
@@ -189,20 +197,18 @@ public struct ModuleDependenciesContext: Sendable, SerializableCodable {
             let thisTargetCondition = MacroCondition(parameter: BuiltinMacros.targetNameCondition, valuePattern: target.name)
 
             // TODO: if you have an assignment in a project-xcconfig and another assignment in target-settings, this would find the project-xcconfig assignment, but updating that might have no effect depending on the target-settings assignment
-            if let assignment = (settings.globalScope.table.lookupMacro(BuiltinMacros.MODULE_DEPENDENCIES)?.sequence.first {
-                   $0.location != nil && ($0.conditions?.conditions == [thisTargetCondition] || ($0.conditions?.conditions.isEmpty ?? true))
-               }),
-               let location = assignment.location
+            if let assignment =
+                (settings.globalScope.table.lookupMacro(BuiltinMacros.MODULE_DEPENDENCIES)?.sequence.first {
+                    $0.location != nil && ($0.conditions?.conditions == [thisTargetCondition] || ($0.conditions?.conditions.isEmpty ?? true))
+                }),
+                let location = assignment.location
             {
                 self.init(sourceRange: .init(path: location.path, startLine: location.endLine, startColumn: location.endColumn, endLine: location.endLine, endColumn: location.endColumn), modificationStyle: .appendToExistingAssignment)
-            }
-            else if let xcconfig = settings.constructionComponents.targetXcconfig {
+            } else if let xcconfig = settings.constructionComponents.targetXcconfig {
                 self.init(sourceRange: .init(path: xcconfig.path, startLine: xcconfig.finalLineNumber, startColumn: xcconfig.finalColumnNumber, endLine: xcconfig.finalLineNumber, endColumn: xcconfig.finalColumnNumber), modificationStyle: .insertNewAssignment(targetNameCondition: nil))
-            }
-            else if let xcconfig = settings.constructionComponents.projectXcconfig {
+            } else if let xcconfig = settings.constructionComponents.projectXcconfig {
                 self.init(sourceRange: .init(path: xcconfig.path, startLine: xcconfig.finalLineNumber, startColumn: xcconfig.finalColumnNumber, endLine: xcconfig.finalLineNumber, endColumn: xcconfig.finalColumnNumber), modificationStyle: .insertNewAssignment(targetNameCondition: target.name))
-            }
-            else {
+            } else {
                 return nil
             }
         }
@@ -299,7 +305,8 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
         Diagnostic(
             behavior: .warning,
             location: .unknown,
-            data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_HEADER_DEPENDENCIES.name)"))
+            data: DiagnosticData("The current toolchain does not support \(BuiltinMacros.VALIDATE_HEADER_DEPENDENCIES.name)")
+        )
     }
 
     /// Compute missing module dependencies.
@@ -314,16 +321,14 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
                 // TODO: What if the basename doesn't uniquely identify the header?
                 HeaderDependency(name: $0.basename, accessLevel: .Private, optional: false)
             }
-        }
-        else {
+        } else {
             missing = []
         }
 
         let unused: [HeaderDependency]
         if validateUnused != .no {
             unused = declared.filter { !$0.optional && !declaredNames.contains($0.name) }
-        }
-        else {
+        } else {
             unused = []
         }
 
@@ -344,17 +349,20 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
 
             let message = "Missing entries in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(missingDependencies.map { $0.asBuildSettingEntryQuotedIfNeeded }.sorted().joined(separator: " "))"
 
-            let location: Diagnostic.Location = fixIt.map {
-                Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
-            } ?? Diagnostic.Location.buildSetting(BuiltinMacros.HEADER_DEPENDENCIES)
+            let location: Diagnostic.Location =
+                fixIt.map {
+                    Diagnostic.Location.path($0.sourceRange.path, line: $0.sourceRange.endLine, column: $0.sourceRange.endColumn)
+                } ?? Diagnostic.Location.buildSetting(BuiltinMacros.HEADER_DEPENDENCIES)
 
-            missingDiagnostics = [Diagnostic(
-                behavior: behavior,
-                location: location,
-                data: DiagnosticData(message),
-                fixIts: fixIts)]
-        }
-        else {
+            missingDiagnostics = [
+                Diagnostic(
+                    behavior: behavior,
+                    location: location,
+                    data: DiagnosticData(message),
+                    fixIts: fixIts
+                )
+            ]
+        } else {
             missingDiagnostics = []
         }
 
@@ -362,13 +370,15 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
         if !unusedDependencies.isEmpty {
             let message = "Unused entries in \(BuiltinMacros.HEADER_DEPENDENCIES.name): \(unusedDependencies.map { $0.name }.sorted().joined(separator: " "))"
             // TODO location & fixit
-            unusedDiagnostics = [Diagnostic(
-                behavior: validateUnused == .yesError ? .error : .warning,
-                location: .unknown,
-                data: DiagnosticData(message),
-                fixIts: [])]
-        }
-        else {
+            unusedDiagnostics = [
+                Diagnostic(
+                    behavior: validateUnused == .yesError ? .error : .warning,
+                    location: .unknown,
+                    data: DiagnosticData(message),
+                    fixIts: []
+                )
+            ]
+        } else {
             unusedDiagnostics = []
         }
 
@@ -388,20 +398,18 @@ public struct HeaderDependenciesContext: Sendable, SerializableCodable {
             guard let target = settings.target else { return nil }
             let thisTargetCondition = MacroCondition(parameter: BuiltinMacros.targetNameCondition, valuePattern: target.name)
 
-            if let assignment = (settings.globalScope.table.lookupMacro(BuiltinMacros.HEADER_DEPENDENCIES)?.sequence.first {
-                   $0.location != nil && ($0.conditions?.conditions == [thisTargetCondition] || ($0.conditions?.conditions.isEmpty ?? true))
-               }),
-               let location = assignment.location
+            if let assignment =
+                (settings.globalScope.table.lookupMacro(BuiltinMacros.HEADER_DEPENDENCIES)?.sequence.first {
+                    $0.location != nil && ($0.conditions?.conditions == [thisTargetCondition] || ($0.conditions?.conditions.isEmpty ?? true))
+                }),
+                let location = assignment.location
             {
                 self.init(sourceRange: .init(path: location.path, startLine: location.endLine, startColumn: location.endColumn, endLine: location.endLine, endColumn: location.endColumn), modificationStyle: .appendToExistingAssignment)
-            }
-            else if let xcconfig = settings.constructionComponents.targetXcconfig {
+            } else if let xcconfig = settings.constructionComponents.targetXcconfig {
                 self.init(sourceRange: .init(path: xcconfig.path, startLine: xcconfig.finalLineNumber, startColumn: xcconfig.finalColumnNumber, endLine: xcconfig.finalLineNumber, endColumn: xcconfig.finalColumnNumber), modificationStyle: .insertNewAssignment(targetNameCondition: nil))
-            }
-            else if let xcconfig = settings.constructionComponents.projectXcconfig {
+            } else if let xcconfig = settings.constructionComponents.projectXcconfig {
                 self.init(sourceRange: .init(path: xcconfig.path, startLine: xcconfig.finalLineNumber, startColumn: xcconfig.finalColumnNumber, endLine: xcconfig.finalLineNumber, endColumn: xcconfig.finalColumnNumber), modificationStyle: .insertNewAssignment(targetNameCondition: target.name))
-            }
-            else {
+            } else {
                 return nil
             }
         }

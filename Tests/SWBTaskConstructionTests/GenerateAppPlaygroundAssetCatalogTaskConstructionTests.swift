@@ -27,29 +27,33 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
         let testProject = try await TestProject(
             "AssetCatalogGenerationNotEnabled",
             groupTree: TestGroup(
-                "Sources", children: [
+                "Sources",
+                children: [
                     TestFile("Source.swift")
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Foo",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Source.swift"]),
+                        TestSourcesBuildPhase(["Source.swift"])
                     ]
                 )
             ]
@@ -69,30 +73,34 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
         let testProject = try await TestProject(
             "AssetCatalogGenerationDisabled",
             groupTree: TestGroup(
-                "Sources", children: [
+                "Sources",
+                children: [
                     TestFile("Source.swift")
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "APP_PLAYGROUND_GENERATE_ASSET_CATALOG": "NO",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "APP_PLAYGROUND_GENERATE_ASSET_CATALOG": "NO",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Foo",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Source.swift"]),
+                        TestSourcesBuildPhase(["Source.swift"])
                     ]
                 )
             ]
@@ -112,35 +120,39 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
         let testProject = try await TestProject(
             "AssetCatalogGenerationEnabled",
             groupTree: TestGroup(
-                "Sources", children: [
-                    TestFile("Source.swift"),
+                "Sources",
+                children: [
+                    TestFile("Source.swift")
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ASSETCATALOG_EXEC": actoolPath.str,
-                    "APP_PLAYGROUND_GENERATE_ASSET_CATALOG": "YES",
-                    "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PLACEHOLDER_APPICON": "magicWand",
-                    "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PRESET_ACCENT_COLOR": "orange",
-                    "ASSETCATALOG_COMPILER_APPICON_NAME": "__PlaceholderAppIcon",
-                    "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "__PresetAccentColor",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ASSETCATALOG_EXEC": actoolPath.str,
+                        "APP_PLAYGROUND_GENERATE_ASSET_CATALOG": "YES",
+                        "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PLACEHOLDER_APPICON": "magicWand",
+                        "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PRESET_ACCENT_COLOR": "orange",
+                        "ASSETCATALOG_COMPILER_APPICON_NAME": "__PlaceholderAppIcon",
+                        "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "__PresetAccentColor",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Foo",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Source.swift"]),
+                        TestSourcesBuildPhase(["Source.swift"])
                     ]
                 )
             ]
@@ -171,33 +183,37 @@ fileprivate struct GenerateAppPlaygroundAssetCatalogTaskConstructionTests: CoreB
         let testProject = try await TestProject(
             "AssetCatalogGenerationWithOtherAssetCatalog",
             groupTree: TestGroup(
-                "Sources", children: [
+                "Sources",
+                children: [
                     TestFile("Source.swift"),
                     TestFile("Assets.xcassets"),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ASSETCATALOG_EXEC": actoolPath.str,
-                    "APP_PLAYGROUND_GENERATE_ASSET_CATALOG": "YES",
-                    "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PLACEHOLDER_APPICON": "magicWand",
-                    "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PRESET_ACCENT_COLOR": "orange",
-                    "ASSETCATALOG_COMPILER_APPICON_NAME": "__PlaceholderAppIcon",
-                    "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "__PresetAccentColor",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTED_PLATFORMS": "macosx",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ASSETCATALOG_EXEC": actoolPath.str,
+                        "APP_PLAYGROUND_GENERATE_ASSET_CATALOG": "YES",
+                        "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PLACEHOLDER_APPICON": "magicWand",
+                        "APP_PLAYGROUND_GENERATED_ASSET_CATALOG_PRESET_ACCENT_COLOR": "orange",
+                        "ASSETCATALOG_COMPILER_APPICON_NAME": "__PlaceholderAppIcon",
+                        "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "__PresetAccentColor",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Foo",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["Source.swift"]),

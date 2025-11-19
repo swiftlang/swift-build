@@ -13,7 +13,7 @@
 public import SWBUtil
 
 public class BuildPhase: PolymorphicSerializable, @unchecked Sendable {
-    public static let implementations: [SerializableTypeCode : any PolymorphicSerializable.Type] = [
+    public static let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type] = [
         0: AppleScriptBuildPhase.self,
         1: CopyFilesBuildPhase.self,
         2: FrameworksBuildPhase.self,

@@ -21,7 +21,7 @@ public struct TargetGUID: RawRepresentable, Hashable, Sendable, Codable {
 }
 
 public class Target: PolymorphicSerializable, @unchecked Sendable {
-    public static let implementations: [SerializableTypeCode : any PolymorphicSerializable.Type] = [
+    public static let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type] = [
         0: StandardTarget.self,
         1: AggregateTarget.self,
         2: ExternalTarget.self,

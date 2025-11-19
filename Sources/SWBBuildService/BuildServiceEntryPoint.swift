@@ -22,19 +22,19 @@ import SWBTaskConstruction
 import SWBTaskExecution
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 #if USE_STATIC_PLUGIN_INITIALIZATION
-private import SWBAndroidPlatform
-private import SWBApplePlatform
-private import SWBGenericUnixPlatform
-private import SWBQNXPlatform
-private import SWBUniversalPlatform
-private import SWBWebAssemblyPlatform
-private import SWBWindowsPlatform
+    private import SWBAndroidPlatform
+    private import SWBApplePlatform
+    private import SWBGenericUnixPlatform
+    private import SWBQNXPlatform
+    private import SWBUniversalPlatform
+    private import SWBWebAssemblyPlatform
+    private import SWBWindowsPlatform
 #endif
 
 private struct Options {
@@ -56,10 +56,12 @@ private struct Options {
         while let arg = generator.next() {
             switch arg {
             case "--help":
-                print((OutputByteStream()
+                print(
+                    (OutputByteStream()
                         <<< "Swift Build Build Service\n"
                         <<< "\n"
-                        <<< "  Read the source for help.").bytes.asString)
+                        <<< "  Read the source for help.").bytes.asString
+                )
                 exit = true
 
             default:
@@ -76,13 +78,20 @@ extension BuildService {
         do {
             try await Service.main { inputFD, outputFD in
                 // Launch the Swift Build service.
-                try await BuildService.run(inputFD: inputFD, outputFD: outputFD, connectionMode: .outOfProcess, pluginsDirectory: Bundle.main.builtInPlugInsURL, arguments: arguments, pluginLoadingFinished: {
-                    // Already using DYLD_IMAGE_SUFFIX, clear it to avoid propagating ASan to children.
-                    // This must happen after plugin loading.
-                    if let suffix = getEnvironmentVariable("DYLD_IMAGE_SUFFIX"), suffix == "_asan" {
-                        try POSIX.unsetenv("DYLD_IMAGE_SUFFIX")
+                try await BuildService.run(
+                    inputFD: inputFD,
+                    outputFD: outputFD,
+                    connectionMode: .outOfProcess,
+                    pluginsDirectory: Bundle.main.builtInPlugInsURL,
+                    arguments: arguments,
+                    pluginLoadingFinished: {
+                        // Already using DYLD_IMAGE_SUFFIX, clear it to avoid propagating ASan to children.
+                        // This must happen after plugin loading.
+                        if let suffix = getEnvironmentVariable("DYLD_IMAGE_SUFFIX"), suffix == "_asan" {
+                            try POSIX.unsetenv("DYLD_IMAGE_SUFFIX")
+                        }
                     }
-                })
+                )
             }
             exit(EXIT_SUCCESS)
         } catch {
@@ -132,17 +141,17 @@ extension BuildService {
             // This MUST be a compile-time check because the module dependencies on the plugins are conditional.
             // Minimize the amount of code that is conditionally compiled to avoid breaking the build during refactoring.
             #if USE_STATIC_PLUGIN_INITIALIZATION
-            staticPluginInitializers = [
-                SWBAndroidPlatform.initializePlugin,
-                SWBApplePlatform.initializePlugin,
-                SWBGenericUnixPlatform.initializePlugin,
-                SWBQNXPlatform.initializePlugin,
-                SWBUniversalPlatform.initializePlugin,
-                SWBWebAssemblyPlatform.initializePlugin,
-                SWBWindowsPlatform.initializePlugin,
-            ]
+                staticPluginInitializers = [
+                    SWBAndroidPlatform.initializePlugin,
+                    SWBApplePlatform.initializePlugin,
+                    SWBGenericUnixPlatform.initializePlugin,
+                    SWBQNXPlatform.initializePlugin,
+                    SWBUniversalPlatform.initializePlugin,
+                    SWBWebAssemblyPlatform.initializePlugin,
+                    SWBWindowsPlatform.initializePlugin,
+                ]
             #else
-            staticPluginInitializers = []
+                staticPluginInitializers = []
             #endif
 
             if useStaticPluginInitialization {

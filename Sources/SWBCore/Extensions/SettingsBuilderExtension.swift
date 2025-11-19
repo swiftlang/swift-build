@@ -25,16 +25,16 @@ public struct SettingsBuilderExtensionPoint: ExtensionPoint {
 
 public protocol SettingsBuilderExtension: Sendable {
     /// Provides a table of additional build properties overrides
-    func addOverrides(fromEnvironment: [String:String], parameters: BuildParameters) throws -> [String:String]
+    func addOverrides(fromEnvironment: [String: String], parameters: BuildParameters) throws -> [String: String]
 
     /// Provides a table of additional build settings builtin defaults
-    func addBuiltinDefaults(fromEnvironment: [String:String], parameters: BuildParameters) throws -> [String:String]
+    func addBuiltinDefaults(fromEnvironment: [String: String], parameters: BuildParameters) throws -> [String: String]
 
     /// Provides a table of default settings for a product type.
     func addProductTypeDefaults(productType: ProductTypeSpec) -> [String: String]
 
     /// Provides a table of additional SDK settings
-    func addSDKSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK]) throws -> [String : String]
+    func addSDKSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK]) throws -> [String: String]
 
     /// Provides a table of overriding SDK settings
     func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SpecLookupContext, environment: [String: String]) throws -> [String: String]

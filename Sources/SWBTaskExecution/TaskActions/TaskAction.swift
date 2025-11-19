@@ -34,8 +34,7 @@ extension BuildValueValidatingTaskAction {
 /// A task action encapsulates concrete work to be done for a task during a build.
 ///
 /// Task actions are primarily used to capture state and execution logic for in-process tasks.
-open class TaskAction: PlannedTaskAction, PolymorphicSerializable
-{
+open class TaskAction: PlannedTaskAction, PolymorphicSerializable {
     /// A unique identifier for the tool, used for binding in llbuild.
     open class var toolIdentifier: String {
         fatalError("This method is a subclass responsibility")
@@ -57,16 +56,14 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
         return md5.signature
     }
 
-    public init()
-    {
+    public init() {
         self.serializedRepresentationSignature = computeInitialSignature()
     }
 
     /// Get a signature used to identify the internal state of the command.
     ///
     /// This is checked to determine if the command needs to rebuild versus the last time it was run.
-    open func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString
-    {
+    open func getSignature(_ task: any ExecutableTask, executionDelegate: any TaskExecutionDelegate) -> ByteString {
         let md5 = InsecureHashContext()
         md5.add(bytes: serializedRepresentationSignature!)
         let commandLine = task.type.commandLineForSignature(for: task) ?? task.commandLine.map { $0.asByteString }
@@ -104,8 +101,7 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
     /// - parameter taskDelegate: The delegate for the tool to perform commonly-used operations.
     /// - parameter outputDelegate: The delegate for the tool to emit output during its execution.
     /// - returns: A command result to indicate if the task failed, succeeded, got cancelled or skipped its work.
-    open func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult
-    {
+    open func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {
         fatalError("This method is a subclass responsibility")
     }
 
@@ -117,17 +113,14 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
 
     // Serialization
 
-
-    open func serialize<T: Serializer>(to serializer: T)
-    {
+    open func serialize<T: Serializer>(to serializer: T) {
         // TaskAction has no content itself to serialize, but it serializes an aggregate count of 0 so that child classes which also have no content don't have to do anything.
         serializer.serializeAggregate(1) {
             serializer.serialize(self.serializedRepresentationSignature)
         }
     }
 
-    public required init(from deserializer: any Deserializer) throws
-    {
+    public required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(1)
         self.serializedRepresentationSignature = try deserializer.deserialize()
     }
@@ -241,19 +234,15 @@ public protocol DynamicTaskExecutionDelegate: ActivityReporter {
 }
 
 /// Class for collecting and caching messages to emit for a task action.
-class TaskActionMessageCollection
-{
+class TaskActionMessageCollection {
     var messages = [TaskActionMessage]()
 
-    func addMessage(_ message: TaskActionMessage)
-    {
+    func addMessage(_ message: TaskActionMessage) {
         messages.append(message)
     }
 
-    func emitMessages(_ outputDelegate: any TaskOutputDelegate)
-    {
-        for message in messages
-        {
+    func emitMessages(_ outputDelegate: any TaskOutputDelegate) {
+        for message in messages {
             switch message
             {
             case .error(let value):
@@ -270,8 +259,7 @@ class TaskActionMessageCollection
 }
 
 /// Enum describing the kinds of messages that an `TaskActionMessageCollection` can emit.
-enum TaskActionMessage
-{
+enum TaskActionMessage {
     case error(String)
     case warning(String)
     case note(String)

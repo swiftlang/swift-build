@@ -71,9 +71,7 @@ public struct DependencyGraphResponse: Message, SerializableCodable, Equatable {
     }
 }
 
-
 // MARK: Getting declared dependency info
-
 
 public struct DumpBuildDependencyInfoRequest: SessionChannelBuildMessage, RequestMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = VoidResponse
@@ -99,7 +97,6 @@ public struct DumpBuildDependencyInfoRequest: SessionChannelBuildMessage, Reques
         self.outputPath = outputPath
     }
 }
-
 
 // MARK: Registering messages
 

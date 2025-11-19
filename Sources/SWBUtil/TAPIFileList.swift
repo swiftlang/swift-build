@@ -64,9 +64,12 @@ public struct TAPIFileList: Sendable {
     }
 
     public init(version: FormatVersion, headers: [(headerVisibility: HeaderVisibility, path: String)]) throws {
-        try self.init(version: version, headerInfos: headers.map {
-            HeaderInfo(visibility: $0.headerVisibility, path: Path($0.path), language: nil, isSwiftCompatibilityHeader: nil)
-        })
+        try self.init(
+            version: version,
+            headerInfos: headers.map {
+                HeaderInfo(visibility: $0.headerVisibility, path: Path($0.path), language: nil, isSwiftCompatibilityHeader: nil)
+            }
+        )
     }
 
     public init(version: FormatVersion, headerInfos: [HeaderInfo]) throws {
@@ -77,7 +80,7 @@ public struct TAPIFileList: Sendable {
         // Note that order is important for file lists, and must be preserved. We only sort
         // here in order to guarantee that any errors are displayed consistently given the same input.
         for (_, pair) in Dictionary(grouping: headerInfos, by: { $0.path.str }).sorted(byKey: <) {
-            assert(!pair.isEmpty) // impossible
+            assert(!pair.isEmpty)  // impossible
             let visibilities = Set(pair.map { $0.visibility })
             guard let headerVisibility = visibilities.only else {
                 throw TAPIFileListError.duplicateEntry(path: pair[0].path.str, visibilities: visibilities)
@@ -100,7 +103,7 @@ extension TAPIFileList: Encodable {
 
     public func encode(to encoder: any Swift.Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(String(version.rawValue), forKey: .version) // required to be a string, not integer
+        try container.encode(String(version.rawValue), forKey: .version)  // required to be a string, not integer
         try container.encode(headerInfos, forKey: .headers)
     }
 }

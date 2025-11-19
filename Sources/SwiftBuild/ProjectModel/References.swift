@@ -120,9 +120,7 @@ extension ProjectModel {
         }
     }
 
-
 }
-
 
 extension ProjectModel.Reference: Codable {
     public init(from decoder: any Decoder) throws {
@@ -212,7 +210,6 @@ extension ProjectModel.FileReference: Codable {
         case "y", "ym", "ymm", "ypp", "yp", "yxx":
             return "sourcecode.yacc"
 
-
         // FIXME: This is probably now more important because of resources support.
         case "xcassets":
             return "folder.assetcatalog"
@@ -237,7 +234,7 @@ extension ProjectModel.FileReference: Codable {
             return "folder.rkassets"
 
         default:
-            return XCBuildFileType.all.first{ $0.fileTypes.contains(pathExtension) }?.fileTypeIdentifier ?? "file"
+            return XCBuildFileType.all.first { $0.fileTypes.contains(pathExtension) }?.fileTypeIdentifier ?? "file"
         }
     }
 
@@ -274,4 +271,3 @@ extension ProjectModel.Group: Codable {
     }
 
 }
-

@@ -116,12 +116,15 @@ extension SWBCore.BuildCommand {
         case let .singleFileBuild(buildOnlyTheseFiles):
             self = .singleFileBuild(buildOnlyTheseFiles: buildOnlyTheseFiles.map(Path.init))
         case let .prepareForIndexing(buildOnlyTheseTargets, enableIndexBuildArena):
-            self = try .prepareForIndexing(buildOnlyTheseTargets: buildOnlyTheseTargets?.map {
-                guard let target = workspace.target(for: $0) else {
-                    throw MsgParserError.missingTarget(guid: $0)
-                }
-                return target
-            } ?? nil, enableIndexBuildArena: enableIndexBuildArena)
+            self = try .prepareForIndexing(
+                buildOnlyTheseTargets: buildOnlyTheseTargets?.map {
+                    guard let target = workspace.target(for: $0) else {
+                        throw MsgParserError.missingTarget(guid: $0)
+                    }
+                    return target
+                } ?? nil,
+                enableIndexBuildArena: enableIndexBuildArena
+            )
         case .migrate:
             throw MsgParserError.swiftMigrationNoLongerAvailable
         case let .cleanBuildFolder(style):
@@ -336,7 +339,7 @@ extension BuildRequest {
         case .buildRequest:
             dependencyScope = .buildRequest
         }
-        try self.init(parameters: parameters, buildTargets: payload.configuredTargets.map{ try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, schedulerLaneWidthOverride: payload.schedulerLaneWidthOverride, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
+        try self.init(parameters: parameters, buildTargets: payload.configuredTargets.map { try BuildRequest.BuildTargetInfo(from: $0, defaultParameters: parameters, workspace: workspace) }, dependencyScope: dependencyScope, continueBuildingAfterErrors: payload.continueBuildingAfterErrors, hideShellScriptEnvironment: payload.hideShellScriptEnvironment, useParallelTargets: payload.useParallelTargets, useImplicitDependencies: payload.useImplicitDependencies, useDryRun: payload.useDryRun, enableStaleFileRemoval: nil, showNonLoggedProgress: payload.showNonLoggedProgress, recordBuildBacktraces: payload.recordBuildBacktraces, generatePrecompiledModulesReport: payload.generatePrecompiledModulesReport, buildDescriptionID: payload.buildDescriptionID.map(BuildDescriptionID.init), qos: qos, schedulerLaneWidthOverride: payload.schedulerLaneWidthOverride, buildPlanDiagnosticsDirPath: payload.buildPlanDiagnosticsDirPath, buildCommand: buildCommand, schemeCommand: payload.schemeCommand?.coreRepresentation, containerPath: payload.containerPath, jsonRepresentation: payload.jsonRepresentation)
     }
 
     /// Whether the build request _explicitly_ contains the specified `target`.
@@ -382,7 +385,7 @@ extension BuildRequest {
 private extension BuildRequest.BuildTargetInfo {
     init(from payload: ConfiguredTargetMessagePayload, defaultParameters: BuildParameters, workspace: SWBCore.Workspace) throws {
         guard let target = workspace.target(for: payload.guid) else { throw MsgParserError.missingTarget(guid: payload.guid) }
-        try self.init(parameters: payload.parameters.map{ try BuildParameters(from: $0) } ?? defaultParameters, target: target)
+        try self.init(parameters: payload.parameters.map { try BuildParameters(from: $0) } ?? defaultParameters, target: target)
     }
 }
 

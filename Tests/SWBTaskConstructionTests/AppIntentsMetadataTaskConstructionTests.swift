@@ -39,8 +39,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     children: [
                         TestFile("source.swift"),
                         TestFile(appShortcutsStringsFileName),
-                        TestFile(assistantIntentsStringsFileName)
-                    ]),
+                        TestFile(assistantIntentsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -56,7 +57,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -67,15 +69,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO"
-                                ]),
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName), TestBuildFile(assistantIntentsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
@@ -85,31 +89,31 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
-                        let commandLineBeforeConst = [executableName.asString,
-                                                      "--toolchain-dir", "\(defaultToolchain.path.str)",
-                                                      "--module-name", "LinkTest",
-                                                      "--sdk-root", core.loadSDK(.iOS).path.str,
-                                                      "--xcode-version", core.xcodeProductBuildVersionString,
-                                                      "--platform-family", "iOS",
-                                                      "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
-                                                      "--bundle-identifier", "com.foo.bar",
-                                                      "--output", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
-                                                      "--target-triple", "arm64-apple-ios\(core.loadSDK(.iOS).version)",
-                                                      "--binary-file", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/LinkTest",
-                                                      "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest_dependency_info.dat",
-                                                      "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata",
-                                                      "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftFileList",
-                                                      "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
-                                                      "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList"]
+                        executableName == "appintentsmetadataprocessor"
+                    {
+                        let commandLineBeforeConst = [
+                            executableName.asString,
+                            "--toolchain-dir", "\(defaultToolchain.path.str)",
+                            "--module-name", "LinkTest",
+                            "--sdk-root", core.loadSDK(.iOS).path.str,
+                            "--xcode-version", core.xcodeProductBuildVersionString,
+                            "--platform-family", "iOS",
+                            "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
+                            "--bundle-identifier", "com.foo.bar",
+                            "--output", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
+                            "--target-triple", "arm64-apple-ios\(core.loadSDK(.iOS).version)",
+                            "--binary-file", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/LinkTest",
+                            "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest_dependency_info.dat",
+                            "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata",
+                            "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftFileList",
+                            "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                            "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList",
+                        ]
 
-                        let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) +
-                        ["--deployment-aware-processing", "--validate-assistant-intents"]
+                        let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) + ["--deployment-aware-processing", "--validate-assistant-intents"]
                         let commandLine: [String]
                         if swiftFeatures.has(.emitContValuesSidecar) {
-                            commandLine = commandLineBeforeConst +
-                            ["--swift-const-vals-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftConstValuesFileList"] +
-                            commandLineAfterConst
+                            commandLine = commandLineBeforeConst + ["--swift-const-vals-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftConstValuesFileList"] + commandLineAfterConst
                         } else {
                             commandLine = commandLineBeforeConst + commandLineAfterConst
                         }
@@ -128,7 +132,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("LinkTest.SwiftConstValuesFileList")),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-copy-bundle-resources&compile-sources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ]
                     if swiftFeatures.has(.emitContValuesSidecar) {
                         expectedInputs.insert(.namePattern(.suffix("source.swiftconstvalues")), at: 1)
@@ -143,7 +147,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                          .path("\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents/extract.actionsdata")
                          */
                         .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata"),
-                        .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents")
+                        .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents"),
                     ])
 
                     results.checkNoDiagnostics()
@@ -162,16 +166,18 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appshortcutstringsprocessor" {
-                        task.checkCommandLine([executableName.asString,
-                                               "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
-                                               "--source-file", "\(SRCROOT)/\(assistantIntentsStringsFileName)",
-                                               "--input-data-path", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
-                                               "--platform-family",  "iOS",
-                                               "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
-                                               "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList"
-                                              ])
+                        executableName == "appshortcutstringsprocessor"
+                    {
+                        task.checkCommandLine([
+                            executableName.asString,
+                            "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
+                            "--source-file", "\(SRCROOT)/\(assistantIntentsStringsFileName)",
+                            "--input-data-path", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
+                            "--platform-family", "iOS",
+                            "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
+                            "--validate-assistant-intents",
+                            "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                        ])
                     }
 
                     task.checkInputs([
@@ -181,11 +187,11 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents"),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-copy-bundle-resources&compile-sources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ])
 
                     task.checkOutputs([
-                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .and(.contains("\(SRCROOT)/\(assistantIntentsStringsFileName)"), .contains("\(SRCROOT)/\(appShortcutsStringsFileName)")) )),
+                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .and(.contains("\(SRCROOT)/\(assistantIntentsStringsFileName)"), .contains("\(SRCROOT)/\(appShortcutsStringsFileName)"))))
                     ])
 
                     results.checkNoDiagnostics()
@@ -209,8 +215,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -226,7 +233,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -237,14 +245,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
@@ -254,30 +264,30 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
-                        let commandLineBeforeConst = [executableName.asString,
-                                                      "--toolchain-dir", "\(defaultToolchain.path.str)",
-                                                      "--module-name", "LinkTest",
-                                                      "--sdk-root", results.runDestinationSDK.path.str,
-                                                      "--xcode-version", core.xcodeProductBuildVersionString,
-                                                      "--platform-family", "iOS",
-                                                      "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                                      "--bundle-identifier", "com.foo.bar",
-                                                      "--output", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
-                                                      "--target-triple", "arm64-apple-ios\(results.runDestinationSDK.version)",
-                                                      "--binary-file", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/LinkTest",
-                                                      "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest_dependency_info.dat",
-                                                      "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata",
-                                                      "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftFileList",
-                                                      "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
-                                                      "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList"]
-                        let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) +
-                        ["--deployment-aware-processing", "--validate-assistant-intents"]
+                        executableName == "appintentsmetadataprocessor"
+                    {
+                        let commandLineBeforeConst = [
+                            executableName.asString,
+                            "--toolchain-dir", "\(defaultToolchain.path.str)",
+                            "--module-name", "LinkTest",
+                            "--sdk-root", results.runDestinationSDK.path.str,
+                            "--xcode-version", core.xcodeProductBuildVersionString,
+                            "--platform-family", "iOS",
+                            "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                            "--bundle-identifier", "com.foo.bar",
+                            "--output", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
+                            "--target-triple", "arm64-apple-ios\(results.runDestinationSDK.version)",
+                            "--binary-file", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/LinkTest",
+                            "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest_dependency_info.dat",
+                            "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata",
+                            "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftFileList",
+                            "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                            "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList",
+                        ]
+                        let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) + ["--deployment-aware-processing", "--validate-assistant-intents"]
                         let commandLine: [String]
                         if swiftFeatures.has(.emitContValuesSidecar) {
-                            commandLine = commandLineBeforeConst +
-                            ["--swift-const-vals-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftConstValuesFileList"] +
-                            commandLineAfterConst
+                            commandLine = commandLineBeforeConst + ["--swift-const-vals-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftConstValuesFileList"] + commandLineAfterConst
                         } else {
                             commandLine = commandLineBeforeConst + commandLineAfterConst
                         }
@@ -296,7 +306,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("LinkTest.SwiftConstValuesFileList")),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-copy-bundle-resources&compile-sources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ]
                     if swiftFeatures.has(.emitContValuesSidecar) {
                         expectedInputs.insert(.namePattern(.suffix("source.swiftconstvalues")), at: 1)
@@ -311,7 +321,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                          .path("\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents/extract.actionsdata")
                          */
                         .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata"),
-                        .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents")
+                        .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents"),
                     ])
 
                     results.checkNoDiagnostics()
@@ -330,15 +340,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appshortcutstringsprocessor" {
-                        task.checkCommandLine([executableName.asString,
-                                               "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
-                                               "--input-data-path", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
-                                               "--platform-family",  "iOS",
-                                               "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
-                                               "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList"
-                                              ])
+                        executableName == "appshortcutstringsprocessor"
+                    {
+                        task.checkCommandLine([
+                            executableName.asString,
+                            "--source-file", "\(SRCROOT)/\(appShortcutsStringsFileName)",
+                            "--input-data-path", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
+                            "--platform-family", "iOS",
+                            "--deployment-target", results.runDestinationSDK.defaultDeploymentTarget,
+                            "--validate-assistant-intents",
+                            "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                        ])
                     }
 
                     task.checkInputs([
@@ -347,11 +359,11 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents"),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-copy-bundle-resources&compile-sources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ])
 
                     task.checkOutputs([
-                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .suffix("\(SRCROOT)/\(appShortcutsStringsFileName)"))),
+                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .suffix("\(SRCROOT)/\(appShortcutsStringsFileName)")))
                     ])
 
                     results.checkNoDiagnostics()
@@ -360,21 +372,23 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("AppIntentsSSUTraining")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsnltrainingprocessor" {
-                        task.checkCommandLine([executableName.asString,
-                                               "--infoplist-path",
-                                               "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Info.plist",
-                                               "--temp-dir-path",
-                                               "\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/ssu",
-                                               "--bundle-id",
-                                               "com.foo.bar",
-                                               "--product-path",
-                                               "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
-                                               "--extracted-metadata-path",
-                                               "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
-                                               "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
-                                               "--archive-ssu-assets"
-                                              ])
+                        executableName == "appintentsnltrainingprocessor"
+                    {
+                        task.checkCommandLine([
+                            executableName.asString,
+                            "--infoplist-path",
+                            "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Info.plist",
+                            "--temp-dir-path",
+                            "\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/ssu",
+                            "--bundle-id",
+                            "com.foo.bar",
+                            "--product-path",
+                            "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
+                            "--extracted-metadata-path",
+                            "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
+                            "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                            "--archive-ssu-assets",
+                        ])
                     }
 
                     task.checkInputs([
@@ -385,11 +399,11 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("LinkTest.DependencyMetadataFileList")),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-copy-bundle-resources&compile-sources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ])
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/ssu/root.ssu.yaml"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/ssu/root.ssu.yaml")
                     ])
 
                     results.checkNoDiagnostics()
@@ -408,8 +422,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -425,7 +440,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -436,14 +452,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -451,7 +469,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("AppIntentsSSUTraining")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsnltrainingprocessor" {
+                        executableName == "appintentsnltrainingprocessor"
+                    {
                         task.checkCommandLineDoesNotContain("--deployment-postprocessing")
                     }
                     results.checkNoDiagnostics()
@@ -461,7 +480,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("AppIntentsSSUTraining")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsnltrainingprocessor" {
+                        executableName == "appintentsnltrainingprocessor"
+                    {
                         task.checkCommandLineContains(["--deployment-postprocessing"])
                     }
                     results.checkNoDiagnostics()
@@ -471,7 +491,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("AppIntentsSSUTraining")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsnltrainingprocessor" {
+                        executableName == "appintentsnltrainingprocessor"
+                    {
                         task.checkCommandLineContains(["--deployment-postprocessing"])
                     }
                     results.checkNoDiagnostics()
@@ -490,8 +511,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -507,7 +529,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -520,15 +543,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                     "LM_ENABLE_LINK_GENERATION": "YES",
                                     "LM_ENABLE_APP_NAME_OVERRIDE": "YES",
                                     "LM_ENABLE_STRING_VALIDATION": "NO",
-                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO"
-                                ]),
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -537,19 +562,21 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appshortcutstringsprocessor" {
-                        task.checkCommandLine([executableName.asString,
-                                               "--source-file",
-                                               "\(SRCROOT)/\(appShortcutsStringsFileName)",
-                                               "--input-data-path",
-                                               "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
-                                               "--disable",
-                                               "--app-name-override",
-                                               "--platform-family",  "iOS",
-                                               "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
-                                               "--validate-assistant-intents",
-                                               "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList"
-                                              ])
+                        executableName == "appshortcutstringsprocessor"
+                    {
+                        task.checkCommandLine([
+                            executableName.asString,
+                            "--source-file",
+                            "\(SRCROOT)/\(appShortcutsStringsFileName)",
+                            "--input-data-path",
+                            "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents",
+                            "--disable",
+                            "--app-name-override",
+                            "--platform-family", "iOS",
+                            "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
+                            "--validate-assistant-intents",
+                            "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                        ])
                     }
 
                     task.checkInputs([
@@ -558,11 +585,11 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents"),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-copy-bundle-resources&compile-sources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ])
 
                     task.checkOutputs([
-                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .suffix("\(SRCROOT)/\(appShortcutsStringsFileName)"))),
+                        .namePattern(.and(.prefix("ValidateAppShortcutStringsMetadata target-LinkTest-T-LinkTest-"), .suffix("\(SRCROOT)/\(appShortcutsStringsFileName)")))
                     ])
 
                     results.checkNoDiagnostics()
@@ -581,7 +608,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -594,8 +622,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "SWIFT_VERSION": swiftVersion,
-                            "VERSIONING_SYSTEM": "apple-generic"
-                        ]),
+                            "VERSIONING_SYSTEM": "apple-generic",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -606,13 +635,15 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -636,8 +667,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -653,7 +685,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -664,14 +697,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -702,8 +737,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("fileA1.swift"),
-                            ]),
+                                TestFile("fileA1.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -717,7 +753,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -725,11 +762,14 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "fileA1.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "fileA1.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -738,8 +778,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/fileA1.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     public struct A {
                         public init() {}
                     }
@@ -796,8 +835,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -813,7 +853,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -824,14 +865,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -855,8 +898,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -871,8 +915,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
-                            "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar"
-                        ]),
+                            "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -883,15 +928,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
-                                    "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                    "LM_ENABLE_LINK_GENERATION": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -912,8 +959,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -929,7 +977,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -940,14 +989,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -967,8 +1018,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -984,7 +1036,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -995,15 +1048,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "LM_FORCE_LINK_GENERATION": "YES"
-                                ]),
+                                    "LM_FORCE_LINK_GENERATION": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1011,7 +1066,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineContains(["--force"])
                     }
                     results.checkNoDiagnostics()
@@ -1030,8 +1086,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1044,8 +1101,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "iphoneos",
                             "SWIFT_VERSION": swiftVersion,
-                            "VERSIONING_SYSTEM": "apple-generic"
-                        ]),
+                            "VERSIONING_SYSTEM": "apple-generic",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1056,13 +1114,15 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_METADATA_EXTRACTION": "NO"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1085,7 +1145,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1101,7 +1162,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1112,14 +1174,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "LM_COMPILE_TIME_EXTRACTION": "NO"
-                                ]),
+                                    "LM_COMPILE_TIME_EXTRACTION": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1127,7 +1191,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineDoesNotContain("--compile-time-extraction")
                     }
                     results.checkNoDiagnostics()
@@ -1146,7 +1211,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1162,7 +1228,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1173,14 +1240,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING": "NO"
-                                ]),
+                                    "ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1188,7 +1257,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineDoesNotContain("--deployment-aware-processing")
                     }
                     results.checkNoDiagnostics()
@@ -1207,7 +1277,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1223,7 +1294,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1234,14 +1306,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "ENABLE_ASSISTANT_INTENTS_PROVIDER_VALIDATION": "NO"
-                                ]),
+                                    "ENABLE_ASSISTANT_INTENTS_PROVIDER_VALIDATION": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1249,7 +1323,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineDoesNotContain("---validate-assistant-intents")
                     }
                     results.checkNoDiagnostics()
@@ -1271,7 +1346,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1288,7 +1364,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1299,13 +1376,15 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES"
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["source.swift"]),
+                            TestSourcesBuildPhase(["source.swift"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
@@ -1315,39 +1394,40 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
-                        let commandLineBeforeConst = [executableName.asString,
-                                                      "--toolchain-dir", "\(defaultToolchain.path.str)",
-                                                      "--module-name", "LinkTest",
-                                                      "--sdk-root", core.loadSDK(.iOS).path.str,
-                                                      "--xcode-version", core.xcodeProductBuildVersionString,
-                                                      "--platform-family", "iOS",
-                                                      "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
-                                                      "--bundle-identifier", "com.foo.bar",
-                                                      "--output", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
-                                                      "--target-triple", "arm64-apple-ios\(core.loadSDK(.iOS).version)",
-                                                      "--binary-file", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/LinkTest",
-                                                      "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest_dependency_info.dat",
-                                                      "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/LinkTest_dependency_info.dat",
-                                                      "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata",
-                                                      "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/ExtractedAppShortcutsMetadata.stringsdata",
-                                                      "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftFileList",
-                                                      "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/LinkTest.SwiftFileList",
-                                                      "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
-                                                      "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList"]
+                        executableName == "appintentsmetadataprocessor"
+                    {
+                        let commandLineBeforeConst = [
+                            executableName.asString,
+                            "--toolchain-dir", "\(defaultToolchain.path.str)",
+                            "--module-name", "LinkTest",
+                            "--sdk-root", core.loadSDK(.iOS).path.str,
+                            "--xcode-version", core.xcodeProductBuildVersionString,
+                            "--platform-family", "iOS",
+                            "--deployment-target", core.loadSDK(.iOS).defaultDeploymentTarget,
+                            "--bundle-identifier", "com.foo.bar",
+                            "--output", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app",
+                            "--target-triple", "arm64-apple-ios\(core.loadSDK(.iOS).version)",
+                            "--binary-file", "\(SRCROOT)/build/Debug-iphoneos/LinkTest.app/LinkTest",
+                            "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest_dependency_info.dat",
+                            "--dependency-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/LinkTest_dependency_info.dat",
+                            "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata",
+                            "--stringsdata-file", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/ExtractedAppShortcutsMetadata.stringsdata",
+                            "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftFileList",
+                            "--source-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/LinkTest.SwiftFileList",
+                            "--metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyMetadataFileList",
+                            "--static-metadata-file-list", "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/LinkTest.DependencyStaticMetadataFileList",
+                        ]
 
-                        let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) +
-                        ["--deployment-aware-processing", "--validate-assistant-intents"]
+                        let commandLineAfterConst = (swiftFeatures.has(.constExtractCompleteMetadata) ? ["--compile-time-extraction"] : []) + ["--deployment-aware-processing", "--validate-assistant-intents"]
                         let commandLine: [String]
                         if swiftFeatures.has(.emitContValuesSidecar) {
-                            commandLine = commandLineBeforeConst +
-                            [
-                                "--swift-const-vals-list",
-                                "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftConstValuesFileList",
-                                "--swift-const-vals-list",
-                                "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/LinkTest.SwiftConstValuesFileList"
-                            ] +
-                            commandLineAfterConst
+                            commandLine =
+                                commandLineBeforeConst + [
+                                    "--swift-const-vals-list",
+                                    "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/LinkTest.SwiftConstValuesFileList",
+                                    "--swift-const-vals-list",
+                                    "\(tmpDir.str)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/LinkTest.SwiftConstValuesFileList",
+                                ] + commandLineAfterConst
                         } else {
                             commandLine = commandLineBeforeConst + commandLineAfterConst
                         }
@@ -1368,7 +1448,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("LinkTest.SwiftConstValuesFileList")),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-compile-sources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ]
                     if swiftFeatures.has(.emitContValuesSidecar) {
                         expectedInputs.insert(.namePattern(.suffix("source.swiftconstvalues")), at: 1)
@@ -1380,7 +1460,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata"),
                         .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/LinkTest.build/Objects-debug/arm64/ExtractedAppShortcutsMetadata.stringsdata"),
-                        .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents")
+                        .name("ExtractAppIntentsMetadata \(SRCROOT)/build/Debug-iphoneos/LinkTest.app/Metadata.appintents"),
                     ])
 
                     results.checkNoDiagnostics()
@@ -1404,7 +1484,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         TestFile("FrameworkB_File.swift"),
                         TestFile("FrameworkC_File.swift"),
                         TestFile("StaticLibraryA_File.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1421,7 +1502,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1432,8 +1514,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO"
-                                ]),
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
@@ -1447,11 +1530,12 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
-                                buildSettings: [:]),
+                                buildSettings: [:]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["StaticLibraryA_File.swift"]),
-                            TestFrameworksBuildPhase([])
+                            TestFrameworksBuildPhase([]),
                         ],
                         dependencies: []
                     ),
@@ -1464,12 +1548,13 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO"
-                                ]),
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["FrameworkA_File.swift"]),
-                            TestFrameworksBuildPhase([])
+                            TestFrameworksBuildPhase([]),
                         ],
                         dependencies: ["FrameworkTargetB", "StaticLibraryTargetA"]
                     ),
@@ -1481,12 +1566,13 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO"
-                                ]),
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["FrameworkB_File.swift"]),
-                            TestFrameworksBuildPhase([])
+                            TestFrameworksBuildPhase([]),
                         ],
                         dependencies: ["FrameworkTargetC"]
                     ),
@@ -1498,15 +1584,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO"
-                                ]),
+                                    "APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["FrameworkC_File.swift"]),
-                            TestFrameworksBuildPhase([])
+                            TestFrameworksBuildPhase([]),
                         ]
                     ),
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1516,7 +1604,7 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     let inputFiles = [
                         "\(SRCROOT)/build/Debug-iphoneos/FrameworkTargetA.framework/Metadata.appintents/extract.actionsdata",
                         "\(SRCROOT)/build/Debug-iphoneos/FrameworkTargetB.framework/Metadata.appintents/extract.actionsdata",
-                        "\(SRCROOT)/build/Debug-iphoneos/FrameworkTargetC.framework/Metadata.appintents/extract.actionsdata"
+                        "\(SRCROOT)/build/Debug-iphoneos/FrameworkTargetC.framework/Metadata.appintents/extract.actionsdata",
                     ]
                     let lines = contents.asString.components(separatedBy: .newlines)
                     #expect(lines == inputFiles + [""])
@@ -1542,8 +1630,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1559,7 +1648,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1570,15 +1660,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "LM_ENABLE_APP_NAME_OVERRIDE": "NO"
-                                ]),
+                                    "LM_ENABLE_APP_NAME_OVERRIDE": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1586,7 +1678,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineDoesNotContain("--app-shortcuts-app-name-override")
                     }
                     results.checkNoDiagnostics()
@@ -1594,7 +1687,6 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
             }
         }
     }
-
 
     @Test(.requireSDKs(.iOS))
     func appNameOverride() async throws {
@@ -1606,8 +1698,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1623,7 +1716,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1634,15 +1728,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "LM_ENABLE_APP_NAME_OVERRIDE": "YES"
-                                ]),
+                                    "LM_ENABLE_APP_NAME_OVERRIDE": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1650,7 +1746,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineContains(["--app-shortcuts-app-name-override"])
                     }
                     results.checkNoDiagnostics()
@@ -1669,8 +1766,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1686,7 +1784,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1697,15 +1796,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 "Debug",
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
-                                    "LM_FILTER_WARNINGS": "YES"
-                                ]),
+                                    "LM_FILTER_WARNINGS": "YES",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1713,7 +1814,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineContains(["--quiet-warnings"])
                     }
                     results.checkNoDiagnostics()
@@ -1732,8 +1834,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1749,7 +1852,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1759,15 +1863,17 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "LM_ENABLE_LINK_GENERATION": "YES",
-                                ]),
+                                    "LM_ENABLE_LINK_GENERATION": "YES"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1775,7 +1881,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineContainsUninterrupted(["--bundle-identifier", "com.foo.bar"])
                     }
                     results.checkNoDiagnostics()
@@ -1794,8 +1901,9 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("source.swift"),
-                        TestFile(appShortcutsStringsFileName)
-                    ]),
+                        TestFile(appShortcutsStringsFileName),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -1812,7 +1920,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "VERSIONING_SYSTEM": "apple-generic",
                             "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1824,14 +1933,16 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                                 buildSettings: [
                                     "LM_ENABLE_LINK_GENERATION": "YES",
                                     "PRODUCT_BUNDLE_IDENTIFIER": "",
-                                ]),
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase(["source.swift"]),
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -1839,7 +1950,8 @@ fileprivate struct AppIntentsMetadataTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("ExtractAppIntentsMetadata")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsmetadataprocessor" {
+                        executableName == "appintentsmetadataprocessor"
+                    {
                         task.checkCommandLineDoesNotContain("--bundle-identifier")
                     }
                     results.checkNoDiagnostics()

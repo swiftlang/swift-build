@@ -279,8 +279,9 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     func messageErrors() async throws {
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "foo": "bar" ],
-                [ "kind": "began" ]])
+                ["foo": "bar"],
+                ["kind": "began"],
+            ])
             #expect(delegate.events.count == 2)
             XCTAssertMatch(delegate.events[safe: 0]?.1, .contains("missing kind"))
             XCTAssertMatch(delegate.events[safe: 1]?.1, .contains("missing name"))
@@ -289,10 +290,15 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         // Missing 'pid' is an error.
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile" ],
-                [ "kind": "finished",
-                  "name": "compile" ]])
+                [
+                    "kind": "began",
+                    "name": "compile",
+                ],
+                [
+                    "kind": "finished",
+                    "name": "compile",
+                ],
+            ])
             #expect(delegate.events.count == 2)
             XCTAssertMatch(delegate.events[safe: 0]?.1, .contains("missing pid"))
             XCTAssertMatch(delegate.events[safe: 1]?.1, .contains("missing pid"))
@@ -301,14 +307,19 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         // Duplicate 'pid' is an error.
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1,
-                  "command": "foo"],
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1,
-                  "command": "foo"]])
+                [
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "command": "foo",
+                ],
+                [
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "command": "foo",
+                ],
+            ])
             #expect(delegate.events.count == 2)
             // Check we still start the subtask.
             #expect(delegate.events[safe: 0]?.0 == "startSubtask")
@@ -320,9 +331,12 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         // Bogus 'pid' in 'finished' is an error.
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "finished",
-                  "name": "compile",
-                  "pid": 1 ]])
+                [
+                    "kind": "finished",
+                    "name": "compile",
+                    "pid": 1,
+                ]
+            ])
             #expect(delegate.events.count == 1)
             XCTAssertMatch(delegate.events[safe: 0]?.1, .contains("invalid pid (no subtask record)"))
         }
@@ -335,35 +349,39 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     func unexpectedOutput() async throws {
         do {
             let stream = OutputByteStream()
-            try stream <<< makeMessageFragment([
-                "kind": "began",
-                "name": "compile",
-                "pid": 1,
-                "command": "foo"
-            ])
-            try stream <<< makeMessageFragment([
-                "kind": "signalled",
-                "name": "compile",
-                "pid": 1,
-                "output": "bla bla bla",
-                "error-message": "Segmentation fault: 11"
-            ])
+            try stream
+                <<< makeMessageFragment([
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "command": "foo",
+                ])
+            try stream
+                <<< makeMessageFragment([
+                    "kind": "signalled",
+                    "name": "compile",
+                    "pid": 1,
+                    "output": "bla bla bla",
+                    "error-message": "Segmentation fault: 11",
+                ])
             // Check two bogus messages in the middle.
             stream <<< "<unknown>:0: error: unable to execute command: Segmentation fault: 11\n"
             stream <<< "152 not a message cause it ain't got no newline at the front\n"
-            try stream <<< makeMessageFragment([
-                "kind": "began",
-                "name": "compile",
-                "pid": 2,
-                "command": "foo"
-            ])
-            try stream <<< makeMessageFragment([
-                "kind": "finished",
-                "name": "compile",
-                "pid": 2,
-                "output": "bla bla bla",
-                "exit-status": 1
-            ])
+            try stream
+                <<< makeMessageFragment([
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 2,
+                    "command": "foo",
+                ])
+            try stream
+                <<< makeMessageFragment([
+                    "kind": "finished",
+                    "name": "compile",
+                    "pid": 2,
+                    "output": "bla bla bla",
+                    "exit-status": 1,
+                ])
 
             let (delegate, parser) = try await makeTestParser()
             parser.write(bytes: stream.bytes)
@@ -385,21 +403,28 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     func messageBehaviors() async throws {
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1,
-                  "inputs": [Path.root.join("path/to/foo with space.swift").str, "not swift.pch"],
-                  "command": "foo" ],
-                [ "kind": "finished",
-                  "name": "compile",
-                  "inputs": ["foo.swift"],
-                  "pid": 1,
-                  "exit-status": 0,
-                  "output": "foobar"],
-                [ "kind": "skipped",
-                  "name": "compile",
-                  "inputs": ["bar.swift"],
-                  "command": "foo" ]])
+                [
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "inputs": [Path.root.join("path/to/foo with space.swift").str, "not swift.pch"],
+                    "command": "foo",
+                ],
+                [
+                    "kind": "finished",
+                    "name": "compile",
+                    "inputs": ["foo.swift"],
+                    "pid": 1,
+                    "exit-status": 0,
+                    "output": "foobar",
+                ],
+                [
+                    "kind": "skipped",
+                    "name": "compile",
+                    "inputs": ["bar.swift"],
+                    "command": "foo",
+                ],
+            ])
             #expect(delegate.events.count == 2)
             #expect(delegate.events[safe: 0]?.0 == "startSubtask")
             #expect(delegate.subtasks.count == 1)
@@ -427,10 +452,12 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     func multipleInputSubtaskTitle() async throws {
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1,
-                  "inputs": [Path.root.join("path/to/a.swift").str]]
+                [
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "inputs": [Path.root.join("path/to/a.swift").str],
+                ]
             ])
             #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT ARCH \(Path.root.join("path/to/a.swift").str.quotedDescription)")
             #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile a.swift (ARCH)")
@@ -438,13 +465,15 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         }
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1,
-                  "inputs": [
-                    Path.root.join("path/to/a.swift").str,
-                    Path.root.join("path/to/b.swift").str
-                  ]]
+                [
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "inputs": [
+                        Path.root.join("path/to/a.swift").str,
+                        Path.root.join("path/to/b.swift").str,
+                    ],
+                ]
             ])
             #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT ARCH")
             #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile 2 Swift source files (ARCH)")
@@ -452,14 +481,16 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         }
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1,
-                  "inputs": [
-                    Path.root.join("path/to/a.swift").str,
-                    Path.root.join("path/to/b.swift").str,
-                    Path.root.join("path/to/c.swift").str
-                  ]]
+                [
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "inputs": [
+                        Path.root.join("path/to/a.swift").str,
+                        Path.root.join("path/to/b.swift").str,
+                        Path.root.join("path/to/c.swift").str,
+                    ],
+                ]
             ])
             #expect(delegate.subtasks[safe: 0]?.name == "CompileSwift VARIANT ARCH")
             #expect(delegate.subtasks[safe: 0]?.executionDescription == "Compile 3 Swift source files (ARCH)")
@@ -471,22 +502,22 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     func executionDescription() async throws {
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began", "name": "compile", "pid": 1, "inputs": ["/tmp/file.swift"]],
-                [ "kind": "began", "name": "compile", "pid": 2, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
-                [ "kind": "began", "name": "backend", "pid": 3, "inputs": ["/tmp/file.swift"]],
-                [ "kind": "began", "name": "backend", "pid": 4, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
-                [ "kind": "began", "name": "merge-module", "pid": 5, "inputs": ["/tmp/file.swift"]],
-                [ "kind": "began", "name": "merge-module", "pid": 6, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
-                [ "kind": "began", "name": "link", "pid": 7],
-                [ "kind": "began", "name": "generate-pch", "pid": 8, "inputs": ["/tmp/file.swift"]],
-                [ "kind": "began", "name": "generate-pch", "pid": 9, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
-                [ "kind": "began", "name": "generate-dsym", "pid": 10],
-                [ "kind": "began", "name": "emit-module", "pid": 11, "inputs": ["/tmp/file1.swift"]],
-                [ "kind": "began", "name": "emit-module", "pid": 12, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
-                [ "kind": "began", "name": "verify-module-interface", "pid": 13, "inputs": ["/tmp/file1.swiftinterface"]],
-                [ "kind": "began", "name": "verify-module-interface", "pid": 14, "inputs": ["/tmp/file1.swiftinterface", "/tmp/file2.swiftinterface"]],
-                [ "kind": "began", "name": "verify-module-interface", "pid": 15, "inputs": ["/tmp/file1.swiftinterface", "/tmp/file2.swiftinterface"]],
-                [ "kind": "began", "name": "generate-pcm", "pid": 16, "inputs": ["/tmp/file.modulemap"]],
+                ["kind": "began", "name": "compile", "pid": 1, "inputs": ["/tmp/file.swift"]],
+                ["kind": "began", "name": "compile", "pid": 2, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
+                ["kind": "began", "name": "backend", "pid": 3, "inputs": ["/tmp/file.swift"]],
+                ["kind": "began", "name": "backend", "pid": 4, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
+                ["kind": "began", "name": "merge-module", "pid": 5, "inputs": ["/tmp/file.swift"]],
+                ["kind": "began", "name": "merge-module", "pid": 6, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
+                ["kind": "began", "name": "link", "pid": 7],
+                ["kind": "began", "name": "generate-pch", "pid": 8, "inputs": ["/tmp/file.swift"]],
+                ["kind": "began", "name": "generate-pch", "pid": 9, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
+                ["kind": "began", "name": "generate-dsym", "pid": 10],
+                ["kind": "began", "name": "emit-module", "pid": 11, "inputs": ["/tmp/file1.swift"]],
+                ["kind": "began", "name": "emit-module", "pid": 12, "inputs": ["/tmp/file1.swift", "/tmp/file2.swift"]],
+                ["kind": "began", "name": "verify-module-interface", "pid": 13, "inputs": ["/tmp/file1.swiftinterface"]],
+                ["kind": "began", "name": "verify-module-interface", "pid": 14, "inputs": ["/tmp/file1.swiftinterface", "/tmp/file2.swiftinterface"]],
+                ["kind": "began", "name": "verify-module-interface", "pid": 15, "inputs": ["/tmp/file1.swiftinterface", "/tmp/file2.swiftinterface"]],
+                ["kind": "began", "name": "generate-pcm", "pid": 16, "inputs": ["/tmp/file.modulemap"]],
             ])
 
             #expect(delegate.subtasks.count == 16)
@@ -507,7 +538,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
                 "Verify file1.swiftinterface (ARCH)",
                 "Verify swiftinterface (ARCH)",
                 "Verify swiftinterface (ARCH)",
-                "Compile Clang module file.modulemap (ARCH)"
+                "Compile Clang module file.modulemap (ARCH)",
             ]
 
             for (expectedExecDesc, subtask) in zip(expectedExecDescriptions, delegate.subtasks) {
@@ -522,24 +553,37 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     func multipleDiagnosticOutputSubtask() async throws {
         do {
             let (delegate, _) = try await makeTestParserWithMessages([
-                [ "kind": "began",
-                  "name": "compile",
-                  "pid": 1,
-                  "inputs": ["/path/to/a.swift", "/path/to/b.swift"],
-                  "outputs": [
-                    ["type": "object",
-                     "path": "/path/to/a.o"],
-                    ["type": "object",
-                     "path": "/path/to/b.o"],
-                    ["type": "diagnostics",
-                     "path": "/path/to/a.dia"],
-                    ["type": "diagnostics",
-                     "path": "/path/to/b.dia"]
-                  ]
+                [
+                    "kind": "began",
+                    "name": "compile",
+                    "pid": 1,
+                    "inputs": ["/path/to/a.swift", "/path/to/b.swift"],
+                    "outputs": [
+                        [
+                            "type": "object",
+                            "path": "/path/to/a.o",
+                        ],
+                        [
+                            "type": "object",
+                            "path": "/path/to/b.o",
+                        ],
+                        [
+                            "type": "diagnostics",
+                            "path": "/path/to/a.dia",
+                        ],
+                        [
+                            "type": "diagnostics",
+                            "path": "/path/to/b.dia",
+                        ],
+                    ],
                 ]
             ])
-            #expect(delegate.subtasks[safe: 0]?.serializedDiagnosticsPaths == [Path("/path/to/a.dia"),
-                                                                               Path("/path/to/b.dia")])
+            #expect(
+                delegate.subtasks[safe: 0]?.serializedDiagnosticsPaths == [
+                    Path("/path/to/a.dia"),
+                    Path("/path/to/b.dia"),
+                ]
+            )
         }
     }
 }

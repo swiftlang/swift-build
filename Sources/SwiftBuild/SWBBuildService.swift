@@ -15,7 +15,6 @@ public import Foundation
 import SWBProtocol
 import SWBUtil
 
-
 /// A generic error from Swift Build.
 //
 // FIXME: We should refine this.
@@ -124,7 +123,7 @@ public final class SWBBuildService: Sendable {
         IPCMessage(message).serialize(to: serializer)
         let contents = serializer.byteString
 
-        contents.bytes.withUnsafeBytes{ buffer in
+        contents.bytes.withUnsafeBytes { buffer in
             self.connection.send(SWBDispatchData(bytes: buffer), onChannel: channel)
         }
     }
@@ -134,7 +133,7 @@ public final class SWBBuildService: Sendable {
     }
 
     internal func openChannel(handler block: @Sendable @escaping (UInt64, any Message) -> Void) -> UInt64 {
-        return self.connection.openChannel{ channel, data in
+        return self.connection.openChannel { channel, data in
             // Deserialize the message.
             //
             // FIXME: Shouldn't need to copy here.
@@ -195,7 +194,7 @@ public final class SWBBuildService: Sendable {
     }
 
     // ABI compatibility
-    public func createSession(name: String, developerPath: String? = nil, cachePath: String?, inferiorProductsPath: String?, environment: [String:String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
+    public func createSession(name: String, developerPath: String? = nil, cachePath: String?, inferiorProductsPath: String?, environment: [String: String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
         await createSession(name: name, developerPath: developerPath, resourceSearchPaths: [], cachePath: cachePath, inferiorProductsPath: inferiorProductsPath, environment: environment)
     }
 
@@ -207,7 +206,7 @@ public final class SWBBuildService: Sendable {
     ///   - inferiorProductsPath: If provided, the path to where inferior Xcode build data is located.
     ///   - environment: If provided, a set of environment variables that are relevant to the build session's context
     /// - returns: The new session.
-    public func createSession(name: String, developerPath: String? = nil, resourceSearchPaths: [String], cachePath: String?, inferiorProductsPath: String?, environment: [String:String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
+    public func createSession(name: String, developerPath: String? = nil, resourceSearchPaths: [String], cachePath: String?, inferiorProductsPath: String?, environment: [String: String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
         do {
             let response = try await send(request: CreateSessionRequest(name: name, developerPath: developerPath.map(Path.init), resourceSearchPaths: resourceSearchPaths.map(Path.init), cachePath: cachePath.map(Path.init), inferiorProductsPath: inferiorProductsPath.map(Path.init), environment: environment))
             let diagnostics = response.diagnostics.map { SwiftBuildMessage.DiagnosticInfo(.init($0, .global)) }
@@ -221,7 +220,7 @@ public final class SWBBuildService: Sendable {
         }
     }
 
-    public func createSession(name: String, swiftToolchainPath: String, resourceSearchPaths: [String], cachePath: String?, inferiorProductsPath: String?, environment: [String:String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
+    public func createSession(name: String, swiftToolchainPath: String, resourceSearchPaths: [String], cachePath: String?, inferiorProductsPath: String?, environment: [String: String]?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
         do {
             let response = try await send(request: CreateSessionRequest(name: name, developerPath: .swiftToolchain(Path(swiftToolchainPath)), resourceSearchPaths: resourceSearchPaths.map(Path.init), cachePath: cachePath.map(Path.init), inferiorProductsPath: inferiorProductsPath.map(Path.init), environment: environment))
             let diagnostics = response.diagnostics.map { SwiftBuildMessage.DiagnosticInfo(.init($0, .global)) }

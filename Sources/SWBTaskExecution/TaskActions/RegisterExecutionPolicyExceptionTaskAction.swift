@@ -18,7 +18,7 @@ public import SWBCore
 
 // Weak-linked because the framework isn't available in all contexts
 #if canImport(ExecutionPolicy)
-@_weakLinked import ExecutionPolicy
+    @_weakLinked import ExecutionPolicy
 #endif
 
 /// Concrete implementation of task for registering a built bundle or binary with the system to speed up execution policy checks.
@@ -89,20 +89,20 @@ public final class RegisterExecutionPolicyExceptionTaskAction: TaskAction {
         }
 
         #if canImport(ExecutionPolicy)
-        if #_hasSymbol(EPExecutionPolicy.self) {
-            do {
-                // EPExecutionPolicy manages an XPC connection to syspolicyd, and we only need one per process.
-                // Further, concurrent deallocations of EPExecutionPolicy can trigger an ASan issue in libxpc <rdar://76685500>
-                enum Static {
-                    static let shared = EPExecutionPolicy()
-                }
+            if #_hasSymbol(EPExecutionPolicy.self) {
+                do {
+                    // EPExecutionPolicy manages an XPC connection to syspolicyd, and we only need one per process.
+                    // Further, concurrent deallocations of EPExecutionPolicy can trigger an ASan issue in libxpc <rdar://76685500>
+                    enum Static {
+                        static let shared = EPExecutionPolicy()
+                    }
 
-                // Register the file.
-                try Static.shared.addException(for: URL(fileURLWithPath: options.input.str))
-            } catch {
-                // We don't ever fail if blessing fails, and the failure information is not particularly interesting to users.
+                    // Register the file.
+                    try Static.shared.addException(for: URL(fileURLWithPath: options.input.str))
+                } catch {
+                    // We don't ever fail if blessing fails, and the failure information is not particularly interesting to users.
+                }
             }
-        }
         #endif
 
         return .succeeded

@@ -63,7 +63,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     /// Helper functions for creating PlannedTask/Task pairs.
     private func createTask(type: (any TaskTypeDescription)? = nil, forTarget: ConfiguredTarget? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings = EnvironmentBindings(), workingDirectory: Path = .root, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask] = [], action: TaskAction?, execDescription: String? = nil, preparesForIndexing: Bool = false) -> ConstructedTask {
 
-        var builder = PlannedTaskBuilder(type: type ?? MockTaskTypeDescription(), ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ .literal(ByteString(encodingAsUTF8: $0)) }, additionalOutput: additionalOutput, environment: environment, inputs: inputs, outputs: outputs)
+        var builder = PlannedTaskBuilder(type: type ?? MockTaskTypeDescription(), ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) }, additionalOutput: additionalOutput, environment: environment, inputs: inputs, outputs: outputs)
         builder.forTarget = forTarget
         builder.workingDirectory = workingDirectory
         builder.mustPrecede = mustPrecede
@@ -99,12 +99,16 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     }
 
     private func uniqueTaskNamesIncludedInEvents(_ events: [BuildOperationTester.BuildEvent]) -> [String] {
-        return Array(Set(events.compactMap {
-            switch $0 {
-            case .taskHadEvent(let task, _): return task.ruleInfo.first
-            default: return nil
-            }
-        }))
+        return Array(
+            Set(
+                events.compactMap {
+                    switch $0 {
+                    case .taskHadEvent(let task, _): return task.ruleInfo.first
+                    default: return nil
+                    }
+                }
+            )
+        )
     }
 
     @Test(.requireSDKs(.host))
@@ -164,9 +168,12 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     func immediateCancellation() async throws {
         let (tester, _, _) = try await createBuildOperationTesterForCancellation()
 
-        try await tester.checkBuild(runDestination: .host, body: { results in
-            results.checkCapstoneEvents(last: .buildCancelled)
-        }) { operation in
+        try await tester.checkBuild(
+            runDestination: .host,
+            body: { results in
+                results.checkCapstoneEvents(last: .buildCancelled)
+            }
+        ) { operation in
             operation.cancel()
             await operation.build()
         }
@@ -176,27 +183,32 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     func cancellationAfterStart() async throws {
         let (tester, taskWaitsForSemaphore, taskHasStartedSemaphore) = try await createBuildOperationTesterForCancellation()
 
-        try await tester.checkBuild(runDestination: .host, body: { results in
-            results.checkCapstoneEvents(last: .buildCancelled)
+        try await tester.checkBuild(
+            runDestination: .host,
+            body: { results in
+                results.checkCapstoneEvents(last: .buildCancelled)
 
-            let waitTask = try #require(results.getTask(.matchRule(["wait"])))
+                let waitTask = try #require(results.getTask(.matchRule(["wait"])))
 
-            // Check that waiting task did complete
-            results.check(event: .taskHadEvent(waitTask, event: .started), precedes: .taskHadEvent(waitTask, event: .completed))
+                // Check that waiting task did complete
+                results.check(event: .taskHadEvent(waitTask, event: .started), precedes: .taskHadEvent(waitTask, event: .completed))
 
-            // Ensure dependent task never ran (as we previously checked for 4 events which weren't involving it)
-            #expect(results.events.sorted(by: { String(describing: $0) < String(describing: $1) }) == [
-                .buildCancelled,
-                .buildReportedPathMap(copiedPathMap: [:], generatedFilesPathMap: [:]),
-                .buildStarted,
-                .taskHadEvent(waitTask, event: .completed),
-                .taskHadEvent(waitTask, event: .started),
-                .taskHadEvent(waitTask, event: .exit(.succeeded())),
-                .totalProgressChanged(targetName: nil, startedCount: 0, maxCount: 1),
-                .totalProgressChanged(targetName: nil, startedCount: 0, maxCount: 2),
-                .totalProgressChanged(targetName: nil, startedCount: 1, maxCount: 2),
-            ])
-        }) { operation in
+                // Ensure dependent task never ran (as we previously checked for 4 events which weren't involving it)
+                #expect(
+                    results.events.sorted(by: { String(describing: $0) < String(describing: $1) }) == [
+                        .buildCancelled,
+                        .buildReportedPathMap(copiedPathMap: [:], generatedFilesPathMap: [:]),
+                        .buildStarted,
+                        .taskHadEvent(waitTask, event: .completed),
+                        .taskHadEvent(waitTask, event: .started),
+                        .taskHadEvent(waitTask, event: .exit(.succeeded())),
+                        .totalProgressChanged(targetName: nil, startedCount: 0, maxCount: 1),
+                        .totalProgressChanged(targetName: nil, startedCount: 0, maxCount: 2),
+                        .totalProgressChanged(targetName: nil, startedCount: 1, maxCount: 2),
+                    ]
+                )
+            }
+        ) { operation in
             _Concurrency.Task<Void, Never> {
                 await taskHasStartedSemaphore.wait()
                 operation.cancel()
@@ -208,11 +220,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
     /// Stress concurrent access to the build system cache during rapid cancel
     /// then build scenarios.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "no /usr/bin/true"),
-          // To aid in establishing the subtle concurrent
-          // timing required to trigger chaos, we disable early build operation
-          // cancellation.
-          .userDefaults(["SkipEarlyBuildOperationCancellation": "1"])
+    @Test(
+        .requireSDKs(.host),
+        .skipHostOS(.windows, "no /usr/bin/true"),
+        // To aid in establishing the subtle concurrent
+        // timing required to trigger chaos, we disable early build operation
+        // cancellation.
+        .userDefaults(["SkipEarlyBuildOperationCancellation": "1"])
     )
     func stressConcurrentCancellation() async throws {
         // We want to be sure that build system caching is turned on for this
@@ -236,9 +250,12 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, body: { results in
-                            results.checkCapstoneEvents(last: .buildCancelled)
-                        }) { operation in
+                        try await tester.checkBuild(
+                            runDestination: .host,
+                            body: { results in
+                                results.checkCapstoneEvents(last: .buildCancelled)
+                            }
+                        ) { operation in
                             build1Ready.signal()
                             await startBuilds.wait()
 
@@ -264,14 +281,17 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, body: { results in
-                            #expect(results.events.first! == .buildStarted)
+                        try await tester.checkBuild(
+                            runDestination: .host,
+                            body: { results in
+                                #expect(results.events.first! == .buildStarted)
 
-                            let waitTask = try #require(results.getTask(.matchRule(["wait"])))
+                                let waitTask = try #require(results.getTask(.matchRule(["wait"])))
 
-                            // Check that waiting task did complete
-                            results.check(event: .taskHadEvent(waitTask, event: .started), precedes: .taskHadEvent(waitTask, event: .completed))
-                        }) { operation in
+                                // Check that waiting task did complete
+                                results.check(event: .taskHadEvent(waitTask, event: .started), precedes: .taskHadEvent(waitTask, event: .completed))
+                            }
+                        ) { operation in
                             build2Ready.signal()
                             await startBuilds.wait()
                             _Concurrency.Task<Void, any Error> {
@@ -317,17 +337,22 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
         try await withTemporaryDirectory(fs: fs) { tmpDirPath in
             let scriptPath = tmpDirPath.join("script-\(#function)")
             let sentinelPath = tmpDirPath.join("sentinel")
-            try fs.write(scriptPath, contents: ByteString(encodingAsUTF8:
-            """
-            #!/bin/bash
-            set -e
-            echo "note: installing trap..."
-            trap "echo \\"note: received SIGINT\\"" SIGINT\n
-            echo OK > "\(sentinelPath.str)".tmp
-            mv "\(sentinelPath.str)".tmp "\(sentinelPath.str)"
-            while true; do sleep 1; done
-            echo "note: exited normally"\n
-            """))
+            try fs.write(
+                scriptPath,
+                contents: ByteString(
+                    encodingAsUTF8:
+                        """
+                        #!/bin/bash
+                        set -e
+                        echo "note: installing trap..."
+                        trap "echo \\"note: received SIGINT\\"" SIGINT\n
+                        echo OK > "\(sentinelPath.str)".tmp
+                        mv "\(sentinelPath.str)".tmp "\(sentinelPath.str)"
+                        while true; do sleep 1; done
+                        echo "note: exited normally"\n
+                        """
+                )
+            )
             try fs.setFilePermissions(scriptPath, permissions: 0o755)
 
             // Enable fast llbuild cancellation.
@@ -726,18 +751,30 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
     @Test(.requireSDKs(.host))
     func mutatedInputOrderingStability() async throws {
         let N = 10
-        let files = (0 ..< N).map { i in
+        let files = (0..<N).map { i in
             return MakePlannedPathNode(Path("/input-\(i).txt"))
         }
         let inputTasks = files.enumerated().map { (i, file) in
-            return createTask(ruleInfo: ["create-\(i)"], commandLine: ["n"],
-                              inputs: [], outputs: [file], mustPrecede: [],
-                              action: MockTaskAction(contents: "create-\(i)", output: file), preparesForIndexing: true)
+            return createTask(
+                ruleInfo: ["create-\(i)"],
+                commandLine: ["n"],
+                inputs: [],
+                outputs: [file],
+                mustPrecede: [],
+                action: MockTaskAction(contents: "create-\(i)", output: file),
+                preparesForIndexing: true
+            )
         }
         let merged = MakePlannedPathNode(Path("/merged.txt"))
-        let mergedTask = createTask(ruleInfo: ["merge"], commandLine: ["n"],
-                                    inputs: files, outputs: files, mustPrecede: [],
-                                    action: MockTaskAction(contents: "merge", output: merged), preparesForIndexing: true)
+        let mergedTask = createTask(
+            ruleInfo: ["merge"],
+            commandLine: ["n"],
+            inputs: files,
+            outputs: files,
+            mustPrecede: [],
+            action: MockTaskAction(contents: "merge", output: merged),
+            preparesForIndexing: true
+        )
         let tasks = inputTasks + [mergedTask]
 
         // Check for stability by comparing two manifests.
@@ -778,10 +815,13 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                     return false
                 }
             }
-            #expect(taskEvents == [
-                .taskHadEvent(task, event: .started),
-                .taskHadEvent(task, event: .exit(.succeeded(metrics: nil))),
-                .taskHadEvent(task, event: .completed)])
+            #expect(
+                taskEvents == [
+                    .taskHadEvent(task, event: .started),
+                    .taskHadEvent(task, event: .exit(.succeeded(metrics: nil))),
+                    .taskHadEvent(task, event: .completed),
+                ]
+            )
         }
 
         // Check that we get a null build.
@@ -891,7 +931,8 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 inputs: [],
                 outputs: [MakePlannedDirectoryTreeNode(outputPath)],
                 mustPrecede: [],
-                action: nil)
+                action: nil
+            )
 
             let tester = try await BuildOperationTester(getCore(), [task], simulated: false, temporaryDirectory: tmpDir, fileSystem: fs)
 
@@ -927,10 +968,14 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 // Check the output.
                 results.checkTaskOutput(task) { output in
                     let lines = output.asString.split(separator: "\n").map(String.init).sorted()
-                    XCTAssertMatch(lines, [
-                        .suffix("/input"),
-                        .suffix("/input/subdir"),
-                        .suffix("/input/subdir/a.txt")])
+                    XCTAssertMatch(
+                        lines,
+                        [
+                            .suffix("/input"),
+                            .suffix("/input/subdir"),
+                            .suffix("/input/subdir/a.txt"),
+                        ]
+                    )
                 }
             }
 
@@ -944,11 +989,15 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 // Check the output.
                 results.checkTaskOutput(task) { output in
                     let lines = output.asString.split(separator: "\n").map(String.init).sorted()
-                    XCTAssertMatch(lines, [
-                        .suffix("/input"),
-                        .suffix("/input/subdir"),
-                        .suffix("/input/subdir/a.txt"),
-                        .suffix("/input/subdir/b.txt")])
+                    XCTAssertMatch(
+                        lines,
+                        [
+                            .suffix("/input"),
+                            .suffix("/input/subdir"),
+                            .suffix("/input/subdir/a.txt"),
+                            .suffix("/input/subdir/b.txt"),
+                        ]
+                    )
                 }
             }
         }
@@ -1031,7 +1080,7 @@ private final class AppendingTaskAction: TaskAction {
     }
 
     override func computeInitialSignature() -> ByteString {
-        return ByteString(encodingAsUTF8: contents + inputs.map{ $0.path.str }.joined(separator: " "))
+        return ByteString(encodingAsUTF8: contents + inputs.map { $0.path.str }.joined(separator: " "))
     }
 
     override func performTaskAction(_ task: any ExecutableTask, dynamicExecutionDelegate: any DynamicTaskExecutionDelegate, executionDelegate: any TaskExecutionDelegate, clientDelegate: any TaskExecutionClientDelegate, outputDelegate: any TaskOutputDelegate) async -> CommandResult {

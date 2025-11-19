@@ -15,8 +15,7 @@ public import SWBUtil
 // FIXME: Should we add some general mechanism for representing NSErrors in Swift Build?  If so, we should also add a general transport structure to send it over the message pipe.
 //
 /// An error from computation of provisioning task inputs.
-public struct ProvisioningTaskInputError: Codable, Hashable, Sendable
-{
+public struct ProvisioningTaskInputError: Codable, Hashable, Sendable {
     public let description: String
     public let recoverySuggestion: String?
 }
@@ -29,8 +28,7 @@ public struct ProvisioningTaskInputError: Codable, Hashable, Sendable
 /// 2. Ad-hoc signed.
 /// 3. Signed with a profile.
 /// 4. Signed without a profile.
-public struct ProvisioningTaskInputs: Codable, Hashable, Sendable
-{
+public struct ProvisioningTaskInputs: Codable, Hashable, Sendable {
     /// The SHA1 hash of the signing certificate, suitable for passing to the `codesign` tool.
     ///
     /// If this is nil, then `identityName`, `profileName`, `profileUUID` and `designatedRequirements` will all also be nil.
@@ -72,8 +70,7 @@ public struct ProvisioningTaskInputs: Codable, Hashable, Sendable
     /// Any warnings here should be presented to the user, but signing may still proceed.
     public let warnings: [String]
 
-    public init(identityHash: String? = nil, identitySerialNumber: String? = nil, identityName: String? = nil, profileName: String? = nil, profileUUID: String? = nil, profilePath: Path? = nil, designatedRequirements: String? = nil, signedEntitlements: PropertyListItem = .plDict([:]), simulatedEntitlements: PropertyListItem = .plDict([:]), appIdentifierPrefix: String? = nil, teamIdentifierPrefix: String? = nil, isEnterpriseTeam: Bool? = false, useSigningTool: Bool? = false, signingToolKeyPath: String? = nil, signingToolKeyID: String? = nil, signingToolKeyIssuerID: String? = nil, keychainPath: String? = nil, errors: [[String: String]] = [], warnings: [String] = [])
-    {
+    public init(identityHash: String? = nil, identitySerialNumber: String? = nil, identityName: String? = nil, profileName: String? = nil, profileUUID: String? = nil, profilePath: Path? = nil, designatedRequirements: String? = nil, signedEntitlements: PropertyListItem = .plDict([:]), simulatedEntitlements: PropertyListItem = .plDict([:]), appIdentifierPrefix: String? = nil, teamIdentifierPrefix: String? = nil, isEnterpriseTeam: Bool? = false, useSigningTool: Bool? = false, signingToolKeyPath: String? = nil, signingToolKeyID: String? = nil, signingToolKeyIssuerID: String? = nil, keychainPath: String? = nil, errors: [[String: String]] = [], warnings: [String] = []) {
         self.identityHash = identityHash
         self.identitySerialNumber = identitySerialNumber
         self.identityName = identityName

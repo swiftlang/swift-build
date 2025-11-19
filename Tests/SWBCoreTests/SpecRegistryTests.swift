@@ -75,85 +75,94 @@ import SWBUtil
         }
         // Check 'Identifier' errors.
         try await withRegistryForTestInputs(
-            [("a.xcspec", ["a": "c"]),
-             ("b.xcspec", ["Identifier": ["bad"]])]) { registry, delegate in
-                 #expect(registry.proxiesByDomain.count == 0)
-                 #expect(delegate.errors.count == 2)
-                 #expect(delegate.errors[0].0 == "a.xcspec")
-                 XCTAssertMatch(delegate.errors[0].1, .prefix("missing 'Identifier' field"))
-                 #expect(delegate.errors[1].0 == "b.xcspec")
-                 XCTAssertMatch(delegate.errors[1].1, .prefix("invalid 'Identifier' field"))
-             }
+            [
+                ("a.xcspec", ["a": "c"]),
+                ("b.xcspec", ["Identifier": ["bad"]]),
+            ]) { registry, delegate in
+                #expect(registry.proxiesByDomain.count == 0)
+                #expect(delegate.errors.count == 2)
+                #expect(delegate.errors[0].0 == "a.xcspec")
+                XCTAssertMatch(delegate.errors[0].1, .prefix("missing 'Identifier' field"))
+                #expect(delegate.errors[1].0 == "b.xcspec")
+                XCTAssertMatch(delegate.errors[1].1, .prefix("invalid 'Identifier' field"))
+            }
         // Check 'Type' errors.
         try await withRegistryForTestInputs(
-            [("a.xcspec", ["Identifier": "a"]),
-             ("b.xcspec", ["Identifier": "b", "Type": ["bad"]]),
-             ("c.xcspec", ["Identifier": "c", "Type": "notfound"])]) { registry, delegate in
-                 #expect(registry.proxiesByDomain.count == 0)
-                 #expect(delegate.errors.count == 3)
-                 #expect(delegate.errors[0].0 == "a.xcspec")
-                 XCTAssertMatch(delegate.errors[0].1, .prefix("missing 'Type' field"))
-                 #expect(delegate.errors[1].0 == "b.xcspec")
-                 XCTAssertMatch(delegate.errors[1].1, .prefix("invalid 'Type' field"))
-                 #expect(delegate.errors[2].0 == "c.xcspec")
-                 XCTAssertMatch(delegate.errors[2].1, .prefix("unknown spec 'Type'"))
-             }
+            [
+                ("a.xcspec", ["Identifier": "a"]),
+                ("b.xcspec", ["Identifier": "b", "Type": ["bad"]]),
+                ("c.xcspec", ["Identifier": "c", "Type": "notfound"]),
+            ]) { registry, delegate in
+                #expect(registry.proxiesByDomain.count == 0)
+                #expect(delegate.errors.count == 3)
+                #expect(delegate.errors[0].0 == "a.xcspec")
+                XCTAssertMatch(delegate.errors[0].1, .prefix("missing 'Type' field"))
+                #expect(delegate.errors[1].0 == "b.xcspec")
+                XCTAssertMatch(delegate.errors[1].1, .prefix("invalid 'Type' field"))
+                #expect(delegate.errors[2].0 == "c.xcspec")
+                XCTAssertMatch(delegate.errors[2].1, .prefix("unknown spec 'Type'"))
+            }
         // Check 'Class' errors.
         try await withRegistryForTestInputs(
-            [("a.xcspec", ["Identifier": "a", "Type": "FileType", "Class": ["bad"]]),
-             ("b.xcspec", ["Identifier": "b", "Type": "FileType", "Class": "notfound"])]) { registry, delegate in
-                 #expect(registry.proxiesByDomain.count == 0)
-                 #expect(delegate.errors.count == 2)
-                 #expect(delegate.errors[0].0 == "a.xcspec")
-                 XCTAssertMatch(delegate.errors[0].1, .prefix("invalid 'Class' field"))
-                 #expect(delegate.errors[1].0 == "b.xcspec")
-                 XCTAssertMatch(delegate.errors[1].1, .prefix("unknown spec 'Class'"))
-             }
+            [
+                ("a.xcspec", ["Identifier": "a", "Type": "FileType", "Class": ["bad"]]),
+                ("b.xcspec", ["Identifier": "b", "Type": "FileType", "Class": "notfound"]),
+            ]) { registry, delegate in
+                #expect(registry.proxiesByDomain.count == 0)
+                #expect(delegate.errors.count == 2)
+                #expect(delegate.errors[0].0 == "a.xcspec")
+                XCTAssertMatch(delegate.errors[0].1, .prefix("invalid 'Class' field"))
+                #expect(delegate.errors[1].0 == "b.xcspec")
+                XCTAssertMatch(delegate.errors[1].1, .prefix("unknown spec 'Class'"))
+            }
         // Check 'Domain' and 'BasedOn' errors.
         try await withRegistryForTestInputs([
             ("a.xcspec", ["Identifier": "a", "Type": "FileType", "Domain": ["bad"]]),
             ("b.xcspec", ["Identifier": "b", "Type": "FileType", "BasedOn": ["bad"]]),
-            ("c.xcspec", ["Identifier": "c", "Type": "FileType", "BasedOn": "missing"])]) { registry, delegate in
-                #expect(registry.proxiesByDomain.count == 1)
-                #expect(registry.proxiesByDomain[""]?.proxiesByIdentifier["c"] == nil)
-                #expect(delegate.errors.count == 3)
-                #expect(delegate.errors[0].0 == "a.xcspec")
-                XCTAssertMatch(delegate.errors[0].1, .prefix("invalid 'Domain' field"))
-                #expect(delegate.errors[1].0 == "b.xcspec")
-                XCTAssertMatch(delegate.errors[1].1, .prefix("invalid 'BasedOn' field"))
-                #expect(delegate.errors[2].0 == "c.xcspec")
-                XCTAssertMatch(delegate.errors[2].1, .prefix("missing base spec ':missing'"))
+            ("c.xcspec", ["Identifier": "c", "Type": "FileType", "BasedOn": "missing"]),
+        ]) { registry, delegate in
+            #expect(registry.proxiesByDomain.count == 1)
+            #expect(registry.proxiesByDomain[""]?.proxiesByIdentifier["c"] == nil)
+            #expect(delegate.errors.count == 3)
+            #expect(delegate.errors[0].0 == "a.xcspec")
+            XCTAssertMatch(delegate.errors[0].1, .prefix("invalid 'Domain' field"))
+            #expect(delegate.errors[1].0 == "b.xcspec")
+            XCTAssertMatch(delegate.errors[1].1, .prefix("invalid 'BasedOn' field"))
+            #expect(delegate.errors[2].0 == "c.xcspec")
+            XCTAssertMatch(delegate.errors[2].1, .prefix("missing base spec ':missing'"))
 
-                // Check 'BasedOn' type compatibility.
-                try await withRegistryForTestInputs([
-                    ("a.xcspec", ["Identifier": "a", "Type": "FileType"]),
-                    ("b.xcspec", ["Identifier": "b", "Type": "Architecture", "BasedOn": "a"])]) { registry, delegate in
-                        #expect(delegate.errors.count == 1)
-                        #expect(delegate.errors[0].0 == "b.xcspec")
-                        XCTAssertMatch(delegate.errors[0].1, .prefix("incompatible base spec"))
-                    }
+            // Check 'BasedOn' type compatibility.
+            try await withRegistryForTestInputs([
+                ("a.xcspec", ["Identifier": "a", "Type": "FileType"]),
+                ("b.xcspec", ["Identifier": "b", "Type": "Architecture", "BasedOn": "a"]),
+            ]) { registry, delegate in
+                #expect(delegate.errors.count == 1)
+                #expect(delegate.errors[0].0 == "b.xcspec")
+                XCTAssertMatch(delegate.errors[0].1, .prefix("incompatible base spec"))
             }
+        }
         // Check registration errors.
         try await withRegistryForTestInputs(
-            [("a.xcspec", ["Identifier": "a", "Type": "FileType"]),
-             ("b.xcspec", ["Identifier": "a", "Type": "FileType"])]) { registry, delegate in
-                 #expect(registry.proxiesByDomain.count == 1)
-                 #expect(delegate.errors.count == 1)
+            [
+                ("a.xcspec", ["Identifier": "a", "Type": "FileType"]),
+                ("b.xcspec", ["Identifier": "a", "Type": "FileType"]),
+            ]) { registry, delegate in
+                #expect(registry.proxiesByDomain.count == 1)
+                #expect(delegate.errors.count == 1)
 
-                 // We have to be prepared for either to be the duplicate, due to concurrent loading.
-                 if let error = delegate.errors.first {
-                     if error.0 == "a.xcspec" {
-                         #expect(error.0 == "a.xcspec")
-                         XCTAssertMatch(error.1, .prefix("spec ':a' already registered"))
-                     } else {
-                         #expect(error.0 == "b.xcspec")
-                         XCTAssertMatch(error.1, .prefix("spec ':a' already registered"))
-                     }
-                 }
-                 else {
-                     Issue.record("Did not find an expected error that spec ':a' is already registered")
-                 }
-             }
+                // We have to be prepared for either to be the duplicate, due to concurrent loading.
+                if let error = delegate.errors.first {
+                    if error.0 == "a.xcspec" {
+                        #expect(error.0 == "a.xcspec")
+                        XCTAssertMatch(error.1, .prefix("spec ':a' already registered"))
+                    } else {
+                        #expect(error.0 == "b.xcspec")
+                        XCTAssertMatch(error.1, .prefix("spec ':a' already registered"))
+                    }
+                } else {
+                    Issue.record("Did not find an expected error that spec ':a' is already registered")
+                }
+            }
     }
 
     @Test
@@ -167,32 +176,35 @@ import SWBUtil
             }
         // Check handling of errors in base specs.
         try await withRegistryForTestInputs(
-            [("a.xcspec", ["Identifier": "a", "Type": "FileType", "BasedOn": "broken"]),
-             ("broken.xcspec", ["Identifier": "broken", "Type": "FileType", "UTI": ["not-a-uti"]])]) { registry, delegate in
-                 #expect(registry.getSpec("a") == nil)
-                 #expect(delegate.warnings.count == 0)
-                 #expect(delegate.errors.count == 2)
-                 #expect(delegate.errors[0].0 == "a.xcspec")
-                 #expect(delegate.errors[0].1 == "unable to load ':a' due to errors loading base spec")
-                 #expect(delegate.errors[1].0 == "broken.xcspec")
-                 XCTAssertMatch(delegate.errors[1].1, .prefix("unexpected item"))
+            [
+                ("a.xcspec", ["Identifier": "a", "Type": "FileType", "BasedOn": "broken"]),
+                ("broken.xcspec", ["Identifier": "broken", "Type": "FileType", "UTI": ["not-a-uti"]]),
+            ]) { registry, delegate in
+                #expect(registry.getSpec("a") == nil)
+                #expect(delegate.warnings.count == 0)
+                #expect(delegate.errors.count == 2)
+                #expect(delegate.errors[0].0 == "a.xcspec")
+                #expect(delegate.errors[0].1 == "unable to load ':a' due to errors loading base spec")
+                #expect(delegate.errors[1].0 == "broken.xcspec")
+                XCTAssertMatch(delegate.errors[1].1, .prefix("unexpected item"))
 
-                 // Check repeated loading attempts shouldn't generate new errors.
-                 #expect(registry.getSpec("a") == nil)
-                 #expect(delegate.errors.count == 2)
-             }
+                // Check repeated loading attempts shouldn't generate new errors.
+                #expect(registry.getSpec("a") == nil)
+                #expect(delegate.errors.count == 2)
+            }
         // Check that we don't fail on recursive base specs.
         try await withRegistryForTestInputs(
-            [("a.xcspec", ["Identifier": "a", "Type": "FileType", "BasedOn": "a"]),
-             ("b.xcspec", ["Identifier": "b", "Type": "FileType", "BasedOn": "b"])]) { registry, delegate in
-                 #expect(registry.getSpec("a") == nil)
-                 #expect(delegate.warnings.count == 0)
-                 #expect(delegate.errors.count == 2)
-                 XCTAssertMatch(delegate.errors[0].1, .prefix("encountered cyclic dependency"))
-                 #expect(delegate.errors[1].1 == "unable to load ':a' due to errors loading base spec")
-             }
+            [
+                ("a.xcspec", ["Identifier": "a", "Type": "FileType", "BasedOn": "a"]),
+                ("b.xcspec", ["Identifier": "b", "Type": "FileType", "BasedOn": "b"]),
+            ]) { registry, delegate in
+                #expect(registry.getSpec("a") == nil)
+                #expect(delegate.warnings.count == 0)
+                #expect(delegate.errors.count == 2)
+                XCTAssertMatch(delegate.errors[0].1, .prefix("encountered cyclic dependency"))
+                #expect(delegate.errors[1].1 == "unable to load ':a' due to errors loading base spec")
+            }
     }
-
 
     @Test
     func specScanning() async throws {
@@ -209,7 +221,8 @@ import SWBUtil
 
         // Validate we can load options and descriptions of real specs.
         guard let clangSpecBase = clangSpecProxy.load(core.specRegistry),
-              let clangSpec = clangSpecBase as? PropertyDomainSpec else {
+            let clangSpec = clangSpecBase as? PropertyDomainSpec
+        else {
             Issue.record("unable to load clang spec")
             return
         }
@@ -219,7 +232,6 @@ import SWBUtil
         }
         #expect(enableCodeCoverageOption.localizedName == "Enable Additional Vector Extensions")
         XCTAssertMatch((enableCodeCoverageOption.localizedDescription ?? ""), .contains("Enables the use of extended vector instructions"))
-
 
         // Validate that we correctly extract the spec proxy domains.
         if let watchAppProxy = core.specRegistry.lookupProxy("com.apple.product-type.application.watchapp", domain: "iphoneos") {
@@ -231,8 +243,7 @@ import SWBUtil
         // Validate that we load specs based on known extensions (this spec comes from "Core Data.xcspec").
         if let xcdatamodelSpec = core.specRegistry.lookupProxy("wrapper.xcdatamodel") {
             #expect(xcdatamodelSpec.path.fileSuffix == ".xcspec")
-        }
-        else {
+        } else {
             Issue.record("no proxy for file type 'wrapper.xcdatamodel'")
         }
 
@@ -267,7 +278,7 @@ import SWBUtil
             }
 
             for type in typesBySubregistryName.values {
-                let proxyIdentifiers = core.specRegistry.findProxiesInSubregistry(type, domain: domain, includeInherited: true).map{$0.identifier}.sorted()
+                let proxyIdentifiers = core.specRegistry.findProxiesInSubregistry(type, domain: domain, includeInherited: true).map { $0.identifier }.sorted()
                 #expect(proxyIdentifiers == Set(proxyIdentifiers).sorted())
             }
         }
@@ -299,56 +310,57 @@ import SWBUtil
             "EXECUTABLE_NAME": "CFBundleExecutable",
             "CURRENT_PROJECT_VERSION": "CFBundleVersion",
             "PRODUCT_BUNDLE_IDENTIFIER": "CFBundleIdentifier",
-            "MARKETING_VERSION": "CFBundleShortVersionString"
+            "MARKETING_VERSION": "CFBundleShortVersionString",
         ]
 
         let infoPlistKeyOptions = specRegistry.domains.flatMap { domain in
-            return (specRegistry.findSpecs(BuildSettingsSpec.self, domain: domain, includeInherited: false)
-                    + specRegistry.findSpecs(BuildSystemSpec.self, domain: domain, includeInherited: false)
-                    + specRegistry.findSpecs(CommandLineToolSpec.self, domain: domain, includeInherited: false))
-            .flatMap({ $0.flattenedBuildOptions.values })
+            return
+                (specRegistry.findSpecs(BuildSettingsSpec.self, domain: domain, includeInherited: false)
+                + specRegistry.findSpecs(BuildSystemSpec.self, domain: domain, includeInherited: false)
+                + specRegistry.findSpecs(CommandLineToolSpec.self, domain: domain, includeInherited: false))
+                .flatMap({ $0.flattenedBuildOptions.values })
         }.filter { $0.name.hasPrefix("INFOPLIST_KEY_") || legacyKeyMappings.contains($0.name) }
 
         // Check that the URLs of the keys are reachable. This is purposely not enabled by default and is primarily for debugging.
         let unreachableURLs: [(String, String)]
-#if canImport(Darwin)
-        if checkInfoPlistKeyURLReachability {
-            unreachableURLs = try await withThrowingTaskGroup(of: (String, String).self) { group in
-                for keyName in Set(infoPlistKeyOptions.map({ $0.name.hasPrefix("INFOPLIST_KEY_") ? String($0.name.dropFirst("INFOPLIST_KEY_".count)) : (legacyKeyMappings[$0.name] ?? $0.name) })).sorted() {
-                    switch keyName {
-                    case "UISupportedInterfaceOrientations_iPhone", "UISupportedInterfaceOrientations_iPad":
-                        // These map to UISupportedInterfaceOrientations~iPhone and UISupportedInterfaceOrientations~iPad.
-                        continue
-                    case "UIApplicationSceneManifest_Generation", "UILaunchScreen_Generation":
-                        // These map to UIApplicationSceneManifest and UILaunchScreen, which are dictionaries.
-                        continue
-                    case "MetalCaptureEnabled", "NSBluetoothWhileInUseUsageDescription", "NSFileProviderPresenceUsageDescription", "NSFocusStatusUsageDescription", "NSSystemExtensionUsageDescription", "NSVoIPUsageDescription", "OSBundleUsageDescription":
-                        // rdar://91269820 (Missing documentation for some Info.plist keys which are directly supported by Xcode)
-                        continue
-                    default:
-                        break
-                    }
-
-                    let url = "https://developer.apple.com/documentation/bundleresources/information-property-list/\(keyName.lowercased())"
-
-                    group.addTask {
-                        let (_, response) = try await URLSession.shared.data(from: #require(URL(string: url)))
-                        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-                            throw StubError.error("Network failure")
+        #if canImport(Darwin)
+            if checkInfoPlistKeyURLReachability {
+                unreachableURLs = try await withThrowingTaskGroup(of: (String, String).self) { group in
+                    for keyName in Set(infoPlistKeyOptions.map({ $0.name.hasPrefix("INFOPLIST_KEY_") ? String($0.name.dropFirst("INFOPLIST_KEY_".count)) : (legacyKeyMappings[$0.name] ?? $0.name) })).sorted() {
+                        switch keyName {
+                        case "UISupportedInterfaceOrientations_iPhone", "UISupportedInterfaceOrientations_iPad":
+                            // These map to UISupportedInterfaceOrientations~iPhone and UISupportedInterfaceOrientations~iPad.
+                            continue
+                        case "UIApplicationSceneManifest_Generation", "UILaunchScreen_Generation":
+                            // These map to UIApplicationSceneManifest and UILaunchScreen, which are dictionaries.
+                            continue
+                        case "MetalCaptureEnabled", "NSBluetoothWhileInUseUsageDescription", "NSFileProviderPresenceUsageDescription", "NSFocusStatusUsageDescription", "NSSystemExtensionUsageDescription", "NSVoIPUsageDescription", "OSBundleUsageDescription":
+                            // rdar://91269820 (Missing documentation for some Info.plist keys which are directly supported by Xcode)
+                            continue
+                        default:
+                            break
                         }
 
-                        return (String(keyName), url)
-                    }
-                }
+                        let url = "https://developer.apple.com/documentation/bundleresources/information-property-list/\(keyName.lowercased())"
 
-                return try await group.collect()
+                        group.addTask {
+                            let (_, response) = try await URLSession.shared.data(from: #require(URL(string: url)))
+                            guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
+                                throw StubError.error("Network failure")
+                            }
+
+                            return (String(keyName), url)
+                        }
+                    }
+
+                    return try await group.collect()
+                }
+            } else {
+                unreachableURLs = []
             }
-        } else {
+        #else
             unreachableURLs = []
-        }
-#else
-        unreachableURLs = []
-#endif
+        #endif
 
         for (keyName, url) in unreachableURLs {
             Issue.record("\(keyName) - \(url) is not reachable")

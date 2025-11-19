@@ -27,11 +27,13 @@ fileprivate struct SettingsPerfTests: CoreBasedTests, PerfTests {
                 "Workspace",
                 sourceRoot: tmpDirPath,
                 projects: [
-                    TestProject("aProject",
-                                groupTree: TestGroup("SomeFiles"),
-                                targets: [TestStandardTarget("Target1", type: .application)]
-                               )
-                ]).loadHelper(getCore())
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("SomeFiles"),
+                        targets: [TestStandardTarget("Target1", type: .application)]
+                    )
+                ]
+            ).loadHelper(getCore())
             let context = helper.workspaceContext
             let buildRequestContext = BuildRequestContext(workspaceContext: context)
             let project = helper.project

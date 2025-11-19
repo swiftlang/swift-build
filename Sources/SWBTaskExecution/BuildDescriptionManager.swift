@@ -70,12 +70,18 @@ package enum BuildDescriptionMemoryCacheEvictionPolicy: Sendable, Hashable {
 ///
 /// It is intended to manage the construction of descriptions for incoming build requests (or other operations requiring a complete build description), and to work with the build descriptions to efficiently cache the results.
 package final class BuildDescriptionManager: Sendable {
-    static let descriptionsRequested = Statistic("BuildDescriptionManager.descriptionRequests",
-        "The number of build descriptions which were requested.")
-    static let descriptionsComputed = Statistic("BuildDescriptionManager.descriptionsComputed",
-        "The number of build descriptions which were computed.")
-    static let descriptionsLoaded = Statistic("BuildDescriptionManager.descriptionsLoaded",
-        "The number of build descriptions which were loaded from disk.")
+    static let descriptionsRequested = Statistic(
+        "BuildDescriptionManager.descriptionRequests",
+        "The number of build descriptions which were requested."
+    )
+    static let descriptionsComputed = Statistic(
+        "BuildDescriptionManager.descriptionsComputed",
+        "The number of build descriptions which were computed."
+    )
+    static let descriptionsLoaded = Statistic(
+        "BuildDescriptionManager.descriptionsLoaded",
+        "The number of build descriptions which were loaded from disk."
+    )
 
     /// The queue used to serialize access to the on-disk description cache.
     /// Right now this is only used to write the serialized cached descriptions to disk on a background thread and to remove them from disk, but not to read them or to access the index.  In order for this to be a problem, this description would need to be evicted from the in-memory cache and a new request for this description would need to come in before the description has been written.  A further refinement of this could involve ensuring that the in-memory copy never gets evicted until the on-disk copy has been written, or providing more sophisticated read/white synchronization of the individual on-disk cache items.
@@ -109,26 +115,32 @@ package final class BuildDescriptionManager: Sendable {
     package init(fs: any FSProxy, buildDescriptionMemoryCacheEvictionPolicy: BuildDescriptionMemoryCacheEvictionPolicy, maxCacheSize: (inMemory: Int, onDisk: Int) = (4, 4)) {
         self.fs = fs
         self.inMemoryCachedBuildDescriptions = withHeavyCacheGlobalState(isolated: buildDescriptionMemoryCacheEvictionPolicy == .never) {
-            HeavyCache(maximumSize: maxCacheSize.inMemory, evictionPolicy: {
-                switch buildDescriptionMemoryCacheEvictionPolicy {
-                case .never:
-                    .never
-                case .default(let totalCostLimit):
-                    .default(totalCostLimit: totalCostLimit, willEvictCallback: { buildDescription in
-                        // Capture the path to a local variable so that the buildDescription instance isn't retained by OSLog's autoclosure message parameter.
-                        let packagePath = buildDescription.packagePath
-                        #if canImport(os)
-                        OSLog.log("Evicted cached build description at '\(packagePath.str)'")
-                        #endif
-                    })
-                }
-            }())
+            HeavyCache(
+                maximumSize: maxCacheSize.inMemory,
+                evictionPolicy: {
+                    switch buildDescriptionMemoryCacheEvictionPolicy {
+                    case .never:
+                        .never
+                    case .default(let totalCostLimit):
+                        .default(
+                            totalCostLimit: totalCostLimit,
+                            willEvictCallback: { buildDescription in
+                                // Capture the path to a local variable so that the buildDescription instance isn't retained by OSLog's autoclosure message parameter.
+                                let packagePath = buildDescription.packagePath
+                                #if canImport(os)
+                                    OSLog.log("Evicted cached build description at '\(packagePath.str)'")
+                                #endif
+                            }
+                        )
+                    }
+                }()
+            )
         }
         self.maxCacheSize = maxCacheSize
     }
 
     package func waitForBuildDescriptionSerialization() async {
-        await onDiskCacheAccessQueue.sync { }
+        await onDiskCacheAccessQueue.sync {}
     }
 
     /// Construct the appropriate build plan for a plan request.
@@ -139,7 +151,6 @@ package final class BuildDescriptionManager: Sendable {
     package static func constructBuildPlan(_ planRequest: BuildPlanRequest, _ clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate, descriptionPath: Path) async -> BuildPlan? {
         return await BuildPlan(planRequest: planRequest, taskPlanningDelegate: BuildSystemTaskPlanningDelegate(buildDescriptionPath: descriptionPath, clientDelegate, constructionDelegate: constructionDelegate, qos: planRequest.buildRequest.qos, fileSystem: localFS))
     }
-
 
     /// Construct the build description to use for a particular workspace and request.
     ///
@@ -180,8 +191,8 @@ package final class BuildDescriptionManager: Sendable {
 
         // Compute the default configuration name, platform and root paths per target
         var staleFileRemovalIdentifierPerTarget = [ConfiguredTarget?: String]()
-        var settingsPerTarget = [ConfiguredTarget:Settings]()
-        var rootPathsPerTarget = [ConfiguredTarget:[Path]]()
+        var settingsPerTarget = [ConfiguredTarget: Settings]()
+        var rootPathsPerTarget = [ConfiguredTarget: [Path]]()
         var moduleCachePathsPerTarget = [ConfiguredTarget: [Path]]()
         var artifactInfoPerTarget = [ConfiguredTarget: ArtifactInfo]()
 
@@ -312,7 +323,7 @@ package final class BuildDescriptionManager: Sendable {
         func signature(cacheDir: Path) throws -> BuildDescriptionSignature {
             switch self {
             case .newOrCached(let planRequest, _, _, _): return try BuildDescriptionSignature.buildDescriptionSignature(planRequest, cacheDir: cacheDir)
-            case .cachedOnly(let buildDescriptionID, _, _, _, _):  return BuildDescriptionSignature.buildDescriptionSignature(buildDescriptionID)
+            case .cachedOnly(let buildDescriptionID, _, _, _, _): return BuildDescriptionSignature.buildDescriptionSignature(buildDescriptionID)
             }
         }
     }
@@ -422,16 +433,20 @@ package final class BuildDescriptionManager: Sendable {
     }
 
     package func releaseBuildDescription(id: BuildDescriptionID) {
-        self.retainedBuildDescriptions.update(BuildDescriptionSignature.buildDescriptionSignature(id), update: {
-            let newCount = $0.1 - 1
-            if newCount == 0 {
-                return nil
-            } else {
-                return ($0.0, newCount)
+        self.retainedBuildDescriptions.update(
+            BuildDescriptionSignature.buildDescriptionSignature(id),
+            update: {
+                let newCount = $0.1 - 1
+                if newCount == 0 {
+                    return nil
+                } else {
+                    return ($0.0, newCount)
+                }
+            },
+            default: {
+                nil
             }
-        }, default: {
-            nil
-        })
+        )
     }
 
     /// Returns the path in which the`XCBuildData` directory will live. That location is uses to cache build descriptions for a particular workspace and request, the manifest, and the `build.db` database for llbuild.
@@ -490,7 +505,6 @@ package final class BuildDescriptionManager: Sendable {
         let userPreferences = request.workspaceContext.userPreferences
         let messageShortening = userPreferences.activityTextShorteningLevel
 
-
         if messageShortening != .full || userPreferences.enableDebugActivityLogs {
             constructionDelegate.updateProgress(statusMessage: "Attempting to load build description from disk", showInLog: request.workspaceContext.userPreferences.enableDebugActivityLogs)
         }
@@ -512,15 +526,23 @@ package final class BuildDescriptionManager: Sendable {
 
         // Output the difference in signatures for debugging if we already had a build plan
         if request.workspaceContext.userPreferences.enableDebugActivityLogs,
-           !request.isForIndex || request.isIndexWorkspaceDescription {
+            !request.isForIndex || request.isIndexWorkspaceDescription
+        {
             let lastBuildPlanRequest = request.isForIndex ? lastIndexBuildPlanRequest.withLock({ $0 }) : lastBuildPlanRequest.withLock({ $0 })
             if let planRequest = request.planRequest, let lastBuildPlanRequest = lastBuildPlanRequest {
                 do {
                     if let diff = try BuildDescriptionSignature.compareBuildDescriptionSignatures(planRequest, lastBuildPlanRequest, onDiskPath) {
-                        constructionDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("New build description required because the signature changed"), childDiagnostics: [
-                            Diagnostic(behavior: .note, location: .path(diff.previousSignaturePath), data: DiagnosticData("Previous signature: \(diff.previousSignaturePath.str)")),
-                            Diagnostic(behavior: .note, location: .path(diff.currentSignaturePath), data: DiagnosticData("Current signature: \(diff.currentSignaturePath.str)")),
-                        ]))
+                        constructionDelegate.emit(
+                            Diagnostic(
+                                behavior: .note,
+                                location: .unknown,
+                                data: DiagnosticData("New build description required because the signature changed"),
+                                childDiagnostics: [
+                                    Diagnostic(behavior: .note, location: .path(diff.previousSignaturePath), data: DiagnosticData("Previous signature: \(diff.previousSignaturePath.str)")),
+                                    Diagnostic(behavior: .note, location: .path(diff.currentSignaturePath), data: DiagnosticData("Current signature: \(diff.currentSignaturePath.str)")),
+                                ]
+                            )
+                        )
                     }
                 } catch {
                     constructionDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("\(error)")))
@@ -600,8 +622,7 @@ package final class BuildDescriptionManager: Sendable {
             if let buildRequestJSON = request.buildRequest.jsonRepresentation {
                 try self.fs.write(buildDescription.buildRequestPath, contents: ByteString(buildRequestJSON))
             }
-        }
-        catch {
+        } catch {
             // Ignore errors - the failure case is that the description will be recreated for a later build if it's not still in memory.  This is a performance hit, but should only occur in strange cases (e.g., the cache directory is not writable, the disk is full, etc.) and is not (I hope) worth nagging the user about.
         }
     }
@@ -665,9 +686,7 @@ package final class BuildDescriptionManager: Sendable {
     }
 }
 
-
 // MARK:
-
 
 /// The delegate for planning BuildSystem compatible tasks.
 private final class BuildSystemTaskPlanningDelegate: TaskPlanningDelegate {

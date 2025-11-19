@@ -15,23 +15,23 @@ import SWBLibc
 public import protocol Foundation.LocalizedError
 
 #if canImport(System)
-public import System
+    public import System
 #else
-public import SystemPackage
+    public import SystemPackage
 #endif
 
 public enum POSIX: Sendable {
     public static func getenv(_ name: String) throws -> String? {
         #if os(Windows)
-        try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
-            do {
-                return try SWB_GetEnvironmentVariableW(wName)
-            } catch let error as Win32Error where error.error == ERROR_ENVVAR_NOT_FOUND {
-                return nil
+            try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
+                do {
+                    return try SWB_GetEnvironmentVariableW(wName)
+                } catch let error as Win32Error where error.error == ERROR_ENVVAR_NOT_FOUND {
+                    return nil
+                }
             }
-        }
         #else
-        return SWBLibc.getenv(name).map { String(cString: $0) } ?? nil
+            return SWBLibc.getenv(name).map { String(cString: $0) } ?? nil
         #endif
     }
 
@@ -39,38 +39,46 @@ public enum POSIX: Sendable {
         let nameString = String(cString: name)
         let valueString = String(cString: value)
         #if os(Windows)
-        if overwrite == 0 {
-            if nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { GetEnvironmentVariableW($0, nil, 0) }) == 0 && GetLastError() != ERROR_ENVVAR_NOT_FOUND {
-                throw POSIXError(errno, context: "GetEnvironmentVariableW", nameString)
+            if overwrite == 0 {
+                if nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { GetEnvironmentVariableW($0, nil, 0) }) == 0 && GetLastError() != ERROR_ENVVAR_NOT_FOUND {
+                    throw POSIXError(errno, context: "GetEnvironmentVariableW", nameString)
+                }
+                return
             }
-            return
-        }
-        guard nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { nameWString in
-            valueString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { valueWString in
-                SetEnvironmentVariableW(nameWString, valueWString)
-            })
-        }) else {
-            throw POSIXError(errno, context: "SetEnvironmentVariableW", nameString, valueString)
-        }
+            guard
+                nameString.withCString(
+                    encodedAs: CInterop.PlatformUnicodeEncoding.self,
+                    { nameWString in
+                        valueString.withCString(
+                            encodedAs: CInterop.PlatformUnicodeEncoding.self,
+                            { valueWString in
+                                SetEnvironmentVariableW(nameWString, valueWString)
+                            }
+                        )
+                    }
+                )
+            else {
+                throw POSIXError(errno, context: "SetEnvironmentVariableW", nameString, valueString)
+            }
         #else
-        let ret = SWBLibc.setenv(name, value, overwrite)
-        if ret != 0 {
-            throw POSIXError(errno, context: "setenv", nameString)
-        }
+            let ret = SWBLibc.setenv(name, value, overwrite)
+            if ret != 0 {
+                throw POSIXError(errno, context: "setenv", nameString)
+            }
         #endif
     }
 
     public static func unsetenv(_ name: UnsafePointer<CChar>) throws {
         let nameString = String(cString: name)
         #if os(Windows)
-        guard nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { SetEnvironmentVariableW($0, nil) }) else {
-            throw POSIXError(errno, context: "SetEnvironmentVariableW", nameString)
-        }
+            guard nameString.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self, { SetEnvironmentVariableW($0, nil) }) else {
+                throw POSIXError(errno, context: "SetEnvironmentVariableW", nameString)
+            }
         #else
-        let ret = SWBLibc.unsetenv(name)
-        if ret != 0 {
-            throw POSIXError(errno, context: "unsetenv", nameString)
-        }
+            let ret = SWBLibc.unsetenv(name)
+            if ret != 0 {
+                throw POSIXError(errno, context: "unsetenv", nameString)
+            }
         #endif
     }
 }
@@ -111,8 +119,7 @@ public func eintrLoop<T>(_ f: () throws -> T) throws -> T {
     while true {
         do {
             return try f()
-        }
-        catch let e as POSIXError where e.code == EINTR {
+        } catch let e as POSIXError where e.code == EINTR {
             continue
         }
     }

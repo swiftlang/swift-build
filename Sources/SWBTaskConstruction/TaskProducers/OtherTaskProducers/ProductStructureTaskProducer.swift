@@ -19,8 +19,7 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
         return .immediate
     }
 
-    func generateTasks() async -> [any PlannedTask]
-    {
+    func generateTasks() async -> [any PlannedTask] {
         var tasks = [any PlannedTask]()
         let settings = context.settings
         let scope = settings.globalScope
@@ -31,8 +30,7 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
         // Generate tasks to create directories defining the product structure.
         let targetBuildDir = self.context.settings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
         var outputPaths = Set<Path>()
-        for directory in PackageTypeSpec.productStructureDirectories
-        {
+        for directory in PackageTypeSpec.productStructureDirectories {
             let buildSetting = directory.buildSetting
             let subDir = context.settings.globalScope.evaluate(buildSetting)
 
@@ -67,9 +65,9 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
         if !scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
 
             // Generate tasks to create symbolic links in the product structure.
-            for descriptor in productType.productStructureSymlinkDescriptors(scope)
-            {
-                let destinationPath = descriptor.toPath.isAbsolute
+            for descriptor in productType.productStructureSymlinkDescriptors(scope) {
+                let destinationPath =
+                    descriptor.toPath.isAbsolute
                     ? descriptor.toPath
                     : descriptor.location.dirname.join(descriptor.effectiveToPath ?? descriptor.toPath).normalize()
 
@@ -105,15 +103,11 @@ final class ProductStructureTaskProducer: PhasedTaskProducer, TaskProducer {
 
 }
 
-
 // MARK: Product Type Extensions
 
-
-private extension ProductTypeSpec
-{
+private extension ProductTypeSpec {
     /// Create the tasks to make the symlinks to the products in the `BUILT_PRODUCTS_DIR`, if appropriate.
-    func addBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ settings: Settings, _ tasks: inout [any PlannedTask]) async
-    {
+    func addBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ settings: Settings, _ tasks: inout [any PlannedTask]) async {
         let scope = settings.globalScope
 
         // Only create symlink tasks when using deployment locations.
@@ -131,42 +125,33 @@ private extension ProductTypeSpec
             if let asXCTestBundle = self as? XCTestBundleProductTypeSpec {
                 await asXCTestBundle.addXCTestBundleBuiltProductsDirSymlinkTasks(producer, scope, &tasks)
             }
-        }
-        else if let asDynamicLibrary = self as? DynamicLibraryProductTypeSpec {
+        } else if let asDynamicLibrary = self as? DynamicLibraryProductTypeSpec {
             await asDynamicLibrary.addDynamicLibraryBuiltProductsDirSymlinkTasks(producer, settings, &tasks)
-        }
-        else if let asStandalone = self as? StandaloneExecutableProductTypeSpec {
+        } else if let asStandalone = self as? StandaloneExecutableProductTypeSpec {
             await asStandalone.addStandaloneExecutableBuiltProductsDirSymlinkTasks(producer, scope, &tasks)
-        }
-        else {
+        } else {
             fatalError("unknown product type: \(self)")
         }
     }
 }
 
-private extension BundleProductTypeSpec
-{
+private extension BundleProductTypeSpec {
     /// Create the task to make the symlink to the product in the `BUILT_PRODUCTS_DIR`, if appropriate.
-    func addBundleBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async
-    {
+    func addBundleBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         let context = producer.context
         // FIXME: This is in essence the same logic as for standalone products except for using WRAPPER_NAME, just diverged because the variants are top-level for them. We should reconcile, maybe by introducing a generic notion for "why" this is different.
         let targetWrapper = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.WRAPPER_NAME))
         let builtWrapper = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(scope.evaluate(BuiltinMacros.WRAPPER_NAME))
 
-        await producer.appendGeneratedTasks(&tasks)
-        { delegate in
+        await producer.appendGeneratedTasks(&tasks) { delegate in
             context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: context, scope: scope, inputs: [], output: builtWrapper, preparesForIndexing: true), delegate, toPath: targetWrapper, makeRelative: true, repairViaOwnershipAnalysis: true)
         }
     }
 }
 
-
-private extension DynamicLibraryProductTypeSpec
-{
+private extension DynamicLibraryProductTypeSpec {
     /// Create the tasks to make the symlink(s) to the dynamic library(s) in the `BUILT_PRODUCTS_DIR`, if appropriate.  There will be one such symlink per build variant.
-    func addDynamicLibraryBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ settings: Settings, _ tasks: inout [any PlannedTask]) async
-    {
+    func addDynamicLibraryBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ settings: Settings, _ tasks: inout [any PlannedTask]) async {
         let scope = settings.globalScope
 
         // Only add symlink tasks when building API or just building.
@@ -175,8 +160,9 @@ private extension DynamicLibraryProductTypeSpec
 
         let shouldUseInstallAPI = ProductPostprocessingTaskProducer.shouldUseInstallAPI(scope, settings)
         // Condensed from LibraryProductTypeSpec.addDynamicLibraryInstallAPITasks(:::::).
-        let willProduceTBD = (buildComponents.contains("api") || (addDynamicLibrarySymlinks && scope.evaluate(BuiltinMacros.TAPI_ENABLE_VERIFICATION_MODE)))
-                             && (scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) || (((producer as? PhasedTaskProducer)?.targetContext.supportsEagerLinking(scope: scope)) ?? false))
+        let willProduceTBD =
+            (buildComponents.contains("api") || (addDynamicLibrarySymlinks && scope.evaluate(BuiltinMacros.TAPI_ENABLE_VERIFICATION_MODE)))
+            && (scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) || (((producer as? PhasedTaskProducer)?.targetContext.supportsEagerLinking(scope: scope)) ?? false))
         // Only make a symlink for targets that use the default extension/suffix. Some projects have multiple dynamic libraries
         // with the same product name but different executable extensions. They all end up with the same TAPI_OUTPUT_PATH, and
         // there's no good way to resolve that, so only make symlinks for tbds that go with dylibs.
@@ -191,22 +177,18 @@ private extension DynamicLibraryProductTypeSpec
         }
 
         // Add a symlink per-variant.
-        for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
-        {
-            if addTBDSymlinks
-            {
+        for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
+            if addTBDSymlinks {
                 await addDynamicLibraryTBDBuiltProductsDirSymlinkTasks(producer, scope, variant, &tasks)
             }
-            if addDynamicLibrarySymlinks
-            {
+            if addDynamicLibrarySymlinks {
                 await addStandaloneExecutableBuiltProductsDirSymlinkTasks(producer, scope, variant, &tasks)
             }
         }
     }
 
     /// Create the task to make the symlink to the TBD in the `BUILT_PRODUCTS_DIR` for a single build variant, if appropriate.
-    func addDynamicLibraryTBDBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ variant: String, _ tasks: inout [any PlannedTask]) async
-    {
+    func addDynamicLibraryTBDBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ variant: String, _ tasks: inout [any PlannedTask]) async {
         // Enter the per-variant scope.
         let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
 
@@ -217,18 +199,15 @@ private extension DynamicLibraryProductTypeSpec
         let relativeTargetWrapper = targetWrapper.relativeSubpath(from: scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR))
         let builtWrapper = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(relativeTargetWrapper)
 
-        await producer.appendGeneratedTasks(&tasks)
-        { delegate in
+        await producer.appendGeneratedTasks(&tasks) { delegate in
             context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: context, scope: scope, inputs: [], output: builtWrapper, preparesForIndexing: true), delegate, toPath: targetWrapper, makeRelative: true, repairViaOwnershipAnalysis: false)
         }
     }
 }
 
-private extension StandaloneExecutableProductTypeSpec
-{
+private extension StandaloneExecutableProductTypeSpec {
     /// Create the tasks to make the symlink(s) to the product(s) in the `BUILT_PRODUCTS_DIR`, if appropriate.  There will be one such symlink per build variant.
-    func addStandaloneExecutableBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async
-    {
+    func addStandaloneExecutableBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         // Only add symlink tasks when building.
         guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else { return }
 
@@ -238,15 +217,13 @@ private extension StandaloneExecutableProductTypeSpec
         }
 
         // Add a symlink per-variant.
-        for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
-        {
+        for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
             await addStandaloneExecutableBuiltProductsDirSymlinkTasks(producer, scope, variant, &tasks)
         }
     }
 
     /// Create the task to make the symlink to the product in the `BUILT_PRODUCTS_DIR` for a single build variant, if appropriate.
-    func addStandaloneExecutableBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ variant: String, _ tasks: inout [any PlannedTask]) async
-    {
+    func addStandaloneExecutableBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ variant: String, _ tasks: inout [any PlannedTask]) async {
         // Enter the per-variant scope.
         let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
 
@@ -255,15 +232,13 @@ private extension StandaloneExecutableProductTypeSpec
         let targetWrapper = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
         let builtWrapper = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(scope.evaluate(BuiltinMacros.EXECUTABLE_PATH))
 
-        await producer.appendGeneratedTasks(&tasks)
-        { delegate in
+        await producer.appendGeneratedTasks(&tasks) { delegate in
             context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: context, scope: scope, inputs: [], output: builtWrapper, preparesForIndexing: true), delegate, toPath: targetWrapper, makeRelative: true, repairViaOwnershipAnalysis: false)
         }
     }
 }
 
-private extension XCTestBundleProductTypeSpec
-{
+private extension XCTestBundleProductTypeSpec {
     func addXCTestBundleBuiltProductsDirSymlinkTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
 
@@ -276,8 +251,7 @@ private extension XCTestBundleProductTypeSpec
             let targetWrapper = scope.unmodifiedTargetBuildDir.join(scope.evaluate(BuiltinMacros.XCTRUNNER_PRODUCT_NAME))
             let builtWrapper = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(scope.evaluate(BuiltinMacros.XCTRUNNER_PRODUCT_NAME))
 
-            await producer.appendGeneratedTasks(&tasks)
-            { delegate in
+            await producer.appendGeneratedTasks(&tasks) { delegate in
                 context.symlinkSpec.constructSymlinkTask(CommandBuildContext(producer: context, scope: scope, inputs: [], output: builtWrapper, preparesForIndexing: true), delegate, toPath: targetWrapper, makeRelative: true, repairViaOwnershipAnalysis: true)
             }
         }

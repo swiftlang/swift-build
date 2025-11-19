@@ -26,7 +26,7 @@ import SWBTestSupport
         #expect(FileTextEncoding("utf8") != FileTextEncoding.utf8)
     }
 
-    @Test(.requireHostOS(.macOS)) // requires CoreFoundation which is macOS-only
+    @Test(.requireHostOS(.macOS))  // requires CoreFoundation which is macOS-only
     func encoding() throws {
         #expect(FileTextEncoding.utf8.stringEncoding == String.Encoding.utf8)
         #expect(FileTextEncoding.utf16.stringEncoding == String.Encoding.utf16)
@@ -38,7 +38,7 @@ import SWBTestSupport
         #expect(FileTextEncoding("utf-64").stringEncoding == nil)
     }
 
-    @Test(.requireHostOS(.macOS)) // crashes on Linux
+    @Test(.requireHostOS(.macOS))  // crashes on Linux
     func decoding() throws {
         #expect(FileTextEncoding(stringEncoding: String.Encoding.utf8) == FileTextEncoding.utf8)
         #expect(FileTextEncoding(stringEncoding: String.Encoding.utf16) == FileTextEncoding.utf16)
@@ -73,30 +73,30 @@ import SWBTestSupport
         let bom_utf32le = [UInt8]([0xFF, 0xFE, 0x00, 0x00])
 
         /*
-         Illustration for how to get host ordered UTF information.
-
-         let bom_utf16_host: [UInt8] = {
-         switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
-         case CFByteOrderBigEndian:
-         return bom_utf16be
-         case CFByteOrderLittleEndian:
-         return bom_utf16le
-         default:
-         return []
-         }
-         }()
-
-         let bom_utf32_host: [UInt8] = {
-         switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
-         case CFByteOrderBigEndian:
-         return bom_utf32be
-         case CFByteOrderLittleEndian:
-         return bom_utf32le
-         default:
-         return []
-         }
-         }()
-         */
+         * Illustration for how to get host ordered UTF information.
+         *
+         * let bom_utf16_host: [UInt8] = {
+         * switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
+         * case CFByteOrderBigEndian:
+         * return bom_utf16be
+         * case CFByteOrderLittleEndian:
+         * return bom_utf16le
+         * default:
+         * return []
+         * }
+         * }()
+         *
+         * let bom_utf32_host: [UInt8] = {
+         * switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
+         * case CFByteOrderBigEndian:
+         * return bom_utf32be
+         * case CFByteOrderLittleEndian:
+         * return bom_utf32le
+         * default:
+         * return []
+         * }
+         * }()
+         **/
 
         func XCTAssertDecode(_ lhs: @autoclosure () throws -> (string: String, originalEncoding: FileTextEncoding)?, _ rhs: @autoclosure () throws -> (string: String, originalEncoding: FileTextEncoding)?, sourceLocation: SourceLocation = #_sourceLocation) throws {
             try #require(try lhs()?.string == rhs()?.string, sourceLocation: sourceLocation)

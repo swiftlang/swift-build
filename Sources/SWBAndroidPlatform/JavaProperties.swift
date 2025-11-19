@@ -20,10 +20,12 @@ struct JavaProperties {
     private let properties: [String: String]
 
     init(data: Data) throws {
-        properties = Dictionary(uniqueKeysWithValues: String(decoding: data, as: UTF8.self).split(whereSeparator: { $0.isNewline }).map(String.init).map {
-            let (key, value) = $0.split("=")
-            return (key.trimmingCharacters(in: .whitespaces), value.trimmingCharacters(in: .whitespaces))
-        })
+        properties = Dictionary(
+            uniqueKeysWithValues: String(decoding: data, as: UTF8.self).split(whereSeparator: { $0.isNewline }).map(String.init).map {
+                let (key, value) = $0.split("=")
+                return (key.trimmingCharacters(in: .whitespaces), value.trimmingCharacters(in: .whitespaces))
+            }
+        )
     }
 
     subscript(_ propertyName: String) -> String? {

@@ -42,8 +42,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         let iterations = 100000
 
         await measure {
-            for _ in 1...iterations
-            {
+            for _ in 1...iterations {
                 #expect(!self.serializeScalarData().byteString.isEmpty)
             }
         }
@@ -114,8 +113,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         }
     }
 
-    private func serializeArrayData() -> MsgPackSerializer
-    {
+    private func serializeArrayData() -> MsgPackSerializer {
         let sz = MsgPackSerializer()
         sz.serialize([-2, -1, 0, 1, 2] as [Int])
         sz.serialize([0, 1, 2, 3, 4] as [UInt])
@@ -131,8 +129,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         let iterations = 100000
 
         await measure {
-            for _ in 1...iterations
-            {
+            for _ in 1...iterations {
                 #expect(!self.serializeArrayData().byteString.isEmpty)
             }
         }
@@ -157,8 +154,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         }
     }
 
-    private func serializeDictionaryData() -> MsgPackSerializer
-    {
+    private func serializeDictionaryData() -> MsgPackSerializer {
         let sz = MsgPackSerializer()
         sz.serialize(["minusone": -1, "zero": 0, "one": 1] as [String: Int])
         sz.serialize([-1.3: false, 0.0: true, 1.2: false] as [Float32: Bool])
@@ -193,8 +189,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
 
     private func customElementData() -> [TestLogMessage] {
         var elements = [TestLogMessage]()
-        for i in 1...100
-        {
+        for i in 1...100 {
             let element = TestLogMessage(type: .error, message: "error: Message #\(i)")
             elements.append(element)
         }
@@ -203,8 +198,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
 
     private func serializeCustomElementData(_ elements: [TestLogMessage]) -> MsgPackSerializer {
         let sz = MsgPackSerializer()
-        for element in elements
-        {
+        for element in elements {
             sz.serialize(element)
         }
         return sz
@@ -216,10 +210,8 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
 
         let elements = customElementData()
 
-        await measure
-        {
-            for _ in 1...iterations
-            {
+        await measure {
+            for _ in 1...iterations {
                 #expect(!self.serializeCustomElementData(elements).byteString.isEmpty)
             }
         }
@@ -235,8 +227,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         try await measure {
             for _ in 1...iterations {
                 let dsz = MsgPackDeserializer(sz.byteString)
-                for element in elements
-                {
+                for element in elements {
                     let dszElement = try dsz.deserialize() as TestLogMessage
                     #expect(dszElement.message == element.message)
                 }
@@ -244,23 +235,19 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         }
     }
 
-    private func customElementHierarchy(_ numElements: UInt) -> TestLogHeader
-    {
+    private func customElementHierarchy(_ numElements: UInt) -> TestLogHeader {
         // The top-level log element.
         let log = TestLogHeader("Log")
 
         // Add 100 framework targets, each with 100 source file compilations, each of which emits 100 warnings.
-        for i in 1...numElements
-        {
+        for i in 1...numElements {
             let fwkTarget = TestLogHeader("Framework-\(i)")
             log.addEntry(fwkTarget)
-            for j in 1...numElements
-            {
+            for j in 1...numElements {
                 fwkTarget.addEntry(TestLogSection("Copy Foo_\(j).h"))
 
                 let compile = TestLogSection("Compile Foo_\(j).m")
-                for k in 1...numElements
-                {
+                for k in 1...numElements {
                     compile.addMessage(TestLogMessage(type: .warning, message: "Warning number \(k)"))
                 }
                 fwkTarget.addEntry(compile)
@@ -285,8 +272,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         return log
     }
 
-    private func serializeCustomElementHierarchy(_ log: TestLogHeader) -> MsgPackSerializer
-    {
+    private func serializeCustomElementHierarchy(_ log: TestLogHeader) -> MsgPackSerializer {
         let sz = MsgPackSerializer()
         sz.serialize(log)
         return sz
@@ -300,11 +286,9 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
         var didEmitSerializedSize = false
 
         await measure {
-            for _ in 1...iterations
-            {
+            for _ in 1...iterations {
                 let sz = self.serializeCustomElementHierarchy(log)
-                if !didEmitSerializedSize
-                {
+                if !didEmitSerializedSize {
                     let mb = Float64(sz.byteString.bytes.count) / (1000.0 * 1000.0)
                     perfPrint("Serialized \(mb) megabytes")
                     didEmitSerializedSize = true
@@ -335,9 +319,7 @@ fileprivate struct MsgPackSerializationPerfTests: PerfTests {
     }
 }
 
-
 // MARK: Classes to test serializing a log structure
-
 
 private class TestLogEntry: PolymorphicSerializable, Equatable {
     let title: String
@@ -357,7 +339,7 @@ private class TestLogEntry: PolymorphicSerializable, Equatable {
         self.title = try deserializer.deserialize()
     }
 
-    static let implementations: [SerializableTypeCode : any PolymorphicSerializable.Type] = [
+    static let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type] = [
         0: TestLogEntry.self,
         1: TestLogHeader.self,
         2: TestLogSection.self,
@@ -368,7 +350,7 @@ private class TestLogEntry: PolymorphicSerializable, Equatable {
     }
 }
 
-private func ==(lhs: TestLogEntry, rhs: TestLogEntry) -> Bool {
+private func == (lhs: TestLogEntry, rhs: TestLogEntry) -> Bool {
     return lhs.equals(rhs)
 }
 
@@ -399,8 +381,7 @@ private final class TestLogHeader: TestLogEntry {
 
     override func equals(_ other: TestLogEntry) -> Bool {
         guard super.equals(other) else { return false }
-        if let otherHeader = other as? TestLogHeader
-        {
+        if let otherHeader = other as? TestLogHeader {
             return subsections == otherHeader.subsections
         }
         return false
@@ -434,8 +415,7 @@ private final class TestLogSection: TestLogEntry {
 
     override func equals(_ other: TestLogEntry) -> Bool {
         guard super.equals(other) else { return false }
-        if let otherSection = other as? TestLogSection
-        {
+        if let otherSection = other as? TestLogSection {
             return messages == otherSection.messages
         }
         return false
@@ -452,22 +432,19 @@ private final class TestLogMessage: Serializable, Equatable {
     let type: TestLogMessageType
     let message: String
 
-    init(type: TestLogMessageType, message: String)
-    {
+    init(type: TestLogMessageType, message: String) {
         self.type = type
         self.message = message
     }
 
-    func serialize<T: Serializer>(to serializer: T)
-    {
+    func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(type.rawValue)
         serializer.serialize(message)
         serializer.endAggregate()
     }
 
-    init(from deserializer: any Deserializer) throws
-    {
+    init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         guard let type = TestLogMessageType(rawValue: try deserializer.deserialize()) else { throw DeserializerError.deserializationFailed("Invalid TestLogMessageType.") }
         self.type = type
@@ -475,6 +452,6 @@ private final class TestLogMessage: Serializable, Equatable {
     }
 }
 
-private func ==(lhs: TestLogMessage, rhs: TestLogMessage) -> Bool {
+private func == (lhs: TestLogMessage, rhs: TestLogMessage) -> Bool {
     return lhs.type == rhs.type && lhs.message == rhs.message
 }

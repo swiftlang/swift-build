@@ -13,8 +13,8 @@
 public import SWBUtil
 
 public enum BuildAction: String, Serializable, Codable, CaseIterable, Comparable, Sendable {
-    case analyze = "analyze" // used by legacy target-based builds using xcodebuild
-    case archive = "archive" // used by legacy target-based builds using xcodebuild
+    case analyze = "analyze"  // used by legacy target-based builds using xcodebuild
+    case archive = "archive"  // used by legacy target-based builds using xcodebuild
     case clean = "clean"
     case build = "build"
     case exportLoc = "exportloc"
@@ -72,7 +72,7 @@ public enum BuildAction: String, Serializable, Codable, CaseIterable, Comparable
         }
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serialize(rawValue)
     }
 

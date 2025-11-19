@@ -293,7 +293,7 @@ public struct XCFramework: Hashable, Sendable {
             self.libraryIdentifier = libraryIdentifier
             self.supportedPlatform = supportedPlatform
             self.supportedArchitectures = supportedArchitectures
-            self.platformVariant = platformVariant?.nilIfEmpty // remove the property if it is empty
+            self.platformVariant = platformVariant?.nilIfEmpty  // remove the property if it is empty
             self.libraryPath = libraryPath
             self.binaryPath = binaryPath
             self.headersPath = headersPath
@@ -482,7 +482,7 @@ extension XCFramework.Library: Hashable {
     }
 
     /// Returns `true` iff the `libraryIdentifiers` are equal. The rest of the library components are not used for equality.
-    static public func ==(lhs: XCFramework.Library, rhs: XCFramework.Library) -> Bool {
+    static public func == (lhs: XCFramework.Library, rhs: XCFramework.Library) -> Bool {
         return lhs.libraryIdentifier == rhs.libraryIdentifier
     }
 }
@@ -544,8 +544,7 @@ extension XCFramework.Library: Hashable {
 
             if platformVariant == "macabi" {
                 try container.encode("maccatalyst", forKey: .platformVariant)
-            }
-            else {
+            } else {
                 try container.encodeIfPresent(platformVariant, forKey: .platformVariant)
             }
 
@@ -622,8 +621,7 @@ extension XCFramework {
         let libraries: [XCFramework.Library]
         do {
             version = try Version(other.version)
-        }
-        catch {
+        } catch {
             throw XCFrameworkValidationError.unsupportedVersion(version: other.version)
         }
 
@@ -672,8 +670,7 @@ extension XCFramework {
         let subfolder: Path
         if scope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
             subfolder = scope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR)
-        }
-        else {
+        } else {
             subfolder = scope.unmodifiedTargetBuildDir
         }
 
@@ -693,13 +690,11 @@ extension XCFramework {
         case internalDistribution
 
         var libraryPath: Path? {
-            if case let .library(path, _, _) = self { return path }
-            else { return nil }
+            if case let .library(path, _, _) = self { return path } else { return nil }
         }
 
         var headersPath: Path? {
-            if case let .library(_, path, _) = self { return path }
-            else { return nil }
+            if case let .library(_, path, _) = self { return path } else { return nil }
         }
 
         var debugSymbolPaths: [Path] {
@@ -753,7 +748,6 @@ extension XCFramework {
             }
         }
 
-
         // If the '-archive' flag is used, then all -framework/-library usages will be prefixed with their corresponding path into the archive. Also, the '-headers' and '-debug-symbols' will be added pointing into the archive. This function does not handle any of the error handling, but lets the rest of the system deal with duplicate or improper usage.
         var newCommandLine: [String] = []
 
@@ -776,8 +770,7 @@ extension XCFramework {
                     newCommandLine.append(archiveRoot.join(root).join(name).str)
 
                     rewriteDebugSymbolCommandLine(archiveRoot, name, fs, &newCommandLine)
-                }
-                else {
+                } else {
                     newCommandLine.append(entry)
                 }
 
@@ -796,8 +789,7 @@ extension XCFramework {
                     }
 
                     rewriteDebugSymbolCommandLine(archiveRoot, name, fs, &newCommandLine)
-                }
-                else {
+                } else {
                     newCommandLine.append(entry)
                 }
 
@@ -841,7 +833,7 @@ extension XCFramework {
         precondition(currentWorkingDirectory.isAbsolute, "path '\(currentWorkingDirectory.str)' is not absolute")
 
         // The -archive flag is handled in a very special way; it re-writes the user's entered command line by emitting the corresponding -framework/-library, -headers, -debug-symbols arguments.
-        let commandLine = rewriteCommandLine(commandLine, cwd: currentWorkingDirectory, fs:  fs)
+        let commandLine = rewriteCommandLine(commandLine, cwd: currentWorkingDirectory, fs: fs)
 
         var arguments = [Argument]()
         var argumentIndex = commandLine.startIndex
@@ -869,8 +861,8 @@ extension XCFramework {
             switch parseState {
             case .next:
                 switch arg {
-                case "createXCFramework": parseState = .next        // the main command from Swift Build
-                case "-create-xcframework": parseState = .next      // passed through via xcodebuild's parameter passing splat
+                case "createXCFramework": parseState = .next  // the main command from Swift Build
+                case "-create-xcframework": parseState = .next  // passed through via xcodebuild's parameter passing splat
                 case "-framework": parseState = .framework
                 case "-library": parseState = .library
                 case "-headers": parseState = .libraryHeader
@@ -884,8 +876,7 @@ extension XCFramework {
                     // When running via `xcodebuild`, there are additional arguments passed that we want to safely ignore.
                     if arg.hasPrefix("-DVT") || arg.hasPrefix("-ExtraPlugInFolders") {
                         parseState = .next
-                    }
-                    else {
+                    } else {
                         return .failure(XCFrameworkCreationError(message: "error: invalid argument '\(arg)'."))
                     }
                 }
@@ -932,7 +923,7 @@ extension XCFramework {
                 arguments.append(.output(path: normalize(path: arg, cwd: currentWorkingDirectory)))
                 parseState = .next
 
-            case .end: break   // do nothing
+            case .end: break  // do nothing
             }
 
             // Time to grab the next index.
@@ -941,8 +932,8 @@ extension XCFramework {
 
         let (frameworkCount, libraryCount, outputCount) = arguments.reduce((0, 0, 0)) { (acc, arg) in
             switch arg {
-            case .framework(_,_): return (acc.0 + 1, acc.1, acc.2)
-            case .library(_,_,_): return (acc.0, acc.1 + 1, acc.2)
+            case .framework(_, _): return (acc.0 + 1, acc.1, acc.2)
+            case .library(_, _, _): return (acc.0, acc.1 + 1, acc.2)
             case .output(_): return (acc.0, acc.1, acc.2 + 1)
             case .internalDistribution: return acc
             }
@@ -1030,8 +1021,7 @@ extension XCFramework {
                     mergeableMetadataArchs.insert(slice.arch)
                 }
             }
-        }
-        catch {
+        } catch {
             return .failure(XCFrameworkCreationError(message: "error: unable to determine mergeability of the binary at '\(binaryPath.str)': \(error)"))
         }
         if !mergeableMetadataArchs.isEmpty, Set(supportedArchs) != mergeableMetadataArchs {
@@ -1087,8 +1077,8 @@ extension XCFramework {
         let fs = localFS
 
         // Utility function for constructing the array of `XCFramework.Library` based on the command line arguments. A mapping of the path and the resulting library is returned upon success.
-        func xcframeworkLibraries(from arguments: [Argument]) -> Result<[LibraryPathsKey:XCFramework.Library], XCFrameworkCreationError> {
-            var libraryMap = [LibraryPathsKey:XCFramework.Library]()
+        func xcframeworkLibraries(from arguments: [Argument]) -> Result<[LibraryPathsKey: XCFramework.Library], XCFrameworkCreationError> {
+            var libraryMap = [LibraryPathsKey: XCFramework.Library]()
 
             do {
                 for arg in arguments {
@@ -1124,8 +1114,7 @@ extension XCFramework {
                     default: continue
                     }
                 }
-            }
-            catch {
+            } catch {
                 return .failure(XCFrameworkCreationError(message: error.localizedDescription))
             }
 
@@ -1147,10 +1136,12 @@ extension XCFramework {
 
             let xcframework = try XCFramework(libraries: libraryMap.values.map { $0 })
 
-            guard let outputPath = parsedCommandLineArgs.filter({
-                if case .output(_) = $0 { return true }
-                return false
-            }).first?.outputPath else {
+            guard
+                let outputPath = parsedCommandLineArgs.filter({
+                    if case .output(_) = $0 { return true }
+                    return false
+                }).first?.outputPath
+            else {
                 // this is a fatalError() as `parseCommandLine` should have already handled this error.
                 fatalError("no output path found.")
             }
@@ -1209,8 +1200,7 @@ extension XCFramework {
             }
 
             return (true, "xcframework successfully written out to: \(outputPath.str)\n")
-        }
-        catch {
+        } catch {
             return (false, "\(error.localizedDescription)\n")
         }
     }
@@ -1320,7 +1310,7 @@ extension XCFramework {
             guard fs.exists(copyHeadersFromPath) else {
                 throw XCFrameworkValidationError.missingPathEntry(xcframeworkPath: xcframeworkPath, libraryIdentifier: library.libraryIdentifier, plistKey: XCFrameworkInfoPlist_V1.Library.CodingKeys.headersPath.stringValue, plistValue: library.headersPath?.str ?? "<empty value>")
             }
-            let copyHeadersToPath = copyLibraryToPath.join(Path("include"))     // this is the path that is added by default from the compile process.
+            let copyHeadersToPath = copyLibraryToPath.join(Path("include"))  // this is the path that is added by default from the compile process.
 
             // Ensure the headers path actually exists on disk.
             if !dryRun {

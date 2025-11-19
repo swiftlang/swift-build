@@ -18,59 +18,71 @@ import Testing
     @Test
     func nWayMerge() {
         #expect(SWBUtil.nWayMerge([] as [[Int]]) == [])
-        #expect(SWBUtil.nWayMerge([[1, 2]]) == [NWayMergeElement(element: 1, elementOf: [0]),
-                                        NWayMergeElement(element: 2, elementOf: [0])])
-        #expect(SWBUtil.nWayMerge([
-            [1, 2, 3],
-            [2, 3, 4],
-            [3, 4, 5]
-        ]) == [
-            NWayMergeElement(element: 1, elementOf: [0]),
-            NWayMergeElement(element: 2, elementOf: [0, 1]),
-            NWayMergeElement(element: 3, elementOf: [0, 1, 2]),
-            NWayMergeElement(element: 4, elementOf: [1, 2]),
-            NWayMergeElement(element: 5, elementOf: [2])
-        ])
+        #expect(
+            SWBUtil.nWayMerge([[1, 2]]) == [
+                NWayMergeElement(element: 1, elementOf: [0]),
+                NWayMergeElement(element: 2, elementOf: [0]),
+            ]
+        )
+        #expect(
+            SWBUtil.nWayMerge([
+                [1, 2, 3],
+                [2, 3, 4],
+                [3, 4, 5],
+            ]) == [
+                NWayMergeElement(element: 1, elementOf: [0]),
+                NWayMergeElement(element: 2, elementOf: [0, 1]),
+                NWayMergeElement(element: 3, elementOf: [0, 1, 2]),
+                NWayMergeElement(element: 4, elementOf: [1, 2]),
+                NWayMergeElement(element: 5, elementOf: [2]),
+            ]
+        )
 
-        #expect(SWBUtil.nWayMerge([
-            [1, 2],
-            [3, 4],
-            [5]
-        ]) == [
-            NWayMergeElement(element: 1, elementOf: [0]),
-            NWayMergeElement(element: 5, elementOf: [2]),
-            NWayMergeElement(element: 3, elementOf: [1]),
-            NWayMergeElement(element: 2, elementOf: [0]),
-            NWayMergeElement(element: 4, elementOf: [1])
-        ])
+        #expect(
+            SWBUtil.nWayMerge([
+                [1, 2],
+                [3, 4],
+                [5],
+            ]) == [
+                NWayMergeElement(element: 1, elementOf: [0]),
+                NWayMergeElement(element: 5, elementOf: [2]),
+                NWayMergeElement(element: 3, elementOf: [1]),
+                NWayMergeElement(element: 2, elementOf: [0]),
+                NWayMergeElement(element: 4, elementOf: [1]),
+            ]
+        )
 
-        #expect(SWBUtil.nWayMerge([
-            [1, 6, 3, 4],
-            [2, 3, 4],
-            [0, 3, 4, 5]
-        ]) == [
-            NWayMergeElement(element: 1, elementOf: [0]),
-            NWayMergeElement(element: 0, elementOf: [2]),
-            NWayMergeElement(element: 2, elementOf: [1]),
-            NWayMergeElement(element: 6, elementOf: [0]),
-            NWayMergeElement(element: 3, elementOf: [0, 1, 2]),
-            NWayMergeElement(element: 4, elementOf: [0, 1, 2]),
-            NWayMergeElement(element: 5, elementOf: [2]),
-        ])
+        #expect(
+            SWBUtil.nWayMerge([
+                [1, 6, 3, 4],
+                [2, 3, 4],
+                [0, 3, 4, 5],
+            ]) == [
+                NWayMergeElement(element: 1, elementOf: [0]),
+                NWayMergeElement(element: 0, elementOf: [2]),
+                NWayMergeElement(element: 2, elementOf: [1]),
+                NWayMergeElement(element: 6, elementOf: [0]),
+                NWayMergeElement(element: 3, elementOf: [0, 1, 2]),
+                NWayMergeElement(element: 4, elementOf: [0, 1, 2]),
+                NWayMergeElement(element: 5, elementOf: [2]),
+            ]
+        )
 
-        #expect(SWBUtil.nWayMerge([
-            [1, 0, 0, 1],
-            [2, 0, 0, 1],
-            [0, 0, 0, 2]
-        ]) == [
-            NWayMergeElement(element: 1, elementOf: [0]),
-            NWayMergeElement(element: 2, elementOf: [1]),
-            NWayMergeElement(element: 0, elementOf: [0, 1, 2]),
-            NWayMergeElement(element: 0, elementOf: [0, 1, 2]),
-            NWayMergeElement(element: 0, elementOf: [2]),
-            NWayMergeElement(element: 2, elementOf: [2]),
-            NWayMergeElement(element: 1, elementOf: [0, 1]),
-        ])
+        #expect(
+            SWBUtil.nWayMerge([
+                [1, 0, 0, 1],
+                [2, 0, 0, 1],
+                [0, 0, 0, 2],
+            ]) == [
+                NWayMergeElement(element: 1, elementOf: [0]),
+                NWayMergeElement(element: 2, elementOf: [1]),
+                NWayMergeElement(element: 0, elementOf: [0, 1, 2]),
+                NWayMergeElement(element: 0, elementOf: [0, 1, 2]),
+                NWayMergeElement(element: 0, elementOf: [2]),
+                NWayMergeElement(element: 2, elementOf: [2]),
+                NWayMergeElement(element: 1, elementOf: [0, 1]),
+            ]
+        )
     }
 
 }

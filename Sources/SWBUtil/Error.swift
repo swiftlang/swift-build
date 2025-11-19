@@ -43,52 +43,51 @@ public enum StubError: Error, LocalizedError, CustomStringConvertible, Serializa
 }
 
 #if canImport(Darwin)
-public struct MacError: Error, CustomStringConvertible, LocalizedError {
-    public let code: OSStatus
-    private let error: NSError
+    public struct MacError: Error, CustomStringConvertible, LocalizedError {
+        public let code: OSStatus
+        private let error: NSError
 
-    public init(_ code: OSStatus) {
-        self.code = code
-        self.error = NSError(domain: NSOSStatusErrorDomain, code: Int(code), userInfo: nil)
-    }
-
-    public var description: String {
-        // <rdar://42459842> No supported API is available for retrieving this information in a nicer way
-        let prefix = "Error Domain=NSOSStatusErrorDomain Code=\(code) \""
-        let suffix = "\""
-        var rawDescription = error.description
-        guard rawDescription.hasPrefix(prefix) else {
-            return rawDescription
-        }
-        rawDescription = rawDescription.withoutPrefix(prefix)
-        if rawDescription.hasSuffix(suffix) {
-            rawDescription = rawDescription.withoutSuffix(suffix)
-        }
-        let (first, second) = rawDescription.split(":")
-
-        let constant: String
-        let message: String
-        if !second.isEmpty {
-            constant = first
-            message = String(second.dropFirst())
-        } else {
-            constant = ""
-            message = first
+        public init(_ code: OSStatus) {
+            self.code = code
+            self.error = NSError(domain: NSOSStatusErrorDomain, code: Int(code), userInfo: nil)
         }
 
-        if !constant.isEmpty {
-            return "\(message) (\(constant), \(code))"
-        } else {
-            if message == "(null)" || message.isEmpty {
-                // Provide a friendlier message in these odd cases.
-                return "The operation couldn’t be completed. (\(code))"
+        public var description: String {
+            // <rdar://42459842> No supported API is available for retrieving this information in a nicer way
+            let prefix = "Error Domain=NSOSStatusErrorDomain Code=\(code) \""
+            let suffix = "\""
+            var rawDescription = error.description
+            guard rawDescription.hasPrefix(prefix) else {
+                return rawDescription
             }
-            else {
-                return "\(message) (\(code))"
+            rawDescription = rawDescription.withoutPrefix(prefix)
+            if rawDescription.hasSuffix(suffix) {
+                rawDescription = rawDescription.withoutSuffix(suffix)
+            }
+            let (first, second) = rawDescription.split(":")
+
+            let constant: String
+            let message: String
+            if !second.isEmpty {
+                constant = first
+                message = String(second.dropFirst())
+            } else {
+                constant = ""
+                message = first
+            }
+
+            if !constant.isEmpty {
+                return "\(message) (\(constant), \(code))"
+            } else {
+                if message == "(null)" || message.isEmpty {
+                    // Provide a friendlier message in these odd cases.
+                    return "The operation couldn’t be completed. (\(code))"
+                } else {
+                    return "\(message) (\(code))"
+                }
             }
         }
-    }
 
-    public var errorDescription: String? { return description }
-}
+        public var errorDescription: String? { return description }
+    }
 #endif

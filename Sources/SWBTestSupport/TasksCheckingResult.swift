@@ -123,7 +123,7 @@ extension TasksCheckingResult {
             // Run the matcher.
             return try body(task)
         } else {
-            return try #require(nil) // findOneMatchingTask has already emitted a failure message with a nice error
+            return try #require(nil)  // findOneMatchingTask has already emitted a failure message with a nice error
         }
     }
 
@@ -220,12 +220,10 @@ extension CommandLineCheckable {
                 // Report that we couldn't find this string.
                 if let lastStringFound = lastStringFound {
                     return "couldn't find string '\(string)' after string '\(lastStringFound)' in command line: \(commandLineString)"
-                }
-                else {
+                } else {
                     return "couldn't find string '\(string)' in command line: \(commandLineString)"
                 }
-            }
-            else {
+            } else {
                 // If we found a match, then remember the last string found and advance the startSearchIdx to search for the next string.
                 lastStringFound = string
                 startSearchIdx = curIdx
@@ -271,15 +269,17 @@ extension CommandLineCheckable {
     }
 
     package func checkCommandLineMatches(_ patterns: [StringPattern], sourceLocation: SourceLocation = #_sourceLocation) {
-        let directlyComparable = _commandLineAsStrings.count == patterns.count && !patterns.contains(where: {
-            switch $0 {
+        let directlyComparable =
+            _commandLineAsStrings.count == patterns.count
+            && !patterns.contains(where: {
+                switch $0 {
                 // These cases never matches individual items, they are just used for matching string lists.
-            case .start, .end, .anySequence:
-                return true
-            case .any, .contains, .equal, .regex, .prefix, .suffix, .and, .or, .not, .pathEqual:
-                return false
-            }
-        })
+                case .start, .end, .anySequence:
+                    return true
+                case .any, .contains, .equal, .regex, .prefix, .suffix, .and, .or, .not, .pathEqual:
+                    return false
+                }
+            })
         let matchMessage: String?
         if directlyComparable {
             var messageComponents = _commandLineAsStrings.enumerated().compactMap { index, value in

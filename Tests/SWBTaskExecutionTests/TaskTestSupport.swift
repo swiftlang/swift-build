@@ -102,7 +102,7 @@ class MockDynamicTaskExecutionDelegate: DynamicTaskExecutionDelegate {
 extension Task {
     // FIXME: Eliminate this.
     public convenience init(type: any TaskTypeDescription = mockTaskType, dependencyInfo: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, forTarget: ConfiguredTarget?, ruleInfo: [String], commandLine: [String], environment: EnvironmentBindings = EnvironmentBindings(), workingDirectory: Path, outputs: [any PlannedNode] = [], action: TaskAction?, execDescription: String? = nil, preparesForIndexing: Bool = false) {
-        var builder = PlannedTaskBuilder(type: type, ruleInfo: ruleInfo, commandLine: commandLine.map{ .literal(ByteString(encodingAsUTF8: $0)) }, environment: environment, outputs: outputs)
+        var builder = PlannedTaskBuilder(type: type, ruleInfo: ruleInfo, commandLine: commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) }, environment: environment, outputs: outputs)
         builder.forTarget = forTarget
         builder.dependencyData = dependencyInfo
         builder.payload = payload

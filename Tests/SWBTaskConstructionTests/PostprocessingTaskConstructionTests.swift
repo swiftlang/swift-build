@@ -28,17 +28,22 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("SourceFile.m"),
+                    TestFile("SourceFile.m")
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
+            ],
             targets: [
                 TestAggregateTarget(
                     "All",
@@ -49,7 +54,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .dynamicLibrary,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
                 TestStandardTarget(
@@ -57,9 +62,9 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
-                )
+                ),
             ]
         )
 
@@ -91,7 +96,8 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
 
                         task.checkOutputs([
                             .path("/tmp/aProject.dst/usr/local/lib/Library\(suffix).dylib"),
-                            .name("SetOwner /tmp/aProject.dst/usr/local/lib/Library\(suffix).dylib")])
+                            .name("SetOwner /tmp/aProject.dst/usr/local/lib/Library\(suffix).dylib"),
+                        ])
                     }
                 }
                 results.checkTasks(.matchTarget(target), .matchRuleType("SetMode")) { tasks in
@@ -113,7 +119,8 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
 
                         task.checkOutputs([
                             .path("/tmp/aProject.dst/usr/local/lib/Library\(suffix).dylib"),
-                            .name("SetMode /tmp/aProject.dst/usr/local/lib/Library\(suffix).dylib")])
+                            .name("SetMode /tmp/aProject.dst/usr/local/lib/Library\(suffix).dylib"),
+                        ])
                     }
                 }
             }
@@ -133,7 +140,8 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
 
                     task.checkOutputs([
                         .path("/tmp/aProject.dst/Library/Frameworks/Framework.framework"),
-                        .name("SetOwner /tmp/aProject.dst/Library/Frameworks/Framework.framework")])
+                        .name("SetOwner /tmp/aProject.dst/Library/Frameworks/Framework.framework"),
+                    ])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("SetMode")) { task in
                     task.checkRuleInfo(["SetMode", "u+w,go-w,a+rX", "/tmp/aProject.dst/Library/Frameworks/Framework.framework"])
@@ -151,7 +159,8 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
 
                     task.checkOutputs([
                         .path("/tmp/aProject.dst/Library/Frameworks/Framework.framework"),
-                        .name("SetMode /tmp/aProject.dst/Library/Frameworks/Framework.framework")])
+                        .name("SetMode /tmp/aProject.dst/Library/Frameworks/Framework.framework"),
+                    ])
                 }
             }
         }
@@ -163,27 +172,33 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("SourceFile.m"),
+                    TestFile("SourceFile.m")
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "BUILD_VARIANTS": "unexpected",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "BUILD_VARIANTS": "unexpected",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Application",
                     type: .application,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 )
-            ])
+            ]
+        )
 
         try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
@@ -202,17 +217,22 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("SourceFile.m"),
+                    TestFile("SourceFile.m")
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "LIBTOOL": libtoolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "LIBTOOL": libtoolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestAggregateTarget(
                     "All",
@@ -223,7 +243,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .dynamicLibrary,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
                 TestStandardTarget(
@@ -231,7 +251,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .staticLibrary,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
                 TestStandardTarget(
@@ -239,7 +259,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
                 TestStandardTarget(
@@ -247,7 +267,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .staticFramework,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
                 TestStandardTarget(
@@ -255,7 +275,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .commandLineTool,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
                 TestStandardTarget(
@@ -263,7 +283,7 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .application,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 ),
                 TestStandardTarget(
@@ -271,9 +291,9 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                     type: .applicationExtension,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
-                )
+                ),
             ]
         )
 
@@ -302,24 +322,29 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("SourceFile.m"),
+                    TestFile("SourceFile.m")
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "PRODUCT_DEFINITION_PLIST": "prod.plist",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "PRODUCT_DEFINITION_PLIST": "prod.plist",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Application",
                     type: .application,
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
                 )
             ]
@@ -327,9 +352,12 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
 
         let fs = PseudoFS()
         try fs.createDirectory(Path("/tmp/Test/aProject"), recursive: true)
-        try await fs.writePlist(Path("/tmp/Test/aProject/prod.plist"), .plDict([
-            "sysctl-requirements": .plString("hw.optional.f16c == 1"),
-        ]))
+        try await fs.writePlist(
+            Path("/tmp/Test/aProject/prod.plist"),
+            .plDict([
+                "sysctl-requirements": .plString("hw.optional.f16c == 1")
+            ])
+        )
 
         try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .macOS, fs: fs) { results in
             results.checkNoDiagnostics()

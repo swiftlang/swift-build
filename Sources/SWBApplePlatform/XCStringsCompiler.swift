@@ -120,7 +120,7 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
             self.effectivePlatformName = effectivePlatformName
         }
 
-        func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+        func serialize<T>(to serializer: T) where T: SWBUtil.Serializer {
             serializer.serializeAggregate(1) {
                 serializer.serialize(effectivePlatformName)
             }
@@ -296,7 +296,8 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
         var infos = [TaskGenerateLocalizationInfoOutput(compilableXCStringsPaths: task.inputPaths)]
 
         if let payload = task.payload as? SymbolGenPayload,
-           let xcstringsPath = task.inputPaths.only {
+            let xcstringsPath = task.inputPaths.only
+        {
             let generatedSourceFiles = task.outputPaths.filter { $0.fileExtension == "swift" }
             var info = TaskGenerateLocalizationInfoOutput()
             info.effectivePlatformName = payload.effectivePlatformName

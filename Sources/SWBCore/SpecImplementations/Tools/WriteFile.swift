@@ -32,7 +32,7 @@ public final class WriteFileSpec: CommandLineToolSpec, SpecImplementationType, @
         let execDescription = resolveExecutionDescription(cbc, delegate)
         let action = delegate.taskActionCreationDelegate.createAuxiliaryFileTaskAction(AuxiliaryFileTaskActionContext(output: outputNode.path, input: fileContentsPath, permissions: permissions, forceWrite: forceWrite, diagnostics: diagnostics, logContents: logContents))
         let ruleName = ruleName ?? "WriteAuxiliaryFile"
-        delegate.createTask(type: self, ruleInfo: [ruleName, outputNode.path.str], commandLine: ["write-file", outputNode.path.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.commandOrderingInputs, outputs: [ outputNode ], mustPrecede: [], action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: additionalTaskOrderingOptions, priority: .unblocksDownstreamTasks)
+        delegate.createTask(type: self, ruleInfo: [ruleName, outputNode.path.str], commandLine: ["write-file", outputNode.path.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.commandOrderingInputs, outputs: [outputNode], mustPrecede: [], action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: additionalTaskOrderingOptions, priority: .unblocksDownstreamTasks)
         return fileContentsPath
     }
 }

@@ -27,11 +27,13 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("CFile.c"),
                     TestFile("SwiftFile.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -41,18 +43,22 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "CFile.c",
                             "SwiftFile.swift",
-                        ]),
-                    ]),
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Test the default version.
@@ -76,7 +82,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test explicitly setting to DWARF 4.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf4"]), runDestination: .host) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION": "dwarf4"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g", "-gdwarf-4"])
@@ -94,7 +100,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test explicitly setting to DWARF 5.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .host) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_VERSION": "dwarf5"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineContains(["-g", "-gdwarf-5"])
@@ -112,7 +118,7 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Test disabling debug information.
-        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_FORMAT" : "", "DEBUG_INFORMATION_VERSION" : "dwarf5"]), runDestination: .host) { results in
+        await tester.checkBuild(BuildParameters(configuration: "Config", overrides: ["DEBUG_INFORMATION_FORMAT": "", "DEBUG_INFORMATION_VERSION": "dwarf5"]), runDestination: .host) { results in
             // Check clang.
             results.checkTask(.matchRuleType("CompileC")) { task in
                 task.checkCommandLineDoesNotContain("-g")
@@ -138,24 +144,31 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.c"),
-                ]),
+                    TestFile("main.c")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c"])]),
-            ])
+                        TestSourcesBuildPhase(["main.c"])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check behavior with dSYMs disabled.
@@ -184,10 +197,17 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
 
         // Check install behavior with dSYMs enabled.
         let buildVariants = ["debug", "normal"]
-        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: [
-            "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-            "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-        ]), runDestination: .host) { results in
+        try await tester.checkBuild(
+            BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                    "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                ]
+            ),
+            runDestination: .host
+        ) { results in
             // Check tasks for each build variant.
             for buildVariant in buildVariants {
                 if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
@@ -216,11 +236,18 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Check install behavior with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
-        try await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: [
-            "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
-            "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-            "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-        ]), runDestination: .host) { results in
+        try await tester.checkBuild(
+            BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
+                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                    "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                ]
+            ),
+            runDestination: .host
+        ) { results in
             if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
                 var dsymutilTasks = [any PlannedTask]()
                 results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
@@ -250,11 +277,18 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
 
         // Check build behavior with `DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT` enabled.
-        try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: [
-            "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
-            "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-            "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-        ]), runDestination: .host) { results in
+        try await tester.checkBuild(
+            BuildParameters(
+                action: .build,
+                configuration: "Debug",
+                overrides: [
+                    "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
+                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                    "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                ]
+            ),
+            runDestination: .host
+        ) { results in
             if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
                 results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
                     task.checkRuleInfo(["GenerateDSYMFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework.dSYM", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/CoreFoo"])
@@ -279,10 +313,12 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.c"),
-                ]),
+                    TestFile("main.c")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -290,21 +326,29 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c"])]),
+                        TestSourcesBuildPhase(["main.c"])
+                    ]
+                ),
                 TestStandardTarget(
-                    "OtherTarget", type: .framework,
+                    "OtherTarget",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [ "PRODUCT_NAME": "CoreFoo", "TARGET_BUILD_DIR": "/tmp/Test/aProject/build/Debug/Other" ]),
+                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "CoreFoo", "TARGET_BUILD_DIR": "/tmp/Test/aProject/build/Debug/Other"])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c"])]),
-            ])
+                        TestSourcesBuildPhase(["main.c"])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let buildParameters = BuildParameters(configuration: "Debug", overrides: ["DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym"])
@@ -334,10 +378,12 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.c"),
-                ]),
+                    TestFile("main.c")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -346,14 +392,19 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
                         "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.c"])]),
-            ])
+                        TestSourcesBuildPhase(["main.c"])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let buildParameters = BuildParameters(configuration: "Debug")

@@ -57,7 +57,7 @@ public final class ConstructStubExecutorFileListToolSpec: CommandLineToolSpec, S
             debugDylibPath.str,
             stubExecutorLibraryPath.str,
             stubExecutorLibraryWithSwiftEntryPointPath.str,
-            "--output", cbc.output.str
+            "--output", cbc.output.str,
         ]
 
         delegate.createTask(

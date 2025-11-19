@@ -27,7 +27,7 @@ public final class UniquingSerializationCoordinator {
 }
 
 @available(*, unavailable)
-extension UniquingSerializationCoordinator: Sendable { }
+extension UniquingSerializationCoordinator: Sendable {}
 
 public final class UniquingDeserializationCoordinator {
     private var data: [Any] = []
@@ -35,7 +35,7 @@ public final class UniquingDeserializationCoordinator {
     public init() {
     }
 
-    public func addUnique<T>(_ x : T) {
+    public func addUnique<T>(_ x: T) {
         data.append(x)
     }
 
@@ -50,7 +50,7 @@ public final class UniquingDeserializationCoordinator {
 }
 
 @available(*, unavailable)
-extension UniquingDeserializationCoordinator: Sendable { }
+extension UniquingDeserializationCoordinator: Sendable {}
 
 public protocol UniquingSerializerDelegate: SerializerDelegate {
     var uniquingCoordinator: UniquingSerializationCoordinator { get }
@@ -74,8 +74,7 @@ fileprivate struct UniqueSerializableWrapper<T: Serializable & Hashable>: Serial
             if let index = coordinator.getOrInsert(value) {
                 serializer.serialize(1)
                 serializer.serialize(index)
-            }
-            else {
+            } else {
                 serializer.serialize(0)
                 value.serialize(to: serializer)
             }
@@ -111,8 +110,7 @@ public extension Serializer {
     func serializeUniquely<T: Serializable & Hashable>(_ xOpt: T?) {
         if let x = xOpt {
             serializeUniquely(x)
-        }
-        else {
+        } else {
             serializeNil()
         }
     }
@@ -126,8 +124,7 @@ public extension Deserializer {
     func deserializeUniquely<T: Serializable & Hashable>() throws -> T? {
         if deserializeNil() {
             return nil
-        }
-        else {
+        } else {
             return try .some(self.deserializeUniquely() as T)
         }
     }

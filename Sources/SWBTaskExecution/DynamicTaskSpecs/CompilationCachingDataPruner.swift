@@ -25,7 +25,7 @@ package struct ClangCachingPruneDataTaskKey: Hashable, Serializable, CustomDebug
         self.casOptions = casOptions
     }
 
-    package func serialize<T>(to serializer: T) where T : Serializer {
+    package func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(2) {
             serializer.serialize(path)
             serializer.serialize(casOptions)
@@ -81,11 +81,11 @@ package final class CompilationCachingDataPruner: Sendable {
     ) {
         let casOpts = key.casOptions
         guard casOpts.limitingStrategy != .discarded else {
-            return // No need to prune, CAS directory is getting deleted.
+            return  // No need to prune, CAS directory is getting deleted.
         }
         let inserted = state.withLock { $0.prunedCASes.insert(key).inserted }
         guard inserted else {
-            return // already pruned
+            return  // already pruned
         }
 
         startedAction()
@@ -108,8 +108,8 @@ package final class CompilationCachingDataPruner: Sendable {
                 executionDescription: "Clang caching pruning \(casPath) using \(libclangPath)",
                 signature: signature,
                 target: nil,
-                parentActivity: nil)
-            { activityID in
+                parentActivity: nil
+            ) { activityID in
                 let status: BuildOperationTaskEnded.Status
                 do {
                     let dbSize = try ByteCount(casDBs.getOndiskSize())
@@ -150,11 +150,11 @@ package final class CompilationCachingDataPruner: Sendable {
     ) {
         let casOpts = key.casOptions
         guard casOpts.limitingStrategy != .discarded else {
-            return // No need to prune, CAS directory is getting deleted.
+            return  // No need to prune, CAS directory is getting deleted.
         }
         let inserted = state.withLock { $0.prunedCASes.insert(key).inserted }
         guard inserted else {
-            return // already pruned
+            return  // already pruned
         }
 
         startedAction()
@@ -177,8 +177,8 @@ package final class CompilationCachingDataPruner: Sendable {
                 executionDescription: "Swift caching pruning \(casPath) using \(swiftscanPath)",
                 signature: signature,
                 target: nil,
-                parentActivity: nil)
-            { activityID in
+                parentActivity: nil
+            ) { activityID in
                 let status: BuildOperationTaskEnded.Status
                 do {
                     let dbSize = try ByteCount(casDBs.getStorageSize())
@@ -219,11 +219,11 @@ package final class CompilationCachingDataPruner: Sendable {
     ) {
         let casOpts = key.casOptions
         guard casOpts.limitingStrategy != .discarded else {
-            return // No need to prune, CAS directory is getting deleted.
+            return  // No need to prune, CAS directory is getting deleted.
         }
         let inserted = state.withLock { $0.prunedCASes.insert(key).inserted }
         guard inserted else {
-            return // already pruned
+            return  // already pruned
         }
 
         startedAction()
@@ -246,8 +246,8 @@ package final class CompilationCachingDataPruner: Sendable {
                 executionDescription: "Pruning \(casPath) using \(path)",
                 signature: signature,
                 target: nil,
-                parentActivity: nil)
-            { activityID in
+                parentActivity: nil
+            ) { activityID in
                 let status: BuildOperationTaskEnded.Status
                 do {
                     let dbSize = try? ByteCount(toolchainCAS.getOnDiskSize())

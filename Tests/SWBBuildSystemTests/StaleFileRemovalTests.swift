@@ -38,15 +38,17 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -54,12 +56,14 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
@@ -97,8 +101,9 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -107,7 +112,8 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SDKROOT": "auto",
                                     "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -115,12 +121,14 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
@@ -159,8 +167,9 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -169,7 +178,8 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SDKROOT": "macosx",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -177,12 +187,14 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
@@ -211,23 +223,32 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
-                                TestFile("shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("shared.m")
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "shared", type: .staticLibrary,
+                                "shared",
+                                type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["shared.m"]),
-                                ]),
-                        ])
-                ])
+                                    TestSourcesBuildPhase(["shared.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -237,13 +258,13 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
 
             let excludingTypes = Set([
                 "Copy", "Touch", "Gate", "MkDir", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory",
-                "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache"
+                "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "ClangStatCache",
             ])
 
             let sanitizerCombinations = [
                 "ENABLE_ADDRESS_SANITIZER",
                 "ENABLE_THREAD_SANITIZER",
-                "ENABLE_UNDEFINED_BEHAVIOR_SANITIZER"
+                "ENABLE_UNDEFINED_BEHAVIOR_SANITIZER",
             ].combinationsWithoutRepetition
 
             var previousBuildParameters = [BuildParameters]()
@@ -254,7 +275,7 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                     continue
                 }
 
-                let overrides = combination.reduce(into: [String:String]()) { $0[$1] = "YES" }
+                let overrides = combination.reduce(into: [String: String]()) { $0[$1] = "YES" }
                 let parameters = BuildParameters(configuration: "Debug", overrides: overrides)
 
                 // Try build with new combination of sanitizers

@@ -58,7 +58,7 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
     private let cache: UnsafeNSCacheSendableWrapper<Key, Value>
     private let willEvictCallback: (@Sendable (Value) -> Void)?
 
-    public init(willEvictCallback: (@Sendable (Value)->Void)? = nil, totalCostLimit: Int? = nil) {
+    public init(willEvictCallback: (@Sendable (Value) -> Void)? = nil, totalCostLimit: Int? = nil) {
         self.cache = .init(value: NSCache())
         self.willEvictCallback = willEvictCallback
         super.init()
@@ -88,19 +88,19 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
         }
         set {
             #if os(Linux)
-            if let newValue = newValue {
-                cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key))
-            } else {
-                cache.value.removeObject(forKey: KeyWrapper(key))
-            }
+                if let newValue = newValue {
+                    cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key))
+                } else {
+                    cache.value.removeObject(forKey: KeyWrapper(key))
+                }
             #else
-            if let newValue, let cacheableValue = newValue as? (any CacheableValue) {
-                cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key), cost: cacheableValue.cost)
-            } else if let newValue = newValue {
-                cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key))
-            } else {
-                cache.value.removeObject(forKey: KeyWrapper(key))
-            }
+                if let newValue, let cacheableValue = newValue as? (any CacheableValue) {
+                    cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key), cost: cacheableValue.cost)
+                } else if let newValue = newValue {
+                    cache.value.setObject(ValueWrapper(newValue), forKey: KeyWrapper(key))
+                } else {
+                    cache.value.removeObject(forKey: KeyWrapper(key))
+                }
             #endif
         }
     }
@@ -121,14 +121,14 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
 
         let value = try body()
         #if os(Linux)
-        cache.value.setObject(ValueWrapper(value), forKey: wrappedKey)
-        #else
-        if let cacheableValue = value as? (any CacheableValue) {
-            cache.value.setObject(ValueWrapper(value), forKey: wrappedKey, cost: cacheableValue.cost)
-
-        } else {
             cache.value.setObject(ValueWrapper(value), forKey: wrappedKey)
-        }
+        #else
+            if let cacheableValue = value as? (any CacheableValue) {
+                cache.value.setObject(ValueWrapper(value), forKey: wrappedKey, cost: cacheableValue.cost)
+
+            } else {
+                cache.value.setObject(ValueWrapper(value), forKey: wrappedKey)
+            }
         #endif
         return value
     }
@@ -140,6 +140,6 @@ public final class Cache<Key: Hashable, Value>: NSObject, KeyValueStorage, NSCac
     }
 }
 
-extension Cache: Sendable where Key: Sendable, Value: Sendable { }
-extension KeyWrapper: Sendable where T: Sendable { }
-extension ValueWrapper: Sendable where T: Sendable { }
+extension Cache: Sendable where Key: Sendable, Value: Sendable {}
+extension KeyWrapper: Sendable where T: Sendable {}
+extension ValueWrapper: Sendable where T: Sendable {}

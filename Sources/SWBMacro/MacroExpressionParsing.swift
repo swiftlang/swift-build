@@ -34,10 +34,8 @@ public final class MacroExpressionParser {
         self.currIdx = utf8.startIndex
     }
 
-
     /// Returns the current position of the scanner, as an index into the input string (which can be accessed through the `string` property).  This is commonly used by custom implementations of the parser delegate function callbacks — the description of each callback function specifies the guaranteed position of the parser in the input string at the time the callback function is invoked.
     private var position: Input.Index { return currIdx }
-
 
     /// Parses the contents of the input string as a macro expression using string semantics, i.e. one that doesn’t attach special significance to quotes and whitespace.  The parser’s delegate methods are invoked as the expression is parsed — this includes methods for detecting warnings and errors.  In accordance with historical semantics, parsing tries to recover after errors, so that as many errors as possible can be detected in one parse.
     public func parseAsString() {
@@ -53,8 +51,7 @@ public final class MacroExpressionParser {
             if currChar == UInt8(ascii: "$") {
                 // We found a substitution subexpression of some kind.  We parse it, invoking delegate methods and advancing the cursor as we go.
                 parseSubstitutionSubexpression(alwaysEvalAsString: true)
-            }
-            else {
+            } else {
                 // Collect literal characters until we either find another substitution subexpression or reach end-of-string.
                 if let literal = scanUntil(UInt8(ascii: "$")) {
                     // We found at least one literal character, so tell the delegate about it.
@@ -66,7 +63,6 @@ public final class MacroExpressionParser {
         // At this point, we expect to have seen all of the input string.
         assert(isAtEnd)
     }
-
 
     /// Parses the contents of the input string as a macro expression using string list semantics, i.e. one that respects quotes and backslashes, and that treats unquoted whitespace as string list element separators.  The parser’s delegate methods are invoked as the expression is parsed — this includes methods for detecting warnings and errors.  Of special note is that the delegate’s “list element separator” callback is invoked between list elements.  In accordance with historical semantics, parsing tries to recover after errors, so that as many errors as possible can be detected in one parse.
     public func parseAsStringList() {
@@ -98,7 +94,6 @@ public final class MacroExpressionParser {
         assert(isAtEnd)
     }
 
-
     /// Private function that parses a chunk of whitespace, stopping at end-of-string or at the first non-whitespace character.  The cursor is expected to already be positioned at the first whitespace character of the chunk.  The parser’s delegate methods are invoked as the whitespace is traversed — this includes methods for detecting warnings and errors.
     private func parseWhitespace(asListSeparator parseAsListSeparator: Bool) {
         // If we're not at a whitespace character then we return.  (In principle this should never happen.)
@@ -110,13 +105,11 @@ public final class MacroExpressionParser {
 
         // If directed to capture the whitespace as a list separator, then we do so - *except* that if the whitespace is at the end of the string, then we don't treat it as a list separator.
         if parseAsListSeparator && !isAtEnd {
-            delegate.foundListElementSeparator(utf8[markIdx ..< currIdx], parser: self)
-        }
-        else {
-            delegate.foundStringFormOnlyLiteralStringFragment(utf8[markIdx ..< currIdx], parser: self)
+            delegate.foundListElementSeparator(utf8[markIdx..<currIdx], parser: self)
+        } else {
+            delegate.foundStringFormOnlyLiteralStringFragment(utf8[markIdx..<currIdx], parser: self)
         }
     }
-
 
     /// Private function that parses an entire substitution subexpresson, including its delimiters (if any).  This function expects to be called with the cursor positioned at the `$` character that starts the subexpression (this is asserted).  If `alwaysEvalAsString` is true, the delegate will be informed that this subexpression should always evaluate as a string — if it is false, then it should evaluate as either a string or a string list, depending on circumstances.  This does not affect parsing, but the delegate is expected to record this flag to use during macro expression evaluation.  This is used to pass down context about whether or not, for example, a particular substitution expression occurs inside quotes.  The parser’s delegate methods are invoked as the expression is parsed — this includes methods for detecting warnings and errors.  In accordance with historical semantics, parsing tries to recover after errors, so that as many errors as possible can be detected in one parse.
     private func parseSubstitutionSubexpression(alwaysEvalAsString: Bool) {
@@ -137,8 +130,7 @@ public final class MacroExpressionParser {
 
             // Also tell the delegate that we’ve found a literal ‘$’ (historically, we’ve treated dangling ‘$’ characters as literal).
             delegate.foundLiteralStringFragment(utf8[origIdx..<currIdx], parser: self)
-        }
-        else if let closeDelim = getClosingDelimiter(currChar!) {
+        } else if let closeDelim = getClosingDelimiter(currChar!) {
             // We found the start of a macro subexpression.  We parse it, keeping in mind that it might consist of other subexpressions nested to an arbitrary depth.
 
             // Check for deprecated delimiters.
@@ -166,8 +158,7 @@ public final class MacroExpressionParser {
             if isAtEnd {
                 // We unexpectedly reached end-of-string before we found a closing delimiter, so we emit an error.
                 delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: origIdx..<currIdx, kind: .unterminatedMacroSubexpression, level: .error), parser: self)
-            }
-            else if currIdx == nameIdx {
+            } else if currIdx == nameIdx {
                 // We didn’t reach end-of-string but we also didn’t find a macro name at all, so we emit an error.
                 delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: currIdx..<currIdx, kind: .missingMacroName, level: .error), parser: self)
             }
@@ -187,21 +178,18 @@ public final class MacroExpressionParser {
                 if isAtEnd {
                     // We unexpectedly reached end-of-string, so we emit an error.
                     delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: currIdx..<currIdx, kind: .unterminatedMacroSubexpression, level: .error), parser: self)
-                }
-                else if currChar == UInt8(ascii: ":") || currChar == closeDelim {
+                } else if currChar == UInt8(ascii: ":") || currChar == closeDelim {
                     // We have a retrieval operator, which retrieves a part of the evaluated macro value (e.g. extracts a directory, a file name, or file suffix).
 
                     // Check if we have an operator name.
                     if let operName = possibleOperName {
                         // We have an operator name, so we tell the delegate that we found a retrieval operator.
                         delegate.foundRetrievalOperator(operName, parser: self)
-                    }
-                    else {
+                    } else {
                         // We don’t have an operator name, so we report an error.
                         delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: currIdx..<currIdx, kind: .missingOperatorName, level: .error), parser: self)
                     }
-                }
-                else if currChar == UInt8(ascii: "=") {
+                } else if currChar == UInt8(ascii: "=") {
                     // We have a replacement operator, which replaces a part of the evaluated macro value with a different value (e.g. changes a suffix).
 
                     // Skip past the ‘=’ character.  This might put us at end-of-string; the logic below handles that correctly.
@@ -226,16 +214,14 @@ public final class MacroExpressionParser {
                             // We unexpectedly reached end-of-string, so we emit an error.
                             delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: currIdx..<currIdx, kind: .unterminatedMacroSubexpression, level: .error), parser: self)
                         }
-                    }
-                    else {
+                    } else {
                         // We don’t have an operator name, so we report an error.
                         delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: currIdx..<currIdx, kind: .missingOperatorName, level: .error), parser: self)
 
                         // Skip ahead until the next ‘:’ or closing delimiter, without emitting them as literals.
                         scanUntil(UInt8(ascii: ":"), closeDelim)
                     }
-                }
-                else {
+                } else {
                     // Otherwise, we have found an invalid character for an operator name.
                     delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: currIdx..<utf8.index(after: currIdx), kind: .invalidOperatorCharacter, level: .error), parser: self)
 
@@ -251,8 +237,7 @@ public final class MacroExpressionParser {
             if currChar == closeDelim {
                 advance()
             }
-        }
-        else if isValidMacroName1stChar(currChar) {
+        } else if isValidMacroName1stChar(currChar) {
             // Looks like a valid expression of the deprecated form “$MACRO” (without parentheses).
             let nameIdx = currIdx
 
@@ -271,7 +256,7 @@ public final class MacroExpressionParser {
             assert(currIdx > nameIdx)
 
             // Tell the delegate about the literal string we found.
-            delegate.foundLiteralStringFragment(utf8[nameIdx ..< currIdx], parser: self)
+            delegate.foundLiteralStringFragment(utf8[nameIdx..<currIdx], parser: self)
 
             // Check to see if we stopped at a substitution expression, and if it’s followed by a `(`.  This is kind of a hack for projects that have malformed macro expressions.  See <rdar://problem/12769727> and <rdar://problem/13174585>.
             if currChar == UInt8(ascii: "$") && nextChar == UInt8(ascii: "(") {
@@ -281,16 +266,14 @@ public final class MacroExpressionParser {
 
             // Tell the delegate that we’ve found the end of the macro name.
             delegate.foundEndOfMacroName(wasBracketed: false, parser: self)
-        }
-        else {
+        } else {
             // We found a ‘$’ character followed by something other than parentheses or an alphanumeric character.  We treat it as a literal ‘$’.
             let fragment = utf8[origIdx..<currIdx]
 
             // If we two consecutive ‘$’ characters, we skip the second one of them, so we end up with just a literal ‘$’ (this is because “$$” is an escape for “$”).
             if currChar == UInt8(ascii: "$") {
                 advance()
-            }
-            else {
+            } else {
                 // FIXME: Should we also warn about stray ‘$’ characters? Doing so would might cause a lot of noise for expressions that in Xcode work fine today (with the ‘$’ getting treated as a literal).
             }
 
@@ -301,7 +284,6 @@ public final class MacroExpressionParser {
         // Tell the delegate that we’ve found the end of a macro substitution expression (even an escaped expression, such as “$$”, or a single ‘$’ is considered a substitution).
         delegate.foundEndOfSubstitutionSubexpression(alwaysEvalAsString: alwaysEvalAsString, parser: self)
     }
-
 
     /// Private function that parses a delimited fragment of a substitution subexpresson.  The value of the `alwaysEvalAsString` flag will be passed down to any invocations of parseSubstitutionSubexpression() performed by this function.  This function stops parsing when it reaches the end-of-string or a colon character or the delimiter given as a parameter.  The parser’s delegate methods are invoked as the subexpression fragment is parsed — this includes methods for detecting warnings and errors.  In accordance with historical semantics, parsing tries to recover after errors, so that as many errors as possible can be detected in one parse.
     private func parseSubstitutionSubexpressionFragment(alwaysEvalAsString: Bool, delimiter: UInt8) {
@@ -327,7 +309,6 @@ public final class MacroExpressionParser {
         assert(isAtEnd || currChar == UInt8(ascii: ":") || currChar == delimiter)
     }
 
-
     /// Private function that parses a single element of a quoted null-terminated string, stopping at end-of-string or at the first unquoted, unescaped whitespace.  The cursor is expected to already be positioned at the first non-whitespace character of the string element.  The parser’s delegate methods are invoked as the subexpression fragment is parsed — this includes methods for detecting warnings and errors.  In accordance with historical semantics, parsing tries to recover after errors, so that as many errors as possible can be detected in one parse.
     private func parseQuotedExpressionStringElement() {
         // We’ll be moving over the input string.  As we do, we keep track of when we’re inside double quotes, single quotes, or no quotes at all.
@@ -345,91 +326,81 @@ public final class MacroExpressionParser {
             // Check for and handle characters that have semantic meaning.
             if currChar == UInt8(ascii: "\\") {
                 // Escape character — we treat the next character literally.
-                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx ..< currIdx], parser: self); markIdx = currIdx }
+                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx..<currIdx], parser: self); markIdx = currIdx }
                 // Record the escape character itself as a character to be emitted literally when evaluating the expression as a string (rather than a string-list).
-                delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx ... currIdx], parser: self)
+                delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx...currIdx], parser: self)
                 advance()
                 if isAtEnd {
                     // We ran out of characters — emit an error and leave.
                     delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: markIdx..<currIdx, kind: .trailingEscapeCharacter, level: .error), parser: self)
-                }
-                else {
+                } else {
                     // Otherwise, exclude the backslash from the literal range, and advance past the literal character.  This might put us at the end, which is OK.
                     markIdx = currIdx
                     advance()
                 }
-            }
-            else if currChar == UInt8(ascii: "$") {
+            } else if currChar == UInt8(ascii: "$") {
                 // Dollar character — we parse it as a substitution subexpression.  If we’re inside quotes, the delegate will be asked to always evaluate it as a string.
-                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx ..< currIdx], parser: self); markIdx = currIdx }
-                parseSubstitutionSubexpression(alwaysEvalAsString:(currentQuotes != .noQuotes))
+                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx..<currIdx], parser: self); markIdx = currIdx }
+                parseSubstitutionSubexpression(alwaysEvalAsString: (currentQuotes != .noQuotes))
                 markIdx = currIdx
-            }
-            else if currChar == UInt8(ascii: "\"") && currentQuotes != .singleQuotes {
+            } else if currChar == UInt8(ascii: "\"") && currentQuotes != .singleQuotes {
                 // Double quotes — we toggle the quote state and advance to the next character.  But we special-case consecutive quotes to make sure we emit an empty literal.
-                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx ..< currIdx], parser: self); markIdx = currIdx }
+                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx..<currIdx], parser: self); markIdx = currIdx }
                 assert(currentQuotes == .noQuotes || currentQuotes == .doubleQuotes)
                 // Record the quote character itself as a character to be emitted literally when evaluating the expression as a string (rather than a string-list).
-                delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx ... currIdx], parser: self)
+                delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx...currIdx], parser: self)
                 advance()
                 if currentQuotes == .noQuotes && currChar == UInt8(ascii: "\"") {
                     // Deal with a pair of adjacent double-quotes (we emit an empty string fragment, which is important it happens to be a list element).
                     delegate.foundLiteralStringFragment(utf8[currIdx..<currIdx], parser: self)
                     // Record the quote character itself as a character to be emitted literally when evaluating the expression as a string (rather than a string-list).
-                    delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx ... currIdx], parser: self)
+                    delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx...currIdx], parser: self)
                     advance()
-                }
-                else {
+                } else {
                     // Toggle the current quote state.
                     currentQuotes = (currentQuotes == .noQuotes) ? .doubleQuotes : .noQuotes
                 }
                 // Either way, we move up the marked starting index for the next literal fragment.
                 markIdx = currIdx
-            }
-            else if currChar == UInt8(ascii: "\'") && currentQuotes != .doubleQuotes {
+            } else if currChar == UInt8(ascii: "\'") && currentQuotes != .doubleQuotes {
                 // Single quotes — we toggle the quote state and advance to the next character.  But we special-case consecutive quotes to make sure we emit an empty literal.
-                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx ..< currIdx], parser: self); markIdx = currIdx }
+                if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx..<currIdx], parser: self); markIdx = currIdx }
                 assert(currentQuotes == .noQuotes || currentQuotes == .singleQuotes)
                 // Record the quote character itself as a character to be emitted literally when evaluating the expression as a string (rather than a string-list).
-                delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx ... currIdx], parser: self)
+                delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx...currIdx], parser: self)
                 advance()
                 if currentQuotes == .noQuotes && currChar == UInt8(ascii: "\'") {
                     // Deal with a pair of adjacent single-quotes (we emit an empty string fragment, which is important it happens to be a list element).
                     delegate.foundLiteralStringFragment(utf8[currIdx..<currIdx], parser: self)
                     // Record the quote character itself as a character to be emitted literally when evaluating the expression as a string (rather than a string-list).
-                    delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx ... currIdx], parser: self)
+                    delegate.foundStringFormOnlyLiteralStringFragment(utf8[currIdx...currIdx], parser: self)
                     advance()
-                }
-                else {
+                } else {
                     // Toggle the current quote state.
                     currentQuotes = (currentQuotes == .noQuotes) ? .singleQuotes : .noQuotes
                 }
                 // Either way, we move up the marked starting index for the next literal fragment.
                 markIdx = currIdx
-            }
-            else if currentQuotes == .noQuotes && isAtWhitespace {
+            } else if currentQuotes == .noQuotes && isAtWhitespace {
                 // Unquoted, unescaped whitespace — we’re done with this list element.
                 break
-            }
-            else {
+            } else {
                 // Otherwise, just keep advancing until we reach a semantically meaningful character.
                 advance()
             }
-        }
-        while !isAtEnd
+        } while !isAtEnd
 
         // We expect to have ended up with the current scanner position on either a whitespace character or at end-of-string.
         precondition(isAtEnd || isAtWhitespace)
 
         // Emit any literal string fragment that we’ve skipped over but haven’t yet emitted.
-        if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx ..< currIdx], parser: self) }
+        if markIdx < currIdx { delegate.foundLiteralStringFragment(utf8[markIdx..<currIdx], parser: self) }
 
         // If we’ve reached end-of-string but we’re still inside quotes, we have an unterminated-quote situation.
         if currentQuotes != .noQuotes {
             delegate.handleDiagnostic(MacroExpressionDiagnostic(string: string, range: currIdx..<currIdx, kind: .unterminatedQuotation, level: .error), parser: self)
         }
     }
-
 
     /// Returns the character at the current position, or nil if the cursor is currently at the very end of the string.
     private var currChar: UInt8? {
@@ -473,7 +444,7 @@ public final class MacroExpressionParser {
         // Record the starting index, and advance until we reach end-of-string or one of the specified stop characters.  After that we return the (possibly empty) substring.
         let origIdx = currIdx
         while !(isAtEnd || block(currChar!)) { advance() }
-        return currIdx > origIdx ? utf8[origIdx ..< currIdx] : nil
+        return currIdx > origIdx ? utf8[origIdx..<currIdx] : nil
     }
 
     /// Convenience function that the cursor until it reaches end-of-string or the specified stop character, leaving the cursor at the character (if any) that caused the scan to stop.  Returns the substring from the starting position to (but not including) the stop position, or nil if no characters at all were scanned.
@@ -495,14 +466,13 @@ public final class MacroExpressionParser {
     }
 }
 
-
 /// Private function that returns the closing delimiter that corresponds to a particular opening delimiter, or nil if `ch` is not, in fact, an opening delimiter.  In addition to the official delimiter pair `(`...`)`, the current implementation of this function supports the deprecated delimiter pairs `{`...`}` and `[`...`]`.  The parser will emit a deprecated-delimiter warning for any delimiter pair other than `(`...`)`.
 private func getClosingDelimiter(_ ch: UInt8) -> UInt8? {
     // The set of delimiters we support is historical.  We do emit warnings about delimiters other than ‘(’.
     switch ch {
-    case UInt8(ascii: "("): return UInt8(ascii:  ")")
-    case UInt8(ascii:  "{"): return UInt8(ascii:  "}")
-    case UInt8(ascii:  "["): return UInt8(ascii:  "]")
+    case UInt8(ascii: "("): return UInt8(ascii: ")")
+    case UInt8(ascii: "{"): return UInt8(ascii: "}")
+    case UInt8(ascii: "["): return UInt8(ascii: "]")
     default: return nil
     }
 }
@@ -529,7 +499,6 @@ private func isValidOperatorNameChar(_ chOpt: UInt8?) -> Bool {
     guard let ch = chOpt else { return false }
     return isAlpha(ch) || (ch >= UInt8(ascii: "0") && ch <= UInt8(ascii: "9")) || ch == UInt8(ascii: "-") || ch == UInt8(ascii: "+") || ch == UInt8(ascii: ".") || ch == UInt8(ascii: "_")
 }
-
 
 /// Encapsulates the callbacks that a macro expression parser invokes during a parse.  All methods are optional.  Separating the actions into a protocol allows the macro expression parser to be used for a variety of tasks, and makes it easier to test and profile.  The parser is passed to each of the delegate methods, and its `position` property can be used to access the current index in the original string.  The parser is as lenient as possible, and tries to recover from errors as well as possible in order to preserve the Xcode semantics.  The delegate is guaranteed to see the entire contents of the input string, regardless of how many errors are discovered (some of that contents might be misparsed as literals after errors have been found, however).
 public protocol MacroExpressionParserDelegate {

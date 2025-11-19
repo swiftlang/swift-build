@@ -52,7 +52,7 @@ public final class GenericCachingTaskAction: TaskAction {
         try super.init(from: deserializer)
     }
 
-    public override func serialize<T>(to serializer: T) where T : Serializer {
+    public override func serialize<T>(to serializer: T) where T: Serializer {
         serializer.beginAggregate(7)
         serializer.serialize(enableCacheDebuggingRemarks)
         serializer.serialize(enableTaskSandboxEnforcement)
@@ -77,10 +77,12 @@ public final class GenericCachingTaskAction: TaskAction {
 
         defer {
             if cas.supportsPruning {
-                dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(cas,
-                                                                                                key: .init(path: casOptions.casPath, casOptions: casOptions),
-                                                                                                activityReporter: dynamicExecutionDelegate,
-                                                                                                fileSystem: executionDelegate.fs)
+                dynamicExecutionDelegate.operationContext.compilationCachingDataPruner.pruneCAS(
+                    cas,
+                    key: .init(path: casOptions.casPath, casOptions: casOptions),
+                    activityReporter: dynamicExecutionDelegate,
+                    fileSystem: executionDelegate.fs
+                )
             }
         }
 
@@ -172,12 +174,14 @@ public final class GenericCachingTaskAction: TaskAction {
                 emitCacheDebuggingRemark("remapped command line: \(remappedCommandLine.joined(separator: " "))")
                 let remappedTempPath = sandboxDirectory.join("temp")
                 try executionDelegate.fs.createDirectory(remappedTempPath)
-                let remappedEnvironment = EnvironmentBindings(cacheKey.environmentBindings.bindings + [
-                    ("TMPDIR", remappedTempPath.str),
-                    ("TEMP", remappedTempPath.str),
-                    ("TEMPDIR", remappedTempPath.str),
-                    ("TMP", remappedTempPath.str)
-                ])
+                let remappedEnvironment = EnvironmentBindings(
+                    cacheKey.environmentBindings.bindings + [
+                        ("TMPDIR", remappedTempPath.str),
+                        ("TEMP", remappedTempPath.str),
+                        ("TEMPDIR", remappedTempPath.str),
+                        ("TMP", remappedTempPath.str),
+                    ]
+                )
                 emitCacheDebuggingRemark("remapped environment: \(remappedEnvironment.bindingsDictionary)")
 
                 let sandboxArgs = enableTaskSandboxEnforcement ? try Self.prepareSandboxEnforcementArgs(sandboxDirectory: sandboxDirectory, developerDirectory: developerDirectory, executionDelegate: executionDelegate) : []
@@ -243,54 +247,54 @@ public final class GenericCachingTaskAction: TaskAction {
     static func prepareSandboxEnforcementArgs(sandboxDirectory: Path, developerDirectory: Path, executionDelegate: any TaskExecutionDelegate) throws -> [String] {
         // We only support enforcement of the task sandbox on a macOS host
         #if os(macOS)
-        let sandboxPath = sandboxDirectory.join("sandbox.sb")
-        let sandboxProfile: ByteString = """
-        (version 1)
-        (allow default)
+            let sandboxPath = sandboxDirectory.join("sandbox.sb")
+            let sandboxProfile: ByteString = """
+                (version 1)
+                (allow default)
 
-        (deny network*)
+                (deny network*)
 
-        (deny file-write*)
-        (allow file-write* (subpath "/dev/")) ; Allow writes to locations such as /dev/null
+                (deny file-write*)
+                (allow file-write* (subpath "/dev/")) ; Allow writes to locations such as /dev/null
 
-        (deny file-read* (subpath "/Users/")) ; Block access to most locations under user control, while allowing reads to parts of the system required by frameworks and tools
-        (allow file-read* (subpath (param "XCODE"))) ; Allow reads into Xcode.app
+                (deny file-read* (subpath "/Users/")) ; Block access to most locations under user control, while allowing reads to parts of the system required by frameworks and tools
+                (allow file-read* (subpath (param "XCODE"))) ; Allow reads into Xcode.app
 
-        ; Allow reads and writes to cache and logs directories
-        (allow file-read* file-write* (subpath (param "USER_CACHE_DIR")))
-        (allow file-read* file-write* (subpath (param "DARWIN_USER_CACHE_DIR")))
-        (allow file-read* file-write* (subpath (param "DARWIN_USER_TEMP_DIR")))
-        (allow file-read* file-write* (subpath (param "USER_LOGS_DIR")))
-        (allow file-read* file-write* (subpath (param "USER_DEVELOPER_DIR")))
+                ; Allow reads and writes to cache and logs directories
+                (allow file-read* file-write* (subpath (param "USER_CACHE_DIR")))
+                (allow file-read* file-write* (subpath (param "DARWIN_USER_CACHE_DIR")))
+                (allow file-read* file-write* (subpath (param "DARWIN_USER_TEMP_DIR")))
+                (allow file-read* file-write* (subpath (param "USER_LOGS_DIR")))
+                (allow file-read* file-write* (subpath (param "USER_DEVELOPER_DIR")))
 
-        ; Allow reads and writes to the task sandbox location
-        (allow file-read* file-write* (subpath (param "TASK_SANDBOX")))
+                ; Allow reads and writes to the task sandbox location
+                (allow file-read* file-write* (subpath (param "TASK_SANDBOX")))
 
-        ; Allow reads and writes to specific files required by system frameworks and libraries
-        (allow file-read-data file-write-data
-          (regex
-            #"/\\.CFUserTextEncoding$"
-            #"^/usr/share/nls/"
-            #"^/usr/share/zoneinfo /var/db/timezone/zoneinfo/"
-          ))
+                ; Allow reads and writes to specific files required by system frameworks and libraries
+                (allow file-read-data file-write-data
+                  (regex
+                    #"/\\.CFUserTextEncoding$"
+                    #"^/usr/share/nls/"
+                    #"^/usr/share/zoneinfo /var/db/timezone/zoneinfo/"
+                  ))
 
-        (allow file-read-metadata)
-        """
-        try executionDelegate.fs.write(sandboxPath, contents: sandboxProfile)
+                (allow file-read-metadata)
+                """
+            try executionDelegate.fs.write(sandboxPath, contents: sandboxProfile)
 
-         return [
-            "/usr/bin/sandbox-exec",
-            "-D", "TASK_SANDBOX=\(sandboxDirectory.str)",
-            "-D", "XCODE=\(developerDirectory.dirname.dirname.str)",
-            "-D", "USER_CACHE_DIR=\(Path.homeDirectory.join("Library/Caches").str)",
-            "-D", "DARWIN_USER_CACHE_DIR=\(userCacheDir().str)",
-            "-D", "DARWIN_USER_TEMP_DIR=\(try executionDelegate.fs.realpath(Path.temporaryDirectory).str)",
-            "-D", "USER_LOGS_DIR=\(Path.homeDirectory.join("Library/Logs").str)",
-            "-D", "USER_DEVELOPER_DIR=\(Path.homeDirectory.join("Library/Developer").str)",
-            "-f", sandboxPath.str
-        ]
+            return [
+                "/usr/bin/sandbox-exec",
+                "-D", "TASK_SANDBOX=\(sandboxDirectory.str)",
+                "-D", "XCODE=\(developerDirectory.dirname.dirname.str)",
+                "-D", "USER_CACHE_DIR=\(Path.homeDirectory.join("Library/Caches").str)",
+                "-D", "DARWIN_USER_CACHE_DIR=\(userCacheDir().str)",
+                "-D", "DARWIN_USER_TEMP_DIR=\(try executionDelegate.fs.realpath(Path.temporaryDirectory).str)",
+                "-D", "USER_LOGS_DIR=\(Path.homeDirectory.join("Library/Logs").str)",
+                "-D", "USER_DEVELOPER_DIR=\(Path.homeDirectory.join("Library/Developer").str)",
+                "-f", sandboxPath.str,
+            ]
         #else
-        return []
+            return []
         #endif
     }
 }
@@ -412,11 +416,11 @@ fileprivate final class CapturingTaskOutputDelegate: TaskOutputDelegate {
         underlyingTaskOutputDelegate.incrementTaskCounter(counter, by: amount)
     }
 
-    var counters: [BuildOperationMetrics.Counter : Int] {
+    var counters: [BuildOperationMetrics.Counter: Int] {
         underlyingTaskOutputDelegate.counters
     }
 
-    var taskCounters: [BuildOperationMetrics.TaskCounter : Int] {
+    var taskCounters: [BuildOperationMetrics.TaskCounter: Int] {
         underlyingTaskOutputDelegate.taskCounters
     }
 

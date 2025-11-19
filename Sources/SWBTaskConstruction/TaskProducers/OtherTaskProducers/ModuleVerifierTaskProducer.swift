@@ -129,8 +129,9 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         var fallbackToExternal = false
         var deferredTasks: [any PlannedTask] = []
         await self.appendGeneratedTasks(&deferredTasks, usePhasedOrdering: false, options: .compilation) { delegate in
-            let targetDiagnostics = ModuleVerifierTargetSet.verifyTargets(targets: targets, targetVariants: targetVariants)
-                                  + ModuleVerifierTargetSet.verifyLanguages(languages: languages, standards: languageStandards)
+            let targetDiagnostics =
+                ModuleVerifierTargetSet.verifyTargets(targets: targets, targetVariants: targetVariants)
+                + ModuleVerifierTargetSet.verifyLanguages(languages: languages, standards: languageStandards)
             var failed = false
             for diag in targetDiagnostics {
                 delegate.diagnosticsEngine.emit(diag)
@@ -167,7 +168,8 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
                     main: outputPath.join("Test.\(fileExtension)"),
                     header: outputPath.join("Test.framework/Headers/Test.h"),
                     moduleMap: outputPath.join("Test.framework/Modules/module.modulemap"),
-                    dir: outputPath)
+                    dir: outputPath
+                )
                 inputsByLanguage[language] = outputs
                 let inputContext = CommandBuildContext(producer: self.context, scope: scope, inputs: inputs, commandOrderingInputs: commandOrderingInputs)
                 await self.context.clangModuleVerifierInputGeneratorSpec.constructTasks(inputContext, delegate, alwaysExecuteTask: alwaysExecuteTask, language: language.rawValue, mainOutput: outputs.main, headerOutput: outputs.header, moduleMapOutput: outputs.moduleMap)
@@ -251,7 +253,7 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         otherCFlags += otherVerifierFlags.drop(while: { $0 != "--" }).dropFirst()
         var otherCPlusPlusFlags = workspaceScope.evaluate(BuiltinMacros.OTHER_CPLUSPLUSFLAGS)
         otherCPlusPlusFlags += [
-            "-fcxx-modules",
+            "-fcxx-modules"
         ]
         otherCPlusPlusFlags += otherCFlags
 
@@ -295,7 +297,7 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         passthrough(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE)
         passthrough(BuiltinMacros.COMPILATION_CACHE_CAS_PATH)
         passthrough(BuiltinMacros.SDK_STAT_CACHE_PATH)
-        passthrough(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA) // Needed by clang explicit modules
+        passthrough(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)  // Needed by clang explicit modules
         passthrough(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH)
         passthrough(BuiltinMacros.CLANG_USE_RESPONSE_FILE)
         table.push(BuiltinMacros.CLANG_MODULE_LSV, literal: enableLSV)
@@ -311,13 +313,14 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
         let buildScope = MacroEvaluationScope(table: table)
 
         let buildInputs = [
-            FileToBuild(context: self.context, absolutePath: inputs.main),
+            FileToBuild(context: self.context, absolutePath: inputs.main)
         ]
-        let buildOrderingInputs = commandOrderingInputs + [
-            delegate.createNode(fileNameMapPath),
-            delegate.createNode(inputs.header),
-            delegate.createNode(inputs.moduleMap),
-        ]
+        let buildOrderingInputs =
+            commandOrderingInputs + [
+                delegate.createNode(fileNameMapPath),
+                delegate.createNode(inputs.header),
+                delegate.createNode(inputs.moduleMap),
+            ]
         let buildContext = CommandBuildContext(producer: self.context, scope: buildScope, inputs: buildInputs, commandOrderingInputs: buildOrderingInputs)
 
         await self.context.clangModuleVerifierSpec.constructTasks(buildContext, delegate)
@@ -419,9 +422,11 @@ final class ModuleVerifierTaskProducer: PhasedTaskProducer, TaskProducer {
 
         let specRegistry = context.workspaceContext.core.specRegistry
         let headerFileTypes = specRegistry.headerFileTypes
-        let moduleAffectingCombinations = [(BuiltinMacros.PUBLIC_HEADERS_FOLDER_PATH, headerFileTypes),
-                                           (BuiltinMacros.PRIVATE_HEADERS_FOLDER_PATH, headerFileTypes),
-                                           (BuiltinMacros.MODULES_FOLDER_PATH, [specRegistry.modulemapFileType])]
+        let moduleAffectingCombinations = [
+            (BuiltinMacros.PUBLIC_HEADERS_FOLDER_PATH, headerFileTypes),
+            (BuiltinMacros.PRIVATE_HEADERS_FOLDER_PATH, headerFileTypes),
+            (BuiltinMacros.MODULES_FOLDER_PATH, [specRegistry.modulemapFileType]),
+        ]
         for (macro, fileTypes) in moduleAffectingCombinations {
             for rootDirectory in rootDirectories {
                 addPaths(for: macro, joinedTo: rootDirectory, fileTypes: fileTypes)

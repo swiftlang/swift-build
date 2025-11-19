@@ -50,8 +50,9 @@ extension BuildPhaseTarget {
         let buildFilesProcessingContext = BuildFilesProcessingContext(scope)
         return buildFiles.compactMap { buildFile in
             guard let resolvedBuildFileInfo = try? context.resolveBuildFileReference(buildFile),
-                  !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
-                  resolvedBuildFileInfo.fileType.conformsTo(fileType) else {
+                !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
+                resolvedBuildFileInfo.fileType.conformsTo(fileType)
+            else {
                 return nil
             }
 
@@ -127,8 +128,9 @@ final class RealityAssetsTaskProducer: PhasedTaskProducer, TaskProducer {
 
             let regularConfiguredTargetSettings = context.globalProductPlan.getTargetSettings(regularConfiguredTarget)
             guard let project = regularConfiguredTargetSettings.project,
-               project.isPackage,
-               resourcePackageProject == project else {
+                project.isPackage,
+                resourcePackageProject == project
+            else {
                 return false
             }
 
@@ -185,7 +187,8 @@ final class RealityAssetsTaskProducer: PhasedTaskProducer, TaskProducer {
         // regularStandardTarget will be non-nil if this target is a resource build with .rkassets,
         // and we found the "regular" sources target with this configuredTarget as a dependency
         if let regularConfiguredTarget = findRegularPackageTarget(for: configuredTarget),
-           let regularStandardTarget = regularConfiguredTarget.target as? StandardTarget {
+            let regularStandardTarget = regularConfiguredTarget.target as? StandardTarget
+        {
 
             // regularStandardTarget has sources build phase with .swift files that need to be
             // preprocessed into a .usda schema that will be used to compile the .rkassets
@@ -212,8 +215,7 @@ final class RealityAssetsTaskProducer: PhasedTaskProducer, TaskProducer {
                 if !context.fs.exists(derivedDataPath) {
                     do {
                         try context.fs.createDirectory(derivedDataPath, recursive: true)
-                    }
-                    catch let error as NSError {
+                    } catch let error as NSError {
                         context.error("Could not create directory for '\(moduleWithDependenciesFile)', \(error.localizedDescription)")
                         return []
                     }
@@ -222,8 +224,7 @@ final class RealityAssetsTaskProducer: PhasedTaskProducer, TaskProducer {
 
                 do {
                     try moduleWithDependencies.write(moduleWithDependenciesPath, fsProxy: context.fs)
-                }
-                catch let error as NSError {
+                } catch let error as NSError {
                     if error.domain == "org.swift.swift-build" {
                         context.error(error.localizedDescription)
                     } else {

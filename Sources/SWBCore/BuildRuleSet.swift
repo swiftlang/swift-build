@@ -99,13 +99,16 @@ public final class DisambiguatingBuildRuleSet: BuildRuleSet {
     }
 
     public func match(_ candidate: FileToBuild, _ scope: MacroEvaluationScope) -> MatchResult {
-        let actions = Dictionary(grouping: rules.compactMap { (condition, action) -> (action: any BuildRuleAction, priority: BuildRuleConditionMatchPriority)? in
-            let priority = condition.match(candidate, scope)
-            guard priority != .none else {
-                return nil
-            }
-            return (action, priority)
-        }, by: { $0.priority }).mapValues { $0.map { $0.0 } }
+        let actions = Dictionary(
+            grouping: rules.compactMap { (condition, action) -> (action: any BuildRuleAction, priority: BuildRuleConditionMatchPriority)? in
+                let priority = condition.match(candidate, scope)
+                guard priority != .none else {
+                    return nil
+                }
+                return (action, priority)
+            },
+            by: { $0.priority }
+        ).mapValues { $0.map { $0.0 } }
 
         let priorityLevels = [BuildRuleConditionMatchPriority.normal, .low]
 
@@ -113,7 +116,8 @@ public final class DisambiguatingBuildRuleSet: BuildRuleSet {
             for priority in priorityLevels {
                 // NOTE: There might be multiple matches for the same action because our input data structure pairs an action multiple times, based on the number of input conditions it accepts. Due to type system limitations w.r.t. Hashable, we can't have an OrderedSet of BuildRuleActions, but we can use a generic Hashable Pair of data to convey identifier and name pairs.
                 if let matches = actions[priority].map({ OrderedSet($0.map({ Pair($0.identifier, $0.name) })) }),
-                    matches.count > 1 {
+                    matches.count > 1
+                {
 
                     let identifiers = matches.map { $0.first }
 

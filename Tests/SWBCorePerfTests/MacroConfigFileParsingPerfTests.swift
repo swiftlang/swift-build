@@ -39,13 +39,13 @@ fileprivate struct MacroConfigFileParsingPerfTests: PerfTests {
 
     @Test
     func parsingOfMultipleSimpleAssignments_X1000() async {
-        let byteString = ByteString(encodingAsUTF8: [String](repeating:"MACRO=VALUE", count:10).joined(separator: "\n"))
+        let byteString = ByteString(encodingAsUTF8: [String](repeating: "MACRO=VALUE", count: 10).joined(separator: "\n"))
         await runParsingTest(byteString, iterations: 1000)
     }
 
     @Test
     func parsing1MBFile_X10() async {
-        let byteString = ByteString(encodingAsUTF8: (0..<44616).map{ "MACRO\($0) = VALUE\($0)" }.joined(separator: "\n"))
+        let byteString = ByteString(encodingAsUTF8: (0..<44616).map { "MACRO\($0) = VALUE\($0)" }.joined(separator: "\n"))
         await runParsingTest(byteString, iterations: 10)
     }
 }

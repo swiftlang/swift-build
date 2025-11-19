@@ -31,13 +31,19 @@ package actor BuildManager {
 
     /// Public initializer (so external clients can create new BuildManagers).
     package init() {
-        self.cachedBuildSystems = HeavyCache<Path, SystemCacheEntry>(maximumSize: UserDefaults.buildDescriptionInMemoryCacheSize, evictionPolicy: .default(totalCostLimit: UserDefaults.buildDescriptionInMemoryCostLimit, willEvictCallback: { entry in
-            // Capture the path to a local variable so that the buildDescription instance isn't retained by OSLog's autoclosure message parameter.
-            let buildDatabasePath = entry.buildDescription?.buildDatabasePath
-            #if canImport(os)
-            OSLog.log("Evicted cached build system for '\(buildDatabasePath?.str ?? "<unknown>")'")
-            #endif
-        }))
+        self.cachedBuildSystems = HeavyCache<Path, SystemCacheEntry>(
+            maximumSize: UserDefaults.buildDescriptionInMemoryCacheSize,
+            evictionPolicy: .default(
+                totalCostLimit: UserDefaults.buildDescriptionInMemoryCostLimit,
+                willEvictCallback: { entry in
+                    // Capture the path to a local variable so that the buildDescription instance isn't retained by OSLog's autoclosure message parameter.
+                    let buildDatabasePath = entry.buildDescription?.buildDatabasePath
+                    #if canImport(os)
+                        OSLog.log("Evicted cached build system for '\(buildDatabasePath?.str ?? "<unknown>")'")
+                    #endif
+                }
+            )
+        )
     }
 
     /// Enqueue a build operation.
@@ -57,7 +63,7 @@ package actor BuildManager {
             buildOnlyThesePaths = nil
         }
 
-        let buildOutputMap: [String:String]?
+        let buildOutputMap: [String: String]?
         if let buildOnlyThesePaths {
             buildOutputMap = {
                 var outputMap: [String: String] = [:]

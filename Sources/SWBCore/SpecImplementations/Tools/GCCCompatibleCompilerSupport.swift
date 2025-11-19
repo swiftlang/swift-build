@@ -13,10 +13,8 @@
 package import SWBUtil
 package import SWBMacro
 
-
 /// An abstract representation of a search path entry, with any auxiliary information as appropriate depending on the type.
-package enum SearchPathEntry
-{
+package enum SearchPathEntry {
     /// A "user" header search path, in the manner of the `-iquote` option.  This kind of path is searched for quote-style includes, but is ignored for bracket-style includes.
     case userHeaderSearchPath(path: Path)
 
@@ -40,8 +38,7 @@ package enum SearchPathEntry
 }
 
 /// An abstract representation of a list of search paths.
-package final class SearchPathBuilder
-{
+package final class SearchPathBuilder {
     /// The list of search path entries.
     private var searchPathEntries = [SearchPathEntry]()
 
@@ -97,22 +94,19 @@ package final class SearchPathBuilder
     }
 
     /// Add a user header search path to the list of search paths.
-    func addUserHeaderSearchPath(_ path: Path, isInputPath: Bool = false)
-    {
+    func addUserHeaderSearchPath(_ path: Path, isInputPath: Bool = false) {
         let normalizedPath = path.normalize()
         addSearchPathEntry(.userHeaderSearchPath(path: normalizedPath), normalizedPath, isInputPath)
     }
 
     /// Add an ordinary header search path to the list of search paths.
-    func addHeaderSearchPath(_ path: Path, asSeparateArguments: Bool = false, isInputPath: Bool = false)
-    {
+    func addHeaderSearchPath(_ path: Path, asSeparateArguments: Bool = false, isInputPath: Bool = false) {
         let normalizedPath = path.normalize()
         addSearchPathEntry(.headerSearchPath(path: normalizedPath, asSeparateArguments: asSeparateArguments), normalizedPath, isInputPath)
     }
 
     /// Add a system header search path to the list of search paths.  The path will not be added if an ordinary or system header search path for the path has previously been added.
-    func addSystemHeaderSearchPath(_ path: Path, isInputPath: Bool = false)
-    {
+    func addSystemHeaderSearchPath(_ path: Path, isInputPath: Bool = false) {
         let normalizedPath = path.normalize()
         guard !headerSearchPaths.contains(normalizedPath) && !systemHeaderSearchPaths.contains(normalizedPath) else {
             return
@@ -121,21 +115,18 @@ package final class SearchPathBuilder
     }
 
     /// Add a system header search path to the list of search paths.
-    func addHeaderSearchPathSplitter()
-    {
+    func addHeaderSearchPathSplitter() {
         searchPathEntries.append(.headerSearchPathSplitter)
     }
 
     /// Add an ordinary framework search path to the list of search paths.
-    func addFrameworkSearchPath(_ path: Path, asSeparateArguments: Bool = false, isInputPath: Bool = false)
-    {
+    func addFrameworkSearchPath(_ path: Path, asSeparateArguments: Bool = false, isInputPath: Bool = false) {
         let normalizedPath = path.normalize()
         addSearchPathEntry(.frameworkSearchPath(path: normalizedPath, asSeparateArguments: asSeparateArguments), normalizedPath, isInputPath)
     }
 
     /// Add a system framework search path to the list of search paths.  The path will not be added if an ordinary or system framework search path for the path has previously been added.
-    func addSystemFrameworkSearchPath(_ path: Path, isInputPath: Bool = false)
-    {
+    func addSystemFrameworkSearchPath(_ path: Path, isInputPath: Bool = false) {
         let normalizedPath = path.normalize()
         guard !frameworkSearchPaths.contains(normalizedPath) && !systemFrameworkSearchPaths.contains(normalizedPath) else {
             return
@@ -144,8 +135,7 @@ package final class SearchPathBuilder
     }
 
     /// Adds a list of literal arguments to the command line.
-    func addLiteralArguments(_ args: [String], inputPaths: [Path] = [])
-    {
+    func addLiteralArguments(_ args: [String], inputPaths: [Path] = []) {
         searchPathEntries.append(.literalArguments(args))
         self.inputPaths.append(contentsOf: inputPaths.map({ $0.normalize() }).filter({ !$0.isEmpty }))
     }
@@ -190,36 +180,29 @@ package struct SearchPaths: Sendable {
 }
 
 /// Adopting this protocol indicates that the adopter can generate command line arguments for search path entries.
-package protocol SearchPathCommandLineBuilder
-{
+package protocol SearchPathCommandLineBuilder {
     func searchPathArguments(_ entry: SearchPathEntry, _ scope: MacroEvaluationScope) -> [String]
 
     func searchPathArguments(_ entries: [SearchPathEntry], _ scope: MacroEvaluationScope) -> [String]
 }
 
-extension SearchPathCommandLineBuilder
-{
-    package func searchPathArguments(_ entries: [SearchPathEntry], _ scope: MacroEvaluationScope) -> [String]
-    {
+extension SearchPathCommandLineBuilder {
+    package func searchPathArguments(_ entries: [SearchPathEntry], _ scope: MacroEvaluationScope) -> [String] {
         return entries.flatMap({ return self.searchPathArguments($0, scope) })
     }
 }
 
-
 /// Utility methods for GCC-compatible compiler specifications.
-package struct GCCCompatibleCompilerSpecSupport
-{
+package struct GCCCompatibleCompilerSpecSupport {
     /// Constructs and returns common header search path entries for LLVM-based compiler specs.  Also returns any input paths (to headermap or VFS files) which users of these search paths should depend on.
-    package static func headerSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, usesModules: Bool) -> SearchPaths
-    {
+    package static func headerSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, usesModules: Bool) -> SearchPaths {
         let searchPathBuilder = SearchPathBuilder()
 
         // Evaluate some settings we need to look at several times.
         let alwaysSearchUserPaths = scope.evaluate(BuiltinMacros.ALWAYS_SEARCH_USER_PATHS)
 
         // Add the arguments for the headermap files, if any.
-        if scope.evaluate(BuiltinMacros.USE_HEADERMAP)
-        {
+        if scope.evaluate(BuiltinMacros.USE_HEADERMAP) {
             // Swift Build does not support "traditional" (single-file) headermaps.  Use of separate headermaps has been the default for new projects for years, and use of the VFS (when clang modules are enabled) requires separate headermaps.
             // If the target is configured to use a traditional headermap, then we the HeadermapTaskProducer emits a warning about that, and we use separate headermaps anyway.
 
@@ -233,8 +216,7 @@ package struct GCCCompatibleCompilerSpecSupport
             searchPathBuilder.addHeaderSearchPath(hmapFileForOwnTargets, isInputPath: true)
 
             // If we are using the VFS, replace the all targets headermap with it.
-            if usesVFS
-            {
+            if usesVFS {
                 // Mark the creation context as needing VFS construction.
                 // If we are using the VFS, we still need an equivalent of the all targets headermap for non-framework headers.
                 let hmapFileForAllNonFrameworkTargetHeaders = scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_ALL_NON_FRAMEWORK_TARGET_HEADERS)
@@ -244,9 +226,7 @@ package struct GCCCompatibleCompilerSpecSupport
                 let productHeadersVFSFile = scope.evaluate(BuiltinMacros.CPP_HEADERMAP_PRODUCT_HEADERS_VFS_FILE)
                 // FIXME: We should make Path be able to be used here, potentially using a "path string provider" protocol or somesuch.
                 searchPathBuilder.addLiteralArguments(["-ivfsoverlay", productHeadersVFSFile.str], inputPaths: [productHeadersVFSFile])
-            }
-            else
-            {
+            } else {
                 // Not using a VFS, so we just add the headermap for all headers that are a member of any target.
                 let hmapFileForAllTargetHeaders = scope.evaluate(BuiltinMacros.CPP_HEADERMAP_FILE_FOR_ALL_TARGET_HEADERS)
                 searchPathBuilder.addHeaderSearchPath(hmapFileForAllTargetHeaders, isInputPath: true)
@@ -258,46 +238,37 @@ package struct GCCCompatibleCompilerSpecSupport
         }
 
         // If we should use header symlinks, we add the path to that directory to the search path.  We do this early, so that it comes near the beginning of the bracket search paths and overrides them all.
-        if scope.evaluate(BuiltinMacros.USE_HEADER_SYMLINKS)
-        {
+        if scope.evaluate(BuiltinMacros.USE_HEADER_SYMLINKS) {
             let headerSymlinksDir = scope.evaluate(BuiltinMacros.CPP_HEADER_SYMLINKS_DIR)
             searchPathBuilder.addUserHeaderSearchPath(headerSymlinksDir)
         }
 
         // Add search paths for USER_HEADER_SEARCH_PATHS before other header search paths.
         let userHeaderSearchPaths = producer.expandedSearchPaths(for: BuiltinMacros.USER_HEADER_SEARCH_PATHS, scope: scope)
-        if alwaysSearchUserPaths
-        {
+        if alwaysSearchUserPaths {
             // If we should always search user paths, then we pass the USER_HEADER_SEARCH_PATHS using an ordinary header search option.
-            for searchPath in userHeaderSearchPaths
-            {
+            for searchPath in userHeaderSearchPaths {
                 searchPathBuilder.addHeaderSearchPath(Path(searchPath))
             }
-        }
-        else
-        {
+        } else {
             // If we should *not* always search user paths, then we pass the USER_HEADER_SEARCH_PATHS using a user header search option.
-            for searchPath in userHeaderSearchPaths
-            {
+            for searchPath in userHeaderSearchPaths {
                 searchPathBuilder.addUserHeaderSearchPath(Path(searchPath))
             }
         }
 
         // Add ordinary header search paths for HEADER_SEARCH_PATHS.
-        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.HEADER_SEARCH_PATHS, scope: scope)
-        {
+        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.HEADER_SEARCH_PATHS, scope: scope) {
             searchPathBuilder.addHeaderSearchPath(Path(searchPath))
         }
 
         // Add system header search paths for SYSTEM_HEADER_SEARCH_PATHS.  The builder will filter out any which have already been added as ordinary header search paths.
-        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.SYSTEM_HEADER_SEARCH_PATHS, scope: scope)
-        {
+        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.SYSTEM_HEADER_SEARCH_PATHS, scope: scope) {
             searchPathBuilder.addSystemHeaderSearchPath(Path(searchPath))
         }
 
         // Add ordinary header search paths for PRODUCT_TYPE_HEADER_SEARCH_PATHS.
-        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.PRODUCT_TYPE_HEADER_SEARCH_PATHS, scope: scope)
-        {
+        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.PRODUCT_TYPE_HEADER_SEARCH_PATHS, scope: scope) {
             searchPathBuilder.addHeaderSearchPath(Path(searchPath))
         }
 
@@ -321,7 +292,8 @@ package struct GCCCompatibleCompilerSpecSupport
         // If there are Iig generated files in this target, add them to the search path.
         if let target = producer.configuredTarget?.target as? BuildPhaseTarget {
             if let iigType = producer.lookupFileType(identifier: "sourcecode.iig"),
-               target.sourcesBuildPhase?.containsFiles(ofType: iigType, producer, producer, scope, producer.filePathResolver) ?? false {
+                target.sourcesBuildPhase?.containsFiles(ofType: iigType, producer, producer, scope, producer.filePathResolver) ?? false
+            {
                 searchPathBuilder.addHeaderSearchPath(Path(scope.evaluate(BuiltinMacros.IIG_HEADERS_DIR)))
             }
         }
@@ -330,8 +302,7 @@ package struct GCCCompatibleCompilerSpecSupport
     }
 
     /// Constructs and returns common framework search path arguments for LLVM-based compiler specs.
-    package static func frameworkSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, asSeparateArguments: Bool = false) -> SearchPaths
-    {
+    package static func frameworkSearchPathArguments(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, asSeparateArguments: Bool = false) -> SearchPaths {
         let searchPathBuilder = SearchPathBuilder()
 
         guard producer.isApplePlatform else {
@@ -339,42 +310,35 @@ package struct GCCCompatibleCompilerSpecSupport
         }
 
         // Add ordinary framework search paths for FRAMEWORK_SEARCH_PATHS.
-        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.FRAMEWORK_SEARCH_PATHS, scope: scope)
-        {
+        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.FRAMEWORK_SEARCH_PATHS, scope: scope) {
             searchPathBuilder.addFrameworkSearchPath(Path(searchPath), asSeparateArguments: asSeparateArguments)
         }
 
         // Add system framework search paths for PRODUCT_TYPE_HEADER_SEARCH_PATHS.
-        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS, scope: scope)
-        {
+        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS, scope: scope) {
             searchPathBuilder.addSystemFrameworkSearchPath(Path(searchPath))
         }
 
         // Add system framework search paths for SYSTEM_FRAMEWORK_SEARCH_PATHS.  The builder will filter out any which have already been added as ordinary framework search paths.
-        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS, scope: scope)
-        {
+        for searchPath in producer.expandedSearchPaths(for: BuiltinMacros.SYSTEM_FRAMEWORK_SEARCH_PATHS, scope: scope) {
             searchPathBuilder.addSystemFrameworkSearchPath(Path(searchPath))
         }
 
         return searchPathBuilder.searchPaths
     }
 
-    private static func sparseSDKSearchPathArguments(_ sparseSDKs: [SDK], _ existingHeaderSearchPaths: Set<Path>, _ existingFrameworkSearchPaths: Set<Path>, asSeparateArguments: Bool = false, skipHeaderSearchPaths: Bool = false) -> SearchPaths
-    {
+    private static func sparseSDKSearchPathArguments(_ sparseSDKs: [SDK], _ existingHeaderSearchPaths: Set<Path>, _ existingFrameworkSearchPaths: Set<Path>, asSeparateArguments: Bool = false, skipHeaderSearchPaths: Bool = false) -> SearchPaths {
         // Create a search path build with the search paths which are already in the arguments as -I and -F options, so we don't add SDK search paths to the same paths.
         let searchPathBuilder = SearchPathBuilder(headerSearchPaths: existingHeaderSearchPaths, frameworkSearchPaths: existingFrameworkSearchPaths)
 
-        for sdk in sparseSDKs
-        {
+        for sdk in sparseSDKs {
             if !skipHeaderSearchPaths {
                 // Figure out which, if any, additional header search path options to add.  We start with the header search paths defined by the sparse SDK, if any.
                 let headerSearchPaths = sdk.headerSearchPaths
 
                 // Add additional header paths as system header search paths.  The builder will filter out any which have already been added as ordinary header search paths.
-                if !headerSearchPaths.isEmpty
-                {
-                    for path in headerSearchPaths
-                    {
+                if !headerSearchPaths.isEmpty {
+                    for path in headerSearchPaths {
                         searchPathBuilder.addSystemHeaderSearchPath(path)
                     }
                 }
@@ -384,10 +348,8 @@ package struct GCCCompatibleCompilerSpecSupport
             let frameworkSearchPaths = sdk.frameworkSearchPaths
 
             // Add additional framework paths as system framework search paths.  The builder will filter out any which have already been added as ordinary framework search paths.
-            if !frameworkSearchPaths.isEmpty
-            {
-                for path in frameworkSearchPaths
-                {
+            if !frameworkSearchPaths.isEmpty {
+                for path in frameworkSearchPaths {
                     searchPathBuilder.addSystemFrameworkSearchPath(path)
                 }
             }
@@ -410,39 +372,34 @@ package struct GCCCompatibleCompilerSpecSupport
     }
 }
 
-
 /// Adopting this protocol indicates that the adopter can generate LLVM-based compiler command line arguments for search path entries.
-package protocol GCCCompatibleCompilerCommandLineBuilder: SearchPathCommandLineBuilder
-{
+package protocol GCCCompatibleCompilerCommandLineBuilder: SearchPathCommandLineBuilder {
 }
 
-
-extension GCCCompatibleCompilerCommandLineBuilder
-{
-    package func searchPathArguments(_ entry: SearchPathEntry, _ scope: MacroEvaluationScope) -> [String]
-    {
+extension GCCCompatibleCompilerCommandLineBuilder {
+    package func searchPathArguments(_ entry: SearchPathEntry, _ scope: MacroEvaluationScope) -> [String] {
         var args = [String]()
         switch entry
         {
-          case .userHeaderSearchPath(let path):
+        case .userHeaderSearchPath(let path):
             args.append(contentsOf: ["-iquote", path.str])
 
-          case .headerSearchPath(let path, let separateArgs):
+        case .headerSearchPath(let path, let separateArgs):
             args.append(contentsOf: separateArgs ? ["-I", path.str] : ["-I" + path.str])
 
-          case .systemHeaderSearchPath(let path):
+        case .systemHeaderSearchPath(let path):
             args.append(contentsOf: ["-isystem", path.str])
 
-          case .headerSearchPathSplitter:
-            args.append("-I-")              // <rdar://problem/24312805> states that clang has never supported this option.
+        case .headerSearchPathSplitter:
+            args.append("-I-")  // <rdar://problem/24312805> states that clang has never supported this option.
 
-          case .frameworkSearchPath(let path, let separateArgs):
+        case .frameworkSearchPath(let path, let separateArgs):
             args.append(contentsOf: separateArgs ? ["-F", path.str] : ["-F" + path.str])
 
-          case .systemFrameworkSearchPath(let path):
+        case .systemFrameworkSearchPath(let path):
             args.append(contentsOf: ["-iframework", path.str])
 
-          case .literalArguments(let literalArgs):
+        case .literalArguments(let literalArgs):
             args.append(contentsOf: literalArgs)
         }
         return args

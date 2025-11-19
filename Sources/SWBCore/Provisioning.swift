@@ -38,7 +38,6 @@ public func computeBundleIdentifier(from scope: MacroEvaluationScope, bundleIden
     return scope.evaluate(bundleIdentifierFromInfoPlist, lookup: nil)
 }
 
-
 /// Compute the identifier of the signing certificate to use.
 ///
 /// - Parameters:
@@ -47,11 +46,10 @@ public func computeBundleIdentifier(from scope: MacroEvaluationScope, bundleIden
 /// - Returns: The signing certificate identifier to use.
 public func computeSigningCertificateIdentifier(from scope: MacroEvaluationScope, platform: Platform?) -> String {
     if platform?.isSimulator == true {
-        return "-" // always Ad-hoc sign for simulator even if CODE_SIGN_IDENTITY has been overridden
+        return "-"  // always Ad-hoc sign for simulator even if CODE_SIGN_IDENTITY has been overridden
     }
     return scope.evaluate(BuiltinMacros.CODE_SIGN_IDENTITY)
 }
-
 
 /// Determine the path for entitlements to use for code signing.
 ///

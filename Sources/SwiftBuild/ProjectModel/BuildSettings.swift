@@ -112,7 +112,7 @@ extension ProjectModel {
             case LD_WARN_DUPLICATE_LIBRARIES
 
             // @available(*, deprecated, renamed: "GENERATE_PRELINK_OBJECT_FILE") // can't add @available because it breaks CaseIterable
-            case GENERATE_MASTER_OBJECT_FILE // ignore-unacceptable-language
+            case GENERATE_MASTER_OBJECT_FILE  // ignore-unacceptable-language
         }
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {
@@ -208,7 +208,6 @@ extension ProjectModel {
         @available(*, deprecated, message: "Use subscripts to set platform-specific settings instead")
         public var platformSpecificSettings = [Platform: [Declaration: [String]]]()
 
-
         public subscript(_ setting: SingleValueSetting) -> String? {
             get { singleValueSettings[setting.rawValue] }
             set { singleValueSettings[setting.rawValue] = newValue }
@@ -240,7 +239,6 @@ extension ProjectModel {
         }
     }
 }
-
 
 public extension ProjectModel.BuildSettings.Platform {
     func toPlatformFilter() -> [ProjectModel.PlatformFilter] {

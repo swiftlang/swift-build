@@ -31,13 +31,14 @@ struct BuildLogTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let srcroot = tmpDirPath.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Tool", type: .commandLineTool,
+                    "Tool",
+                    type: .commandLineTool,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -48,25 +49,36 @@ struct BuildLogTests {
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
                                 "SWIFT_VERSION": "4.2",
                                 "SWIFT_OBJC_BRIDGING_HEADER": "Bridging Header.h",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("File With Space.c"),
                             TestBuildFile("File 1.swift"),
-                            TestBuildFile("File 2.swift")]),
-                    ])
+                            TestBuildFile("File 2.swift"),
+                        ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("File With Space.c"),
-                        TestFile("File 1.swift"),
-                        TestFile("File 2.swift"),
-                        TestFile("Bridging Header.h")]),
-                    targets: [testTarget])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("File With Space.c"),
+                            TestFile("File 1.swift"),
+                            TestFile("File 2.swift"),
+                            TestFile("Bridging Header.h"),
+                        ]
+                    ),
+                    targets: [testTarget]
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 let fs = localFS
@@ -132,11 +144,14 @@ struct BuildLogTests {
                 let allOutput = events.allOutput().bytes
                 if !allOutput.isEmpty {
                     let reportedBuildDescriptionID = try #require(events.reportBuildDescriptionMessage?.buildDescriptionID)
-                    #expect(allOutput.unsafeStringValue.hasPrefix(
-                    """
-                    Build description signature: \(reportedBuildDescriptionID)
-                    Build description path: \(tmpDirPath.str)/Test/aProject/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
-                    """))
+                    #expect(
+                        allOutput.unsafeStringValue.hasPrefix(
+                            """
+                            Build description signature: \(reportedBuildDescriptionID)
+                            Build description path: \(tmpDirPath.str)/Test/aProject/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
+                            """
+                        )
+                    )
                 }
             }
         }
@@ -150,14 +165,15 @@ struct BuildLogTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let srcroot = tmpDirPath.join("Test")
 
                 let dependencyTarget = TestStandardTarget(
-                    "Dependency", type: .objectFile,
+                    "Dependency",
+                    type: .objectFile,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -167,16 +183,18 @@ struct BuildLogTests {
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
                                 "SWIFT_VERSION": "5.0",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Dependency.swift"),
-                        ]),
+                            TestBuildFile("Dependency.swift")
+                        ])
                     ]
                 )
                 let dylibTarget = TestStandardTarget(
-                    "Dylib", type: .dynamicLibrary,
+                    "Dylib",
+                    type: .dynamicLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -186,29 +204,34 @@ struct BuildLogTests {
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
                                 // FIXME: There should be a way to automatically populate the version here, but since these tests are not CoreBasedTests, there isn't a good way to do so right now.
                                 "SWIFT_VERSION": "5.0",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Dylib.swift"),
+                            TestBuildFile("Dylib.swift")
                         ]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("Dependency")),
+                            TestBuildFile(.target("Dependency"))
                         ]),
                     ],
                     dependencies: [
-                        "Dependency",
+                        "Dependency"
                     ]
                 )
 
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("Dependency.swift"),
-                        TestFile("Dylib.swift"),
-                    ]),
-                    targets: [dependencyTarget, dylibTarget])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("Dependency.swift"),
+                            TestFile("Dylib.swift"),
+                        ]
+                    ),
+                    targets: [dependencyTarget, dylibTarget]
+                )
 
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
@@ -259,13 +282,14 @@ struct BuildLogTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let srcroot = tmpDirPath.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Tool", type: .framework,
+                    "Tool",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -278,22 +302,33 @@ struct BuildLogTests {
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "USE_HEADERMAP": "NO",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("File1.swift"),
-                            TestBuildFile("File2.swift")]),
-                    ])
+                            TestBuildFile("File2.swift"),
+                        ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("File1.swift"),
-                        TestFile("File2.swift")]),
-                    targets: [testTarget])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("File1.swift"),
+                            TestFile("File2.swift"),
+                        ]
+                    ),
+                    targets: [testTarget]
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 let fs = localFS
@@ -323,11 +358,14 @@ struct BuildLogTests {
                 let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
                 // Check that nothing which looks like Swift parseable output appears in the build log.
-                #expect(!events.allOutput().bytes.description.contains(
-                """
-                {
-                  "kind":
-                """))
+                #expect(
+                    !events.allOutput().bytes.description.contains(
+                        """
+                        {
+                          "kind":
+                        """
+                    )
+                )
             }
         }
     }
@@ -341,21 +379,23 @@ struct BuildLogTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let srcroot = tmpDirPath.join("Test")
                 let appTarget = TestStandardTarget(
-                    "App", type: .application,
+                    "App",
+                    type: .application,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [:]
-                        )],
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("main.swift"),
+                            TestBuildFile("main.swift")
                         ]),
                         TestFrameworksBuildPhase([
                             TestBuildFile("Fwk1.framework"),
@@ -363,45 +403,62 @@ struct BuildLogTests {
                         ]),
                     ],
                     dependencies: [
-                        TestTargetDependency("Fwk1"),
+                        TestTargetDependency("Fwk1")
                     ]
                 )
                 let fwk1Target = TestStandardTarget(
-                    "Fwk1", type: .framework,
+                    "Fwk1",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
-                            buildSettings: [:])],
+                            buildSettings: [:]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("ClassOne.swift"),
-                        ]),
-                    ])
+                            TestBuildFile("ClassOne.swift")
+                        ])
+                    ]
+                )
                 let fwk2Target = TestStandardTarget(
-                    "Fwk2", type: .framework,
+                    "Fwk2",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
-                            buildSettings: [:])],
+                            buildSettings: [:]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("ClassTwo.swift"),
-                        ]),
-                    ])
+                            TestBuildFile("ClassTwo.swift")
+                        ])
+                    ]
+                )
                 let testProject = TestProject(
                     "Project",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Project", children: [
-                        TestGroup("Sources", children: [
-                            TestFile("main.swift"),
-                            TestFile("ClassOne.swift"),
-                            TestFile("ClassTwo.swift"),
-                        ]),
-                        TestGroup("Frameworks", children: [
-                            TestFile("Fwk1.framework"),
-                            TestFile("Fwk2.framework"),
-                        ]),
-                    ]),
+                    groupTree: TestGroup(
+                        "Project",
+                        children: [
+                            TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("main.swift"),
+                                    TestFile("ClassOne.swift"),
+                                    TestFile("ClassTwo.swift"),
+                                ]
+                            ),
+                            TestGroup(
+                                "Frameworks",
+                                children: [
+                                    TestFile("Fwk1.framework"),
+                                    TestFile("Fwk2.framework"),
+                                ]
+                            ),
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -414,15 +471,20 @@ struct BuildLogTests {
                                 "SWIFT_VERSION": "5.2",
                                 "MACOSX_DEPLOYMENT_TARGET": "10.15",
                                 "SWIFT_STDLIB_TOOL_STRIP_BITCODE": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     targets: [
                         appTarget,
                         fwk1Target,
                         fwk2Target,
-                    ])
-                let testWorkspace = TestWorkspace("Workspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    ]
+                )
+                let testWorkspace = TestWorkspace(
+                    "Workspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("Project")
 
                 let fs = localFS
@@ -482,12 +544,15 @@ struct BuildLogTests {
 
                     let reportedBuildDescriptionID = try #require(events.reportBuildDescriptionMessage?.buildDescriptionID)
                     // TODO: Revert to .equal once appintentsmetadataprocessor output is removed
-                    XCTAssertMatch(events.allOutput().bytes.unsafeStringValue, .contains(
-                    """
-                    Build description signature: \(reportedBuildDescriptionID)
-                    Build description path: \(tmpDirPath.str)/Test/Project/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
+                    XCTAssertMatch(
+                        events.allOutput().bytes.unsafeStringValue,
+                        .contains(
+                            """
+                            Build description signature: \(reportedBuildDescriptionID)
+                            Build description path: \(tmpDirPath.str)/Test/Project/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
 
-                    """)
+                            """
+                        )
                     )
                 }
 
@@ -528,12 +593,15 @@ struct BuildLogTests {
 
                     let reportedBuildDescriptionID = try #require(events.reportBuildDescriptionMessage?.buildDescriptionID)
                     // TODO: Revert to .equals once appintentsmetadataprocessor output is removed
-                    XCTAssertMatch(events.allOutput().bytes.unsafeStringValue, .prefix(
-                    """
-                    Build description signature: \(reportedBuildDescriptionID)
-                    Build description path: \(tmpDirPath.str)/Test/Project/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
+                    XCTAssertMatch(
+                        events.allOutput().bytes.unsafeStringValue,
+                        .prefix(
+                            """
+                            Build description signature: \(reportedBuildDescriptionID)
+                            Build description path: \(tmpDirPath.str)/Test/Project/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
 
-                    """)
+                            """
+                        )
                     )
                 }
             }
@@ -555,7 +623,9 @@ struct BuildLogTests {
                     "aProject",
                     sourceRoot: tmpDir.path,
                     groupTree: TestGroup(
-                        "Sources", children: []),
+                        "Sources",
+                        children: []
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -564,16 +634,17 @@ struct BuildLogTests {
                                 "CODE_SIGNING_ALLOWED": "NO",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                             ]
-                        )],
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "FwkTarget",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [:]),
+                                TestBuildConfiguration("Debug", buildSettings: [:])
                             ],
-                            buildPhases: [
-                            ], dependencies: [
+                            buildPhases: [],
+                            dependencies: [
                                 "FwkTarget2"
                             ]
                         ),
@@ -581,12 +652,12 @@ struct BuildLogTests {
                             "FwkTarget2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [:]),
+                                TestBuildConfiguration("Debug", buildSettings: [:])
                             ],
-                            buildPhases: [
-                            ]
+                            buildPhases: []
                         ),
-                    ])
+                    ]
+                )
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testProject, testSession, fs: fs)
 
@@ -663,7 +734,9 @@ struct BuildLogTests {
                     "aProject",
                     sourceRoot: tmpDir.path,
                     groupTree: TestGroup(
-                        "Sources", children: []),
+                        "Sources",
+                        children: []
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -672,18 +745,19 @@ struct BuildLogTests {
                                 "CODE_SIGNING_ALLOWED": "NO",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                             ]
-                        )],
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "FwkTarget",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [:]),
+                                TestBuildConfiguration("Debug", buildSettings: [:])
                             ],
-                            buildPhases: [
-                            ]
-                        ),
-                    ])
+                            buildPhases: []
+                        )
+                    ]
+                )
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testProject, testSession, fs: fs)
 

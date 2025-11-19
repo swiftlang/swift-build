@@ -28,24 +28,31 @@ fileprivate struct WorkspaceDiagnosticsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDirPath,
                 groupTree: TestGroup(
-                    "Sources", children: [
-                        TestFile("Source.m"),
-                    ]),
+                    "Sources",
+                    children: [
+                        TestFile("Source.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Foo",
                         type: .appClip,
                         buildPhases: [
-                            TestSourcesBuildPhase(["Source.m"]),
-                        ]),
-                ])
+                            TestSourcesBuildPhase(["Source.m"])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
             try await tester.checkBuildDescription(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in

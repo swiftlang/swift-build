@@ -20,7 +20,8 @@ public struct SWBSystemInfo: Sendable {
         return Self(
             operatingSystemVersion: processInfo.operatingSystemVersion,
             productBuildVersion: try processInfo.productBuildVersion().description,
-            nativeArchitecture: Architecture.host.stringValue ?? "undefined_arch")
+            nativeArchitecture: Architecture.host.stringValue ?? "undefined_arch"
+        )
     }
 
     public let operatingSystemVersion: OperatingSystemVersion

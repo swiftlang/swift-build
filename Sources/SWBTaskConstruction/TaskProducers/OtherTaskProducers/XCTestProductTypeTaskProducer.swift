@@ -58,9 +58,7 @@ final class XCTestProductTaskProducer: PhasedTaskProducer, TaskProducer {
     }
 }
 
-
 // MARK:
-
 
 /// The `XCTestProductPostprocessingTaskProducer` generates postprocessing tasks specific the XCTest product type.  This producer's tasks involve assembling or modifying content outside of the test target's own product, often in an enclosing wrapper (the application being tested, or the test runner), so this producer is ordered after the test target's own postprocessing task producer.
 final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer {
@@ -149,34 +147,40 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
                     outputPath = testRunnerDstPath.join(subpath)
                     let orderingOutput = context.createVirtualNode("Preprocess \(outputPath.str)")
                     let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(absolutePath: inputPath, inferringTypeUsing: context)] + (infoPlistPath.map { [FileToBuild(context: context, absolutePath: $0)] } ?? []), output: outputPath, commandOrderingOutputs: [orderingOutput])
-                    await context.copyPlistSpec.constructTasks(cbc, delegate, specialArgs: [
-                        "--macro-expansion",
-                        "WRAPPEDPRODUCTNAME",
-                        scope.evaluate(BuiltinMacros.PRODUCT_NAME) + "-Runner",
+                    await context.copyPlistSpec.constructTasks(
+                        cbc,
+                        delegate,
+                        specialArgs: [
+                            "--macro-expansion",
+                            "WRAPPEDPRODUCTNAME",
+                            scope.evaluate(BuiltinMacros.PRODUCT_NAME) + "-Runner",
 
-                        "--macro-expansion",
-                        "WRAPPEDPRODUCTBUNDLEIDENTIFIER",
-                        wrappedBundleIdentifier(for: scope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER)),
+                            "--macro-expansion",
+                            "WRAPPEDPRODUCTBUNDLEIDENTIFIER",
+                            wrappedBundleIdentifier(for: scope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER)),
 
-                        "--macro-expansion",
-                        "TESTPRODUCTNAME",
-                        scope.evaluate(BuiltinMacros.PRODUCT_NAME),
+                            "--macro-expansion",
+                            "TESTPRODUCTNAME",
+                            scope.evaluate(BuiltinMacros.PRODUCT_NAME),
 
-                        "--macro-expansion",
-                        "TESTPRODUCTBUNDLEIDENTIFIER",
-                        scope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER),
-                    ] + (infoPlistPath.map {
-                        ["--copy-value", "UIDeviceFamily", $0.str]
-                    } ?? []), toolLookup: { decl in
-                        switch decl {
-                        case BuiltinMacros.VALIDATE_PLIST_FILES_WHILE_COPYING:
-                            return scope.namespace.parseLiteralString("YES")
-                        case BuiltinMacros.PLIST_FILE_OUTPUT_FORMAT:
-                            return scope.namespace.parseLiteralString("XML")
-                        default:
-                            return nil
+                            "--macro-expansion",
+                            "TESTPRODUCTBUNDLEIDENTIFIER",
+                            scope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER),
+                        ]
+                            + (infoPlistPath.map {
+                                ["--copy-value", "UIDeviceFamily", $0.str]
+                            } ?? []),
+                        toolLookup: { decl in
+                            switch decl {
+                            case BuiltinMacros.VALIDATE_PLIST_FILES_WHILE_COPYING:
+                                return scope.namespace.parseLiteralString("YES")
+                            case BuiltinMacros.PLIST_FILE_OUTPUT_FORMAT:
+                                return scope.namespace.parseLiteralString("XML")
+                            default:
+                                return nil
+                            }
                         }
-                    })
+                    )
                     runnerSigningInputNodes.append(orderingOutput)
                     continue
 
@@ -224,8 +228,7 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
                 runnerSigningInputNodes.append(orderingOutput)
             }
-        }
-        catch {
+        } catch {
             // FIXME: For some reason using error.localizedDescription here results in a link error...
             delegate.error("unable to create tasks to copy XCTRunner.app: unknown error")
             return
@@ -233,9 +236,10 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
         if !scope.evaluate(BuiltinMacros.SKIP_COPYING_TEST_FRAMEWORKS) {
             // Copy the testing frameworks into the runner's Frameworks directory and re-sign them with the developer's identity.  We treat these tasks as peers to the tasks above which copy the runner.
-            var frameworkPaths = Self.xctestLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs) + [
-                Self.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
-            ]
+            var frameworkPaths =
+                Self.xctestLibraryAndFrameworkPaths(scope, context.platform, context.workspaceContext.fs) + [
+                    Self.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
+                ]
 
             for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 frameworkPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
@@ -263,7 +267,8 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
             runnerSigningInputNodes.append(context.createVirtualNode("CodeSign \(testBundlePath.normalize().str)"))
 
             // Pass the runner's binary as an input and an output since it is being mutated.
-            let runnerBinarySubpathExpr = !scope.evaluate(BuiltinMacros._WRAPPER_CONTENTS_DIR).isEmpty
+            let runnerBinarySubpathExpr =
+                !scope.evaluate(BuiltinMacros._WRAPPER_CONTENTS_DIR).isEmpty
                 ? scope.namespace.parseString("$(_WRAPPER_CONTENTS_DIR)/MacOS/$(PRODUCT_NAME)-Runner")
                 : scope.namespace.parseString("/$(PRODUCT_NAME)-Runner")
             let runnerBinaryPath = testRunnerDstPath.join(scope.evaluate(runnerBinarySubpathExpr), preserveRoot: true)
@@ -297,9 +302,7 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
         }
     }
 
-
     // MARK: Utility methods
-
 
     static fileprivate func copyAndReSignTestFramework(from srcPath: Path, to dstPath: Path, _ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate, commandOrderingInputs: [any PlannedNode] = [], commandOrderingOutput: inout (any PlannedNode)?) async {
         // Copy the test framework.
@@ -322,98 +325,96 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
     /// The path to the copy of `Testing.framework` which should be used by clients.
     static fileprivate func swiftTestingFrameworkPath(_ scope: MacroEvaluationScope, _ platform: Platform?, _ fs: any FSProxy) -> Path {
-         let testingFrameworkPath = Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks/Testing.framework")
-         return fs.exists(testingFrameworkPath) ? testingFrameworkPath : Path("")
-     }
+        let testingFrameworkPath = Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks/Testing.framework")
+        return fs.exists(testingFrameworkPath) ? testingFrameworkPath : Path("")
+    }
 
-     /// The paths to libraries and frameworks produced by the XCTest project, including `XCTest.framework` and some
-     /// of its dependencies, which should be used by clients.
-     ///
-     /// - Note: This does not include `Testing.framework`, since it is not produced as part of the XCTest project,
-     ///   despite the fact that some of the XCTest libraries depend on it.
-     ///
-     /// The directory where the libraries and frameworks whose paths this function returns are located may be
-     /// overridden if `scope` sets `INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH`.
-     static fileprivate func xctestLibraryAndFrameworkPaths(
-         includingBundleInject includeBundleInject: Bool = false,
-         _ scope: MacroEvaluationScope,
-         _ platform: Platform?,
-         _ fs: any FSProxy
-     ) -> [Path] {
-         func testLibrariesOverridePath() -> Path? {
-             let path = Path(scope.evaluate(BuiltinMacros.INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH))
-             if !path.isEmpty, path.isAbsolute {
-                 return path
-             } else {
-                 return nil
-             }
-         }
-         let testLibrariesOverridePath = testLibrariesOverridePath()
+    /// The paths to libraries and frameworks produced by the XCTest project, including `XCTest.framework` and some
+    /// of its dependencies, which should be used by clients.
+    ///
+    /// - Note: This does not include `Testing.framework`, since it is not produced as part of the XCTest project,
+    ///   despite the fact that some of the XCTest libraries depend on it.
+    ///
+    /// The directory where the libraries and frameworks whose paths this function returns are located may be
+    /// overridden if `scope` sets `INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH`.
+    static fileprivate func xctestLibraryAndFrameworkPaths(
+        includingBundleInject includeBundleInject: Bool = false,
+        _ scope: MacroEvaluationScope,
+        _ platform: Platform?,
+        _ fs: any FSProxy
+    ) -> [Path] {
+        func testLibrariesOverridePath() -> Path? {
+            let path = Path(scope.evaluate(BuiltinMacros.INTERNAL_TEST_LIBRARIES_OVERRIDE_PATH))
+            if !path.isEmpty, path.isAbsolute {
+                return path
+            } else {
+                return nil
+            }
+        }
+        let testLibrariesOverridePath = testLibrariesOverridePath()
 
-         let frameworksDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("Frameworks")
-         let privateFrameworksDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("PrivateFrameworks")
-         let usrLibDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).dirname.join("usr/lib")
+        let frameworksDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("Frameworks")
+        let privateFrameworksDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).join("PrivateFrameworks")
+        let usrLibDir = testLibrariesOverridePath ?? XCTestBundleProductTypeSpec.getPlatformDeveloperVariantLibraryPath(scope, platform).dirname.join("usr/lib")
 
-         var result: [Path] = []
+        var result: [Path] = []
 
-         let publicFrameworkNames = [
-             "XCTest.framework",
-         ]
-         for publicFrameworkName in publicFrameworkNames {
-             result.append(frameworksDir.join(publicFrameworkName))
-         }
+        let publicFrameworkNames = [
+            "XCTest.framework"
+        ]
+        for publicFrameworkName in publicFrameworkNames {
+            result.append(frameworksDir.join(publicFrameworkName))
+        }
 
-         let subFrameworkNames = [
-             "XCUnit.framework",
-             "XCUIAutomation.framework",
-         ]
-         for subFrameworkName in subFrameworkNames {
-             let pathInPublicFrameworksDir = frameworksDir.join(subFrameworkName)
-             lazy var pathInPrivateFrameworksDir = privateFrameworksDir.join(subFrameworkName)
-             if fs.exists(pathInPublicFrameworksDir) {
-                 result.append(pathInPublicFrameworksDir)
-             } else if fs.exists(pathInPrivateFrameworksDir) {
-                 result.append(pathInPrivateFrameworksDir)
-             }
-         }
+        let subFrameworkNames = [
+            "XCUnit.framework",
+            "XCUIAutomation.framework",
+        ]
+        for subFrameworkName in subFrameworkNames {
+            let pathInPublicFrameworksDir = frameworksDir.join(subFrameworkName)
+            lazy var pathInPrivateFrameworksDir = privateFrameworksDir.join(subFrameworkName)
+            if fs.exists(pathInPublicFrameworksDir) {
+                result.append(pathInPublicFrameworksDir)
+            } else if fs.exists(pathInPrivateFrameworksDir) {
+                result.append(pathInPrivateFrameworksDir)
+            }
+        }
 
-         let privateFrameworkNames = [
-             "XCTestCore.framework",
-             "XCTestSupport.framework",
-             "XCTAutomationSupport.framework",
-         ]
-         for privateFrameworkName in privateFrameworkNames {
-             result.append(privateFrameworksDir.join(privateFrameworkName))
-         }
+        let privateFrameworkNames = [
+            "XCTestCore.framework",
+            "XCTestSupport.framework",
+            "XCTAutomationSupport.framework",
+        ]
+        for privateFrameworkName in privateFrameworkNames {
+            result.append(privateFrameworksDir.join(privateFrameworkName))
+        }
 
-         var libraryNames = [
-             "libXCTestSwiftSupport.dylib",
-         ]
-         if includeBundleInject {
-             libraryNames.append("libXCTestBundleInject.dylib")
-         }
-         for libraryName in libraryNames {
-             result.append(usrLibDir.join(libraryName))
-         }
+        var libraryNames = [
+            "libXCTestSwiftSupport.dylib"
+        ]
+        if includeBundleInject {
+            libraryNames.append("libXCTestBundleInject.dylib")
+        }
+        for libraryName in libraryNames {
+            result.append(usrLibDir.join(libraryName))
+        }
 
-         return result
-     }
+        return result
+    }
 }
 
-
 // MARK:
-
 
 /// The `XCTestHostTaskProducer` generates tasks relevant to a target whose product is the host for products of XCTest targets.  For example, embedding the XCTest-related frameworks and libraries in the host product.
 final class XCTestHostTaskProducer: PhasedTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {
         let scope = context.settings.globalScope
         var tasks: [any PlannedTask] = []
-            if isTestHostTarget() {
-                await appendGeneratedTasks(&tasks) { delegate in
-                    await generateTestHostTasks(scope, delegate)
-                }
+        if isTestHostTarget() {
+            await appendGeneratedTasks(&tasks) { delegate in
+                await generateTestHostTasks(scope, delegate)
             }
+        }
         return tasks
     }
 
@@ -434,9 +435,10 @@ final class XCTestHostTaskProducer: PhasedTaskProducer, TaskProducer {
             let frameworksPath = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FRAMEWORKS_FOLDER_PATH))
             // NOTE: If any new paths are added here, they may also need to be added to the list of those not to be scanned by the CopySwiftLibs task, in executableIsXCTestSupportLibrary() in EmbedSwiftStdLibTaskAction.swift.
             // NOTE: If any new paths are added here, they may also need to be added to the list of those not to be scanned by the CopySwiftLibs task, in executableIsTestSupportLibrary() in EmbedSwiftStdLibTaskAction.swift.
-            var srcPaths = XCTestProductPostprocessingTaskProducer.xctestLibraryAndFrameworkPaths(includingBundleInject: true, scope, context.platform, context.workspaceContext.fs) + [
-                XCTestProductPostprocessingTaskProducer.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
-            ]
+            var srcPaths =
+                XCTestProductPostprocessingTaskProducer.xctestLibraryAndFrameworkPaths(includingBundleInject: true, scope, context.platform, context.workspaceContext.fs) + [
+                    XCTestProductPostprocessingTaskProducer.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
+                ]
 
             for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 srcPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))

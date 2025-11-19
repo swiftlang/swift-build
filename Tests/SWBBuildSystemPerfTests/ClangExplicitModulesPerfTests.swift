@@ -36,76 +36,87 @@ fileprivate struct ClangExplicitModulesPerfTests: CoreBasedTests, PerfTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "DSTROOT": tmpDirPath.join("dstroot").str,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase((0..<numSources).map { TestBuildFile("file-\($0).m") }),
-                                ], dependencies: ["Framework"]),
+                                    TestSourcesBuildPhase((0..<numSources).map { TestBuildFile("file-\($0).m") })
+                                ],
+                                dependencies: ["Framework"]
+                            ),
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework.h", headerVisibility: .public),
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
-                                ])
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             for i in 0..<numSources {
-                try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/file-\(i).m")) { stream in stream <<< """
-                    #include <Framework/Framework.h>
+                try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/file-\(i).m")) { stream in
+                    stream <<< """
+                        #include <Framework/Framework.h>
 
-                    void test\(i)() {
-                        NSLog(@"%@", [[Shared alloc] init]);
-                        }
-                    """
+                        void test\(i)() {
+                            NSLog(@"%@", [[Shared alloc] init]);
+                            }
+                        """
                 }
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
-                """
+                stream <<< """
+                    #include <Framework/Shared.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             try await measure {
@@ -133,76 +144,87 @@ fileprivate struct ClangExplicitModulesPerfTests: CoreBasedTests, PerfTests {
                                 TestFile("Framework.h"),
                                 TestFile("Shared.h"),
                                 TestFile("Shared.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "DSTROOT": tmpDirPath.join("dstroot").str,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase((0..<numSources).map { TestBuildFile("file-\($0).m") }),
-                                ], dependencies: ["Framework"]),
+                                    TestSourcesBuildPhase((0..<numSources).map { TestBuildFile("file-\($0).m") })
+                                ],
+                                dependencies: ["Framework"]
+                            ),
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Shared.m"]),
                                     TestHeadersBuildPhase([
                                         TestBuildFile("Framework.h", headerVisibility: .public),
                                         TestBuildFile("Shared.h", headerVisibility: .public),
                                     ]),
-                                ])
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             for i in 0..<numSources {
-                try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/file-\(i).m")) { stream in stream <<< """
-                    #include <Framework/Framework.h>
+                try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/file-\(i).m")) { stream in
+                    stream <<< """
+                        #include <Framework/Framework.h>
 
-                    void test\(i)() {
-                        NSLog(@"%@", [[Shared alloc] init]);
-                        }
-                    """
+                        void test\(i)() {
+                            NSLog(@"%@", [[Shared alloc] init]);
+                            }
+                        """
                 }
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Framework.h")) { stream in
-                stream <<<
-                """
-                #include <Framework/Shared.h>
-                """
+                stream <<< """
+                    #include <Framework/Shared.h>
+                    """
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Shared.h")) { stream in
-                stream <<<
-                """
-                #include <Foundation/Foundation.h>
-                @interface Shared: NSObject {}
-                @end
+                stream <<< """
+                    #include <Foundation/Foundation.h>
+                    @interface Shared: NSObject {}
+                    @end
 
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Shared.m")) { stream in
-                stream <<<
-                """
-                #include "Shared.h"
-                @implementation Shared {}
-                @end
-                """
+                stream <<< """
+                    #include "Shared.h"
+                    @implementation Shared {}
+                    @end
+                    """
             }
 
             try await measure {

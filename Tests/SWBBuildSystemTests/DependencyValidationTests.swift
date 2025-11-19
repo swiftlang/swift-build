@@ -67,16 +67,19 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         TestGroup(
                             "Sources",
                             children: [
-                                TestFile("test.c"),
+                                TestFile("test.c")
                             ]
                         )
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -86,7 +89,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "HEADER_SEARCH_PATHS": "$(DERIVED_SOURCES_DIR)",
+                                    "HEADER_SEARCH_PATHS": "$(DERIVED_SOURCES_DIR)"
                                 ]
                             )
                         ],
@@ -105,15 +108,15 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                 contents: "touch \"$DERIVED_SOURCES_DIR/header.h\" && touch \"$SCRIPT_OUTPUT_FILE_0\"",
                                 inputs: [
                                     "$(DERIVED_SOURCES_DIR)/order",
-                                    "$(DERIVED_SOURCES_DIR)/other.c"
+                                    "$(DERIVED_SOURCES_DIR)/other.c",
                                 ],
                                 outputs: [
-                                    "$(DERIVED_SOURCES_DIR)/order.h",
+                                    "$(DERIVED_SOURCES_DIR)/order.h"
                                 ]
                             ),
                             TestSourcesBuildPhase([
                                 "test.c"
-                            ])
+                            ]),
                         ]
                     )
                 ]
@@ -193,14 +196,17 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "DEPLOYMENT_POSTPROCESSING": "NO",
-                        "INSTALL_OWNER": "",
-                        "INSTALL_GROUP": "",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "USE_HEADERMAP": "NO",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "DEPLOYMENT_POSTPROCESSING": "NO",
+                            "INSTALL_OWNER": "",
+                            "INSTALL_GROUP": "",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -212,7 +218,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                             ]),
                             TestFrameworksBuildPhase([
                                 "Framework.framework"
-                            ])
+                            ]),
                         ],
                         dependencies: ["Framework"]
                     ),
@@ -222,23 +228,27 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         buildPhases: [
                             TestHeadersBuildPhase([
                                 TestBuildFile("Framework.h", headerVisibility: .public),
-                                TestBuildFile("test.h", headerVisibility: .public)
+                                TestBuildFile("test.h", headerVisibility: .public),
                             ]),
                             TestSourcesBuildPhase([
                                 "test.c"
-                            ])
+                            ]),
                         ]
-                    )
+                    ),
                 ]
             )
 
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDir, projects: [testProject])
-            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
-                "DSTROOT": tmpDir.join("DSTROOT").str,
-                "OBJROOT": tmpDir.join("OBJROOT").str,
-                "SYMROOT": tmpDir.join("SYMROOT").str,
-                "VALIDATE_DEPENDENCIES": "YES_ERROR",
-            ])
+            let parameters = BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "DSTROOT": tmpDir.join("DSTROOT").str,
+                    "OBJROOT": tmpDir.join("OBJROOT").str,
+                    "SYMROOT": tmpDir.join("SYMROOT").str,
+                    "VALIDATE_DEPENDENCIES": "YES_ERROR",
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try tester.fs.createDirectory(tmpDir.join("aProject/Sources"), recursive: true)
@@ -257,12 +267,14 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 #expect(exists)
 
                 let testDependencies = try tester.fs.read(tmpDir.join("OBJROOT").join("aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/test.d"))
-                #expect(testDependencies.unsafeStringValue.split(separator: "\n") == [
-                    "dependencies: \\",
-                    "  \(tmpDir.str)/aProject/Sources/test.c \\",
-                    "  \(tmpDir.str)/SYMROOT/Debug/Framework.framework/Headers/Framework.h \\",
-                    "  \(tmpDir.str)/SYMROOT/Debug/Framework.framework/Headers/test.h"
-                ])
+                #expect(
+                    testDependencies.unsafeStringValue.split(separator: "\n") == [
+                        "dependencies: \\",
+                        "  \(tmpDir.str)/aProject/Sources/test.c \\",
+                        "  \(tmpDir.str)/SYMROOT/Debug/Framework.framework/Headers/Framework.h \\",
+                        "  \(tmpDir.str)/SYMROOT/Debug/Framework.framework/Headers/test.h",
+                    ]
+                )
 
                 // Even though the Makefile dependencies point to symlinks for the headers, we should resolve them and still find the producer tasks.
                 results.checkNoDiagnostics()
@@ -282,21 +294,24 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         TestGroup(
                             "Sources",
                             children: [
-                                TestFile("test.c"),
+                                TestFile("test.c")
                             ]
                         )
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "DEPLOYMENT_POSTPROCESSING": "NO",
-                        "INSTALL_OWNER": "",
-                        "INSTALL_GROUP": "",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "USE_HEADERMAP": "NO",
-                        "DSTROOT": tmpDir.join("dstroot").str,
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "DEPLOYMENT_POSTPROCESSING": "NO",
+                            "INSTALL_OWNER": "",
+                            "INSTALL_GROUP": "",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                            "DSTROOT": tmpDir.join("dstroot").str,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -311,16 +326,22 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                 originalObjectID: "Foo",
                                 contents: "touch $SCRIPT_OUTPUT_FILE_0",
                                 outputs: ["$(TARGET_TEMP_DIR)/foo"],
-                                dependencyInfo: .dependencyInfo(.string(tmpDir.join("dd").join("foo.d").str)))
+                                dependencyInfo: .dependencyInfo(.string(tmpDir.join("dd").join("foo.d").str))
+                            ),
                         ]
                     )
                 ]
             )
 
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDir, projects: [testProject])
-            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
-                "VALIDATE_DEPENDENCIES": "YES_ERROR",
-            ], arena: .init(derivedDataPath: tmpDir.join("dd"), buildProductsPath: tmpDir.join("dd").join("Products"), buildIntermediatesPath: tmpDir.join("dd"), pchPath: tmpDir.join("dd"), indexRegularBuildProductsPath: nil, indexRegularBuildIntermediatesPath: nil, indexPCHPath: tmpDir.join("dd"), indexDataStoreFolderPath: nil, indexEnableDataStore: false))
+            let parameters = BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "VALIDATE_DEPENDENCIES": "YES_ERROR"
+                ],
+                arena: .init(derivedDataPath: tmpDir.join("dd"), buildProductsPath: tmpDir.join("dd").join("Products"), buildIntermediatesPath: tmpDir.join("dd"), pchPath: tmpDir.join("dd"), indexRegularBuildProductsPath: nil, indexRegularBuildIntermediatesPath: nil, indexPCHPath: tmpDir.join("dd"), indexDataStoreFolderPath: nil, indexEnableDataStore: false)
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try tester.fs.createDirectory(tmpDir.join("aProject/Sources"), recursive: true)
@@ -358,66 +379,71 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                             children: [
                                 TestFile("Swift.swift"),
                                 TestFile("Project.xcconfig"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            baseConfig: "Project.xcconfig",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
-                                "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DEFINES_MODULE": "YES",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                                "DUMP_DEPENDENCIES": dumpDependencies ? "YES" : "NO",
-                                "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
-                                "SDKROOT": "$(HOST_PLATFORM)",
-                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                baseConfig: "Project.xcconfig",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
+                                    "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DEFINES_MODULE": "YES",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                    "DUMP_DEPENDENCIES": dumpDependencies ? "YES" : "NO",
+                                    "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
 
-                                // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
-                                "TOOLCHAINS": "swift",
-                            ])],
+                                    // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
+                                    "TOOLCHAINS": "swift",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "TargetA",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["Swift.swift"]),
-                                ]),
+                                    TestSourcesBuildPhase(["Swift.swift"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetB",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["Swift.swift"]),
-                                ]),
-                        ]),
-                ])
+                                    TestSourcesBuildPhase(["Swift.swift"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             let swiftSourcePath = testWorkspace.sourceRoot.join("Project/Swift.swift")
             try await tester.fs.writeFileContents(swiftSourcePath) { stream in
-                stream <<<
-            """
-            import Foundation
-            """
+                stream <<< """
+                    import Foundation
+                    """
             }
 
             let projectXCConfigPath = testWorkspace.sourceRoot.join("Project/Project.xcconfig")
             try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
                 if testFixIts {
-                    stream <<<
-                """
-                MODULE_DEPENDENCIES[target=TargetA] = Dispatch
-                """
+                    stream <<< """
+                        MODULE_DEPENDENCIES[target=TargetA] = Dispatch
+                        """
                 } else {
-                    stream <<<
-                """
-                MODULE_DEPENDENCIES[target=TargetA] = Dispatch Foundation
-                MODULE_DEPENDENCIES[target=TargetB] = Foundation
-                """
+                    stream <<< """
+                        MODULE_DEPENDENCIES[target=TargetA] = Dispatch Foundation
+                        MODULE_DEPENDENCIES[target=TargetB] = Foundation
+                        """
                 }
             }
 
@@ -437,18 +463,23 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                             fixIts: [
                                 Diagnostic.FixIt(
                                     sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
-                                    newText: " \\\n    Foundation"),
+                                    newText: " \\\n    Foundation"
+                                )
                             ],
                             childDiagnostics: [
                                 Diagnostic(
                                     behavior: .error,
                                     location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
                                     data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
-                                    fixIts: [Diagnostic.FixIt(
-                                        sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
-                                        newText: " \\\n    Foundation")],
-                                ),
-                            ]),
+                                    fixIts: [
+                                        Diagnostic.FixIt(
+                                            sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 47, endLine: 1, endColumn: 47),
+                                            newText: " \\\n    Foundation"
+                                        )
+                                    ],
+                                )
+                            ]
+                        )
                     ],
                     "TargetB": [
                         Diagnostic(
@@ -458,18 +489,23 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                             fixIts: [
                                 Diagnostic.FixIt(
                                     sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: projectXCConfigFinalLineNumber, startColumn: projectXCConfigFinalColumnNumber, endLine: projectXCConfigFinalLineNumber, endColumn: projectXCConfigFinalColumnNumber),
-                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n"),
+                                    newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n"
+                                )
                             ],
                             childDiagnostics: [
                                 Diagnostic(
                                     behavior: .error,
                                     location: Diagnostic.Location.path(swiftSourcePath, line: 1, column: 8),
                                     data: DiagnosticData("Missing entry in MODULE_DEPENDENCIES: Foundation"),
-                                    fixIts: [Diagnostic.FixIt(
-                                        sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: projectXCConfigFinalLineNumber, startColumn: projectXCConfigFinalColumnNumber, endLine: projectXCConfigFinalLineNumber, endColumn: projectXCConfigFinalColumnNumber),
-                                        newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n")],
-                                ),
-                            ]),
+                                    fixIts: [
+                                        Diagnostic.FixIt(
+                                            sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: projectXCConfigFinalLineNumber, startColumn: projectXCConfigFinalColumnNumber, endLine: projectXCConfigFinalLineNumber, endColumn: projectXCConfigFinalColumnNumber),
+                                            newText: "\nMODULE_DEPENDENCIES[target=TargetB] = $(inherited) \\\n    Foundation\n"
+                                        )
+                                    ],
+                                )
+                            ]
+                        )
                     ],
                 ]
             } else {
@@ -522,11 +558,13 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources",
+                            "Sources",
+                            path: "Sources",
                             children: [
                                 TestFile("CoreFoo.m"),
                                 TestFile("CoreBar.m"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -545,12 +583,15 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m", "CoreBar.m"]),
-                                    TestFrameworksBuildPhase()
-                                ])
-                        ])
+                                    TestFrameworksBuildPhase(),
+                                ]
+                            )
+                        ]
+                    )
                 ]
             )
 
@@ -561,12 +602,12 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             for stem in ["Foo", "Bar"] {
                 try await tester.fs.writeFileContents(SRCROOT.join("Sources/Core\(stem).m")) { contents in
                     contents <<< """
-                        #include <Foundation/Foundation.h>
-                        #include <Foundation/NSObject.h>
-                        #include <Accelerate/Accelerate.h>
+                            #include <Foundation/Foundation.h>
+                            #include <Foundation/NSObject.h>
+                            #include <Accelerate/Accelerate.h>
 
-                        void f\(stem)(void) { };
-                    """
+                            void f\(stem)(void) { };
+                        """
                 }
             }
 
@@ -592,11 +633,13 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources",
+                            "Sources",
+                            path: "Sources",
                             children: [
                                 TestFile("CoreFoo.m"),
                                 TestFile("Swift.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -623,12 +666,15 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m", "Swift.swift"]),
-                                    TestFrameworksBuildPhase()
-                                ])
-                        ])
+                                    TestFrameworksBuildPhase(),
+                                ]
+                            )
+                        ]
+                    )
                 ]
             )
 
@@ -637,18 +683,18 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Swift.swift")) { stream in
                 stream <<< """
-                    import Foundation
-                    import AppKit
-                """
+                        import Foundation
+                        import AppKit
+                    """
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.m")) { contents in
                 contents <<< """
-                    #include <Foundation/Foundation.h>
-                    #include <Accelerate/Accelerate.h>
+                        #include <Foundation/Foundation.h>
+                        #include <Accelerate/Accelerate.h>
 
-                    void f(void) { };
-                """
+                        void f(void) { };
+                    """
             }
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
@@ -671,10 +717,12 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources",
+                            "Sources",
+                            path: "Sources",
                             children: [
                                 TestFile("CoreFoo.c")
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -693,12 +741,15 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.c"]),
-                                    TestFrameworksBuildPhase()
-                                ])
-                        ])
+                                    TestFrameworksBuildPhase(),
+                                ]
+                            )
+                        ]
+                    )
                 ]
             )
 
@@ -708,11 +759,11 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.c")) { contents in
                 contents <<< """
-                    #include <stdio.h>
-                    #include <stdlib.h>
+                        #include <stdio.h>
+                        #include <stdlib.h>
 
-                    void f0(void) { };
-                """
+                        void f0(void) { };
+                    """
             }
 
             // Expect complaint about undeclared dependency
@@ -742,65 +793,69 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                                 TestFile("Swift.swift"),
                                 TestFile("ObjC.m"),
                                 TestFile("Project.xcconfig"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            baseConfig: "Project.xcconfig",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DEFINES_MODULE": "YES",
-                                "DSTROOT": tmpDir.join("dstroot").str,
-                                "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
-                                "VALIDATE_UNUSED_MODULE_DEPENDENCIES": "YES",
-                                "SDKROOT": "$(HOST_PLATFORM)",
-                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                baseConfig: "Project.xcconfig",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_UPCOMING_FEATURE_INTERNAL_IMPORTS_BY_DEFAULT": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DEFINES_MODULE": "YES",
+                                    "DSTROOT": tmpDir.join("dstroot").str,
+                                    "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR",
+                                    "VALIDATE_UNUSED_MODULE_DEPENDENCIES": "YES",
+                                    "SDKROOT": "$(HOST_PLATFORM)",
+                                    "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
 
-                                // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
-                                "TOOLCHAINS": "swift",
-                                // We still want to use the default clang since that is used to gate the test
-                                "CC": defaultClangPath.str,
-                            ])],
+                                    // Temporarily override to use the latest toolchain in CI because we depend on swift and swift-driver changes which aren't in the baseline tools yet
+                                    "TOOLCHAINS": "swift",
+                                    // We still want to use the default clang since that is used to gate the test
+                                    "CC": defaultClangPath.str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "TargetA",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["Swift.swift", "ObjC.m"]),
-                                ]),
-                        ]),
-                ])
+                                    TestSourcesBuildPhase(["Swift.swift", "ObjC.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             let swiftSourcePath = testWorkspace.sourceRoot.join("Project/Swift.swift")
             try await tester.fs.writeFileContents(swiftSourcePath) { stream in
-                stream <<<
-            """
-            import Foundation
-            """
+                stream <<< """
+                    import Foundation
+                    """
             }
 
             let objcSourcePath = testWorkspace.sourceRoot.join("Project/ObjC.m")
             try await tester.fs.writeFileContents(objcSourcePath) { stream in
-                stream <<<
-            """
-            #include <CoreFoundation/CoreFoundation.h>
+                stream <<< """
+                    #include <CoreFoundation/CoreFoundation.h>
 
-            void objcFunction(void) { }
-            """
+                    void objcFunction(void) { }
+                    """
             }
 
             let projectXCConfigPath = testWorkspace.sourceRoot.join("Project/Project.xcconfig")
             try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
-                stream <<<
-            """
-            MODULE_DEPENDENCIES[target=TargetA] = CoreFoundation Foundation AppKit UIKit?
-            """
+                stream <<< """
+                    MODULE_DEPENDENCIES[target=TargetA] = CoreFoundation Foundation AppKit UIKit?
+                    """
             }
 
             let target = try #require(tester.workspace.projects.only?.targets.first { $0.name == "TargetA" })

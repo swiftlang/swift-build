@@ -21,7 +21,6 @@ public protocol TaskValidityCriteria: Sendable {
     func isValid(_ task: any PlannedTask, _ context: any TaskValidationContext) -> Bool
 }
 
-
 /// A task validation context exposes information a task needs to determine whether it should be included in the build.
 public protocol TaskValidationContext: AnyObject {
     /// The set of paths which have been declared as inputs to one or more tasks.

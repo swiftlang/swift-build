@@ -203,7 +203,7 @@ extension SWBRunDestinationInfo: _RunDestinationInfo {
 
 extension SWBBuildService {
     /// Overload of `createSession` which supplies an inferior products path.
-    package func createSession(name: String, developerPath: String? = nil, cachePath: String?, environment: [String:String] = [:]) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
+    package func createSession(name: String, developerPath: String? = nil, cachePath: String?, environment: [String: String] = [:]) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
         return await createSession(name: name, developerPath: developerPath, cachePath: cachePath, inferiorProductsPath: Core.inferiorProductsPath()?.str, environment: environment)
     }
 }
@@ -216,7 +216,8 @@ extension SWBBuildServiceSession {
             enableBuildSystemCaching: userPreferences.enableBuildSystemCaching,
             activityTextShorteningLevel: userPreferences.activityTextShorteningLevel.rawValue,
             usePerConfigurationBuildLocations: userPreferences.usePerConfigurationBuildLocations,
-            allowsExternalToolExecution: userPreferences.allowsExternalToolExecution)
+            allowsExternalToolExecution: userPreferences.allowsExternalToolExecution
+        )
     }
 
     package func generateIndexingFileSettings(for request: SWBBuildRequest, targetID: String, delegate: any SWBIndexingDelegate) async throws -> SWBIndexingFileSettings {
@@ -228,7 +229,8 @@ extension SWBSystemInfo {
     package static let defaultForTesting = Self(
         operatingSystemVersion: OperatingSystemVersion(majorVersion: 99, minorVersion: 99, patchVersion: 0),
         productBuildVersion: "99A1",
-        nativeArchitecture: "x86_64")
+        nativeArchitecture: "x86_64"
+    )
 }
 
 extension SWBUserInfo {
@@ -236,14 +238,14 @@ extension SWBUserInfo {
         var env: [String: String] = [:]
         let homeDirectory: String
         #if os(Windows)
-        homeDirectory = "C:\\Users\\exampleUser"
-        env = ["PATH": "FOO;BAR;BAZ"]
-        if let vcToolsInstallDir = getEnvironmentVariable("VCToolsInstallDir") {
-            env["VCToolsInstallDir"] = vcToolsInstallDir
-        }
+            homeDirectory = "C:\\Users\\exampleUser"
+            env = ["PATH": "FOO;BAR;BAZ"]
+            if let vcToolsInstallDir = getEnvironmentVariable("VCToolsInstallDir") {
+                env["VCToolsInstallDir"] = vcToolsInstallDir
+            }
         #else
-        homeDirectory = "/Users/exampleUser"
-        env = ["PATH": "FOO:BAR:BAZ"]
+            homeDirectory = "/Users/exampleUser"
+            env = ["PATH": "FOO:BAR:BAZ"]
         #endif
         return Self(
             userName: "exampleUser",
@@ -252,7 +254,8 @@ extension SWBUserInfo {
             gid: 5678,
             homeDirectory: homeDirectory,
             processEnvironment: env,
-            buildSystemEnvironment: env)
+            buildSystemEnvironment: env
+        )
     }()
 }
 
@@ -281,7 +284,7 @@ extension SWBPropertyListItem {
         case let .plDouble(value):
             self = .plDouble(value)
         case let .plArray(value):
-            self = try .plArray(value.map { try .init($0 ) })
+            self = try .plArray(value.map { try .init($0) })
         case let .plDict(value):
             self = try .plDict(value.mapValues { try .init($0) })
         case let .plOpaque(value):

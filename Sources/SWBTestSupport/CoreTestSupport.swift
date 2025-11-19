@@ -18,13 +18,13 @@ import SWBTaskExecution
 import SWBServiceCore
 
 #if USE_STATIC_PLUGIN_INITIALIZATION
-private import SWBAndroidPlatform
-private import SWBApplePlatform
-private import SWBGenericUnixPlatform
-private import SWBQNXPlatform
-private import SWBUniversalPlatform
-private import SWBWebAssemblyPlatform
-private import SWBWindowsPlatform
+    private import SWBAndroidPlatform
+    private import SWBApplePlatform
+    private import SWBGenericUnixPlatform
+    private import SWBQNXPlatform
+    private import SWBUniversalPlatform
+    private import SWBWebAssemblyPlatform
+    private import SWBWindowsPlatform
 #endif
 
 /// Testing endpoints
@@ -47,7 +47,7 @@ extension Core {
     /// Get an initialized Core suitable for testing.
     ///
     /// This function requires there to be no errors during loading the core.
-    package static func createInitializedTestingCore(skipLoadingPluginsNamed: Set<String>, registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String:String] = [:], delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil) async throws -> Core {
+    package static func createInitializedTestingCore(skipLoadingPluginsNamed: Set<String>, registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void, simulatedInferiorProductsPath: Path? = nil, environment: [String: String] = [:], delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil) async throws -> Core {
         // When this code is being loaded directly via unit tests, find the running Xcode path.
         //
         // This is a "well known" launch parameter set in Xcode's schemes.
@@ -145,17 +145,17 @@ extension Core {
             // This MUST be a compile-time check because the module dependencies on the plugins are conditional.
             // Minimize the amount of code that is conditionally compiled to avoid breaking the build during refactoring.
             #if USE_STATIC_PLUGIN_INITIALIZATION
-            staticPluginInitializers = [
-                "Android": SWBAndroidPlatform.initializePlugin,
-                "Apple": SWBApplePlatform.initializePlugin,
-                "GenericUnix": SWBGenericUnixPlatform.initializePlugin,
-                "QNX": SWBQNXPlatform.initializePlugin,
-                "Universal": SWBUniversalPlatform.initializePlugin,
-                "WebAssembly": SWBWebAssemblyPlatform.initializePlugin,
-                "Windows": SWBWindowsPlatform.initializePlugin,
-            ]
+                staticPluginInitializers = [
+                    "Android": SWBAndroidPlatform.initializePlugin,
+                    "Apple": SWBApplePlatform.initializePlugin,
+                    "GenericUnix": SWBGenericUnixPlatform.initializePlugin,
+                    "QNX": SWBQNXPlatform.initializePlugin,
+                    "Universal": SWBUniversalPlatform.initializePlugin,
+                    "WebAssembly": SWBWebAssemblyPlatform.initializePlugin,
+                    "Windows": SWBWindowsPlatform.initializePlugin,
+                ]
             #else
-            staticPluginInitializers = [:]
+                staticPluginInitializers = [:]
             #endif
 
             if useStaticPluginInitialization {

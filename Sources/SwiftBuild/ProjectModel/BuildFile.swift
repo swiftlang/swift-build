@@ -79,7 +79,6 @@ extension ProjectModel {
     }
 }
 
-
 extension ProjectModel.BuildFile: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -127,5 +126,3 @@ extension ProjectModel.BuildFile: Codable {
         case targetReference
     }
 }
-
-

@@ -34,15 +34,11 @@ final class InfoPlistTaskProducer: PhasedTaskProducer, TaskProducer {
     }
 }
 
-
 // MARK: Product Type Extensions
 
-
-private extension ProductTypeSpec
-{
+private extension ProductTypeSpec {
     /// Add the Info.plist tasks required by the product.
-    func addInfoPlistTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async
-    {
+    func addInfoPlistTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         // FIXME: We cannot yet use inheritance based mechanisms to implement this.
         switch self
         {
@@ -106,10 +102,8 @@ private extension ProductTypeSpec
     }
 }
 
-private extension BundleProductTypeSpec
-{
-    func archForUIRequiredDeviceCapabilities(_ scope: MacroEvaluationScope) -> String?
-    {
+private extension BundleProductTypeSpec {
+    func archForUIRequiredDeviceCapabilities(_ scope: MacroEvaluationScope) -> String? {
         // <rdar://problem/20364499> BUILD: Set appropriate build/Info.plist flags for apps building arm64 only
         // <rdar://problem/22810408> Xcode does not include UIRequiredDeviceCapabilities key in an extension of tvOS app
 
@@ -136,7 +130,7 @@ private extension BundleProductTypeSpec
         case "appletvos":
             let validIdentifiers = Set([
                 "com.apple.product-type.application",
-                "com.apple.product-type.tv-app-extension"
+                "com.apple.product-type.tv-app-extension",
             ])
 
             return validIdentifiers.contains(identifier) ? requiredArch : nil
@@ -145,8 +139,7 @@ private extension BundleProductTypeSpec
         }
     }
 
-    func addBundleInfoPlistTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async
-    {
+    func addBundleInfoPlistTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         let context = producer.context
 
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
@@ -173,7 +166,7 @@ private extension BundleProductTypeSpec
             let targetBuildDirPkginfoPath: Path?
             if scope.evaluate(BuiltinMacros.GENERATE_PKGINFO_FILE) && !pkginfoPath.isEmpty && !scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
                 targetBuildDirPkginfoPath = targetBuildDir.join(pkginfoPath)
-            }  else {
+            } else {
                 targetBuildDirPkginfoPath = nil
             }
 
@@ -226,42 +219,34 @@ private extension BundleProductTypeSpec
     }
 }
 
-
-private extension ToolProductTypeSpec
-{
-    func addToolInfoPlistTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async
-    {
+private extension ToolProductTypeSpec {
+    func addToolInfoPlistTasks(_ producer: StandardTaskProducer, _ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
         let context = producer.context
 
         // Only add Info.plist tasks when building.
         guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else { return }
 
         // Check if we are creating an Info.plist section for a tool.
-        if scope.evaluate(BuiltinMacros.CREATE_INFOPLIST_SECTION_IN_BINARY)
-        {
+        if scope.evaluate(BuiltinMacros.CREATE_INFOPLIST_SECTION_IN_BINARY) {
             // Process the Info.plist file, if used.
             let infoplistFile = scope.effectiveInputInfoPlistPath()
             let infoplistPath = scope.evaluate(BuiltinMacros.INFOPLIST_PATH)
-            if !infoplistFile.isEmpty
-            {
+            if !infoplistFile.isEmpty {
                 let rawPlistPath = context.makeAbsolute(infoplistFile)
 
                 // Create the "empty.plist" file, if needed.
                 await addCreateEmptyInfoPlistTaskIfNeeded(producer, scope, &tasks)
 
                 // Create the processed output.  This is done per-variant-per-arch since there may be content in the source which varies based on those factors.  And each such slice of the final tool ends up with a separate final Info.plist embedded in it.
-                for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
-                {
+                for variant in scope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                    for arch in scope.evaluate(BuiltinMacros.ARCHS)
-                    {
+                    for arch in scope.evaluate(BuiltinMacros.ARCHS) {
                         let scope = scope.subscopeBindingArchAndTriple(arch: arch)
 
                         // Preprocess the file, if requested.
                         let preprocessedPlistPath = await addInfoPlistPreprocessTaskIfNeeded(rawPlistPath, basename: infoplistPath.basename, producer, scope, &tasks) ?? rawPlistPath
 
-                        await producer.appendGeneratedTasks(&tasks)
-                        { delegate in
+                        await producer.appendGeneratedTasks(&tasks) { delegate in
                             await context.infoPlistSpec.constructInfoPlistTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: preprocessedPlistPath)], output: scope.evaluate(BuiltinMacros.PROCESSED_INFOPLIST_PATH)), delegate)
                         }
                     }

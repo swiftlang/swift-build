@@ -35,14 +35,16 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("a.c"),
                                 TestFile("b.c"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "CODE_SIGNING_ALLOWED": "NO",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -52,11 +54,13 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                     TestSourcesBuildPhase([
                                         "a.c",
                                         "b.c",
-                                    ]),
+                                    ])
                                 ]
-                            ),
-                        ])
-                ])
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.c")) {
@@ -90,7 +94,8 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("a.swift"),
                                 TestFile("b.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -98,7 +103,8 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                     "CODE_SIGNING_ALLOWED": "NO",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": try await swiftVersion,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -106,14 +112,14 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                 type: .commandLineTool,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "b.swift",
+                                        "b.swift"
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "Library.objlib"
-                                    ])
+                                    ]),
                                 ],
                                 dependencies: [
-                                    "Library",
+                                    "Library"
                                 ]
                             ),
                             TestStandardTarget(
@@ -121,39 +127,41 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                 type: .objectLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "a.swift",
-                                    ]),
+                                        "a.swift"
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.swift")) {
                 $0 <<< """
-                    public struct Foo {
-                        public var x: Int
+                        public struct Foo {
+                            public var x: Int
 
-                        public init(x: Int) {
-                            self.x = x
+                            public init(x: Int) {
+                                self.x = x
+                            }
                         }
-                    }
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/b.swift")) {
                 $0 <<< """
-                    import Library
+                        import Library
 
-                    @main
-                    struct Entry {
-                        static func main() {
-                            let f = Foo(x: 42)
-                            print(f)
+                        @main
+                        struct Entry {
+                            static func main() {
+                                let f = Foo(x: 42)
+                                print(f)
+                            }
                         }
-                    }
 
-                """
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host) { results in
@@ -177,7 +185,8 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("a.swift"),
                                 TestFile("b.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -186,7 +195,8 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": try await swiftVersion,
                                     "LIBTOOL_USE_RESPONSE_FILE": "NO",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -194,14 +204,14 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                 type: .staticLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "b.swift",
+                                        "b.swift"
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "Library.objlib"
-                                    ])
+                                    ]),
                                 ],
                                 dependencies: [
-                                    "Library",
+                                    "Library"
                                 ]
                             ),
                             TestStandardTarget(
@@ -209,39 +219,41 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                 type: .objectLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "a.swift",
-                                    ]),
+                                        "a.swift"
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.swift")) {
                 $0 <<< """
-                    public struct Foo {
-                        public var x: Int
+                        public struct Foo {
+                            public var x: Int
 
-                        public init(x: Int) {
-                            self.x = x
+                            public init(x: Int) {
+                                self.x = x
+                            }
                         }
-                    }
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/b.swift")) {
                 $0 <<< """
-                    import Library
+                        import Library
 
-                    @main
-                    struct Entry {
-                        static func main() {
-                            let f = Foo(x: 42)
-                            print(f)
+                        @main
+                        struct Entry {
+                            static func main() {
+                                let f = Foo(x: 42)
+                                print(f)
+                            }
                         }
-                    }
 
-                """
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host) { results in
@@ -265,7 +277,8 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("a.swift"),
                                 TestFile("b.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -273,7 +286,8 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                     "CODE_SIGNING_ALLOWED": "NO",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": try await swiftVersion,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -281,14 +295,14 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                 type: .commandLineTool,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "b.swift",
+                                        "b.swift"
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "Library.objlib"
-                                    ])
+                                    ]),
                                 ],
                                 dependencies: [
-                                    "Library",
+                                    "Library"
                                 ]
                             ),
                             TestStandardTarget(
@@ -296,39 +310,41 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
                                 type: .objectLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "a.swift",
-                                    ]),
+                                        "a.swift"
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.swift")) {
                 $0 <<< """
-                    public struct Foo {
-                        public var x: Int
+                        public struct Foo {
+                            public var x: Int
 
-                        public init(x: Int) {
-                            self.x = x
+                            public init(x: Int) {
+                                self.x = x
+                            }
                         }
-                    }
-                """
+                    """
             }
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/b.swift")) {
                 $0 <<< """
-                    import Library
+                        import Library
 
-                    @main
-                    struct Entry {
-                        static func main() {
-                            let f = Foo(x: 42)
-                            print(f)
+                        @main
+                        struct Entry {
+                            static func main() {
+                                let f = Foo(x: 42)
+                                print(f)
+                            }
                         }
-                    }
 
-                """
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in
@@ -339,15 +355,15 @@ fileprivate struct ObjectLibraryBuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/a.swift")) {
                 $0 <<< """
-                    public struct Foo {
-                        public var x: Int
+                        public struct Foo {
+                            public var x: Int
 
-                        public init(x: Int) {
-                            print("hello, world!")
-                            self.x = x
+                            public init(x: Int) {
+                                print("hello, world!")
+                                self.x = x
+                            }
                         }
-                    }
-                """
+                    """
             }
 
             try await tester.checkBuild(runDestination: .host, persistent: true) { results in

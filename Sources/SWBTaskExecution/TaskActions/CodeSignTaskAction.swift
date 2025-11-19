@@ -14,14 +14,12 @@ public import SWBCore
 public import SWBUtil
 import Foundation
 
-
 public final class CodeSignTaskAction: TaskAction {
     public override class var toolIdentifier: String {
         "code-sign-task"
     }
 
-    public override init()
-    {
+    public override init() {
         super.init()
     }
 
@@ -51,14 +49,11 @@ public final class CodeSignTaskAction: TaskAction {
 
     // Serialization
 
-
-    public override func serialize<T: Serializer>(to serializer: T)
-    {
+    public override func serialize<T: Serializer>(to serializer: T) {
         super.serialize(to: serializer)
     }
 
-    public required init(from deserializer: any Deserializer) throws
-    {
+    public required init(from deserializer: any Deserializer) throws {
         try super.init(from: deserializer)
     }
 }

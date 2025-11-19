@@ -34,7 +34,7 @@ public final class StatisticsGroup: Sendable {
     ///
     /// This is useful when using statistics to probe program behavior from within tests, and the test can guarantee no concurrent access.
     public func zero() {
-        _statistics.withLock { $0.forEach{ $0.zero() } }
+        _statistics.withLock { $0.forEach { $0.zero() } }
     }
 }
 
@@ -83,7 +83,7 @@ public let allStatistics = StatisticsGroup("swift-build")
 
 // MARK: Utilities
 
-public func +=(statistic: Statistic, rhs: Int = 1) {
+public func += (statistic: Statistic, rhs: Int = 1) {
     statistic.increment(rhs)
 }
 

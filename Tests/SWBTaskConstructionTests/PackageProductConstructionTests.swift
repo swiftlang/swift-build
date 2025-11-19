@@ -32,17 +32,23 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.c"),
                     TestFile("d.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "LIBTOOL": libtoolPath.str,
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO"]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "LIBTOOL": libtoolPath.str,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Tool", type: .commandLineTool,
+                    "Tool",
+                    type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"]),
                         TestFrameworksBuildPhase([
@@ -54,20 +60,25 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                             TestBuildFile(.target("OtherPackageProduct")),
                             // Add a package which has transitive references through a static library.
                             TestBuildFile(.target("PackageProductWithTransitiveRefs")),
-                            "libEND.a"]),
+                            "libEND.a",
+                        ]),
                     ],
                     dependencies: [
                         "SomePackageProduct",
                         "SwiftyJSON",
                         "PackageProductWithTransitiveRefs",
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
-                    "D", type: .staticLibrary,
+                    "D",
+                    type: .staticLibrary,
                     buildConfigurations: [],
                     buildPhases: [
                         TestSourcesBuildPhase(["d.c"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let testPackage = try await TestPackageProject(
             "Package",
             groupTree: TestGroup(
@@ -76,30 +87,41 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     TestFile("foo.c"),
                     TestFile("libBEGIN.a"),
                     TestFile("libEND.a"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "LIBTOOL": libtoolPath.str,
-                    "CODE_SIGN_IDENTITY": "",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO"]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "LIBTOOL": libtoolPath.str,
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestPackageProductTarget(
                     "SomePackageProduct",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("A"))]),
-                    dependencies: ["A"]),
+                        TestBuildFile(.target("A"))
+                    ]),
+                    dependencies: ["A"]
+                ),
                 TestPackageProductTarget(
                     "OtherPackageProduct",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("A"))]),
-                    dependencies: ["A"]),
+                        TestBuildFile(.target("A"))
+                    ]),
+                    dependencies: ["A"]
+                ),
                 TestPackageProductTarget(
                     "NestedPackagedProduct",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("B"))]),
-                    dependencies: ["B"]),
+                        TestBuildFile(.target("B"))
+                    ]),
+                    dependencies: ["B"]
+                ),
                 TestPackageProductTarget(
                     "PackageProductWithTransitiveRefs",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
@@ -110,42 +132,62 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                         // This is a static library which should also add more transitive refs.
                         TestBuildFile(.target("C")),
                         // This is an object file which should also add more transitive refs.
-                        TestBuildFile(.target("E"))]),
-                    dependencies: ["SomePackageProduct", "NestedPackageProduct", "C", "E"]),
+                        TestBuildFile(.target("E")),
+                    ]),
+                    dependencies: ["SomePackageProduct", "NestedPackageProduct", "C", "E"]
+                ),
                 TestStandardTarget(
-                    "A", type: .staticLibrary,
-                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                    "A",
+                    type: .staticLibrary,
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                ),
                 TestStandardTarget(
-                    "B", type: .staticLibrary,
-                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                    "B",
+                    type: .staticLibrary,
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                ),
                 TestStandardTarget(
-                    "C", type: .staticLibrary,
+                    "C",
+                    type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["foo.c"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("C_Impl"))])],
-                    dependencies: ["C_Impl"]),
+                            TestBuildFile(.target("C_Impl"))
+                        ]),
+                    ],
+                    dependencies: ["C_Impl"]
+                ),
                 TestStandardTarget(
-                    "C_Impl", type: .staticLibrary,
-                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                    "C_Impl",
+                    type: .staticLibrary,
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                ),
                 TestPackageProductTarget(
                     "SwiftyJSON",
                     frameworksBuildPhase: TestFrameworksBuildPhase([]),
                     buildConfigurations: [],
-                    dependencies: ["D"]),
+                    dependencies: ["D"]
+                ),
                 TestStandardTarget(
-                    "E", type: .objectFile,
+                    "E",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("F"))])
-                    ], dependencies: ["F"]),
+                            TestBuildFile(.target("F"))
+                        ]),
+                    ],
+                    dependencies: ["F"]
+                ),
                 TestStandardTarget(
-                    "F", type: .objectFile,
+                    "F",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["foo.c"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject, testPackage])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
@@ -171,80 +213,100 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("Utility.swift"),
-                ]),
+                    TestFile("Utility.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
                     "ALL",
-                    dependencies: ["DynamicUtility", "DynamicJSON"]),
+                    dependencies: ["DynamicUtility", "DynamicJSON"]
+                ),
 
                 TestStandardTarget(
-                    "DynamicUtility", type: .dynamicLibrary,
+                    "DynamicUtility",
+                    type: .dynamicLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([
                             TestBuildFile(.target("Utility"))
                         ]),
                     ],
-                    dependencies: ["Utility"]),
+                    dependencies: ["Utility"]
+                ),
 
                 TestStandardTarget(
-                    "DynamicJSON", type: .dynamicLibrary,
+                    "DynamicJSON",
+                    type: .dynamicLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("PackageProduct::SwiftyJSON")),
+                            TestBuildFile(.target("PackageProduct::SwiftyJSON"))
                         ]),
                     ],
                     dependencies: [
-                        "PackageProduct::SwiftyJSON",
-                    ]),
+                        "PackageProduct::SwiftyJSON"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "Utility", type: .objectFile,
+                    "Utility",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["Utility.swift"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let testPackage = try await TestPackageProject(
             "Package",
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("SwiftyJSON.swift"),
-                ]),
+                    TestFile("SwiftyJSON.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestPackageProductTarget(
                     "PackageProduct::SwiftyJSON",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("SwiftyJSON"))]),
-                    dependencies: ["SwiftyJSON"]),
+                        TestBuildFile(.target("SwiftyJSON"))
+                    ]),
+                    dependencies: ["SwiftyJSON"]
+                ),
 
                 TestStandardTarget(
-                    "SwiftyJSON", type: .objectFile,
+                    "SwiftyJSON",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["SwiftyJSON.swift"])
-                    ]),
+                    ]
+                ),
             ]
         )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject, testPackage])
@@ -267,11 +329,14 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
 
         // Check deployment build.
         try await withTemporaryDirectory { tmpDir in
-            let parameters = BuildParameters(configuration: "Debug", overrides: [
-                "DSTROOT": tmpDir.join("dst").str,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "DSTROOT": tmpDir.join("dst").str,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                ]
+            )
 
             await tester.checkBuild(parameters, runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
@@ -317,44 +382,58 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     TestGroup(
                         "clib",
                         children: [
-                            TestFile("clib.h"),
-                        ]),
-                ]),
+                            TestFile("clib.h")
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO"]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "tool", type: .commandLineTool,
+                    "tool",
+                    type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("clib")),
+                            TestBuildFile(.target("clib"))
                         ]),
                     ],
                     dependencies: [
-                        "clib",
-                    ]),
+                        "clib"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "clib", type: .objectFile,
+                    "clib",
+                    type: .objectFile,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "MODULEMAP_FILE_CONTENTS": "foo",
-                            "MODULEMAP_PATH": "$(BUILT_PRODUCTS_DIR)/somewhere/test.modulemap",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "MODULEMAP_FILE_CONTENTS": "foo",
+                                "MODULEMAP_PATH": "$(BUILT_PRODUCTS_DIR)/somewhere/test.modulemap",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["clib.c"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -364,7 +443,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     #expect(contents == "foo")
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("test.modulemap")) { task in
-                    #expect(task.outputs.map{$0.path.str} == ["/tmp/Test/aProject/build/Debug/somewhere/test.modulemap"])
+                    #expect(task.outputs.map { $0.path.str } == ["/tmp/Test/aProject/build/Debug/somewhere/test.modulemap"])
                 }
             }
         }
@@ -377,65 +456,83 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("main.swift"),
-                ]),
+                    TestFile("main.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "tool", type: .commandLineTool,
+                    "tool",
+                    type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("SwiftyJSON")),
+                            TestBuildFile(.target("SwiftyJSON"))
                         ]),
                     ],
                     dependencies: [
-                        "SwiftyJSON",
-                    ]),
-            ])
+                        "SwiftyJSON"
+                    ]
+                )
+            ]
+        )
         let testPackage = try await TestPackageProject(
             "Package",
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("SwiftyJSON.swift"),
-                ]),
+                    TestFile("SwiftyJSON.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestPackageProductTarget(
                     "SwiftyJSON",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("PACKAGE::SwiftyJSON"))]),
+                        TestBuildFile(.target("PACKAGE::SwiftyJSON"))
+                    ]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "USES_SWIFTPM_UNSAFE_FLAGS": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "USES_SWIFTPM_UNSAFE_FLAGS": "YES"
+                            ]
+                        )
                     ],
-                    dependencies: ["PACKAGE::SwiftyJSON"]),
+                    dependencies: ["PACKAGE::SwiftyJSON"]
+                ),
 
                 TestStandardTarget(
-                    "PACKAGE::SwiftyJSON", type: .objectFile,
+                    "PACKAGE::SwiftyJSON",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["SwiftyJSON.swift"])
-                    ]),
+                    ]
+                ),
             ]
         )
         let testWorkspace = TestWorkspace("Test", projects: [testProject, testPackage])
@@ -455,50 +552,65 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SwiftyJSON.swift"),
                     TestFile("SwiftyJSONTests.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "CODE_SIGN_IDENTITY": "",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                    "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
-                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "MACOSX_DEPLOYMENT_TARGET": "10.15",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "SwiftJSONTests", type: .unitTest,
+                    "SwiftJSONTests",
+                    type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "BUNDLE_LOADER[sdk=macosx*]": "$(BUILT_PRODUCTS_DIR)/SwiftyJSON.app/Contents/MacOS/SwiftyJSON",
-                            "BUNDLE_LOADER": "$(BUILT_PRODUCTS_DIR)/SwiftyJSON.app/SwiftyJSON",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "BUNDLE_LOADER[sdk=macosx*]": "$(BUILT_PRODUCTS_DIR)/SwiftyJSON.app/Contents/MacOS/SwiftyJSON",
+                                "BUNDLE_LOADER": "$(BUILT_PRODUCTS_DIR)/SwiftyJSON.app/SwiftyJSON",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SwiftyJSONTests.swift"]),
+                        TestSourcesBuildPhase(["SwiftyJSONTests.swift"])
                     ],
                     dependencies: [
-                        "SwiftyJSON",
-                    ]),
+                        "SwiftyJSON"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "SwiftyJSON", type: .application,
+                    "SwiftyJSON",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
-                            "OTHER_SWIFT_FLAGS": "-Isome/path",
-                        ]))
+                        TestBuildConfiguration(
+                            "Debug",
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "OTHER_SWIFT_FLAGS": "-Isome/path"
+                            ])
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SwiftyJSON.swift"]),
-                    ]),
-            ])
+                        TestSourcesBuildPhase(["SwiftyJSON.swift"])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for destination in [RunDestinationInfo.iOS, .macOS, .macCatalyst] {
@@ -536,80 +648,104 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SwiftyJSON.swift"),
                     TestFile("fmwk.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "ENTITLEMENTS_REQUIRED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "SUPPORTS_MACCATALYST": "YES",
-                    "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "ENTITLEMENTS_REQUIRED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "SUPPORTS_MACCATALYST": "YES",
+                        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "fmwk", type: .framework,
+                    "fmwk",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MACOSX_DEPLOYMENT_TARGET": "10.13",
-                            "IPHONEOS_DEPLOYMENT_TARGET": "13.0", // NOTE: *effective* deployment target is clamped to 13.1 for Mac Catalyst
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MACOSX_DEPLOYMENT_TARGET": "10.13",
+                                "IPHONEOS_DEPLOYMENT_TARGET": "13.0",  // NOTE: *effective* deployment target is clamped to 13.1 for Mac Catalyst
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["fmwk.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("SwiftyJSON")),
+                            TestBuildFile(.target("SwiftyJSON"))
                         ]),
                     ],
                     dependencies: [
                         "SwiftyJSON",
-                        "SwiftyJSONImpl"
-                    ]),
+                        "SwiftyJSONImpl",
+                    ]
+                ),
 
                 TestPackageProductTarget(
                     "SwiftyJSON",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("PACKAGE::SwiftyJSON"))]),
+                        TestBuildFile(.target("PACKAGE::SwiftyJSON"))
+                    ]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MACOSX_DEPLOYMENT_TARGET": "10.14",
-                            "IPHONEOS_DEPLOYMENT_TARGET": "13.2",
-                            "SDKROOT": "auto",
-                            "SDK_VARIANT": "auto",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MACOSX_DEPLOYMENT_TARGET": "10.14",
+                                "IPHONEOS_DEPLOYMENT_TARGET": "13.2",
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                            ]
+                        )
                     ],
-                    dependencies: ["PACKAGE::SwiftyJSON"]),
+                    dependencies: ["PACKAGE::SwiftyJSON"]
+                ),
 
                 TestStandardTarget(
-                    "PACKAGE::SwiftyJSON", type: .objectFile,
+                    "PACKAGE::SwiftyJSON",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["SwiftyJSON.swift"])
-                    ]),
+                    ]
+                ),
 
                 TestPackageProductTarget(
                     "SwiftyJSONImpl",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("PACKAGE::SwiftyJSONImpl"))]),
+                        TestBuildFile(.target("PACKAGE::SwiftyJSONImpl"))
+                    ]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MACOSX_DEPLOYMENT_TARGET": "11.0",
-                            "IPHONEOS_DEPLOYMENT_TARGET": "13.2",
-                            "SDKROOT": "auto",
-                            "SDK_VARIANT": "auto",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MACOSX_DEPLOYMENT_TARGET": "11.0",
+                                "IPHONEOS_DEPLOYMENT_TARGET": "13.2",
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                            ]
+                        )
                     ],
-                    dependencies: ["PACKAGE::SwiftyJSONImpl"]),
+                    dependencies: ["PACKAGE::SwiftyJSONImpl"]
+                ),
 
                 TestStandardTarget(
-                    "PACKAGE::SwiftyJSONImpl", type: .objectFile,
+                    "PACKAGE::SwiftyJSONImpl",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["SwiftyJSON.swift"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -637,21 +773,32 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         }
     }
 
-    func commandLineDynamicLibraryTarget(name: String, buildSettings: [String:String]) -> TestStandardTarget {
+    func commandLineDynamicLibraryTarget(name: String, buildSettings: [String: String]) -> TestStandardTarget {
         TestStandardTarget(
             name,
-            type: .dynamicLibrary, // we need to choose a product type that is supported on all platforms; so tool, for example, doesn't work
-            buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": name,
-                                                                                   "ONLY_ACTIVE_ARCH": "YES",
-                                                                                   "USE_HEADERMAP": "NO",
-                                                                                   "CODE_SIGN_IDENTITY": "",
-                                                                                   "ENTITLEMENTS_REQUIRED": "NO",
-                                                                                  ].merging(buildSettings, uniquingKeysWith: { a, _ in
-                                                                                      Issue.record("should not be reached")
-                                                                                      return a
-                                                                                  })) ],
-            buildPhases: [ TestSourcesBuildPhase(["best.c"]),
-                           TestFrameworksBuildPhase([TestBuildFile("PackageLib.o")]) ],
+            type: .dynamicLibrary,  // we need to choose a product type that is supported on all platforms; so tool, for example, doesn't work
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": name,
+                        "ONLY_ACTIVE_ARCH": "YES",
+                        "USE_HEADERMAP": "NO",
+                        "CODE_SIGN_IDENTITY": "",
+                        "ENTITLEMENTS_REQUIRED": "NO",
+                    ].merging(
+                        buildSettings,
+                        uniquingKeysWith: { a, _ in
+                            Issue.record("should not be reached")
+                            return a
+                        }
+                    )
+                )
+            ],
+            buildPhases: [
+                TestSourcesBuildPhase(["best.c"]),
+                TestFrameworksBuildPhase([TestBuildFile("PackageLib.o")]),
+            ],
             dependencies: ["PackageLibProduct"]
         )
     }
@@ -674,7 +821,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
     func packageProductReferences() async throws {
         let core = try await getCore()
         let allPlatforms = core.platformRegistry.platforms.filter { !$0.isSimulator && core.sdkRegistry.lookup($0.name) != nil && $0.name != "none" }
-        #expect(allPlatforms.count > 0) // ensure we don't just pass this test because we somehow ended up with no platforms
+        #expect(allPlatforms.count > 0)  // ensure we don't just pass this test because we somehow ended up with no platforms
         let targets = allPlatforms.map { $0.name }.map {
             commandLineDynamicLibraryTarget(name: "\($0)Lib", buildSettings: ["SDKROOT": $0])
         }
@@ -682,30 +829,46 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
         let almostAllTargets = targets + (macCatalystTarget.map { [$0] } ?? [])
         let allTargets = [TestAggregateTarget("ALL", dependencies: almostAllTargets.map { $0.name })] + almostAllTargets.map { $0 as (any TestTarget) }
 
-        let package = TestPackageProject("aPackage", groupTree: TestGroup("Package", children: [TestFile("test.c")]), targets: [
-            TestPackageProductTarget(
-                "PackageLibProduct",
-                frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+        let package = TestPackageProject(
+            "aPackage",
+            groupTree: TestGroup("Package", children: [TestFile("test.c")]),
+            targets: [
+                TestPackageProductTarget(
+                    "PackageLibProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PackageLib"))
                     ]),
-                ],
-                dependencies: ["PackageLib"]
-            ),
-            TestStandardTarget("PackageLib", type: .objectFile,
-                               buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: [
+                    buildConfigurations: [
+                        // Targets need to opt-in to specialization.
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ]
+                        )
+                    ],
+                    dependencies: ["PackageLib"]
+                ),
+                TestStandardTarget(
+                    "PackageLib",
+                    type: .objectFile,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
                                 "PRODUCT_NAME": "PackageLib",
                                 "SDKROOT": "auto",
                                 "SDK_VARIANT": "auto",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                               ]) ],
-                               buildPhases: [TestSourcesBuildPhase(["test.c"])])
-        ])
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["test.c"])]
+                ),
+            ]
+        )
 
         let workspace = TestWorkspace("Workspace", projects: [TestProject("aProject", groupTree: TestGroup("SomeFiles", children: [TestFile("best.c")]), targets: allTargets), package])
         let tester = try await TaskConstructionTester(getCore(), workspace)
@@ -733,7 +896,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 if macCatalystTarget != nil {
                     // Check package got specialized correctly for MacCatalyst.
                     guard let input = findInput(for: "MacCatalystLib.dylib", in: tasks) else {
-                        return // `findInput()` will already error if there's no matching task or input
+                        return  // `findInput()` will already error if there's no matching task or input
                     }
                     #expect(input.path.str.hasSuffix("Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/PackageLib.o"), "incorrect linker input path for MacCatalyst: \(input.path.str)")
                 }
@@ -751,55 +914,69 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     TestFile("SwiftyJSON.swift"),
                     TestFile("SwiftyJSONTests.swift"),
                     TestFile("Network.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "SwiftyJSONTests", type: .unitTest,
+                    "SwiftyJSONTests",
+                    type: .unitTest,
                     buildPhases: [
                         TestSourcesBuildPhase(["SwiftyJSONTests.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("Network")),
+                            TestBuildFile(.target("Network"))
                         ]),
                     ],
                     dependencies: [
                         "SwiftyJSON",
                         "Network",
-                    ]),
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "SwiftyJSON", type: .application,
+                    "SwiftyJSON",
+                    type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase(["SwiftyJSON.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("Network")),
+                            TestBuildFile(.target("Network"))
                         ]),
                     ],
                     dependencies: [
-                        "Network",
-                    ]),
+                        "Network"
+                    ]
+                ),
                 TestStandardTarget(
-                    "Network", type: .framework,
+                    "Network",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
-                            "OTHER_SWIFT_FLAGS": "-Isome/path",
-                        ])),
+                        TestBuildConfiguration(
+                            "Debug",
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "OTHER_SWIFT_FLAGS": "-Isome/path"
+                            ])
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["Network.swift"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -824,31 +1001,42 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("foo.swift"),
-                ]),
+                    TestFile("foo.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "DEFINES_MODULE": "YES",
-                    "USE_HEADERMAP": "NO"]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "DEFINES_MODULE": "YES",
+                        "USE_HEADERMAP": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "foo", type: .objectFile,
+                    "foo",
+                    type: .objectFile,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MODULEMAP_FILE_CONTENTS": "foo",
-                            "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Foo-Swift.h",
-                            "MODULEMAP_PATH": "$(BUILT_PRODUCTS_DIR)/somewhere/test.modulemap",
-                            "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(BUILT_PRODUCTS_DIR)/somewhere",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MODULEMAP_FILE_CONTENTS": "foo",
+                                "SWIFT_OBJC_INTERFACE_HEADER_NAME": "Foo-Swift.h",
+                                "MODULEMAP_PATH": "$(BUILT_PRODUCTS_DIR)/somewhere/test.modulemap",
+                                "SWIFT_OBJC_INTERFACE_HEADER_DIR": "$(BUILT_PRODUCTS_DIR)/somewhere",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["foo.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -861,10 +1049,10 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 }
 
                 results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("test.modulemap")) { task in
-                    #expect(task.outputs.map{$0.path.str} == ["/tmp/Test/aProject/build/Debug/somewhere/test.modulemap"])
+                    #expect(task.outputs.map { $0.path.str } == ["/tmp/Test/aProject/build/Debug/somewhere/test.modulemap"])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("Foo-Swift.h")) { task in
-                    #expect(task.outputs.map{$0.path.str} == ["/tmp/Test/aProject/build/Debug/somewhere/Foo-Swift.h"])
+                    #expect(task.outputs.map { $0.path.str } == ["/tmp/Test/aProject/build/Debug/somewhere/Foo-Swift.h"])
                 }
 
                 // Make sure we don't get the unextended module VFS overlay and import underlying module for pure Swift target which wants to emit a modulemap using MODULEMAP_FILE_CONTENTS setting.
@@ -884,16 +1072,21 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.swift"),
                     TestFile("best.txt"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
-                    "USE_HEADERMAP": "NO"]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_EMBED_IN_CODE_ACCESSORS": "YES",
+                        "USE_HEADERMAP": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -903,7 +1096,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase(["main.swift"]),
                         TestCopyFilesBuildPhase([TestBuildFile(.file("best.txt"), resourceRule: .embedInCode)], destinationSubfolder: .builtProductsDir),
                     ]
-                ),
+                )
             ]
         )
         let tester = try await TaskConstructionTester(getCore(), testProject)
@@ -933,35 +1126,46 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     TestFile("main.swift"),
                     TestFile("main.m"),
                     TestFile("Assets.xcassets"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ASSETCATALOG_EXEC": "$(DEVELOPER_DIR)/usr/bin/actool",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "GENERATE_RESOURCE_ACCESSORS": "YES",
-                    "USE_HEADERMAP": "NO"]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ASSETCATALOG_EXEC": "$(DEVELOPER_DIR)/usr/bin/actool",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_RESOURCE_ACCESSORS": "YES",
+                        "USE_HEADERMAP": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
                     "ALL",
-                    dependencies: ["tool", "objctool",
-                                   "tool_without_resource_bundle_without_catalog",
-                                   "tool_without_resource_bundle_with_catalog"]
+                    dependencies: [
+                        "tool", "objctool",
+                        "tool_without_resource_bundle_without_catalog",
+                        "tool_without_resource_bundle_with_catalog",
+                    ]
                 ),
                 TestStandardTarget(
-                    "tool", type: .application,
+                    "tool",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
-                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "tool_resources",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                                "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "tool_resources",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
@@ -970,61 +1174,78 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     dependencies: ["mallory", "toolslib"]
                 ),
                 TestStandardTarget(
-                    "objctool", type: .commandLineTool,
+                    "objctool",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.m"]),
+                        TestSourcesBuildPhase(["main.m"])
                     ],
                     dependencies: ["mallory"]
                 ),
                 TestStandardTarget(
-                    "mallory", type: .bundle,
+                    "mallory",
+                    type: .bundle,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME":
-                                """
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "PACKAGE_RESOURCE_BUNDLE_NAME":
+                                    """
                                 "
                                 print("/etc/passwd")
                                 _ = "
                                 """,
-                        ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["main.swift"]),
+                        TestSourcesBuildPhase(["main.swift"])
                     ]
                 ),
                 TestStandardTarget(
-                    "toolslib", type: .dynamicLibrary,
+                    "toolslib",
+                    type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tools_resources",
-                        ], impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
-                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "$(inherited) tool_resources",
-                        ]))
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "PACKAGE_RESOURCE_BUNDLE_NAME": "tools_resources",
+                            ],
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "$(inherited) tool_resources"
+                            ])
+                        )
                     ]
                 ),
                 TestStandardTarget(
-                    "tool_without_resource_bundle_without_catalog", type: .application,
+                    "tool_without_resource_bundle_without_catalog",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_TARGET_KIND": "regular",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
@@ -1033,15 +1254,19 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     dependencies: ["mallory", "toolslib"]
                 ),
                 TestStandardTarget(
-                    "tool_without_resource_bundle_with_catalog", type: .application,
+                    "tool_without_resource_bundle_with_catalog",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "NO",
-                            "DEFINES_MODULE": "YES",
-                            "PACKAGE_RESOURCE_TARGET_KIND": "regular",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "NO",
+                                "DEFINES_MODULE": "YES",
+                                "PACKAGE_RESOURCE_TARGET_KIND": "regular",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
@@ -1050,7 +1275,8 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     ],
                     dependencies: ["mallory", "toolslib"]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -1113,26 +1339,31 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     TestFile("SwiftyJSON.swift"),
                     TestFile("app.swift"),
                     TestFile("appex.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                    "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
-                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "MACOSX_DEPLOYMENT_TARGET": "10.15",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "app", type: .application,
+                    "app",
+                    type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase(["app.swift"]),
                         TestFrameworksBuildPhase([
@@ -1142,10 +1373,12 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     dependencies: [
                         "appex",
                         "SwiftyJSON",
-                    ]),
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "appex", type: .applicationExtension,
+                    "appex",
+                    type: .applicationExtension,
                     buildPhases: [
                         TestSourcesBuildPhase(["appex.swift"]),
                         TestFrameworksBuildPhase([
@@ -1153,27 +1386,35 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                         ]),
                     ],
                     dependencies: [
-                        "SwiftyJSON",
-                    ]),
+                        "SwiftyJSON"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "SwiftyJSON", type: .objectFile,
+                    "SwiftyJSON",
+                    type: .objectFile,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
-                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "FOO",
-                        ])),
+                        TestBuildConfiguration(
+                            "Debug",
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "FOO"
+                            ])
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SwiftyJSON.swift"]),
+                        TestSourcesBuildPhase(["SwiftyJSON.swift"])
                     ],
                     dependencies: [
-                        "FOO",
-                    ]),
+                        "FOO"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "FOO", type: .bundle
+                    "FOO",
+                    type: .bundle
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -1201,56 +1442,76 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     TestFile("SwiftyJSON.swift"),
                     TestFile("CoreDataModel.xcdatamodeld"),
                     TestFile("CoreDataMapping.xcmappingmodel"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "MACOSX_DEPLOYMENT_TARGET": "10.15",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "SwiftyJSON", type: .objectFile,
+                    "SwiftyJSON",
+                    type: .objectFile,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PACKAGE_RESOURCE_TARGET_KIND": "regular",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PACKAGE_RESOURCE_TARGET_KIND": "regular"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SwiftyJSON.swift", "CoreDataModel.xcdatamodeld"]),
+                        TestSourcesBuildPhase(["SwiftyJSON.swift", "CoreDataModel.xcdatamodeld"])
                     ],
                     dependencies: [
-                        "SwiftyJSON_RESOURCES",
-                    ]),
-
-                TestStandardTarget(
-                    "SwiftyJSON_RESOURCES", type: .bundle,
-                    buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PACKAGE_RESOURCE_TARGET_KIND": "resource",
-                        ]),
-                    ],
-                    buildPhases: [
-                        TestResourcesBuildPhase(["CoreDataModel.xcdatamodeld", "CoreDataMapping.xcmappingmodel"]),
+                        "SwiftyJSON_RESOURCES"
                     ]
                 ),
-            ])
+
+                TestStandardTarget(
+                    "SwiftyJSON_RESOURCES",
+                    type: .bundle,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PACKAGE_RESOURCE_TARGET_KIND": "resource"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase(["CoreDataModel.xcdatamodeld", "CoreDataMapping.xcmappingmodel"])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         /// Client to generate files from the core data model.
         final class TestCoreDataCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "momc", let outputDir = commandLine.last.map(Path.init) {
-                    return .result(status: .exit(0), stdout: Data([
-                        outputDir.join("EntityOne+CoreDataClass.swift"),
-                        outputDir.join("EntityOne+CoreDataProperties.swift"),
-                    ].map { $0.str }.joined(separator: "\n").utf8), stderr: .init())
+                    return .result(
+                        status: .exit(0),
+                        stdout: Data(
+                            [
+                                outputDir.join("EntityOne+CoreDataClass.swift"),
+                                outputDir.join("EntityOne+CoreDataProperties.swift"),
+                            ].map { $0.str }.joined(separator: "\n").utf8
+                        ),
+                        stderr: .init()
+                    )
                 }
                 return try await super.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment)
             }
@@ -1285,45 +1546,59 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SwiftyJSON.swift"),
                     TestFile("main.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "tool", type: .commandLineTool,
+                    "tool",
+                    type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("SwiftyJSON")),
+                            TestBuildFile(.target("SwiftyJSON"))
                         ]),
                     ],
                     dependencies: [
-                        "SwiftyJSON",
-                    ]),
+                        "SwiftyJSON"
+                    ]
+                ),
                 TestPackageProductTarget(
                     "SwiftyJSON",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("PACKAGE::SwiftyJSON"))]),
+                        TestBuildFile(.target("PACKAGE::SwiftyJSON"))
+                    ]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "USES_SWIFTPM_UNSAFE_FLAGS": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "USES_SWIFTPM_UNSAFE_FLAGS": "YES"
+                            ]
+                        )
                     ],
-                    dependencies: ["PACKAGE::SwiftyJSON"]),
+                    dependencies: ["PACKAGE::SwiftyJSON"]
+                ),
 
                 TestStandardTarget(
-                    "PACKAGE::SwiftyJSON", type: .objectFile,
+                    "PACKAGE::SwiftyJSON",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["SwiftyJSON.swift"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         await #expect(throws: (any Error).self, "package target 'SwiftyJSON' must be contained within a package") {
             try await TaskConstructionTester(getCore(), testProject)
         }

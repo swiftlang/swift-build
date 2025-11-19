@@ -59,7 +59,7 @@ import SWBMacro
     /// - parameter perform: A block to run with the registry that results from scanning the inputs, as well as the list of warnings and errors. Each warning and error is a pair of the path basename and the diagnostic message.
     private func withRegistryForTestInputs(_ inputs: [(String, PropertyListItem?)], perform: (PlatformRegistry, TestDataDelegate) async throws -> Void) async throws {
         try await withTemporaryDirectory { tmpDirPath in
-            for (name,dataOpt) in inputs {
+            for (name, dataOpt) in inputs {
                 let itemPath = tmpDirPath.join(name).join("Info.plist")
                 try localFS.createDirectory(itemPath.dirname, recursive: true)
 
@@ -75,7 +75,7 @@ import SWBMacro
         }
     }
     private func withRegistryForTestInputs(_ inputs: [(String, [String: PropertyListItem]?)], perform: (PlatformRegistry, TestDataDelegate) throws -> Void) async throws {
-        try await withRegistryForTestInputs(inputs.map{ ($0, $1.flatMap{ .plDict($0) }) }, perform: perform)
+        try await withRegistryForTestInputs(inputs.map { ($0, $1.flatMap { .plDict($0) }) }, perform: perform)
     }
 
     @Test
@@ -89,13 +89,19 @@ import SWBMacro
             #expect(Set(registry.platformsByIdentifier.keys) == Set(["c"]))
             registry.loadExtendedInfo(MacroNamespace())
 
-            XCTAssertMatch(delegate.errors, [
-                .contains("b.platform: unexpected platform data"),
-            ])
+            XCTAssertMatch(
+                delegate.errors,
+                [
+                    .contains("b.platform: unexpected platform data")
+                ]
+            )
 
-            XCTAssertMatch(delegate.warnings, [
-                .equal("unexpected macro parsing failure loading platform c: inconsistentMacroDefinition(name: \"CODE_SIGNING_REQUIRED\", type: SWBMacro.MacroType.userDefined, value: true)"),
-            ])
+            XCTAssertMatch(
+                delegate.warnings,
+                [
+                    .equal("unexpected macro parsing failure loading platform c: inconsistentMacroDefinition(name: \"CODE_SIGNING_REQUIRED\", type: SWBMacro.MacroType.userDefined, value: true)")
+                ]
+            )
 
             // We no longer warn about platforms which are missing their Info.plist - we just silently don't load them, which avoids spamming the user console in some common scenarios.
             XCTAssertMatch(delegate.warnings, [])
@@ -128,20 +134,23 @@ import SWBMacro
             #expect(jPlatform.name == "okName")
             #expect(jPlatform.defaultSettings["NAME"] == .plString("VALUE"))
 
-            XCTAssertMatch(delegate.errors, [
-                .contains("c.platform: invalid 'Type' field"),
-                .contains("d.platform: missing 'Name' field"),
-                .contains("e.platform: invalid 'Name' field"),
-                .contains("f.platform: missing 'Identifier' field"),
-                .contains("g.platform: invalid 'Identifier' field"),
-                .contains("h.platform: missing 'Description' field"), // missing the 'Version' field is allowed.
-                .contains("i.platform: invalid 'Version' field"),
-                .contains("j.platform: missing 'Description' field"),
-                .contains("k.platform: invalid 'Description' field"),
-                .contains("l.platform: missing 'FamilyName' field"),
-                .contains("m.platform: invalid 'FamilyName' field"),
-                .contains("ok2.platform: platform 'ok' already registered"),
-            ])
+            XCTAssertMatch(
+                delegate.errors,
+                [
+                    .contains("c.platform: invalid 'Type' field"),
+                    .contains("d.platform: missing 'Name' field"),
+                    .contains("e.platform: invalid 'Name' field"),
+                    .contains("f.platform: missing 'Identifier' field"),
+                    .contains("g.platform: invalid 'Identifier' field"),
+                    .contains("h.platform: missing 'Description' field"),  // missing the 'Version' field is allowed.
+                    .contains("i.platform: invalid 'Version' field"),
+                    .contains("j.platform: missing 'Description' field"),
+                    .contains("k.platform: invalid 'Description' field"),
+                    .contains("l.platform: missing 'FamilyName' field"),
+                    .contains("m.platform: invalid 'FamilyName' field"),
+                    .contains("ok2.platform: platform 'ok' already registered"),
+                ]
+            )
             #expect(delegate.warnings == [])
         }
     }

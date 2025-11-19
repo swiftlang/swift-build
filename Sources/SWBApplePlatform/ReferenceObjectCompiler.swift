@@ -19,7 +19,7 @@ public struct DiscoveredReferenceObjectToolSpecInfo: DiscoveredCommandLineToolSp
     public var toolVersion: Version?
 }
 
-public final class ReferenceObjectCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class ReferenceObjectCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.referenceobject"
 
     public override var enableSandboxing: Bool {

@@ -16,10 +16,8 @@ import SWBLibc
 public import SWBCore
 
 /// Concrete implementation of the in-process file-copying task.
-public final class FileCopyTaskAction: TaskAction
-{
-    public override class var toolIdentifier: String
-    {
+public final class FileCopyTaskAction: TaskAction {
+    public override class var toolIdentifier: String {
         return "file-copy"
     }
 
@@ -122,9 +120,16 @@ public final class FileCopyTaskAction: TaskAction
                 try await withTemporaryDirectory { tempDir in
                     let commandLine = try context.stubCommandLine(frameworkPath: frameworkPath, isDeepBundle: isDeepBundle, platformRegistry: executionDelegate.platformRegistry, sdkRegistry: executionDelegate.sdkRegistry, tempDir: tempDir)
 
-                    outputDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Injecting stub binary into codeless framework"), childDiagnostics: (commandLine.compileAndLink.flatMap { [$0.compile, $0.link] } + [commandLine.lipo]).map { commandLine in
-                        Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(commandLine)))
-                    }))
+                    outputDelegate.emit(
+                        Diagnostic(
+                            behavior: .note,
+                            location: .unknown,
+                            data: DiagnosticData("Injecting stub binary into codeless framework"),
+                            childDiagnostics: (commandLine.compileAndLink.flatMap { [$0.compile, $0.link] } + [commandLine.lipo]).map { commandLine in
+                                Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(commandLine)))
+                            }
+                        )
+                    )
 
                     var exists: Bool = false
                     if isDeepBundle && !executionDelegate.fs.isSymlink(frameworkPath.join(frameworkPath.basenameWithoutSuffix), &exists) {

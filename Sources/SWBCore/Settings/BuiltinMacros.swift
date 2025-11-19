@@ -952,7 +952,7 @@ public final class BuiltinMacros {
     public static let PRODUCT_BUNDLE_PACKAGE_TYPE = BuiltinMacros.declareStringMacro("PRODUCT_BUNDLE_PACKAGE_TYPE")
     public static let PRODUCT_DEFINITION_PLIST = BuiltinMacros.declareStringMacro("PRODUCT_DEFINITION_PLIST")
     public static let PRODUCT_MODULE_NAME = BuiltinMacros.declareStringMacro("PRODUCT_MODULE_NAME")
-    public static let PRODUCT_SPECIFIC_LDFLAGS = BuiltinMacros.declareStringListMacro("PRODUCT_SPECIFIC_LDFLAGS") // FIXME: We shouldn't need to declare this, but it is a workaround for an instance of: <rdar://problem/24343554> [Swift Build] Unable to find XCTest module
+    public static let PRODUCT_SPECIFIC_LDFLAGS = BuiltinMacros.declareStringListMacro("PRODUCT_SPECIFIC_LDFLAGS")  // FIXME: We shouldn't need to declare this, but it is a workaround for an instance of: <rdar://problem/24343554> [Swift Build] Unable to find XCTest module
     public static let PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS")
     public static let PRODUCT_TYPE_HEADER_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("PRODUCT_TYPE_HEADER_SEARCH_PATHS")
     public static let PRODUCT_TYPE_LIBRARY_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("PRODUCT_TYPE_LIBRARY_SEARCH_PATHS")
@@ -1073,7 +1073,7 @@ public final class BuiltinMacros {
     public static let SWIFT_SYSTEM_INCLUDE_PATHS = BuiltinMacros.declarePathListMacro("SWIFT_SYSTEM_INCLUDE_PATHS")
     public static let PACKAGE_RESOURCE_BUNDLE_NAME = BuiltinMacros.declareStringMacro("PACKAGE_RESOURCE_BUNDLE_NAME")
     public static let PACKAGE_RESOURCE_TARGET_KIND = BuiltinMacros.declareEnumMacro("PACKAGE_RESOURCE_TARGET_KIND") as EnumMacroDeclaration<PackageResourceTargetKind>
-    public static let USE_SWIFT_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("USE_SWIFT_RESPONSE_FILE") // remove in rdar://53000820
+    public static let USE_SWIFT_RESPONSE_FILE = BuiltinMacros.declareBooleanMacro("USE_SWIFT_RESPONSE_FILE")  // remove in rdar://53000820
     public static let SWIFT_INSTALL_MODULE = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_MODULE")
     public static let SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT")
     public static let SWIFT_INSTALL_MODULE_ABI_DESCRIPTOR = BuiltinMacros.declareBooleanMacro("SWIFT_INSTALL_MODULE_ABI_DESCRIPTOR")
@@ -1394,7 +1394,6 @@ public final class BuiltinMacros {
         precondition(!initialized)
         return try! builtinNamespace.declarePathListMacro(name)
     }
-
 
     private static let namespaceInitializationMutex = SWBMutex(())
 
@@ -2297,7 +2296,7 @@ public final class BuiltinMacros {
         PACKAGE_RESOURCE_TARGET_KIND,
         __ORIGINAL_SDK_DEFINED_LLVM_TARGET_TRIPLE_SYS,
         SWIFT_PLATFORM_TARGET_PREFIX,
-        USE_SWIFT_RESPONSE_FILE, // remove in rdar://53000820
+        USE_SWIFT_RESPONSE_FILE,  // remove in rdar://53000820
         SWIFT_INSTALL_MODULE,
         SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT,
         SWIFT_INSTALL_MODULE_ABI_DESCRIPTOR,
@@ -2482,7 +2481,7 @@ public final class BuiltinMacros {
         BUILD_ACTIVE_RESOURCES_ONLY,
         ENABLE_ONLY_ACTIVE_RESOURCES,
         ENABLE_PLAYGROUND_RESULTS,
-        __SKIP_BUILD
+        __SKIP_BUILD,
     ]
 
     /// Force initialization of entitlements macros.
@@ -2684,7 +2683,7 @@ public extension BuiltinMacros {
         return value.compactMap(fn)
     }
 
-    static func ifSet(_ macro:PathMacroDeclaration, in scope: MacroEvaluationScope, fn: (String) -> [String]) -> [String] {
+    static func ifSet(_ macro: PathMacroDeclaration, in scope: MacroEvaluationScope, fn: (String) -> [String]) -> [String] {
         let value = scope.evaluate(macro).str
         if value.isEmpty { return [] }
         return fn(value)
@@ -2947,7 +2946,8 @@ extension Diagnostic.Location {
 extension BuildVersion.Platform {
     public func deploymentTargetSettingName(infoLookup: (any PlatformInfoLookup)?) -> String {
         guard let infoProvider = infoLookup?.lookupPlatformInfo(platform: self),
-              let dtsn = infoProvider.deploymentTargetSettingName else {
+            let dtsn = infoProvider.deploymentTargetSettingName
+        else {
             fatalError("Mach-O based platforms must provide a deployment target setting name")
         }
         return dtsn

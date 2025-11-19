@@ -246,10 +246,12 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         if case let .prepareForIndexing(targetsToPrepare?, _) = buildRequest.buildCommand {
             var nodesToBuild: [BuildNodeToPrepareForIndex] = []
             for targetToPrepare in targetsToPrepare {
-                let foundTargets = self.allConfiguredTargets.filter{ $0.target.guid == targetToPrepare.guid }
-                guard let selectedTarget = foundTargets.one(by: {
-                    buildRequestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: buildRequest.enableIndexBuildArena, runDestination: buildRequest.parameters.activeRunDestination)
-                }) else {
+                let foundTargets = self.allConfiguredTargets.filter { $0.target.guid == targetToPrepare.guid }
+                guard
+                    let selectedTarget = foundTargets.one(by: {
+                        buildRequestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: buildRequest.enableIndexBuildArena, runDestination: buildRequest.parameters.activeRunDestination)
+                    })
+                else {
                     continue
                 }
                 for task in taskStore.tasksForTarget(selectedTarget) {
@@ -605,20 +607,20 @@ package final class BuildDescriptionBuilder {
 
                 allOutputs.insert(Ref(MakePlannedVirtualNode(staleFileRemovalIdentifier)))
                 // It's a matter of convenience (I think - mhr) that the SFR task key here is the same as the SFR node added to "outputs" - they could be different, if we want them to be.
-                commandDefinitions["<\(staleFileRemovalIdentifier)>"] = OutputByteStream().writingJSONObject({
-                    $0["tool"] = "stale-file-removal"
-                    $0["expectedOutputs"] = outputPaths.map { $0.str }
+                commandDefinitions["<\(staleFileRemovalIdentifier)>"] =
+                    OutputByteStream().writingJSONObject({
+                        $0["tool"] = "stale-file-removal"
+                        $0["expectedOutputs"] = outputPaths.map { $0.str }
 
-                    // Unwrap the configured target, as target-independent tasks don't have a set of root paths.
-                    if let configuredTarget = configuredTarget, let rootPaths = rootPathsPerTarget[configuredTarget] {
-                        $0["roots"] = rootPaths.map { $0.str }
-                    }
+                        // Unwrap the configured target, as target-independent tasks don't have a set of root paths.
+                        if let configuredTarget = configuredTarget, let rootPaths = rootPathsPerTarget[configuredTarget] {
+                            $0["roots"] = rootPaths.map { $0.str }
+                        }
 
-                    $0["outputs"] = ["<\(staleFileRemovalIdentifier)>"]
-                }).bytes
+                        $0["outputs"] = ["<\(staleFileRemovalIdentifier)>"]
+                    }).bytes
             }
         }
-
 
         // Create the root target node.
         do {
@@ -628,11 +630,12 @@ package final class BuildDescriptionBuilder {
             let allRootIdentifiers = allOutputs.subtracting(allInputs).map({ $0.instance.identifier }).sorted()
 
             let stableIdentifier = "<all>"
-            commandDefinitions[stableIdentifier] = OutputByteStream().writingJSONObject({
-                $0["tool"] = "phony"
-                $0["inputs"] = allRootIdentifiers
-                $0["outputs"] = ["<all>"]
-            }).bytes
+            commandDefinitions[stableIdentifier] =
+                OutputByteStream().writingJSONObject({
+                    $0["tool"] = "phony"
+                    $0["inputs"] = allRootIdentifiers
+                    $0["outputs"] = ["<all>"]
+                }).bytes
         }
 
         func encodeIfNeeded(_ value: ByteString) -> ByteString {
@@ -653,7 +656,7 @@ package final class BuildDescriptionBuilder {
             "name": encodeIfNeeded("basic"),
             "version": ByteString(encodingAsUTF8: String(BuildDescription.manifestClientVersion)),
             "file-system": encodeIfNeeded(ByteString(encodingAsUTF8: fs.fileSystemMode.manifestLabel)),
-            "perform-ownership-analysis": SWBFeatureFlag.performOwnershipAnalysis.value ? encodeIfNeeded("yes") : encodeIfNeeded("no")
+            "perform-ownership-analysis": SWBFeatureFlag.performOwnershipAnalysis.value ? encodeIfNeeded("yes") : encodeIfNeeded("no"),
         ]
 
         let sections = [
@@ -673,8 +676,7 @@ package final class BuildDescriptionBuilder {
         // Pass the manifest data to the delegate.
         do {
             try delegate.recordManifest(targetDefinitions: targetDefinitions, toolDefinitions: toolDefinitions, nodeDefinitions: nodeDefinitions, commandDefinitions: commandDefinitions)
-        }
-        catch {
+        } catch {
             throw StubError.error("unable to record manifest to build description delegate: \(error)")
         }
 
@@ -694,8 +696,7 @@ package final class BuildDescriptionBuilder {
         let buildDescription: BuildDescription
         do {
             buildDescription = try BuildDescription(inDir: path, signature: signature, taskStore: frozenTaskStore, allOutputPaths: allOutputPaths, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, settingsPerTarget: settingsPerTarget, taskActionMap: taskActionMap, targetTaskCounts: targetTaskCounts, moduleSessionFilePath: moduleSessionFilePath, diagnostics: diagnosticsEngines.mapValues { engine in engine.diagnostics }, fs: fs, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines)
-        }
-        catch {
+        } catch {
             throw StubError.error("unable to create build description: \(error)")
         }
 
@@ -703,8 +704,7 @@ package final class BuildDescriptionBuilder {
         do {
             try fs.createDirectory(buildDescription.manifestPath.dirname, recursive: true)
             try fs.write(buildDescription.manifestPath, contents: manifest.bytes, atomically: true)
-        }
-        catch {
+        } catch {
             throw StubError.error("unable to write manifest to '\(buildDescription.manifestPath.str)': \(error)")
         }
 
@@ -739,7 +739,7 @@ package final class BuildDescriptionBuilder {
         }
         if let info = mutatingTasks[Ref(task)], !info.commandDependencies.isEmpty {
             // If this is a mutating command, we must rewrite out any mutated input nodes...
-            inputs = inputs.filter{ !mutatedNodes.contains(Ref($0)) }
+            inputs = inputs.filter { !mutatedNodes.contains(Ref($0)) }
 
             // ... and append all the necessary command dependencies.
             //
@@ -767,7 +767,7 @@ package final class BuildDescriptionBuilder {
 
             // If this is a mutating command, we must rewrite out any mutated actual output nodes (downstream edges must be either themselves mutating, or depend on some other gate to introduce an ordering between them).
             if !info.commandDependencies.isEmpty {
-                outputs = outputs.filter{ !mutatedNodes.contains(Ref($0)) }
+                outputs = outputs.filter { !mutatedNodes.contains(Ref($0)) }
 
                 // We currently require producers to have defined an extra virtual node to use for the purposes of forcing the ordering of this command.
                 if outputs.isEmpty {
@@ -791,11 +791,11 @@ package final class BuildDescriptionBuilder {
             commandDefinitions[identifier.rawValue] = definition.bytes
 
             // Use this map later to diagnose the attempts to define multiple producers for an output
-            taskOutputMap[Ref(task), default:[]].append(contentsOf: outputs)
+            taskOutputMap[Ref(task), default: []].append(contentsOf: outputs)
 
             // Update the global input and output list.
-            allInputs.formUnion(inputs.map{ Ref($0) })
-            allOutputs.formUnion(outputs.map{ Ref($0) })
+            allInputs.formUnion(inputs.map { Ref($0) })
+            allOutputs.formUnion(outputs.map { Ref($0) })
         }
     }
 
@@ -809,13 +809,12 @@ package final class BuildDescriptionBuilder {
             // Add it to the definitions map.
             let identifier = node.identifier
             let newDefinition = definition.bytes
-                assert(!nodeDefinitions.contains(identifier) || nodeDefinitions[identifier] == newDefinition, "non-unique node identifier '\(identifier)'")
-                nodeDefinitions[identifier] = newDefinition
-            }
+            assert(!nodeDefinitions.contains(identifier) || nodeDefinitions[identifier] == newDefinition, "non-unique node identifier '\(identifier)'")
+            nodeDefinitions[identifier] = newDefinition
+        }
     }
 
     // MARK: Adding commands for PlannedTasks.
-
 
     /// Add a phony command definition for a task.
     ///
@@ -1027,13 +1026,13 @@ extension BuildDescription {
     // FIXME: Bypass actual tasks should go away, eventually.
     //
     // FIXME: This layering isn't working well, we are plumbing a bunch of stuff through here just because we don't want to talk to TaskConstruction.
-    static package func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, targetsBuildInParallel: Bool = true, emitFrontendCommandLines: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], casValidationInfos: [BuildDescription.CASValidationInfo] = [], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], delegate: any BuildDescriptionConstructionDelegate, targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], userPreferences: UserPreferences) async throws -> BuildDescription? {
+    static package func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, targetsBuildInParallel: Bool = true, emitFrontendCommandLines: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget: [Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], casValidationInfos: [BuildDescription.CASValidationInfo] = [], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], delegate: any BuildDescriptionConstructionDelegate, targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], userPreferences: UserPreferences) async throws -> BuildDescription? {
         var diagnostics = diagnostics
 
         // We operate on the sorted tasks here to ensure that the list of task additional inputs is deterministic.
         //
         // We need to sort on the stable identifiers in order to ensure the uniqueness of the sort.
-        let sortedTasks = tasks.sorted{ $0.identifier < $1.identifier }
+        let sortedTasks = tasks.sorted { $0.identifier < $1.identifier }
 
         let messageShortening = userPreferences.activityTextShorteningLevel
 
@@ -1127,7 +1126,7 @@ extension BuildDescription {
             if delegate.cancelled { return nil }
 
             // FIXME: Make this more efficient.
-            let mutatedNodes = Set<Ref<any PlannedNode>>(task.inputs.map{ Ref($0) }).intersection(Set<Ref<any PlannedNode>>(task.outputs.map{ Ref($0) }))
+            let mutatedNodes = Set<Ref<any PlannedNode>>(task.inputs.map { Ref($0) }).intersection(Set<Ref<any PlannedNode>>(task.outputs.map { Ref($0) }))
             for node in mutatedNodes {
                 let info = mutableNodes.getOrInsert(node) { MutableNodeInfo() }
                 info.mutatingTasks.append(task)
@@ -1171,10 +1170,13 @@ extension BuildDescription {
                 let childDiagnostics = creators.map({ .task($0.execTask) }).richFormattedRuleInfo(workspace: workspace)
 
                 diagnostics[nil, default: []].append(
-                    Diagnostic(behavior: .error,
-                               location: .unknown,
-                               data: DiagnosticData("Multiple commands produce '\(node.instance.path.str)'"),
-                               childDiagnostics: childDiagnostics))
+                    Diagnostic(
+                        behavior: .error,
+                        location: .unknown,
+                        data: DiagnosticData("Multiple commands produce '\(node.instance.path.str)'"),
+                        childDiagnostics: childDiagnostics
+                    )
+                )
             }
         }
 
@@ -1196,24 +1198,28 @@ extension BuildDescription {
             // This works because we enforce that every mutating command *must* be strongly ordered w.r.t. the creator and the other mutators, so that we know the order they should run in.
             func distance(from origin: any PlannedTask, to predecessor: any PlannedTask) -> Int? {
                 let ignoring = node
-                return minimumDistance(from: Ref(origin), to: Ref(predecessor), successors: { taskRef in
+                return minimumDistance(
+                    from: Ref(origin),
+                    to: Ref(predecessor),
+                    successors: { taskRef in
                         let task = taskRef.instance
                         var inputNodes = task.inputs
                         if let extraInputs = taskAdditionalInputs[Ref(task)] {
                             inputNodes += extraInputs.nodes
                         }
-                    let inputs = inputNodes.flatMap { input -> [Ref<any PlannedTask>] in
+                        let inputs = inputNodes.flatMap { input -> [Ref<any PlannedTask>] in
                             if input === ignoring { return [] }
 
-                            return producers[Ref(input)]?.map{ Ref($0) } ?? []
+                            return producers[Ref(input)]?.map { Ref($0) } ?? []
                         }
                         return inputs
-                    })
+                    }
+                )
             }
             let orderedMutatingTasks = info.mutatingTasks.sorted(by: {
-                    // A task precedes another iff there is exists some path to it.
-                    return distance(from: $1, to: $0) != nil
-                })
+                // A task precedes another iff there is exists some path to it.
+                return distance(from: $1, to: $0) != nil
+            })
 
             // Starting with the creator, create a command trigger for the next command in the mutating task chain.
             var producer = creator
@@ -1253,9 +1259,16 @@ extension BuildDescription {
                     var path = !isDirectory ? inputPath.dirname : inputPath
                     while !path.isEmpty && !path.isRoot {
                         if let tasks = paths[path] {
-                            diagnostics[nil, default: []].append(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Multiple commands produce conflicting outputs"), childDiagnostics: ([(pathString(inputPath, isDirectory: isDirectory), inputTask)] + tasks.map { task in (pathString(path, isDirectory: true), task) }).map { (path, task) in
-                                Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("\(path) (for task: \(task.ruleInfo))"))
-                            }))
+                            diagnostics[nil, default: []].append(
+                                Diagnostic(
+                                    behavior: .error,
+                                    location: .unknown,
+                                    data: DiagnosticData("Multiple commands produce conflicting outputs"),
+                                    childDiagnostics: ([(pathString(inputPath, isDirectory: isDirectory), inputTask)] + tasks.map { task in (pathString(path, isDirectory: true), task) }).map { (path, task) in
+                                        Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("\(path) (for task: \(task.ruleInfo))"))
+                                    }
+                                )
+                            )
                         }
                         path = path.dirname
                     }
@@ -1269,7 +1282,8 @@ extension BuildDescription {
             var ownedDirectories = DirectoryOutputs()
 
             // Create a list of tuples of all output nodes in the graph, and their creator tasks, sorted by depth (which is the same as lexicographic order in this case). The list may contain multiple entries for the same output path, if multiple tasks in the graph (erroneously) produce the same output. Assumes paths are normalized.
-            let outputNodesAndTasks = sortedTasks
+            let outputNodesAndTasks =
+                sortedTasks
                 .flatMap { task in task is GateTask ? [] : task.outputs.map { output in (output, task) } }
                 .sorted(by: { $0.0.path < $1.0.path })
 
@@ -1365,15 +1379,15 @@ extension BuildDescription {
 
                     try await group.waitForAll()
                 }
-            } catch is CancellationError  {
+            } catch is CancellationError {
                 return nil
             }
         }
 
         // Diagnose attempts to define multiple producers (tasks) for an output.
-        var outputsSet = Set<Ref<any PlannedNode>>() // for identifying duplicate output nodes across tasks
+        var outputsSet = Set<Ref<any PlannedNode>>()  // for identifying duplicate output nodes across tasks
         for (_, task) in sortedTasks.enumerated() {
-            let amendedOutputs = builder.taskOutputMap[Ref(task)] ?? [] // get the amended outputs of the task
+            let amendedOutputs = builder.taskOutputMap[Ref(task)] ?? []  // get the amended outputs of the task
             for output in amendedOutputs {
                 if outputsSet.contains(Ref(output)) {
                     // This condition should almost never appear on a user projects, but we surface   it as an error versus an assert in case there are valid situations where the user can author a project    that would hit it.
@@ -1498,7 +1512,7 @@ package extension PlannedNode {
 }
 
 extension BuildDescription.CASValidationInfo: Serializable {
-    package func serialize<T>(to serializer: T) where T : Serializer {
+    package func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(2) {
             serializer.serialize(options)
             serializer.serialize(llvmCasExec)
@@ -1520,7 +1534,7 @@ extension BuildDescription.CASValidationInfo: Hashable {
         hasher.combine(options.casPath)
         hasher.combine(llvmCasExec)
     }
-    static package func ==(lhs: Self, rhs: Self) -> Bool {
+    static package func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.options.casPath == rhs.options.casPath && lhs.llvmCasExec == rhs.llvmCasExec
     }
 }

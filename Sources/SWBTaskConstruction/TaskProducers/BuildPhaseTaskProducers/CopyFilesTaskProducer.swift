@@ -83,10 +83,12 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
         //
         // FIXME: The latter feature here is rarely used, and not very flexible as any target which needs other copy phases won't be able to disable them selectively.
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
-        guard buildComponents.contains("build")
+        guard
+            buildComponents.contains("build")
                 || buildComponents.contains("installLoc")
                 || (buildComponents.contains("api") && scope.evaluate(BuiltinMacros.INSTALLAPI_COPY_PHASE))
-                || (buildComponents.contains("headers") && scope.evaluate(BuiltinMacros.INSTALLHDRS_COPY_PHASE)) else {
+                || (buildComponents.contains("headers") && scope.evaluate(BuiltinMacros.INSTALLHDRS_COPY_PHASE))
+        else {
             return []
         }
 
@@ -265,8 +267,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                 if strParts.count > 1, firstPart == firstPartToRemove {
                     let subpath = strParts[1...].joined(separator: Path.pathSeparatorString)
                     subpathsToExclude.append(subpath)
-                }
-                else if firstPart != firstPartToRemove {
+                } else if firstPart != firstPartToRemove {
                     // If string is *only* firstPartToRemove then we don't add it.
                     subpathsToExclude.append(string)
                 }
@@ -281,8 +282,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
             var shouldSkipCopyingBinary = false
             if mergingTargets.contains(configuredTarget) {
                 shouldSkipCopyingBinary = true
-            }
-            else {
+            } else {
                 for dependency in context.globalProductPlan.dependencies(of: configuredTarget) {
                     if mergingTargets.contains(dependency) {
                         shouldSkipCopyingBinary = true
@@ -300,8 +300,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                 // If this is a standalone binary product then we skip copying it altogether.  Otherwise PBXCp will exclude the subpaths we add to the list here.
                 if productType.isWrapper {
                     addSubpath(settings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_PATH).str, removingFirstPartIfEqualTo: settings.globalScope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME).str)
-                }
-                else {
+                } else {
                     // Skip standalone binary altogether by returning out of this method.
                     return
                 }
@@ -353,7 +352,6 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                             }
                         }
                     }
-
 
                     // If we should skip copying it, then we set up the subpaths to exclude.
                     if shouldSkipCopyingBinary {
@@ -439,16 +437,14 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                         // With deep bundles, we also report the Versions/A folder as an output, because that's what codesign signs.
                         additionalPresumedOutputs.append(delegate.createNode(dst.join(versionRelativePath)))
                         additionalPresumedOutputs.append(delegate.createNode(dst.join(versionRelativePath).join(frameworkName)))
-                    }
-                    else {
+                    } else {
                         additionalPresumedOutputs.append(delegate.createNode(dst.join(frameworkName)))
                     }
                 case let .bundle(shallow):
                     let bundleName = dst.basenameWithoutSuffix
                     if !shallow {
                         additionalPresumedOutputs.append(delegate.createNode(dst.join("Contents/MacOS").join(bundleName)))
-                    }
-                    else {
+                    } else {
                         additionalPresumedOutputs.append(delegate.createNode(dst.join(bundleName)))
                     }
                 case nil:

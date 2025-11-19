@@ -28,7 +28,7 @@ fileprivate struct CASFSNodePerfTests: PerfTests {
         var rng = SystemRandomNumberGenerator()
         var bytes: [UInt8] = []
         bytes.reserveCapacity(count)
-        for _  in 0..<count {
+        for _ in 0..<count {
             bytes.append(UInt8.random(in: 0...UInt8.max, using: &rng))
         }
         return ByteString(bytes)

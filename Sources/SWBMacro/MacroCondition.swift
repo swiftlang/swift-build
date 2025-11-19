@@ -34,7 +34,7 @@ public final class MacroCondition: Serializable, Hashable, CustomStringConvertib
         hasher.combine(valuePattern)
     }
 
-    public static func ==(lhs: MacroCondition, rhs: MacroCondition) -> Bool {
+    public static func == (lhs: MacroCondition, rhs: MacroCondition) -> Bool {
         return lhs.parameter == rhs.parameter && lhs.valuePattern == rhs.valuePattern
     }
 
@@ -100,8 +100,7 @@ public final class MacroCondition: Serializable, Hashable, CustomStringConvertib
         let parmName: String = try deserializer.deserialize()
         if let aParm = delegate.namespace.lookupConditionParameter(parmName) {
             self.parameter = aParm
-        }
-        else {
+        } else {
             self.parameter = delegate.namespace.declareConditionParameter(parmName)
         }
 

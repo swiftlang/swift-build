@@ -60,7 +60,8 @@ final class HeadersTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 // If `-b` was passed we can map directly from the copied header to the original. If it isn't, all the
                 // lines will be out of sync and thus we can't add the mapping.
                 if let constructedTask = generatedTasks.tasks.only as? ConstructedTask,
-                   constructedTask.commandLine.contains(where: { $0 == "-b" }) {
+                    constructedTask.commandLine.contains(where: { $0 == "-b" })
+                {
                     context.addCopiedPath(src: ftb.absolutePath.str, dst: output.str)
                 }
             } else {

@@ -79,7 +79,7 @@ public final class JSONOutputStreamer {
 }
 
 @available(*, unavailable)
-extension JSONOutputStreamer: Sendable { }
+extension JSONOutputStreamer: Sendable {}
 
 // This extension contains methods designed to write JSON to the stream,
 // where the *value* (not the key) of the dictionary is pre-encoded JSON bytes.
@@ -223,33 +223,33 @@ public final class OutputByteStream: TextOutputStream {
             case 0x20...0x21, 0x23...0x5B, 0x5D...0xFF:
                 buffer.append(character)
 
-                // Single-character escaped characters.
-            case 0x22: // '"'
-                buffer.append(0x5C) // '\'
-                buffer.append(0x22) // '"'
-            case 0x5C: // '\\'
-                buffer.append(0x5C) // '\'
-                buffer.append(0x5C) // '\'
-            case 0x08: // '\b'
-                buffer.append(0x5C) // '\'
-                buffer.append(0x62) // 'b'
-            case 0x0C: // '\f'
-                buffer.append(0x5C) // '\'
-                buffer.append(0x66) // 'f'
-            case 0x0A: // '\n'
-                buffer.append(0x5C) // '\'
-                buffer.append(0x6E) // 'n'
-            case 0x0D: // '\r'
-                buffer.append(0x5C) // '\'
-                buffer.append(0x72) // 'r'
-            case 0x09: // '\t'
-                buffer.append(0x5C) // '\'
-                buffer.append(0x74) // 't'
+            // Single-character escaped characters.
+            case 0x22:  // '"'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x22)  // '"'
+            case 0x5C:  // '\\'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x5C)  // '\'
+            case 0x08:  // '\b'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x62)  // 'b'
+            case 0x0C:  // '\f'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x66)  // 'f'
+            case 0x0A:  // '\n'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x6E)  // 'n'
+            case 0x0D:  // '\r'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x72)  // 'r'
+            case 0x09:  // '\t'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x74)  // 't'
 
-                // Multi-character escaped characters.
+            // Multi-character escaped characters.
             default:
-                buffer.append(0x5C) // '\'
-                buffer.append(0x75) // 'u'
+                buffer.append(0x5C)  // '\'
+                buffer.append(0x75)  // 'u'
                 buffer.append(hexdigit(0))
                 buffer.append(hexdigit(0))
                 buffer.append(hexdigit(character >> 4))
@@ -260,7 +260,7 @@ public final class OutputByteStream: TextOutputStream {
 }
 
 @available(*, unavailable)
-extension OutputByteStream: Sendable { }
+extension OutputByteStream: Sendable {}
 
 /// Define an output stream operator. We need it to be left associative, so we
 /// use `<<<`.
@@ -275,55 +275,55 @@ precedencegroup StreamingPrecedence {
 // NOTE: It would be nice to use a protocol here and the adopt it by all the things we can efficiently stream out. However, that doesn't work because we ultimately need to provide a manual overload for, e.g., TextOutputStreamable, but that will then cause ambiguous lookup versus the implementation just using the defined protocol.
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: UInt8) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: UInt8) -> OutputByteStream {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: [UInt8]) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: [UInt8]) -> OutputByteStream {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: Data) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: Data) -> OutputByteStream {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: ArraySlice<UInt8>) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: ArraySlice<UInt8>) -> OutputByteStream {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<<S: Sequence>(stream: OutputByteStream, value: S) -> OutputByteStream where S.Iterator.Element == UInt8 {
+public func <<< <S: Sequence>(stream: OutputByteStream, value: S) -> OutputByteStream where S.Iterator.Element == UInt8 {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: String) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: String) -> OutputByteStream {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: Character) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: Character) -> OutputByteStream {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: any ByteStreamable) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: any ByteStreamable) -> OutputByteStream {
     stream.write(value)
     return stream
 }
 
 @discardableResult
-public func <<<(stream: OutputByteStream, value: any TextOutputStreamable) -> OutputByteStream {
+public func <<< (stream: OutputByteStream, value: any TextOutputStreamable) -> OutputByteStream {
     stream.write(value)
     return stream
 }
@@ -471,7 +471,7 @@ public enum Format: Sendable {
 
         func writeTo(_ stream: OutputByteStream) {
             stream <<< UInt8(ascii: "{")
-            for (offset: i, element: (key: key, value: value)) in items.enumerated() {
+            for (offset:i, element:(key:key, value:value)) in items.enumerated() {
                 if i != 0 { stream <<< UInt8(ascii: ",") }
                 stream <<< Format.asJSON(key) <<< ":" <<< Format.asJSON(value)
             }
@@ -487,9 +487,9 @@ public enum Format: Sendable {
 
         func writeTo(_ stream: OutputByteStream) {
             stream <<< UInt8(ascii: "{")
-            for (offset: i, element: (key: key, value: value)) in items.enumerated() {
+            for (offset:i, element:(key:key, value:value)) in items.enumerated() {
                 if i != 0 { stream <<< UInt8(ascii: ",") }
-                stream <<< Format.asJSON(key) <<< ":" <<< /*Format.asJSON*/(value) // value is pre-escaped
+                stream <<< Format.asJSON(key) <<< ":" <<< /*Format.asJSON*/ (value)  // value is pre-escaped
             }
             stream <<< UInt8(ascii: "}")
         }
@@ -505,7 +505,7 @@ public enum Format: Sendable {
         func writeTo(_ stream: OutputByteStream) {
             stream <<< UInt8(ascii: "{")
             for i in 0..<items.count {
-                let (key: key, value: value) = items[i]
+                let (key:key, value:value) = items[i]
                 if i != 0 { stream <<< UInt8(ascii: ",") }
                 stream <<< Format.asJSON(key) <<< ":" <<< Format.asJSON(value)
             }
@@ -523,9 +523,9 @@ public enum Format: Sendable {
         func writeTo(_ stream: OutputByteStream) {
             stream <<< UInt8(ascii: "{")
             for i in 0..<items.count {
-                let (key: key, value: value) = items[i]
+                let (key:key, value:value) = items[i]
                 if i != 0 { stream <<< UInt8(ascii: ",") }
-                stream <<< Format.asJSON(key) <<< ":" <<< /*Format.asJSON*/(value) // value is pre-escaped
+                stream <<< Format.asJSON(key) <<< ":" <<< /*Format.asJSON*/ (value)  // value is pre-escaped
             }
             stream <<< UInt8(ascii: "}")
         }

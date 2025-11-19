@@ -23,17 +23,18 @@ fileprivate func executableFileNameMatchesSwiftRuntimeLibPattern(_ fileName: Str
 
 fileprivate extension MachO {
     func allSwiftLibNames() throws -> Set<String> {
-        return try Set(self.slices()
-            .flatMap { try $0.linkedLibraryPaths() }
-            .compactMap { (lib: String) -> String? in
-                let pcs = Path(lib)
-                if (pcs.dirname.str == "@rpath" || pcs.dirname == Path("/usr/lib/swift")) && executableFileNameMatchesSwiftRuntimeLibPattern(pcs.basename) {
-                    return pcs.basename
+        return try Set(
+            self.slices()
+                .flatMap { try $0.linkedLibraryPaths() }
+                .compactMap { (lib: String) -> String? in
+                    let pcs = Path(lib)
+                    if (pcs.dirname.str == "@rpath" || pcs.dirname == Path("/usr/lib/swift")) && executableFileNameMatchesSwiftRuntimeLibPattern(pcs.basename) {
+                        return pcs.basename
+                    } else {
+                        return nil
+                    }
                 }
-                else {
-                    return nil
-                }
-        })
+        )
     }
 }
 
@@ -50,22 +51,20 @@ fileprivate struct Executable: Hashable {
     init(path: Path, object: MachO) throws {
         self.path = path
 
-        let swiftABIVersions = try object.slices().compactMap{ try $0.swiftABIVersion() }
+        let swiftABIVersions = try object.slices().compactMap { try $0.swiftABIVersion() }
         if swiftABIVersions.isEmpty {
             self.swiftABIVersion = nil
-        }
-        else {
+        } else {
             let uniqueVersions = Set(swiftABIVersions)
             if uniqueVersions.count > 1 {
                 throw StubError.error("Expected a single Swift ABI version in \(path.str) but found \(swiftABIVersions)")
-            }
-            else {
+            } else {
                 self.swiftABIVersion = swiftABIVersions.first!
             }
         }
 
         self.linkedSwiftLibNames = try object.allSwiftLibNames()
-        self.uuids = try object.slices().compactMap{ try $0.uuid() }
+        self.uuids = try object.slices().compactMap { try $0.uuid() }
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -88,7 +87,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
         /// Combined parent + task environment
         let effectiveEnvironment: [String: String]
 
-        var fs : any FSProxy { return executionDelegate.fs }
+        var fs: any FSProxy { return executionDelegate.fs }
 
         var verbose: Int = 0
 
@@ -165,7 +164,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
         var backDeploySwiftSpan = false
 
         // The allowed list of libraries that should *not* be filtered when `filterForSwiftOS=true`.
-        let allowedLibsForSwiftOS = ["libswiftXCTest" ]
+        let allowedLibsForSwiftOS = ["libswiftXCTest"]
 
         // The allowed list of libraries that should *not* be filtered when `backDeploySwiftConcurrency=true`.
         let allowedLibsForSwiftConcurrency = ["libswift_Concurrency"]
@@ -177,7 +176,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             return path.isAbsolute ? path : task.workingDirectory.join(path)
         }
 
-        func logV(_ msg : @autoclosure () -> String) {
+        func logV(_ msg: @autoclosure () -> String) {
             if verbose > 0 {
                 outputController.emitOutputLock.withLock {
                     outputDelegate.emitOutput { $0 <<< msg() <<< "\n" }
@@ -185,7 +184,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             }
         }
 
-        func logVV(_ msg : @autoclosure () -> String) {
+        func logVV(_ msg: @autoclosure () -> String) {
             if verbose > 1 {
                 outputController.emitOutputLock.withLock {
                     outputDelegate.emitOutput { $0 <<< msg() <<< "\n" }
@@ -253,7 +252,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
                     return p
                 }
 
-                func setSingleOccurrence<T>(_ result: inout T?, _ getValue : @autoclosure () throws -> T) throws {
+                func setSingleOccurrence<T>(_ result: inout T?, _ getValue: @autoclosure () throws -> T) throws {
                     guard result == nil else { throw StubError.error("Failed to parse arguments: expected a single \(arg) argument") }
                     result = try getValue()
                 }
@@ -275,8 +274,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
                     let path = absolutePath(Path(try argParam()))
                     if let exe = try executableIfValid(path: path) {
                         scanExecutables.insert(exe)
-                    }
-                    else {
+                    } else {
                         logV("Failed to scan executable: \(path.str)")
                     }
 
@@ -395,14 +393,14 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             // Fix up srcDir and platform values.
             if srcDir == nil && platform == nil {
                 throw StubError.error("at least one of --source-libraries and --platform must be set")
-            }
-            else if let srcDir = srcDir, platform == nil {
+            } else if let srcDir = srcDir, platform == nil {
                 // src_dir is set but platform is not.
                 // Pick platform from src_dir's name.
                 platform = srcDir.basename
             }
 
-            srcDirs = srcDir != nil
+            srcDirs =
+                srcDir != nil
                 ? OrderedSet([srcDir!])
                 : OrderedSet(effectiveSourceDirectories(toolchainsDirs, platform: platform!))
             logVV("Effective srcDirs:\n\(srcDirs.elements.map{$0.str}.joined(separator: "\n"))")
@@ -475,8 +473,8 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
                 func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {}
                 func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {}
 
-                var counters: [BuildOperationMetrics.Counter : Int] = [:]
-                var taskCounters: [BuildOperationMetrics.TaskCounter : Int] = [:]
+                var counters: [BuildOperationMetrics.Counter: Int] = [:]
+                var taskCounters: [BuildOperationMetrics.TaskCounter: Int] = [:]
 
                 let underlyingDelegate: any TaskOutputDelegate
                 var output = ByteString()
@@ -527,12 +525,18 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             }
 
             guard !failed else {
-                throw RunProcessNonZeroExitError(args: args, workingDirectory: task.workingDirectory, environment: .init(effectiveEnvironment), status: {
-                    if case let .exit(exitStatus, _) = processDelegate.outputDelegate.result {
-                        return exitStatus
-                    }
-                    return .uncaughtSignal(0)
-                }(), mergedOutput: output)
+                throw RunProcessNonZeroExitError(
+                    args: args,
+                    workingDirectory: task.workingDirectory,
+                    environment: .init(effectiveEnvironment),
+                    status: {
+                        if case let .exit(exitStatus, _) = processDelegate.outputDelegate.result {
+                            return exitStatus
+                        }
+                        return .uncaughtSignal(0)
+                    }(),
+                    mergedOutput: output
+                )
             }
 
             return output
@@ -545,8 +549,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
         func copyFile(src: Path, dst: Path, stripBitcode: Bool) async throws {
             if stripBitcode {
                 try await copyAndStripBitcode(src: src, dst: dst)
-            }
-            else {
+            } else {
                 try fs.copy(src, to: dst)
             }
         }
@@ -590,7 +593,6 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             }
         }
 
-
         func queryCodeSignature(codesign: Path, _ file: Path) async throws -> ByteString {
             logV("Probing signature of \(file.str)")
             return try await runProcess([codesign.str, "-r-", "--display", file.str])
@@ -602,8 +604,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
                 if fs.exists(tmpFilePath) {
                     do {
                         try fs.remove(tmpFilePath)
-                    }
-                    catch {
+                    } catch {
                         logV("Failed to remove: '\(tmpFilePath.str)': \(error)")
                     }
                 }
@@ -672,8 +673,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
                     // Some of the Swift runtime libs don't use Swift, so we allow either an empty swiftVersion or a swiftVersion which satisfies the requested swiftVersion.
                     if !exe.usesSwift || exe.swiftABIVersion == swiftVersion {
                         return exe
-                    }
-                    else {
+                    } else {
                         foundNameMatches.append(exe)
                     }
                 }
@@ -688,14 +688,12 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             if !isOptional {
                 let versionStr = ignoreABIVersion ? "" : " for Swift ABI version \(swiftVersion)"
                 throw StubError.error("Could not find \(name)\(versionStr)")
-            }
-            else {
+            } else {
                 return nil
             }
         }
 
-        func collectTransitiveDependencies(srcDirs: OrderedSet<Path>, executables: Set<Executable>, swiftVersion: SwiftABIVersion, requireAllDependencies: Bool, discoveredDependencyInfo: inout DependencyInfo) throws -> Set <Executable>
-        {
+        func collectTransitiveDependencies(srcDirs: OrderedSet<Path>, executables: Set<Executable>, swiftVersion: SwiftABIVersion, requireAllDependencies: Bool, discoveredDependencyInfo: inout DependencyInfo) throws -> Set<Executable> {
             var worklist = Array(executables)
             var result = Set<Executable>()
             var consideredLibNames = Set<String>()
@@ -729,31 +727,30 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
 
             // Pick a Swift version that all executables have to agree on.
             let swiftVersionOpt = try scanExecutables.reduce(nil) { (memo: (SwiftABIVersion, Executable)?, newExe: Executable) throws -> (SwiftABIVersion, Executable)? in
-                switch  (memo?.0,                   newExe.swiftABIVersion) {
-                case    (_,                         nil):
+                switch (memo?.0, newExe.swiftABIVersion) {
+                case (_, nil):
                     return memo
 
-                case    (nil,                       .some(let newVersion)):
+                case (nil, .some(let newVersion)):
                     return (newVersion, newExe)
 
-                case    (.some(let prevVersion),    .some(let newVersion)):
+                case (.some(let prevVersion), .some(let newVersion)):
                     guard prevVersion != newVersion else { return memo }
 
                     let mismatch = scanExecutables.first { object -> Bool in
                         return object.swiftABIVersion != nil && object.swiftABIVersion! != newVersion
-                        }!
+                    }!
 
                     let paths = [mismatch.path.str, newExe.path.str].sorted()
                     let message = "The following binaries use incompatible versions of Swift:\n\(paths.joined(separator: "\n"))"
                     if ignoreABIVersion {
                         self.outputDelegate.emitWarning(message)
                         return memo
-                    }
-                    else {
+                    } else {
                         throw StubError.error(message)
                     }
                 }
-                }?.0
+            }?.0
 
             // Discovered dependency paths, collected during processing, emitted at the end.
             var discoveredDependencyInfo = DependencyInfo(version: "swift-stdlib-tool")
@@ -771,14 +768,17 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             }
 
             // Collect Swift library names from the input files and follow dependencies recursively.
-            let dependencies = try collectTransitiveDependencies(srcDirs: srcDirs,
-                                                                 executables: scanExecutables,
-                                                                 swiftVersion: swiftVersion,
-                                                                 requireAllDependencies: false, // If the library does not exist in srcDirs then assume the user wrote their own library named libswift* and is handling it elsewhere.
-                                                                 discoveredDependencyInfo: &discoveredDependencyInfo)
+            let dependencies = try collectTransitiveDependencies(
+                srcDirs: srcDirs,
+                executables: scanExecutables,
+                swiftVersion: swiftVersion,
+                requireAllDependencies: false,  // If the library does not exist in srcDirs then assume the user wrote their own library named libswift* and is handling it elsewhere.
+                discoveredDependencyInfo: &discoveredDependencyInfo
+            )
 
             // The list of dependencies needs to be pruned based on the filtering mechanism. Under normal circumstances, no libraries are expected to be allowed.
-            let swiftLibs = dependencies
+            let swiftLibs =
+                dependencies
                 .filter {
                     let item = $0.path.basenameWithoutSuffix
 
@@ -798,15 +798,17 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
 
             // Collect all the Swift libraries that the user requested with --resource-library.
 
-            let resourceLibrariesExecutables = try Set(resourceLibraries.map{ obj throws -> Executable in
-                return try findSwiftLib(srcDirs: srcDirs, name: obj, swiftVersion: swiftVersion, isOptional: false)!
-            })
+            let resourceLibrariesExecutables = try Set(
+                resourceLibraries.map { obj throws -> Executable in
+                    return try findSwiftLib(srcDirs: srcDirs, name: obj, swiftVersion: swiftVersion, isOptional: false)!
+                }
+            )
 
             let swiftLibsForResources: Set<Executable> = try collectTransitiveDependencies(
                 srcDirs: srcDirs,
                 executables: resourceLibrariesExecutables,
                 swiftVersion: swiftVersion,
-                requireAllDependencies: true, // These are system libraries and they should be complete.
+                requireAllDependencies: true,  // These are system libraries and they should be complete.
                 discoveredDependencyInfo: &discoveredDependencyInfo
             ).union(resourceLibrariesExecutables)
 
@@ -888,8 +890,7 @@ public final class EmbedSwiftStdLibTaskAction: TaskAction {
             }
 
             return .succeeded
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("\(error)")
             return .failed
         }

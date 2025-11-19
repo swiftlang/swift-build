@@ -34,15 +34,18 @@ struct WebAssemblyPlatformSpecsExtension: SpecificationsExtension {
 struct WebAssemblyPlatformExtension: PlatformInfoExtension {
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
-            (.root, [
-                "Type": .plString("Platform"),
-                "Name": .plString("webassembly"),
-                "Identifier": .plString("webassembly"),
-                "Description": .plString("webassembly"),
-                "FamilyName": .plString("WebAssembly"),
-                "FamilyIdentifier": .plString("webassembly"),
-                "IsDeploymentPlatform": .plString("YES"),
-            ])
+            (
+                .root,
+                [
+                    "Type": .plString("Platform"),
+                    "Name": .plString("webassembly"),
+                    "Identifier": .plString("webassembly"),
+                    "Description": .plString("webassembly"),
+                    "FamilyName": .plString("WebAssembly"),
+                    "FamilyIdentifier": .plString("webassembly"),
+                    "IsDeploymentPlatform": .plString("YES"),
+                ]
+            )
         ]
     }
 }
@@ -76,11 +79,12 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
             "wasm32-unknown-wasip1-threads": ("wasm32", "wasip1", "threads"),
         ]
 
-        let wasmSwiftSDKs = (try? SwiftSDK.findSDKs(
-            targetTriples: Array(supportedTriples.keys),
-            fs: context.fs,
-            hostOperatingSystem: context.hostOperatingSystem
-        )) ?? []
+        let wasmSwiftSDKs =
+            (try? SwiftSDK.findSDKs(
+                targetTriples: Array(supportedTriples.keys),
+                fs: context.fs,
+                hostOperatingSystem: context.hostOperatingSystem
+            )) ?? []
 
         var wasmSDKs: [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] = []
 
@@ -93,35 +97,42 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
                 let wasiSysroot = wasmSDK.path.join(tripleProperties.sdkRootPath)
                 let swiftResourceDir = wasmSDK.path.join(tripleProperties.swiftResourcesPath)
 
-                wasmSDKs.append((wasiSysroot, wasmPlatform, [
-                    "Type": .plString("SDK"),
-                    "Version": .plString("1.0.0"),
-                    "CanonicalName": .plString(wasmSDK.identifier),
-                    "Aliases": ["webassembly", "wasi"],
-                    "IsBaseSDK": .plBool(true),
-                    "DefaultProperties": .plDict([
-                        "PLATFORM_NAME": .plString("webassembly"),
-                    ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-                    "CustomProperties": .plDict([
-                        "LLVM_TARGET_TRIPLE_OS_VERSION": .plString(os),
-                        "SWIFT_LIBRARY_PATH": .plString(swiftResourceDir.join("wasi").str),
-                        "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str),
-                        // HACK: Ld step does not use swiftc as linker driver but instead uses clang, so we need to add some Swift specific flags
-                        // assuming static linking.
-                        // Tracked in https://github.com/swiftlang/swift-build/issues/3
-                        "OTHER_LDFLAGS": .plArray(["-lc++", "-lc++abi", "-resource-dir", "$(SWIFT_RESOURCE_DIR)/clang", "@$(SWIFT_LIBRARY_PATH)/static-executable-args.lnk"]),
-                    ]),
-                    "SupportedTargets": .plDict([
-                        "webassembly": .plDict([
-                            "Archs": .plArray([.plString(arch)]),
-                            "LLVMTargetTripleEnvironment": .plString(env ?? ""),
-                            "LLVMTargetTripleSys": .plString(os),
-                            "LLVMTargetTripleVendor": .plString("unknown"),
-                        ])
-                    ]),
-                    // TODO: Leave compatible toolchain information in Swift SDKs
-                    // "Toolchains": .plArray([])
-                ]))
+                wasmSDKs.append(
+                    (
+                        wasiSysroot, wasmPlatform,
+                        [
+                            "Type": .plString("SDK"),
+                            "Version": .plString("1.0.0"),
+                            "CanonicalName": .plString(wasmSDK.identifier),
+                            "Aliases": ["webassembly", "wasi"],
+                            "IsBaseSDK": .plBool(true),
+                            "DefaultProperties": .plDict(
+                                [
+                                    "PLATFORM_NAME": .plString("webassembly")
+                                ].merging(defaultProperties, uniquingKeysWith: { _, new in new })
+                            ),
+                            "CustomProperties": .plDict([
+                                "LLVM_TARGET_TRIPLE_OS_VERSION": .plString(os),
+                                "SWIFT_LIBRARY_PATH": .plString(swiftResourceDir.join("wasi").str),
+                                "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str),
+                                // HACK: Ld step does not use swiftc as linker driver but instead uses clang, so we need to add some Swift specific flags
+                                // assuming static linking.
+                                // Tracked in https://github.com/swiftlang/swift-build/issues/3
+                                "OTHER_LDFLAGS": .plArray(["-lc++", "-lc++abi", "-resource-dir", "$(SWIFT_RESOURCE_DIR)/clang", "@$(SWIFT_LIBRARY_PATH)/static-executable-args.lnk"]),
+                            ]),
+                            "SupportedTargets": .plDict([
+                                "webassembly": .plDict([
+                                    "Archs": .plArray([.plString(arch)]),
+                                    "LLVMTargetTripleEnvironment": .plString(env ?? ""),
+                                    "LLVMTargetTripleSys": .plString(os),
+                                    "LLVMTargetTripleVendor": .plString("unknown"),
+                                ])
+                            ]),
+                            // TODO: Leave compatible toolchain information in Swift SDKs
+                            // "Toolchains": .plArray([])
+                        ]
+                    )
+                )
             }
         }
 

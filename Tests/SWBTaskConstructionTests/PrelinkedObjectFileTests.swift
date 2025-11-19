@@ -26,9 +26,10 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [
-                ]),
+                "SomeFiles",
+                path: "Sources",
+                children: []
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -36,7 +37,8 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -50,14 +52,17 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                                 "WARNING_LDFLAGS": "-lWarningLibrary",
                                 "PRELINK_LIBS": "-lSomeLibrary -lAnotherLibrary",
                                 "PRELINK_FLAGS": "-exported_symbols_list Exports.exp",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([]),
                     ],
-                    dependencies: ["Tool"]),
-            ])
+                    dependencies: ["Tool"]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try TaskConstructionTester(core, testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -159,9 +164,10 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [
-                ]),
+                "SomeFiles",
+                path: "Sources",
+                children: []
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -169,7 +175,8 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                         "SDKROOT": "iphoneos",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -179,15 +186,18 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "GENERATE_PRELINK_OBJECT_FILE": "YES",
-                            ]),
+                                "GENERATE_PRELINK_OBJECT_FILE": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([]),
                     ],
-                    dependencies: ["Tool"]),
-            ])
+                    dependencies: ["Tool"]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try TaskConstructionTester(core, testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -228,9 +238,10 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [
-                ]),
+                "SomeFiles",
+                path: "Sources",
+                children: []
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -238,7 +249,8 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                         "SDKROOT": "iphoneos",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -248,15 +260,18 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "GENERATE_PRELINK_OBJECT_FILE": "YES",
-                            ]),
+                                "GENERATE_PRELINK_OBJECT_FILE": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([]),
                     ],
-                    dependencies: ["Tool"]),
-            ])
+                    dependencies: ["Tool"]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try TaskConstructionTester(core, testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -296,9 +311,10 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [
-                ]),
+                "SomeFiles",
+                path: "Sources",
+                children: []
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -306,7 +322,8 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
                         "SDKROOT": "iphonesimulator",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -316,15 +333,18 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "GENERATE_PRELINK_OBJECT_FILE": "YES",
-                            ]),
+                                "GENERATE_PRELINK_OBJECT_FILE": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([]),
                     ],
-                    dependencies: ["Tool"]),
-            ])
+                    dependencies: ["Tool"]
+                )
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try TaskConstructionTester(core, testWorkspace)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str

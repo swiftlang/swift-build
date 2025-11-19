@@ -14,25 +14,25 @@ import SWBUtil
 import Foundation
 
 #if os(Windows)
-import WinSDK
+    import WinSDK
 
-private var KF_FLAG_DEFAULT: DWORD {
-    DWORD(WinSDK.KF_FLAG_DEFAULT.rawValue)
-}
-
-private func SUCCEEDED(_ hr: HRESULT) -> Bool {
-    hr >= 0
-}
-
-private func _url(for id: KNOWNFOLDERID) -> URL? {
-    var pszPath: PWSTR?
-    let hr: HRESULT = withUnsafePointer(to: id) { id in
-        SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, nil, &pszPath)
+    private var KF_FLAG_DEFAULT: DWORD {
+        DWORD(WinSDK.KF_FLAG_DEFAULT.rawValue)
     }
-    guard SUCCEEDED(hr) else { return nil }
-    defer { CoTaskMemFree(pszPath) }
-    return URL(filePath: String(decodingCString: pszPath!, as: UTF16.self), directoryHint: .isDirectory)
-}
+
+    private func SUCCEEDED(_ hr: HRESULT) -> Bool {
+        hr >= 0
+    }
+
+    private func _url(for id: KNOWNFOLDERID) -> URL? {
+        var pszPath: PWSTR?
+        let hr: HRESULT = withUnsafePointer(to: id) { id in
+            SHGetKnownFolderPath(id, KF_FLAG_DEFAULT, nil, &pszPath)
+        }
+        guard SUCCEEDED(hr) else { return nil }
+        defer { CoTaskMemFree(pszPath) }
+        return URL(filePath: String(decodingCString: pszPath!, as: UTF16.self), directoryHint: .isDirectory)
+    }
 #endif
 
 extension URL {
@@ -40,21 +40,21 @@ extension URL {
     ///
     /// An example of a concrete path is `C:\Users\User\AppData\Local\Programs`
     static var userProgramFiles: URL? {
-#if os(Windows)
-        _url(for: FOLDERID_UserProgramFiles)
-#else
-        nil
-#endif
+        #if os(Windows)
+            _url(for: FOLDERID_UserProgramFiles)
+        #else
+            nil
+        #endif
     }
 
     /// Maps to the environment variable `%ProgramFiles(x86)%`
     ///
     /// An example of a concrete path is `C:\Program Files (x86)`
     static var programFilesX86: URL? {
-#if os(Windows)
-        _url(for: FOLDERID_ProgramFilesX86)
-#else
-        nil
-#endif
+        #if os(Windows)
+            _url(for: FOLDERID_ProgramFilesX86)
+        #else
+            nil
+        #endif
     }
 }

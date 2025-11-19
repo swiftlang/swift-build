@@ -10,16 +10,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-public extension Array
-{
+public extension Array {
     // Typechecking of operator+ can be extraordinarily slow, even for small expressions; use this instead when needed.
     func appending(contentsOf other: [Element]) -> [Element] {
         return self + other
     }
 }
 
-public extension Array where Element: Equatable
-{
+public extension Array where Element: Equatable {
     /// Returns the element immediately following the first contiguous subsequence of elements equal to `elements`.
     func elementAfterElements(_ elements: [Element]) -> Element? {
         if let range = self.firstRange(of: elements), range.upperBound != endIndex {
@@ -110,7 +108,7 @@ public extension Array where Element: FloatingPoint {
             return Element(0)
         }
         let average = self.average()
-        let v = self.reduce(0) { (acc: Element, next: Element) in acc + (next-average)*(next-average) }
+        let v = self.reduce(0) { (acc: Element, next: Element) in acc + (next - average) * (next - average) }
         return (v / (Element(self.count) - 1)).squareRoot()
     }
 
@@ -135,7 +133,7 @@ extension Sequence {
         return elements
     }
 
-    public func asyncFlatMap<SegmentOfResult, E>(_ transform: (Self.Element) async throws(E) -> SegmentOfResult) async throws(E) -> [SegmentOfResult.Element] where SegmentOfResult : Sequence {
+    public func asyncFlatMap<SegmentOfResult, E>(_ transform: (Self.Element) async throws(E) -> SegmentOfResult) async throws(E) -> [SegmentOfResult.Element] where SegmentOfResult: Sequence {
         var elements: [SegmentOfResult.Element] = []
         for element in self {
             try await elements.append(contentsOf: transform(element))
@@ -210,13 +208,13 @@ public func nWayMerge<T: Equatable & Sendable>(_ arrays: [[T]]) -> [NWayMergeEle
     var merged = arrays[0].map { NWayMergeElement(element: $0, elementOf: Set([0])) }
     for (idx, array) in arrays.enumerated().dropFirst() {
         merged = merged.map { NWayMergeElement(element: $0.element, elementOf: $0.elementOf.union([idx])) }
-        let next =  array.map { NWayMergeElement(element: $0, elementOf: Set([idx])) }
+        let next = array.map { NWayMergeElement(element: $0, elementOf: Set([idx])) }
         let diff = next.difference(from: merged, by: { first, second in first.element == second.element })
         for change in diff {
             switch change {
             case .insert(offset: let offset, element: let element, associatedWith: _):
                 let adjustment = diff.removals.filter { $0.offset <= offset }.count
-                merged.insert(element, at: offset+adjustment)
+                merged.insert(element, at: offset + adjustment)
             case .remove(offset: let offset, element: _, associatedWith: _):
                 merged[offset].elementOf.remove(idx)
             }

@@ -14,7 +14,7 @@ public import SWBUtil
 public import SWBCore
 public import SWBMacro
 
-public final class IBStoryboardLinkerCompilerSpec : GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport, @unchecked Sendable {
+public final class IBStoryboardLinkerCompilerSpec: GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport, @unchecked Sendable {
     public static let identifier = "com.apple.xcode.tools.ibtool.storyboard.linker"
 
     /// Override to compute the special arguments.
@@ -41,10 +41,9 @@ public final class IBStoryboardLinkerCompilerSpec : GenericCompilerSpec, SpecIde
             outputs = [
                 "Interface.plist",
                 "Interface-glance.plist",
-                "Interface-notification.plist"
+                "Interface-notification.plist",
             ].map { (resourcesDir.join($0), false) }
-        }
-        else {
+        } else {
             // Otherwise compute default values based on the inputs.
             for input in cbc.inputs.map({ $0.absolutePath }) {
                 let subpath = input.relativeSubpath(from: tmpResourcesDir) ?? input.basename

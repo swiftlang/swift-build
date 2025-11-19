@@ -50,7 +50,7 @@ public struct ResolvedTargetDependency: Hashable, Encodable, Sendable {
 }
 
 extension ResolvedTargetDependency: Serializable {
-    public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+    public func serialize<T>(to serializer: T) where T: SWBUtil.Serializer {
         serializer.serializeAggregate(2) {
             serializer.serialize(target)
             serializer.serialize(reason)
@@ -110,12 +110,12 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
     public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: Purpose = .build) async {
         let (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
-        await MacroNamespace.withExpressionInterningEnabled {
-            await buildRequestContext.keepAliveSettingsCache {
-                let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
-                return await resolver.computeGraph()
+            await MacroNamespace.withExpressionInterningEnabled {
+                await buildRequestContext.keepAliveSettingsCache {
+                    let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
+                    return await resolver.computeGraph()
+                }
             }
-        }
         self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, allTargets: allTargets, targetDependencies: targetDependencies, targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets: dynamicallyBuildingTargets)
     }
 
@@ -196,31 +196,41 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     }
     private var _dependencyGraphDiagnostic: LazyCache<TargetBuildGraph, Diagnostic> = LazyCache { instance in
         // .allTargets is sorted in topological order. Reverse this so that targets appear before their dependencies in the list.
-        return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Target dependency graph (\(instance.allTargets.count) target" + (instance.allTargets.count > 1 ? "s" : "") + ")"), childDiagnostics: instance.allTargets.reversed().map { configuredTarget in
-            let project = instance.workspaceContext.workspace.project(for: configuredTarget.target)
-            let resolvedDependencies = instance.resolvedDependencies(of: configuredTarget)
-            let parts = [
-                "Target '\(configuredTarget.target.name)' in project '\(project.name)'",
-                instance.buildRequest.shouldSkipExecution(target: configuredTarget.target) ? " (skipped due to 'Skip Dependencies' scheme option)" : "",
-                resolvedDependencies.isEmpty ? " (no dependencies)" : "",
-            ]
-            return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData(parts.joined(separator: "")), childDiagnostics: resolvedDependencies.map { dependency in
-                let project = instance.workspaceContext.workspace.project(for: dependency.target.target)
-                let dependencyDescription = "target '\(dependency.target.target.name)' in project '\(project.name)'"
-                let dependencyString: String
-                switch dependency.reason {
-                case .explicit:
-                    dependencyString = "Explicit dependency on \(dependencyDescription)"
-                case .implicitBuildPhaseLinkage(filename: let filename, buildableItem: _, buildPhase: let buildPhase):
-                    dependencyString = "Implicit dependency on \(dependencyDescription) via file '\(filename)' in build phase '\(buildPhase)'"
-                case .implicitBuildSetting(settingName: let settingName, options: let options):
-                    dependencyString = "Implicit dependency on \(dependencyDescription) via options '\(options.joined(separator: " "))' in build setting '\(settingName)'"
-                case .impliedByTransitiveDependencyViaRemovedTargets(let intermediateTargetName):
-                    dependencyString = "Dependency on \(dependencyDescription) via transitive dependency through '\(intermediateTargetName)'"
-                }
-                return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("➜ " + dependencyString))
-            })
-        })
+        return Diagnostic(
+            behavior: .note,
+            location: .unknown,
+            data: DiagnosticData("Target dependency graph (\(instance.allTargets.count) target" + (instance.allTargets.count > 1 ? "s" : "") + ")"),
+            childDiagnostics: instance.allTargets.reversed().map { configuredTarget in
+                let project = instance.workspaceContext.workspace.project(for: configuredTarget.target)
+                let resolvedDependencies = instance.resolvedDependencies(of: configuredTarget)
+                let parts = [
+                    "Target '\(configuredTarget.target.name)' in project '\(project.name)'",
+                    instance.buildRequest.shouldSkipExecution(target: configuredTarget.target) ? " (skipped due to 'Skip Dependencies' scheme option)" : "",
+                    resolvedDependencies.isEmpty ? " (no dependencies)" : "",
+                ]
+                return Diagnostic(
+                    behavior: .note,
+                    location: .unknown,
+                    data: DiagnosticData(parts.joined(separator: "")),
+                    childDiagnostics: resolvedDependencies.map { dependency in
+                        let project = instance.workspaceContext.workspace.project(for: dependency.target.target)
+                        let dependencyDescription = "target '\(dependency.target.target.name)' in project '\(project.name)'"
+                        let dependencyString: String
+                        switch dependency.reason {
+                        case .explicit:
+                            dependencyString = "Explicit dependency on \(dependencyDescription)"
+                        case .implicitBuildPhaseLinkage(filename: let filename, buildableItem: _, buildPhase: let buildPhase):
+                            dependencyString = "Implicit dependency on \(dependencyDescription) via file '\(filename)' in build phase '\(buildPhase)'"
+                        case .implicitBuildSetting(settingName: let settingName, options: let options):
+                            dependencyString = "Implicit dependency on \(dependencyDescription) via options '\(options.joined(separator: " "))' in build setting '\(settingName)'"
+                        case .impliedByTransitiveDependencyViaRemovedTargets(let intermediateTargetName):
+                            dependencyString = "Dependency on \(dependencyDescription) via transitive dependency through '\(intermediateTargetName)'"
+                        }
+                        return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("➜ " + dependencyString))
+                    }
+                )
+            }
+        )
     }
 }
 
@@ -400,8 +410,7 @@ fileprivate extension TargetDependencyResolver {
                 for configuredTarget in configuredTargets {
                     if let newConfiguredTarget = configuredTargetsToReplace[configuredTarget] {
                         newConfiguredTargets.insert(newConfiguredTarget)
-                    }
-                    else {
+                    } else {
                         newConfiguredTargets.insert(configuredTarget)
                     }
                 }
@@ -418,8 +427,7 @@ fileprivate extension TargetDependencyResolver {
                     if let newDependencyTarget = configuredTargetsToReplace[dependency.target] {
                         let newDependency = ResolvedTargetDependency(target: newDependencyTarget, reason: dependency.reason)
                         newDependencies.append(newDependency)
-                    }
-                    else {
+                    } else {
                         newDependencies.append(dependency)
                     }
                 }
@@ -718,7 +726,8 @@ fileprivate extension TargetDependencyResolver {
     ///   - dependencyPath: The ordered list of dependencies added along the path to this target, for detecting recursion.
     ///   - imposedParameters: Additional build parameter overrides which should be imposed upon all targets along this path (for specialization purposes).
     private func addDependencies(forConfiguredTarget configuredTarget: ConfiguredTarget, toDependencyClosure dependencyClosure: inout OrderedSet<ConfiguredTarget>, dependencyPath: inout OrderedSet<ConfiguredTarget>, imposedParameters: SpecializationParameters? = nil) async {
-        let statusMessage = workspaceContext.userPreferences.activityTextShorteningLevel >= .allDynamicText
+        let statusMessage =
+            workspaceContext.userPreferences.activityTextShorteningLevel >= .allDynamicText
             ? "Computing dependencies"
             : "Computing dependencies for '\(configuredTarget.target.name)'"
         delegate.updateProgress(statusMessage: statusMessage, showInLog: false)
@@ -778,7 +787,6 @@ fileprivate extension TargetDependencyResolver {
             }
             await addDependencies(forConfiguredTarget: dependency.target, toDependencyClosure: &dependencyClosure, dependencyPath: &dependencyPath, imposedParameters: dependencyImposedParameters)
         }
-
 
         // Visit all of the immediate dependencies.
         for configuredDependency in discoveredInfo.immediateDependencies {

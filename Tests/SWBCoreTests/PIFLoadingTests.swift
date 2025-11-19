@@ -114,23 +114,32 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(absentValue == nil)
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsString("arrayOfItemsKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsString("arrayOfItemsKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsString("arrayOfItemsKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsString("arrayOfItemsKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsString("missingKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsString("missingKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
+            }
+        )
     }
 
     @Test
@@ -148,17 +157,23 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(!missingFalseValue)
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsBool("arrayOfItemsKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String", destinationType: "Bool").description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsBool("arrayOfItemsKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String", destinationType: "Bool").description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsBool("stringKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.invalidEnumValue(keyName: "stringKey", objectType: ProjectModelItemClass.self, actualValue: "aValue", destinationType: PIFBoolValue.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsBool("stringKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.invalidEnumValue(keyName: "stringKey", objectType: ProjectModelItemClass.self, actualValue: "aValue", destinationType: PIFBoolValue.self).description
+            }
+        )
     }
 
     @Test
@@ -228,23 +243,32 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(absentValue == nil)
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfPropertyListItems("stringKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfPropertyListItems("stringKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfPropertyListItems("stringKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfPropertyListItems("stringKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfPropertyListItems("missingKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfPropertyListItems("missingKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
+            }
+        )
     }
 
     @Test
@@ -262,29 +286,41 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(requiredValue[2].guid == "some-fileGroup-guid")
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("missingKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("missingKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("arrayOfStringsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfStringsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary").description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("arrayOfStringsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfStringsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary").description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("arrayOfEmptyDictsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfProjectModelItems("arrayOfEmptyDictsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
+            }
+        )
     }
 
     @Test
@@ -305,23 +341,32 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(absentValue == nil)
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfProjectModelItems("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfProjectModelItems("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfProjectModelItems("arrayOfStringsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfStringsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary").description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfProjectModelItems("arrayOfStringsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfStringsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary").description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfProjectModelItems("arrayOfEmptyDictsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfProjectModelItems("arrayOfEmptyDictsKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
+            }
+        )
     }
 
     @Test
@@ -334,46 +379,61 @@ private final class ProjectModelItemClass: ProjectModelItem {
         // Test the required version.
         let requiredValue = try ProjectModelItemClass.parseValueForKeyAsArrayOfStrings("arrayOfStringsKey", pifDict: pifDict)
         #expect(requiredValue.count == 5)
-        #expect(requiredValue == [ "one", "two", "three", "four", "five" ])
+        #expect(requiredValue == ["one", "two", "three", "four", "five"])
 
         // Test the optional version.
         let presentValue = try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfStrings("arrayOfStringsKey", pifDict: pifDict)
         #expect(presentValue?.count == 5)
-        #expect(presentValue == [ "one", "two", "three", "four", "five" ])
+        #expect(presentValue == ["one", "two", "three", "four", "five"])
 
         let absentValue = try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfStrings("missingKey", pifDict: pifDict)
         #expect(absentValue == nil)
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfStrings("stringKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfStrings("stringKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfStrings("stringKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfStrings("stringKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Array", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfStrings("missingKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfStrings("missingKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsArrayOfStrings("arrayOfItemsKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String").description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsArrayOfStrings("arrayOfItemsKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String").description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfStrings("arrayOfItemsKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String").description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsArrayOfStrings("arrayOfItemsKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectTypeInArray(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "String").description
+            }
+        )
     }
 
     @Test
@@ -395,23 +455,32 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(absentValue == nil)
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsPIFDictionary("arrayOfItemsKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsPIFDictionary("arrayOfItemsKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsPIFDictionary("arrayOfItemsKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsPIFDictionary("arrayOfItemsKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "arrayOfItemsKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsPIFDictionary("missingKey", pifDict: pifDict)
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsPIFDictionary("missingKey", pifDict: pifDict)
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
+            }
+        )
     }
 
     @Test
@@ -425,23 +494,32 @@ private final class ProjectModelItemClass: ProjectModelItem {
         let _ = try FileGroup.parseValueForKeyAsProjectModelItem("fileGroupKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try FileGroup(fromDictionary: $0, withPIFLoader: pifLoader, isRoot: false) })
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsProjectModelItem("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsProjectModelItem("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsProjectModelItem("missingKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsProjectModelItem("missingKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "missingKey", objectType: ProjectModelItemClass.self).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseValueForKeyAsProjectModelItem("dictionaryKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseValueForKeyAsProjectModelItem("dictionaryKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
+            }
+        )
     }
 
     @Test
@@ -459,17 +537,23 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(absentValue == nil)
 
         // Test failure cases.
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsProjectModelItem("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsProjectModelItem("stringKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.incorrectType(keyName: "stringKey", objectType: ProjectModelItemClass.self, expectedType: "Dictionary", destinationType: nil).description
+            }
+        )
 
-        #expect(performing: {
-            try ProjectModelItemClass.parseOptionalValueForKeyAsProjectModelItem("dictionaryKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
-        }, throws: { error in
-            (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
-        })
+        #expect(
+            performing: {
+                try ProjectModelItemClass.parseOptionalValueForKeyAsProjectModelItem("dictionaryKey", pifDict: pifDict, pifLoader: pifLoader, construct: { try Reference(fromDictionary: $0, withPIFLoader: pifLoader) })
+            },
+            throws: { error in
+                (error as? PIFParsingError)?.description == PIFParsingError.missingRequiredKey(keyName: "guid", objectType: Reference.self).description
+            }
+        )
     }
 
     @Test
@@ -489,7 +573,6 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(try parsePIFVersion("WORKSPACE@v12_v13_v14") == 12)
     }
 }
-
 
 // MARK: - Test cases for loading PIF items in isolation
 
@@ -512,7 +595,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let workspace = try Workspace( fromDictionary: workspacePIF, signature: "mock", withPIFLoader: pifLoader )
+        let workspace = try Workspace(fromDictionary: workspacePIF, signature: "mock", withPIFLoader: pifLoader)
 
         // Examine the workspace.
         #expect(workspace.guid == "some-workspace-guid")
@@ -548,7 +631,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             Issue.record("property list is not a dictionary")
             return
         }
-        let project = try Project(fromDictionary: projectPIF, signature: "mock", withPIFLoader: pifLoader )
+        let project = try Project(fromDictionary: projectPIF, signature: "mock", withPIFLoader: pifLoader)
 
         // Examine the project.
         #expect(project.guid == "some-project-guid")
@@ -596,7 +679,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "signature": "PROJECT",
                 "type": "project",
                 "contents": .init(testProjectData),
-            ]
+            ],
         ]
 
         let loader = PIFLoader(data: .init(testData), namespace: BuiltinMacros.namespace)
@@ -816,7 +899,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
         ]
 
         // Convert the test data into a property list, then read the variant group from it.
-        let variantGroup = try #require(GroupTreeReference.parsePIFDictAsReference( variantGroupPIF, pifLoader: pifLoader, isRoot: true) as? SWBCore.VariantGroup)
+        let variantGroup = try #require(GroupTreeReference.parsePIFDictAsReference(variantGroupPIF, pifLoader: pifLoader, isRoot: true) as? SWBCore.VariantGroup)
 
         // Examine the variant group.
         #expect(variantGroup.guid == "some-variantGroup-guid")
@@ -870,7 +953,8 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "GCC_PREPROCESSOR_DEFINITIONS": [
                     "DEBUG=1",
                     "$(inherited)",
-                ]],
+                ],
+            ],
         ]
 
         // Convert the test data into a property list, then read the build configuration from it.
@@ -938,7 +1022,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         "guid": "first-buildFile-guid",
                         "name": "ClassOne.m",
                         "fileReference": "first-fileReference-guid",
-                    ],
+                    ]
                 ],
             ]
 
@@ -959,7 +1043,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         "guid": "first-buildFile-guid",
                         "name": "ClassOne.h",
                         "fileReference": "first-fileReference-guid",
-                    ],
+                    ]
                 ],
             ]
 
@@ -980,7 +1064,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         "guid": "first-buildFile-guid",
                         "name": "Thingy.xib",
                         "fileReference": "first-fileReference-guid",
-                    ],
+                    ]
                 ],
             ]
 
@@ -1003,7 +1087,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         "guid": "second-buildFile-guid",
                         "name": "ClassTwo.m",
                         "fileReference": "second-fileReference-guid",
-                    ],
+                    ]
                 ],
                 "runOnlyForDeploymentPostprocessing": "true",
             ]
@@ -1028,10 +1112,10 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "scriptContents": "echo \"Nothing to do.\"\nexit 0",
                 "originalObjectID": "1234512345",
                 "inputFilePaths": [
-                    "/tmp/foo.in",
+                    "/tmp/foo.in"
                 ],
                 "outputFilePaths": [
-                    "/tmp/foo.out",
+                    "/tmp/foo.out"
                 ],
                 "emitEnvironment": "true",
                 "runOnlyForDeploymentPostprocessing": "true",
@@ -1064,7 +1148,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "fileTypeIdentifier": "sourcecode.c.objc",
                 "compilerSpecificationIdentifier": "com.apple.compilers.llvm.clang.1_0",
                 "outputFilePaths": [
-                    "/tmp/$(INPUT_FILE_BASE).o",
+                    "/tmp/$(INPUT_FILE_BASE).o"
                 ],
             ]
 
@@ -1100,7 +1184,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "scriptContents": "/bin/cp $(INPUT_FILE) $(OUTPUT_FILE_0)",
                 "inputFilePaths": [],
                 "outputFilePaths": [
-                    "/tmp/$(INPUT_FILE_BASE).bar",
+                    "/tmp/$(INPUT_FILE_BASE).bar"
                 ],
             ]
 
@@ -1186,7 +1270,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         "guid": "framework-source-buildFile-guid",
                         "name": "FrameworkClass.m",
                         "fileReference": classOneFileRef.guid,
-                    ],
+                    ]
                 ],
             ]
             let testFrameworksBuildPhaseData: [String: PropertyListItem] = [
@@ -1197,7 +1281,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         "guid": "cocoa-framework-buildFile-guid",
                         "name": "Cocoa.framework",
                         "fileReference": cocoaFwkFileRef.guid,
-                    ],
+                    ]
                 ],
             ]
             let testProductRefData: [String: PropertyListItem] = [
@@ -1209,7 +1293,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "guid": "framework-target-guid",
                 "name": "Target Uno",
                 "buildConfigurations": .plArray([
-                    .plDict(testBuildConfigurationData),
+                    .plDict(testBuildConfigurationData)
                 ]),
                 "buildPhases": .plArray([
                     .plDict(testSourcesBuildPhaseData),
@@ -1222,7 +1306,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the target from it.
-            return try StandardTarget( fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader )
+            return try StandardTarget(fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader)
         }()
 
         // Examine the framework target.
@@ -1234,14 +1318,11 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(frameworkTarget.productReference.guid == "framework-productReference-guid")
         #expect(frameworkTarget.productTypeIdentifier == "com.apple.product-type.framework")
 
-        if let provisioningSourceData = frameworkTarget.provisioningSourceData(for: "Debug")
-        {
+        if let provisioningSourceData = frameworkTarget.provisioningSourceData(for: "Debug") {
             #expect(provisioningSourceData.configurationName == "Debug")
             #expect(provisioningSourceData.provisioningStyle == .automatic)
             #expect(provisioningSourceData.bundleIdentifierFromInfoPlist == "")
-        }
-        else
-        {
+        } else {
             Issue.record("frameworkTarget does not have provisioning source data")
         }
 
@@ -1284,7 +1365,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         "guid": "cocoa-framework-buildFile-guid",
                         "name": "Cocoa.framework",
                         "fileReference": cocoaFwkFileRef.guid,
-                    ],
+                    ]
                 ],
             ]
             let testProductRefData: [String: PropertyListItem] = [
@@ -1296,17 +1377,17 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "guid": "app-target-guid",
                 "name": "Target Dos",
                 "buildConfigurations": .plArray([
-                    .plDict(testBuildConfigurationData),
+                    .plDict(testBuildConfigurationData)
                 ]),
                 "provisioningSourceData": .plArray([
-                    .plDict(testProvisioningSourceData),
+                    .plDict(testProvisioningSourceData)
                 ]),
                 "buildPhases": .plArray([
                     .plDict(testSourcesBuildPhaseData),
                     .plDict(testFrameworksBuildPhaseData),
                 ]),
                 "dependencies": [
-                    ["guid": "framework-target-guid"],
+                    ["guid": "framework-target-guid"]
                 ],
                 "productReference": .plDict(testProductRefData),
                 "productTypeIdentifier": "com.apple.product-type.application",
@@ -1314,7 +1395,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             ]
 
             // Convert the test data into a property list, then read the target from it.
-            return try StandardTarget( fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader )
+            return try StandardTarget(fromDictionary: targetPIF, signature: "mock", withPIFLoader: pifLoader)
         }()
 
         // Examine the app target.
@@ -1326,14 +1407,11 @@ private final class ProjectModelItemClass: ProjectModelItem {
         #expect(appTarget.productReference.guid == "app-productReference-guid")
         #expect(appTarget.productTypeIdentifier == "com.apple.product-type.application")
 
-        if let provisioningSourceData = appTarget.provisioningSourceData(for: "Debug")
-        {
+        if let provisioningSourceData = appTarget.provisioningSourceData(for: "Debug") {
             #expect(provisioningSourceData.configurationName == "Debug")
             #expect(provisioningSourceData.provisioningStyle == .manual)
             #expect(provisioningSourceData.bundleIdentifierFromInfoPlist == "CocoaApp")
-        }
-        else
-        {
+        } else {
             Issue.record("appTarget does not have provisioning source data")
         }
 
@@ -1364,8 +1442,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
             try checkBuildFileRef(of: appFrameworksBuildPhase, fileRef: cocoaFwkFileRef)
             try checkBuildFileRef(of: frameworkSourcesBuildPhase, fileRef: classOneFileRef)
             try checkBuildFileRef(of: frameworkFrameworksBuildPhase, fileRef: cocoaFwkFileRef)
-        }
-        catch {
+        } catch {
             // Any #require failures which caused the block above to abort will have been reported by the test macro.
         }
 
@@ -1381,14 +1458,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "guid": "aggregate-target-guid",
                 "name": "Debug",
                 "buildSettings": [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "PRODUCT_NAME": "$(TARGET_NAME)"
                 ],
             ]
             let targetPIF: [String: PropertyListItem] = [
                 "guid": "aggregate-target-guid",
                 "name": "Aggregate",
                 "buildConfigurations": [
-                    testBuildConfigurationData,
+                    testBuildConfigurationData
                 ],
                 "buildPhases": [],
                 "buildRules": [],
@@ -1412,14 +1489,14 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 "guid": "external-buildConfiguration-guid",
                 "name": "Debug",
                 "buildSettings": [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "PRODUCT_NAME": "$(TARGET_NAME)"
                 ],
             ]
             let targetPIF: [String: PropertyListItem] = [
                 "guid": "external-target-guid",
                 "name": "External",
                 "buildConfigurations": [
-                    testBuildConfigurationData,
+                    testBuildConfigurationData
                 ],
                 "toolPath": "/usr/bin/make",
                 "arguments": "$(ACTION)",
@@ -1481,7 +1558,7 @@ private final class ProjectModelItemClass: ProjectModelItem {
                         TestBuildConfiguration(
                             "Release",
                             buildSettings: [
-                                "SKIP_INSTALL": "YES",
+                                "SKIP_INSTALL": "YES"
                             ]
                         ),
                     ],
@@ -1500,13 +1577,12 @@ private final class ProjectModelItemClass: ProjectModelItem {
                             buildConfigurations: [TestBuildConfiguration("Debug"), TestBuildConfiguration("Release")],
                             buildPhases: [
                                 TestHeadersBuildPhase([
-                                    "HeaderFile1.h",
+                                    "HeaderFile1.h"
                                 ]),
                                 TestSourcesBuildPhase([
-                                    "SourceFile1.m",
+                                    "SourceFile1.m"
                                 ]),
-                                TestFrameworksBuildPhase([
-                                ]),
+                                TestFrameworksBuildPhase([]),
                             ]
                         ),
                         TestStandardTarget(
@@ -1515,24 +1591,27 @@ private final class ProjectModelItemClass: ProjectModelItem {
                             buildConfigurations: [TestBuildConfiguration("Debug"), TestBuildConfiguration("Release")],
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    "SourceFile2.m",
+                                    "SourceFile2.m"
                                 ]),
                                 TestFrameworksBuildPhase([
-                                    "FwkTarget.framework",
+                                    "FwkTarget.framework"
                                 ]),
                                 TestResourcesBuildPhase([
-                                    "View.xib",
+                                    "View.xib"
                                 ]),
-                                TestCopyFilesBuildPhase([
-                                    TestBuildFile(
-                                        "FwkTarget.framework",
-                                        codeSignOnCopy: true,
-                                        removeHeadersOnCopy: true
-                                    ),
-                                ], destinationSubfolder: .frameworks),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        TestBuildFile(
+                                            "FwkTarget.framework",
+                                            codeSignOnCopy: true,
+                                            removeHeadersOnCopy: true
+                                        )
+                                    ],
+                                    destinationSubfolder: .frameworks
+                                ),
                             ],
                             dependencies: [
-                                "FwkTarget",
+                                "FwkTarget"
                             ]
                         ),
                         TestExternalTarget(
@@ -1675,37 +1754,35 @@ private final class ProjectModelItemClass: ProjectModelItem {
                 TestProject(
                     "aProject",
                     groupTree: TestGroup(
-                        "SomeFiles", path: "Sources",
-                        children: []),
+                        "SomeFiles",
+                        path: "Sources",
+                        children: []
+                    ),
                     targets: [
                         TestStandardTarget(
                             "CoreFoo",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                       ]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                                    ]
+                                )
                             ],
                             buildPhases: [
-                                TestSourcesBuildPhase([
-                                ]),
-                                TestSourcesBuildPhase([
-                                ]),
-                                TestFrameworksBuildPhase([
-                                ]),
-                                TestFrameworksBuildPhase([
-                                ]),
-                                TestHeadersBuildPhase([
-                                ]),
-                                TestHeadersBuildPhase([
-                                ]),
-                                TestResourcesBuildPhase([
-                                ]),
-                                TestResourcesBuildPhase([
-                                ]),
-                            ]),
-                    ]),
+                                TestSourcesBuildPhase([]),
+                                TestSourcesBuildPhase([]),
+                                TestFrameworksBuildPhase([]),
+                                TestFrameworksBuildPhase([]),
+                                TestHeadersBuildPhase([]),
+                                TestHeadersBuildPhase([]),
+                                TestResourcesBuildPhase([]),
+                                TestResourcesBuildPhase([]),
+                            ]
+                        )
+                    ]
+                )
             ]
         )
         let workspace = try await testWorkspace.load(getCore())
@@ -1718,11 +1795,13 @@ private final class ProjectModelItemClass: ProjectModelItem {
             return
         }
         #expect(target.errors == [])
-        #expect(target.warnings == [
-            "target has multiple Compile Sources build phases, which may cause it to build incorrectly - all but one should be deleted",
-            "target has multiple Link Binary build phases, which may cause it to build incorrectly - all but one should be deleted",
-            "target has multiple Copy Headers build phases, which may cause it to build incorrectly - all but one should be deleted",
-            "target has multiple Copy Bundle Resources build phases, which may cause it to build incorrectly - all but one should be deleted",
-        ])
+        #expect(
+            target.warnings == [
+                "target has multiple Compile Sources build phases, which may cause it to build incorrectly - all but one should be deleted",
+                "target has multiple Link Binary build phases, which may cause it to build incorrectly - all but one should be deleted",
+                "target has multiple Copy Headers build phases, which may cause it to build incorrectly - all but one should be deleted",
+                "target has multiple Copy Bundle Resources build phases, which may cause it to build incorrectly - all but one should be deleted",
+            ]
+        )
     }
 }

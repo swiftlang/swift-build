@@ -32,25 +32,34 @@ fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "SomeFiles", path: "Sources",
+                            "SomeFiles",
+                            path: "Sources",
                             children: [
-                                TestFile("main.c"),
-                            ]),
+                                TestFile("main.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "DEBUG_INFORMATION_FORMAT" : "dwarf-with-dsym",
+                                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
                                     "DEPLOYMENT_POSTPROCESSING": "YES",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["main.c"])]),
-                        ])])
+                                    TestSourcesBuildPhase(["main.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -107,30 +116,39 @@ fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "SomeFiles", path: "Sources",
+                            "SomeFiles",
+                            path: "Sources",
                             children: [
-                                TestFile("main.c"),
-                            ]),
+                                TestFile("main.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "DEBUG_INFORMATION_FORMAT" : "dwarf-with-dsym",
+                                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
                                     "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
                                     "DEPLOYMENT_POSTPROCESSING": "YES",
                                     // Disable the SetOwnerAndGroup action by setting them to empty values.
                                     "INSTALL_GROUP": "",
                                     "INSTALL_OWNER": "",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["main.c"])]),
-                        ])])
+                                    TestSourcesBuildPhase(["main.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -179,16 +197,18 @@ fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "SomeFiles", path: "Sources",
+                            "SomeFiles",
+                            path: "Sources",
                             children: [
-                                TestFile("foo.swift"),
-                            ]),
+                                TestFile("foo.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "DEBUG_INFORMATION_FORMAT" : "dwarf-with-dsym",
+                                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
                                     "DWARF_DSYM_FILE_SHOULD_ACCOMPANY_PRODUCT": "YES",
                                     "DEPLOYMENT_POSTPROCESSING": "YES",
                                     "SWIFT_VERSION": swiftVersion,
@@ -198,14 +218,21 @@ fileprivate struct DsymGenerationBuildOperationTests: CoreBasedTests {
                                     "INSTALL_GROUP": "",
                                     "INSTALL_OWNER": "",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["foo.swift"])]),
-                        ])])
+                                    TestSourcesBuildPhase(["foo.swift"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.

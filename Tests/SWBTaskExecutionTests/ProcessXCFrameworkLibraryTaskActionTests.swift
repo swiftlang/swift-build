@@ -17,7 +17,7 @@ import SWBTestSupport
 import SWBUtil
 import SWBTaskExecution
 
-@Suite(.requireHostOS(.macOS)) // Core isn't working on Linux yet
+@Suite(.requireHostOS(.macOS))  // Core isn't working on Linux yet
 fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
     let infoLookup: any PlatformInfoLookup
 
@@ -37,10 +37,13 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             try fs.createDirectory(Path(SRCROOT), recursive: true)
 
-            let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil, debugSymbolsPath: Path("debugSymbols")),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework"), headersPath: nil, debugSymbolsPath: Path("debugSymbols")),
-            ])
+            let supportXCFramework = try XCFramework(
+                version: Version(1, 0),
+                libraries: [
+                    XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil, debugSymbolsPath: Path("debugSymbols")),
+                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework"), headersPath: nil, debugSymbolsPath: Path("debugSymbols")),
+                ]
+            )
             let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
             try fs.createDirectory(supportXCFrameworkPath, recursive: true)
             try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
@@ -82,10 +85,13 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             try fs.createDirectory(Path(SRCROOT), recursive: true)
 
-            let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
-            ])
+            let supportXCFramework = try XCFramework(
+                version: Version(1, 0),
+                libraries: [
+                    XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
+                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libsample.a"), binaryPath: Path("libsample.a"), headersPath: Path("Headers"), debugSymbolsPath: Path("dSYMs")),
+                ]
+            )
             let supportXCFrameworkPath = Path(SRCROOT).join("libsample.xcframework")
             try fs.createDirectory(supportXCFrameworkPath, recursive: true)
             try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
@@ -127,10 +133,13 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             try fs.createDirectory(Path(SRCROOT), recursive: true)
 
-            let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil, debugSymbolsPath: nil),
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil, debugSymbolsPath: nil),
-            ])
+            let supportXCFramework = try XCFramework(
+                version: Version(1, 0),
+                libraries: [
+                    XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil, debugSymbolsPath: nil),
+                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil, debugSymbolsPath: nil),
+                ]
+            )
             let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
             try fs.createDirectory(supportXCFrameworkPath, recursive: true)
             try await XCFrameworkTestSupport.writeXCFramework(supportXCFramework, fs: fs, path: supportXCFrameworkPath, infoLookup: infoLookup)
@@ -149,9 +158,11 @@ fileprivate struct ProcessXCFrameworkLibraryTaskActionTests: CoreBasedTests {
 
             // Check the command succeeded with no errors.
             #expect(result == .failed)
-            #expect(outputDelegate.messages == [
-                "error: When building for macOS, the expected library \(expectedLibraryPath.str) was not found in \(supportXCFrameworkPath.str)"
-            ])
+            #expect(
+                outputDelegate.messages == [
+                    "error: When building for macOS, the expected library \(expectedLibraryPath.str) was not found in \(supportXCFrameworkPath.str)"
+                ]
+            )
 
             // Check the file was NOT copied, and is the same as the source contents.
             #expect(!fs.exists(Path("\(DSTROOT)/Support.framework")))

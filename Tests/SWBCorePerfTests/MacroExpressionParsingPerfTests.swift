@@ -16,7 +16,7 @@ import SWBUtil
 import SWBTestSupport
 import SWBMacro
 
-fileprivate final class MockMacroExpressionParserDelegate : MacroExpressionParserDelegate {
+fileprivate final class MockMacroExpressionParserDelegate: MacroExpressionParserDelegate {
     func foundLiteralStringFragment(_ string: Input, parser: MacroExpressionParser) {}
     func foundStringFormOnlyLiteralStringFragment(_ string: MacroExpressionParserDelegate.Input, parser: MacroExpressionParser) {}
     func foundStartOfSubstitutionSubexpression(alwaysEvalAsString: Bool, parser: MacroExpressionParser) {}
@@ -80,12 +80,12 @@ fileprivate struct MacroExpressionParsingPerfTests: CoreBasedTests, PerfTests {
         }
 
         // Create a function to make a parseable string from a command line template specifier.  There are various ways of specifying the command line fragment, but they all resolve down to parsable strings.  We still need to discuss how exactly the command lines will be generated (whether through more general-purpose expressions like this, or through special cases) but in any case this is useful for performance measurement.
-        func MakeParseableStringsFromCommandLineTemplateSpec (_ spec: BuildOptionValue.CommandLineTemplateSpecifier) -> [String] {
+        func MakeParseableStringsFromCommandLineTemplateSpec(_ spec: BuildOptionValue.CommandLineTemplateSpecifier) -> [String] {
             switch spec {
-            case .empty:               return []
-            case .literal:             return ["$(value)"]
-            case .args(let exprs):     return [exprs.stringRep]
-            case .flag(let str):       return [str.stringRep, "$(value)"]
+            case .empty: return []
+            case .literal: return ["$(value)"]
+            case .args(let exprs): return [exprs.stringRep]
+            case .flag(let str): return [str.stringRep, "$(value)"]
             case .prefixFlag(let str): return [str.stringRep + "$(value)"]
             }
         }
@@ -113,7 +113,7 @@ fileprivate struct MacroExpressionParsingPerfTests: CoreBasedTests, PerfTests {
 
         // Finally, parse the strings.
         await measure {
-            final class MockDelegate : MacroExpressionParserDelegate {
+            final class MockDelegate: MacroExpressionParserDelegate {
                 func foundLiteralStringFragment(_ string: Input, parser: MacroExpressionParser) {
                 }
 

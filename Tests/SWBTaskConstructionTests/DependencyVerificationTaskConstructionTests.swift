@@ -33,7 +33,7 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
     func addsTraceArgsWhenValidationEnabled(depKind: String) async throws {
         try await testWith([
             "\(depKind)_DEPENDENCIES": "Foo",
-            "VALIDATE_\(depKind)_DEPENDENCIES": "YES_ERROR"
+            "VALIDATE_\(depKind)_DEPENDENCIES": "YES_ERROR",
         ]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
                 results.checkTask(.compileC(target, fileName: source)) { task in
@@ -69,7 +69,8 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
                 "TestGroup",
                 children: [
                     TestFile(source)
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -88,7 +89,8 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase([TestBuildFile(source)])
                     ]
                 )
-            ])
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)

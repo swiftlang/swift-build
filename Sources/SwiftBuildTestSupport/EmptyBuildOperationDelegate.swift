@@ -24,7 +24,7 @@ package final class EmptyBuildOperationDelegate: SWBPlanningOperationDelegate, S
         SWBProvisioningTaskInputs()
     }
 
-    package func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> SwiftBuild.SWBExternalToolResult {
+    package func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> SwiftBuild.SWBExternalToolResult {
         .deferred
     }
 }

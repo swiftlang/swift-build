@@ -25,8 +25,8 @@ extension EmptyState {
 }
 
 // Add more types here as needed
-extension Array: EmptyState { }
-extension Path: EmptyState { }
-extension String: EmptyState { }
-extension Substring: EmptyState { }
-extension Set: EmptyState { }
+extension Array: EmptyState {}
+extension Path: EmptyState {}
+extension String: EmptyState {}
+extension Substring: EmptyState {}
+extension Set: EmptyState {}

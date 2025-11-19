@@ -20,7 +20,7 @@ import SWBTestSupport
 
 @Suite
 fileprivate struct ProcessProductEntitlementsTaskActionTests {
-    @Test(.requireHostOS(.macOS)) // crashes on Linux
+    @Test(.requireHostOS(.macOS))  // crashes on Linux
     func performTaskAction() async throws {
         let directory = Path("/temp")
         let entitlementsPath = directory.join("foobar.entitlements")
@@ -29,7 +29,6 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         let fs = PseudoFS()
         try fs.createDirectory(directory, recursive: false)
         try fs.write(entitlementsPath, contents: entitlements.asJSONFragment())
-
 
         let startTimestamp = try fs.getFileInfo(entitlementsPath).modificationTimestamp
         #expect(startTimestamp == 3)
@@ -40,13 +39,15 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         /// - Parameter expected: the returned status code of the task action that is expected for the given input
         /// - Parameter checkOutput: optional handler to check emitted output
         func testPerformTaskAction(commandLine: [String], expected expectedResult: CommandResult, entitlementsVariant: EntitlementsVariant = .signed, allowEntitlementsModification: Bool = false, entitlementsDestination: EntitlementsDestination = .none, destinationPlatformName: String = "platformname", schemeCommand: SchemeCommand = .launch, modifications: (() throws -> Void)? = nil, checkOutput: ((MockTaskOutputDelegate) throws -> Void)? = nil) async rethrows {
-            let action = ProcessProductEntitlementsTaskAction(fs: fs,
-                                                              entitlements: entitlements,
-                                                              entitlementsVariant: entitlementsVariant,
-                                                              allowEntitlementsModification: allowEntitlementsModification,
-                                                              entitlementsDestination: entitlementsDestination,
-                                                              destinationPlatformName: destinationPlatformName,
-                                                              entitlementsFilePath: entitlementsPath)
+            let action = ProcessProductEntitlementsTaskAction(
+                fs: fs,
+                entitlements: entitlements,
+                entitlementsVariant: entitlementsVariant,
+                allowEntitlementsModification: allowEntitlementsModification,
+                entitlementsDestination: entitlementsDestination,
+                destinationPlatformName: destinationPlatformName,
+                entitlementsFilePath: entitlementsPath
+            )
 
             try modifications?()
 
@@ -69,111 +70,131 @@ fileprivate struct ProcessProductEntitlementsTaskActionTests {
         await testPerformTaskAction(commandLine: [], expected: .failed)
 
         // giving an invalid output path should fail the build
-        await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/nonExistingDirectory/foobar.output"], expected: .failed, checkOutput: { output in
-            #expect(output.warnings.isEmpty, "No warnings should be emitted")
-            #expect(output.errors.count == 1)
-            #expect(output.errors.first == "error: could not write entitlements file '/nonExistingDirectory/foobar.output': No such file or directory (2)")
-        })
+        await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/nonExistingDirectory/foobar.output"],
+            expected: .failed,
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "No warnings should be emitted")
+                #expect(output.errors.count == 1)
+                #expect(output.errors.first == "error: could not write entitlements file '/nonExistingDirectory/foobar.output': No such file or directory (2)")
+            }
+        )
 
         // Necessary command line arguments passed, entitlements not edited should succeed.
         await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"], expected: .succeeded)
 
         // Modifying the entitlements during creation of action and execution should fail the build.
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .failed,
-                                        modifications: {
-            try fs.write(entitlementsPath, contents: ByteString(encodingAsUTF8: "some arbitrary string"))
-        },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.count == 1)
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .failed,
+            modifications: {
+                try fs.write(entitlementsPath, contents: ByteString(encodingAsUTF8: "some arbitrary string"))
+            },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.count == 1)
 
-            #expect(output.errors.first == "error: Entitlements file \"foobar.entitlements\" was modified during the build, which is not supported. You can disable this error by setting 'CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION' to 'YES', however this may cause the built product's code signature or provisioning profile to contain incorrect entitlements.")
-        })
+                #expect(output.errors.first == "error: Entitlements file \"foobar.entitlements\" was modified during the build, which is not supported. You can disable this error by setting 'CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION' to 'YES', however this may cause the built product's code signature or provisioning profile to contain incorrect entitlements.")
+            }
+        )
 
         // No error if we opt out
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .succeeded,
-                                        allowEntitlementsModification: true,
-                                        modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
-            try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml)))
-        })
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .succeeded,
+            allowEntitlementsModification: true,
+            modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
+                try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml)))
+            }
+        )
 
         // No error if we opt out; modification should be ignored for signed entitlements when ENTITLEMENTS_DESTINATION == __entitlements
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .succeeded,
-                                        entitlementsVariant: .signed,
-                                        allowEntitlementsModification: true,
-                                        entitlementsDestination: .entitlementsSection,
-                                        modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
-            try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value")]).asBytes(.xml))) // note this is still the original plist
-        })
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .succeeded,
+            entitlementsVariant: .signed,
+            allowEntitlementsModification: true,
+            entitlementsDestination: .entitlementsSection,
+            modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
+                try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value")]).asBytes(.xml)))  // note this is still the original plist
+            }
+        )
 
         // ENTITLEMENTS_DESTINATION == Signature allows the modification
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .succeeded,
-                                        entitlementsVariant: .signed,
-                                        allowEntitlementsModification: true,
-                                        entitlementsDestination: .codeSignature,
-                                        modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
-            try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) // note this is still the modified plist
-        })
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .succeeded,
+            entitlementsVariant: .signed,
+            allowEntitlementsModification: true,
+            entitlementsDestination: .codeSignature,
+            modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
+                try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml)))  // note this is still the modified plist
+            }
+        )
 
         // ...as do simulated entitlements, regardless of destination
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .succeeded,
-                                        entitlementsVariant: .simulated,
-                                        allowEntitlementsModification: true,
-                                        entitlementsDestination: .entitlementsSection,
-                                        modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
-            try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) // note this is still the modified plist
-        })
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .succeeded,
-                                        entitlementsVariant: .simulated,
-                                        allowEntitlementsModification: true,
-                                        entitlementsDestination: .codeSignature,
-                                        modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
-            try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value")]).asBytes(.xml))) // note this is still the modified plist
-        })
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .succeeded,
+            entitlementsVariant: .simulated,
+            allowEntitlementsModification: true,
+            entitlementsDestination: .entitlementsSection,
+            modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
+                try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml)))  // note this is still the modified plist
+            }
+        )
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .succeeded,
+            entitlementsVariant: .simulated,
+            allowEntitlementsModification: true,
+            entitlementsDestination: .codeSignature,
+            modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
+                try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value")]).asBytes(.xml)))  // note this is still the modified plist
+            }
+        )
 
         // ...and finally we also let the modifications through for any other value for ENTITLEMENTS_DESTINATION
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .succeeded,
-                                        entitlementsVariant: .simulated,
-                                        allowEntitlementsModification: true,
-                                        entitlementsDestination: .none,
-                                        modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
-            try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value")]).asBytes(.xml))) // note this is still the modified plist
-        })
-        try await testPerformTaskAction(commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
-                                        expected: .succeeded,
-                                        entitlementsVariant: .signed,
-                                        allowEntitlementsModification: true,
-                                        entitlementsDestination: .none,
-                                        modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
-                                        checkOutput: { output in
-            #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
-            #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
-            try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) // note this is still the modified plist
-        })
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .succeeded,
+            entitlementsVariant: .simulated,
+            allowEntitlementsModification: true,
+            entitlementsDestination: .none,
+            modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
+                try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value")]).asBytes(.xml)))  // note this is still the modified plist
+            }
+        )
+        try await testPerformTaskAction(
+            commandLine: ["programName", "-entitlements", "-o", "/temp/foobar.output"],
+            expected: .succeeded,
+            entitlementsVariant: .signed,
+            allowEntitlementsModification: true,
+            entitlementsDestination: .none,
+            modifications: { try fs.write(entitlementsPath, contents: ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml))) },
+            checkOutput: { output in
+                #expect(output.warnings.isEmpty, "Warnings shouldn't be emitted")
+                #expect(output.errors.isEmpty, "Errors shouldn't be emitted")
+                try #require(try fs.read(Path("/temp/foobar.output")) == ByteString(PropertyListItem.plDict(["key": .plString("value2")]).asBytes(.xml)))  // note this is still the modified plist
+            }
+        )
     }
 }

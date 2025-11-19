@@ -171,12 +171,12 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         }
     }
 
-   override public func performTaskAction(
-    _ task: any ExecutableTask,
-    dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
+    override public func performTaskAction(
+        _ task: any ExecutableTask,
+        dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
         executionDelegate: any TaskExecutionDelegate,
-    clientDelegate: any TaskExecutionClientDelegate,
-    outputDelegate: any TaskOutputDelegate
+        clientDelegate: any TaskExecutionClientDelegate,
+        outputDelegate: any TaskOutputDelegate
     ) async -> CommandResult {
         defer {
             if let error = state.executionError {
@@ -211,7 +211,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
             return .failed
         }
 
-        let commandLines = dependencyInfo.commands.map{$0.arguments}
+        let commandLines = dependencyInfo.commands.map { $0.arguments }
 
         // By default, don't print the frontend command lines, to avoid introducing too much noise in the log.
         if executionDelegate.userPreferences.enableDebugActivityLogs || executionDelegate.emitFrontendCommandLines {
@@ -320,16 +320,15 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                         outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
                     }
 
-                    let shouldGenerateReproducer = (lastResult == .failed) &&
-                        (explicitModulesPayload.shouldGenerateReproducerForErrors ||
-                         (outputDelegate.result?.isCrashed ?? false))
+                    let shouldGenerateReproducer = (lastResult == .failed) && (explicitModulesPayload.shouldGenerateReproducerForErrors || (outputDelegate.result?.isCrashed ?? false))
                     if shouldGenerateReproducer {
                         do {
                             if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
-                                    forFailedDependency: dependencyInfo,
-                                    libclangPath: explicitModulesPayload.libclangPath,
-                                    casOptions: explicitModulesPayload.casOptions,
-                                    location: explicitModulesPayload.reproducerOutputPath?.str) {
+                                forFailedDependency: dependencyInfo,
+                                libclangPath: explicitModulesPayload.libclangPath,
+                                casOptions: explicitModulesPayload.casOptions,
+                                location: explicitModulesPayload.reproducerOutputPath?.str
+                            ) {
                                 outputDelegate.emitOutput(ByteString(encodingAsUTF8: reproducerMessage) + "\n")
                             }
                         } catch {
@@ -369,8 +368,9 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         taskID: inout UInt
     ) throws {
         guard let casOptions,
-              casOptions.enableIntegratedCacheQueries,
-              casOptions.hasRemoteCache else {
+            casOptions.enableIntegratedCacheQueries,
+            casOptions.hasRemoteCache
+        else {
             return
         }
 
@@ -489,7 +489,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
     ) throws {
         let payload: DependencyValidationInfo.Payload
         if let traceFilePath,
-           let traceData = try parseTraceData(Data(fileSystem.read(traceFilePath))) {
+            let traceData = try parseTraceData(Data(fileSystem.read(traceFilePath)))
+        {
 
             outputDelegate.incrementTaskCounter(.headerDependenciesValidatedTasks)
             if isModular {

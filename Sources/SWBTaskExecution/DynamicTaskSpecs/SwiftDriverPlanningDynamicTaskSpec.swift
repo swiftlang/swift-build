@@ -21,7 +21,7 @@ public struct SwiftDriverPlanningTaskKey: Serializable, CustomDebugStringConvert
         self.swiftPayload = swiftPayload
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(1) {
             serializer.serialize(swiftPayload)
         }
@@ -50,19 +50,20 @@ final class SwiftDriverPlanningDynamicTaskSpec: DynamicTaskSpec {
             fatalError("Attempted to request a driver planning operation with no driver payload")
         }
 
-        return Task(type: self,
-                    payload: key.swiftPayload,
-                    forTarget: dynamicTask.target,
-                    ruleInfo: driverPayload.ruleInfo,
-                    commandLine: driverPayload.commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) },
-                    environment: dynamicTask.environment,
-                    workingDirectory: dynamicTask.workingDirectory,
-                    showEnvironment: dynamicTask.showEnvironment,
-                    execDescription: "Planning Swift module \(driverPayload.moduleName) (\(driverPayload.architecture))",
-                    preparesForIndexing: true,
-                    priority: .unblocksDownstreamTasks,
-                    isDynamic: true
-                )
+        return Task(
+            type: self,
+            payload: key.swiftPayload,
+            forTarget: dynamicTask.target,
+            ruleInfo: driverPayload.ruleInfo,
+            commandLine: driverPayload.commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) },
+            environment: dynamicTask.environment,
+            workingDirectory: dynamicTask.workingDirectory,
+            showEnvironment: dynamicTask.showEnvironment,
+            execDescription: "Planning Swift module \(driverPayload.moduleName) (\(driverPayload.architecture))",
+            preparesForIndexing: true,
+            priority: .unblocksDownstreamTasks,
+            isDynamic: true
+        )
     }
 
     func buildTaskAction(dynamicTaskKey: DynamicTaskKey, context: DynamicTaskOperationContext) -> TaskAction {

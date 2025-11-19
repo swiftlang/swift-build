@@ -29,33 +29,50 @@ fileprivate struct UnifdefTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("A.h"),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "COPY_HEADERS_RUN_UNIFDEF": "YES"])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("A.h")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "COPY_HEADERS_RUN_UNIFDEF": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Empty", type: .framework,
+                                "Empty",
+                                type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)])
-                                ])])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             try tester.fs.createDirectory(SRCROOT, recursive: true)
-            try tester.fs.write(SRCROOT.join("A.h"), contents: """
-            #if FOO
-            void f(void);
-            #endif
+            try tester.fs.write(
+                SRCROOT.join("A.h"),
+                contents: """
+                    #if FOO
+                    void f(void);
+                    #endif
 
-            #if BAR
-            void g(void);
-            #endif
-            """)
+                    #if BAR
+                    void g(void);
+                    #endif
+                    """
+            )
 
             // Check the initial build.
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["COPY_HEADERS_UNIFDEF_FLAGS": "-DFOO"]), runDestination: .macOS, persistent: true) { results in

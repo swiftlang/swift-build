@@ -28,7 +28,7 @@ public struct ODRAssetPackInfo: Sendable {
         var infoPlistContent: [String: any PropertyListItemConvertible] = [
             "CFBundleIdentifier": identifier,
             "Tags": tags.sorted(),
-            ]
+        ]
 
         if let priority {
             infoPlistContent["Priority"] = priority
@@ -58,12 +58,10 @@ public struct ODRAssetPackInfo: Sendable {
         let productOnDemandResourcesDirectory: Path
         if !assetPackFolderPath.isEmpty {
             productOnDemandResourcesDirectory = targetBuildDir.join(assetPackFolderPath)
-        }
-        else if scope.evaluate(BuiltinMacros.EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE) && !unlocalizedResourcesFolderPath.isEmpty {
+        } else if scope.evaluate(BuiltinMacros.EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE) && !unlocalizedResourcesFolderPath.isEmpty {
             let productResourcesDir = targetBuildDir.join(unlocalizedResourcesFolderPath)
             productOnDemandResourcesDirectory = productResourcesDir.join(onDemandResourcesSubdirectoryName)
-        }
-        else {
+        } else {
             productOnDemandResourcesDirectory = targetBuildDir.join(onDemandResourcesSubdirectoryName)
         }
 
@@ -97,21 +95,25 @@ public struct AssetPackOutputSpecificationsPlist: PropertyListItemConvertible {
     public var entries: Set<Entry>
 
     public init(assetPacks: [ODRAssetPackInfo]) {
-        entries = Set(assetPacks.map {
-            Entry(identifier: $0.identifier, tags: $0.tags, path: $0.path)
-        })
+        entries = Set(
+            assetPacks.map {
+                Entry(identifier: $0.identifier, tags: $0.tags, path: $0.path)
+            }
+        )
     }
 
     public var propertyListItem: PropertyListItem {
-        return .init(entries
-            .sorted { $0.identifier < $1.identifier }
-            .map {
-                [
-                    "bundle-id": .plString($0.identifier),
-                    "tags": PropertyListItem($0.tags.sorted()),
-                    "bundle-path": .plString($0.path.str),
-                ]
-            })
+        return .init(
+            entries
+                .sorted { $0.identifier < $1.identifier }
+                .map {
+                    [
+                        "bundle-id": .plString($0.identifier),
+                        "tags": PropertyListItem($0.tags.sorted()),
+                        "bundle-path": .plString($0.path.str),
+                    ]
+                }
+        )
     }
 }
 
@@ -166,7 +168,7 @@ public struct AssetPackManifestPlist: Hashable, PropertyListItemConvertible {
                     return PropertyListItem([
                         "strategy": "modtime",
                         "hash": hash,
-                        ])
+                    ])
                 }
             }
         }
@@ -194,7 +196,7 @@ public struct AssetPackManifestPlist: Hashable, PropertyListItemConvertible {
                 "primaryContentHash": primaryContentHash,
                 "uncompressedSize": uncompressedSize,
                 "URL": url,
-                ]
+            ]
 
             if let p = downloadPriority {
                 result["downloadPriority"] = p
@@ -212,7 +214,7 @@ public struct AssetPackManifestPlist: Hashable, PropertyListItemConvertible {
 
     public var propertyListItem: PropertyListItem {
         return PropertyListItem([
-            "resources": resources.sorted { $0.assetPackBundleIdentifier < $1.assetPackBundleIdentifier },
-            ])
+            "resources": resources.sorted { $0.assetPackBundleIdentifier < $1.assetPackBundleIdentifier }
+        ])
     }
 }

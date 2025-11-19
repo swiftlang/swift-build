@@ -18,7 +18,7 @@ import TSCBasic
 
 public import SWBUtil
 
-public protocol SwiftGlobalExplicitDependencyGraph : AnyObject {
+public protocol SwiftGlobalExplicitDependencyGraph: AnyObject {
     /// Register a collection of driver jobs in the graph, de-duplicating them in the process
     /// - Parameters:
     ///   - jobs: A collection of explicit-dependency build jobs from a given Swift Driver invocation
@@ -54,8 +54,11 @@ private struct GlobalExplicitDependencyTracker {
     /// The collection of *all* explicit module dependency build jobs found so far
     fileprivate private(set) var plannedExplicitDependencyJobs: [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob] = []
 
-    mutating func addExplicitDependencyBuildJobs(_ jobs: [SwiftDriverJob], workingDirectory: Path,
-                                                 producerMap: inout [Path: LibSwiftDriver.JobKey]) throws -> Set<LibSwiftDriver.JobKey> {
+    mutating func addExplicitDependencyBuildJobs(
+        _ jobs: [SwiftDriverJob],
+        workingDirectory: Path,
+        producerMap: inout [Path: LibSwiftDriver.JobKey]
+    ) throws -> Set<LibSwiftDriver.JobKey> {
         // Filter out "new" unique jobs and populate the `producerMap`
         var jobKeys: Set<LibSwiftDriver.JobKey> = []
         var jobsWithIndices: [(SwiftDriverJob, LibSwiftDriver.JobIndex)] = []
@@ -137,7 +140,7 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
     public init() {}
 
     public func waitForCompletion() async {
-        await registryQueue.sync { }
+        await registryQueue.sync {}
     }
 
     /// Plans a build and stores it for a given unique identifier.
@@ -301,8 +304,11 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
         }
     }
 
-    public func addExplicitDependencyBuildJobs(_ jobs: [SwiftDriverJob], workingDirectory: Path,
-                                               producerMap: inout [Path: LibSwiftDriver.JobKey]) throws -> Set<LibSwiftDriver.JobKey> {
+    public func addExplicitDependencyBuildJobs(
+        _ jobs: [SwiftDriverJob],
+        workingDirectory: Path,
+        producerMap: inout [Path: LibSwiftDriver.JobKey]
+    ) throws -> Set<LibSwiftDriver.JobKey> {
         try registryQueue.blocking_sync {
             try globalExplicitDependencyTracker.addExplicitDependencyBuildJobs(jobs, workingDirectory: workingDirectory, producerMap: &producerMap)
         }
@@ -353,17 +359,21 @@ public final class SwiftModuleDependencyGraph: SwiftGlobalExplicitDependencyGrap
             summaryCSV.writeRow([moduleID, "\(jobs.count)"])
             summaryMessage += "\(moduleID): \(jobs.count == 1 ? "1 variant" : "\(jobs.count) variants")\n"
 
-            let mergeResult = nWayMerge(jobs.map { $0.commandLine.filter {
-                if ["pcm", "dia", "d"].contains(Path($0).fileExtension) {
-                    // Filter differences in module paths, they are a function of the other args
-                    return false
-                } else if $0.hasPrefix("llvmcas://") {
-                    // Filter differences in CAS URLs, they are a function of the other args
-                    return false
-                } else {
-                    return true
+            let mergeResult = nWayMerge(
+                jobs.map {
+                    $0.commandLine.filter {
+                        if ["pcm", "dia", "d"].contains(Path($0).fileExtension) {
+                            // Filter differences in module paths, they are a function of the other args
+                            return false
+                        } else if $0.hasPrefix("llvmcas://") {
+                            // Filter differences in CAS URLs, they are a function of the other args
+                            return false
+                        } else {
+                            return true
+                        }
+                    }.map { $0.asString }
                 }
-            }.map { $0.asString } }).filter {
+            ).filter {
                 if $0.elementOf.count == jobs.count {
                     // Don't report args common to all variants
                     return false
@@ -417,10 +427,12 @@ class Executor: DriverExecutor {
         self.workingDirectory = workingDirectory
     }
 
-    func execute(job: Job, forceResponseFiles: Bool, recordedInputModificationDates: [TypedVirtualPath : TimePoint]) throws -> ProcessResult {
-        let useResponseFiles : ResponseFileHandling = forceResponseFiles ? .forced : .heuristic
-        let arguments: [String] = try resolver.resolveArgumentList(for: job,
-                                                                   useResponseFiles: useResponseFiles)
+    func execute(job: Job, forceResponseFiles: Bool, recordedInputModificationDates: [TypedVirtualPath: TimePoint]) throws -> ProcessResult {
+        let useResponseFiles: ResponseFileHandling = forceResponseFiles ? .forced : .heuristic
+        let arguments: [String] = try resolver.resolveArgumentList(
+            for: job,
+            useResponseFiles: useResponseFiles
+        )
 
         try job.verifyInputsNotModified(since: recordedInputModificationDates, fileSystem: fileSystem)
 
@@ -439,14 +451,14 @@ class Executor: DriverExecutor {
         }
     }
 
-    func execute(workload: DriverExecutorWorkload, delegate: any JobExecutionDelegate, numParallelJobs: Int, forceResponseFiles: Bool, recordedInputModificationDates: [TypedVirtualPath : TimePoint]) throws {
+    func execute(workload: DriverExecutorWorkload, delegate: any JobExecutionDelegate, numParallelJobs: Int, forceResponseFiles: Bool, recordedInputModificationDates: [TypedVirtualPath: TimePoint]) throws {
         guard self.plannedBuild == nil else {
             throw StubError.error("Unexpected extra workload from Swift driver.")
         }
         self.plannedBuild = try LibSwiftDriver.PlannedBuild(workload: workload, argsResolver: self.resolver, explicitModulesResolver: self.explicitModulesResolver, jobExecutionDelegate: delegate, globalExplicitDependencyJobGraph: explicitDependencyGraph, workingDirectory: workingDirectory, eagerCompilationEnabled: eagerCompilationEnabled)
     }
 
-    func checkNonZeroExit(args: String..., environment: [String : String]) throws -> String {
+    func checkNonZeroExit(args: String..., environment: [String: String]) throws -> String {
         try Process.checkNonZeroExit(arguments: args, environmentBlock: .init(environment))
     }
 
@@ -469,19 +481,19 @@ class Executor: DriverExecutor {
 public final class LibSwiftDriver {
     public typealias JobIndex = Int
     /// Type to fetch dependencies of planned jobs
-    public enum JobKey : Comparable, Hashable, Serializable {
+    public enum JobKey: Comparable, Hashable, Serializable {
         case explicitDependencyJob(_ index: JobIndex)
         case targetJob(_ index: JobIndex)
 
-        public func serialize<T>(to serializer: T) where T : Serializer {
+        public func serialize<T>(to serializer: T) where T: Serializer {
             serializer.beginAggregate(2)
             switch self {
-                case .explicitDependencyJob(let index):
-                    serializer.serialize(0)
-                    serializer.serialize(index)
-                case .targetJob(let index):
-                    serializer.serialize(1)
-                    serializer.serialize(index)
+            case .explicitDependencyJob(let index):
+                serializer.serialize(0)
+                serializer.serialize(index)
+            case .targetJob(let index):
+                serializer.serialize(1)
+                serializer.serialize(index)
             }
             serializer.endAggregate()
         }
@@ -490,14 +502,14 @@ public final class LibSwiftDriver {
             try deserializer.beginAggregate(2)
             let code: Int = try deserializer.deserialize()
             switch code {
-                case 0:
-                    let index: JobIndex = try deserializer.deserialize()
-                    self = .explicitDependencyJob(index)
-                case 1:
-                    let index: JobIndex = try deserializer.deserialize()
-                    self = .targetJob(index)
-                default:
-                    throw DeserializerError.incorrectType("Unexpected type code for LibSwiftDriver.JobKey: \(code)")
+            case 0:
+                let index: JobIndex = try deserializer.deserialize()
+                self = .explicitDependencyJob(index)
+            case 1:
+                let index: JobIndex = try deserializer.deserialize()
+                self = .targetJob(index)
+            default:
+                throw DeserializerError.incorrectType("Unexpected type code for LibSwiftDriver.JobKey: \(code)")
             }
         }
     }
@@ -614,7 +626,7 @@ public final class LibSwiftDriver {
             let fallbackDiagnostics: [SWBUtil.Diagnostic]
             if driver.diagnosticEngine.hasErrors {
                 #if canImport(os)
-                OSLog.log("Driver threw error \(error) but emitted errors to build log.")
+                    OSLog.log("Driver threw error \(error) but emitted errors to build log.")
                 #endif
                 fallbackDiagnostics = []
             } else {
@@ -641,9 +653,11 @@ public final class LibSwiftDriver {
                 return nil
             }
             do {
-                guard let job = jobs.filter({ job in
-                    job.primarySwiftSourceFiles.contains(where: { $0.typedFile.file.absolutePath?.pathString == inputPath.str })
-                }).only else {
+                guard
+                    let job = jobs.filter({ job in
+                        job.primarySwiftSourceFiles.contains(where: { $0.typedFile.file.absolutePath?.pathString == inputPath.str })
+                    }).only
+                else {
                     return nil
                 }
                 return try shim.resolver.resolveArgumentList(for: job, useResponseFiles: .heuristic)
@@ -655,7 +669,7 @@ public final class LibSwiftDriver {
 
             if diagnosticsEngine.hasErrors {
                 #if canImport(os)
-                OSLog.log("Driver threw error \(error) but emitted errors to build log.")
+                    OSLog.log("Driver threw error \(error) but emitted errors to build log.")
                 #endif
             } else {
                 outputDelegate.error("Driver threw \(error) without emitting errors.")
@@ -684,7 +698,7 @@ public final class LibSwiftDriver {
 
             if diagnosticsEngine.hasErrors {
                 #if canImport(os)
-                OSLog.log("Driver threw error \(error) but emitted errors to build log.")
+                    OSLog.log("Driver threw error \(error) but emitted errors to build log.")
                 #endif
             } else {
                 outputDelegate.error("Driver threw \(error) without emitting errors.")
@@ -718,9 +732,11 @@ extension SwiftModuleDependencyGraph {
         guard let oracle = oracleRegistry[key] else {
             throw StubError.error("can't find created dependency scanning oracle from compiler location \(compilerLocation)")
         }
-        let cas = try oracle.getOrCreateCAS(pluginPath: try toAbsolutePath(casOptions.pluginPath?.str),
-                                            onDiskPath: try toAbsolutePath(casOptions.casPath.str),
-                                            pluginOptions: pluginOpts)
+        let cas = try oracle.getOrCreateCAS(
+            pluginPath: try toAbsolutePath(casOptions.pluginPath?.str),
+            onDiskPath: try toAbsolutePath(casOptions.casPath.str),
+            pluginOptions: pluginOpts
+        )
         return SwiftCASDatabases(cas)
     }
 }

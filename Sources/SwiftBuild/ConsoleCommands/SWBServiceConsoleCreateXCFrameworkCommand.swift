@@ -18,9 +18,7 @@ class SWBServiceConsoleCreateXCFrameworkCommand: SWBServiceConsoleCommand {
 
     public static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
         let (passed, message) = await invocation.console.service.createXCFramework(invocation.commandLine, currentWorkingDirectory: Path.currentDirectory.str, developerPath: nil)
-        return passed ?
-            .success(SWBServiceConsoleResult(output: message + "\n", shouldContinue: false)) :
-            .failure(.failedCommandError(description: message + "\n"))
+        return passed ? .success(SWBServiceConsoleResult(output: message + "\n", shouldContinue: false)) : .failure(.failedCommandError(description: message + "\n"))
     }
 
     public static func validate(invocation: SWBServiceConsoleCommandInvocation) -> SWBServiceConsoleError? {
@@ -35,4 +33,3 @@ func registerXCFrameworkCommands() {
         SWBServiceConsoleCommandRegistry.registerCommandClass(command)
     }
 }
-

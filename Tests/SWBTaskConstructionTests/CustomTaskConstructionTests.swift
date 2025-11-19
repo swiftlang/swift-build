@@ -22,11 +22,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("input.txt"),
                     TestFile("main.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -34,11 +36,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"])
                     ],
@@ -51,10 +55,12 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                             inputs: ["$(SRCROOT)/Sources/input.txt"],
                             outputs: [Path.root.join("output").str],
                             enableSandboxing: false,
-                            preparesForIndexing: false)
+                            preparesForIndexing: false
+                        )
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
@@ -75,11 +81,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("input.txt"),
                     TestFile("input2.txt"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -87,11 +95,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [],
                     customTasks: [
                         TestCustomTask(
@@ -102,7 +112,8 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                             inputs: ["$(SRCROOT)/Sources/input.txt"],
                             outputs: ["/output"],
                             enableSandboxing: false,
-                            preparesForIndexing: false),
+                            preparesForIndexing: false
+                        ),
                         TestCustomTask(
                             commandLine: ["tool2", "-bar", "-foo"],
                             environment: ["ENVVAR": "VALUE"],
@@ -111,10 +122,12 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                             inputs: ["$(SRCROOT)/Sources/input2.txt"],
                             outputs: ["/output2"],
                             enableSandboxing: false,
-                            preparesForIndexing: false)
+                            preparesForIndexing: false
+                        ),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
@@ -136,10 +149,12 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("input.txt"),
-                ]),
+                    TestFile("input.txt")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -147,11 +162,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [],
                     customTasks: [
                         TestCustomTask(
@@ -162,10 +179,12 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                             inputs: ["$(SRCROOT)/Sources/input.txt"],
                             outputs: [],
                             enableSandboxing: false,
-                            preparesForIndexing: false),
+                            preparesForIndexing: false
+                        )
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
@@ -185,11 +204,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("input.txt"),
                     TestFile("main.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -198,11 +219,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
                         "MY_SETTING": "FOO",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"])
                     ],
@@ -215,10 +238,12 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                             inputs: ["$(SRCROOT)/Sources/input.txt"],
                             outputs: [Path.root.join("output").str],
                             enableSandboxing: false,
-                            preparesForIndexing: false)
+                            preparesForIndexing: false
+                        )
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .host) { results in
             results.checkNoDiagnostics()
@@ -234,12 +259,14 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("input.txt"),
                     TestFile("input2.txt"),
                     TestFile("main.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -247,11 +274,13 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "auto",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["main.c"])
                     ],
@@ -264,7 +293,8 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                             inputs: ["$(SRCROOT)/Sources/input.txt"],
                             outputs: [Path.root.join("output").str],
                             enableSandboxing: false,
-                            preparesForIndexing: false),
+                            preparesForIndexing: false
+                        ),
                         TestCustomTask(
                             commandLine: ["tool", "-foo", "-bar"],
                             environment: ["ENVVAR": "VALUE"],
@@ -273,10 +303,12 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                             inputs: ["$(SRCROOT)/Sources/input2.txt"],
                             outputs: [Path.root.join("output2").str],
                             enableSandboxing: false,
-                            preparesForIndexing: false)
+                            preparesForIndexing: false
+                        ),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .host) { results in
             // Ensure we don't incorrectly diagnose duplicate custom tasks

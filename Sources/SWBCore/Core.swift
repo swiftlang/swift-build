@@ -40,7 +40,7 @@ public final class Core: Sendable {
     /// Get a configured instance of the core.
     ///
     /// - returns: An initialized Core instance on which all discovery and loading will have been completed. If there are errors during that process, they will be logged to `stderr` and no instance will be returned. Otherwise, the initialized object is returned.
-    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: MutablePluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginManager: MutablePluginManager, _ pluginPaths: [Path]) -> Void = { _, _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
+    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: MutablePluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginManager: MutablePluginManager, _ pluginPaths: [Path]) -> Void = { _, _ in }, additionalContentPaths: [Path] = [], environment: [String: String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
         // Enable macro expression interning during loading.
         return await MacroNamespace.withExpressionInterningEnabled { () -> Core? in
             let hostOperatingSystem: OperatingSystem
@@ -97,9 +97,16 @@ public final class Core: Sendable {
 
             if UserDefaults.enablePluginManagerLogging {
                 let plugins = core.pluginManager.pluginsByIdentifier
-                delegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Loaded \(plugins.count) plugins"), childDiagnostics: plugins.sorted(byKey: <).map { (identifier, plugin) in
-                    Diagnostic(behavior: .note, location: .path(plugin.path), data: DiagnosticData("Loaded plugin: \(identifier) from \(plugin.path.str)"))
-                }))
+                delegate.emit(
+                    Diagnostic(
+                        behavior: .note,
+                        location: .unknown,
+                        data: DiagnosticData("Loaded \(plugins.count) plugins"),
+                        childDiagnostics: plugins.sorted(byKey: <).map { (identifier, plugin) in
+                            Diagnostic(behavior: .note, location: .path(plugin.path), data: DiagnosticData("Loaded plugin: \(identifier) from \(plugin.path.str)"))
+                        }
+                    )
+                )
             }
 
             for diagnostic in core.pluginManager.loadingDiagnostics {
@@ -203,7 +210,7 @@ public final class Core: Sendable {
     public let additionalContentPaths: [Path]
 
     /// Additional override environment variables
-    public let environment: [String:String]
+    public let environment: [String: String]
 
     /// The Xcode application version, as a string.
     public let xcodeVersionString: String
@@ -222,7 +229,7 @@ public final class Core: Sendable {
 
     public let connectionMode: ServiceHostConnectionMode
 
-    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: any PluginManager, developerPath: DeveloperPath, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
+    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: any PluginManager, developerPath: DeveloperPath, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String: String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
         self.delegate = delegate
         self.hostOperatingSystem = hostOperatingSystem
         self.pluginManager = pluginManager
@@ -401,7 +408,8 @@ public final class Core: Sendable {
             }
             let libclangVersion: Version?
             if let versionString = libclang?.getVersionString(),
-               let match = try? #/\(clang-(?<clang>[0-9]+(?:\.[0-9]+){0,})\)/#.firstMatch(in: versionString) {
+                let match = try? #/\(clang-(?<clang>[0-9]+(?:\.[0-9]+){0,})\)/#.firstMatch(in: versionString)
+            {
                 libclangVersion = try? Version(String(match.clang))
             } else {
                 libclangVersion = nil
@@ -460,7 +468,6 @@ public final class Core: Sendable {
         searchPaths += UserDefaults.additionalPlatformSearchPaths
         _platformRegistry.initialize(to: await PlatformRegistry(delegate: self.registryDelegate, searchPaths: searchPaths, hostOperatingSystem: hostOperatingSystem, fs: fs))
     }
-
 
     private func initializeToolchainRegistry() async {
         self._toolchainRegistry.initialize(to: await ToolchainRegistry(delegate: self.registryDelegate, searchPaths: self.toolchainPaths, fs: localFS, hostOperatingSystem: hostOperatingSystem))
@@ -549,7 +556,7 @@ public final class Core: Sendable {
     /// Dump information on the registered spec proxies.
     public func getSpecsDump(conformingTo: String?) -> String {
         var result = ""
-        for (domain,domainRegistry) in specRegistry.proxiesByDomain.sorted(byKey: <) {
+        for (domain, domainRegistry) in specRegistry.proxiesByDomain.sorted(byKey: <) {
             let domainName = domain.isEmpty ? "(default)" : domain
             result += "-- Domain: \(domainName) --\n"
 
@@ -589,7 +596,8 @@ public final class Core: Sendable {
         }
 
         let specs: [SpecDump] = specRegistry.domains.flatMap { domain -> [SpecDump] in
-            let allSpecs = specRegistry.findSpecs(BuildSettingsSpec.self, domain: domain, includeInherited: false)
+            let allSpecs =
+                specRegistry.findSpecs(BuildSettingsSpec.self, domain: domain, includeInherited: false)
                 + specRegistry.findSpecs(BuildSettingsExtensionSpec.self, domain: domain, includeInherited: false)
                 + specRegistry.findSpecs(BuildSystemSpec.self, domain: domain, includeInherited: false)
                 + specRegistry.findSpecs(CommandLineToolSpec.self, domain: domain, includeInherited: false)
@@ -599,7 +607,8 @@ public final class Core: Sendable {
                     path: spec.proxyPath.str,
                     options: spec.flattenedBuildOptions.values.sorted(by: \.name).map { option in
                         .init(name: option.name, displayName: option.localizedName != option.name ? option.localizedName : nil, categoryName: option.localizedCategoryName, description: option.localizedDescription)
-                })
+                    }
+                )
             }
         }
 
@@ -610,7 +619,7 @@ public final class Core: Sendable {
     /// Dump information on the registered toolchains.
     public func getToolchainsDump() async -> String {
         var result = ""
-        for (_,toolchain) in toolchainRegistry.toolchainsByIdentifier.sorted(byKey: <) {
+        for (_, toolchain) in toolchainRegistry.toolchainsByIdentifier.sorted(byKey: <) {
             result += "\(toolchain)\n"
         }
         return result
@@ -659,13 +668,15 @@ extension Core: PlatformInfoLookup {
         // If we found a match, look up the SDK -- we'll deterministically get the latest version of that SDK,
         // and it should have only one variant whose platform ID matches our platform.
         if let platformName = platformNames.only, let platform = platformRegistry.lookup(name: platformName) {
-            let potentialSDKNames = [platform.sdkCanonicalName].compactMap { $0 } + sdkRegistry.supportedSDKCanonicalNameSuffixes().compactMap {
-                if let sdkBaseName = platform.sdkCanonicalName {
-                    return "\(sdkBaseName).\($0)"
-                } else {
-                    return nil
+            let potentialSDKNames =
+                [platform.sdkCanonicalName].compactMap { $0 }
+                + sdkRegistry.supportedSDKCanonicalNameSuffixes().compactMap {
+                    if let sdkBaseName = platform.sdkCanonicalName {
+                        return "\(sdkBaseName).\($0)"
+                    } else {
+                        return nil
+                    }
                 }
-            }
             if let sdk = potentialSDKNames.compactMap({ try? sdkRegistry.lookup($0, activeRunDestination: nil) }).first {
                 return sdk.variants.values.filter { sdk.targetBuildVersionPlatform(sdkVariant: $0) == buildPlatform }.only
             }
@@ -714,7 +725,7 @@ extension Core {
 /// The delegate used to convey information to registry subsystems about the core, including a channel for those registries to report diagnostics.  This struct is created by the core itself and refers to the core.  It exists as a struct separate from core to avoid creating an ownership cycle between the core and the registry objects.
 ///
 /// Although primarily used by registries during the loading of the core, this delegate is persisted since registries may need to report additional information after loading.  For example, new toolchains may be downloaded.
-struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, SpecRegistryDelegate, ToolchainRegistryDelegate, SpecRegistryProvider, Sendable {
+struct CoreRegistryDelegate: PlatformRegistryDelegate, SDKRegistryDelegate, SpecRegistryDelegate, ToolchainRegistryDelegate, SpecRegistryProvider, Sendable {
     unowned let core: Core
 
     var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {

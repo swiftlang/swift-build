@@ -71,35 +71,35 @@ final package class CoreQualificationTester: Sendable {
 
     package func checkResults(events: [SwiftBuildMessage], sourceLocation: SourceLocation = #_sourceLocation, _ block: (CoreQualificationTesterResults) async throws -> Void) async throws {
         //try await XCTContext.runActivity(named: "Analyze Build Results") { activity in
-            var loggedEvents: [String] = []
-            var diagnostics: [LoggedDiagnostic] = []
-            for event in events {
-                switch event {
-                case let .diagnostic(message):
-                    diagnostics.append(.init(message))
-                default:
-                    break
-                }
-                try loggedEvents.append(String(decoding: JSONEncoder(outputFormatting: [.sortedKeys, .withoutEscapingSlashes]).encode(event), as: UTF8.self))
+        var loggedEvents: [String] = []
+        var diagnostics: [LoggedDiagnostic] = []
+        for event in events {
+            switch event {
+            case let .diagnostic(message):
+                diagnostics.append(.init(message))
+            default:
+                break
             }
+            try loggedEvents.append(String(decoding: JSONEncoder(outputFormatting: [.sortedKeys, .withoutEscapingSlashes]).encode(event), as: UTF8.self))
+        }
 
-            // TODO: <rdar://59432231> Longer term, we should find a way to share code with BuildOperationTester, which has a number of APIs for building up a human readable build transcript.
-            //activity.attach(name: "Event Log", plistObject: loggedEvents)
-            //activity.attach(name: "Diagnostics", plistObject: diagnostics.map { $0.description })
-            //activity.attach(name: "Output", string: events.allOutput().bytes.unsafeStringValue)
+        // TODO: <rdar://59432231> Longer term, we should find a way to share code with BuildOperationTester, which has a number of APIs for building up a human readable build transcript.
+        //activity.attach(name: "Event Log", plistObject: loggedEvents)
+        //activity.attach(name: "Diagnostics", plistObject: diagnostics.map { $0.description })
+        //activity.attach(name: "Output", string: events.allOutput().bytes.unsafeStringValue)
 
-            let results = CoreQualificationTesterResults(events: events, diagnostics: diagnostics, fs: fs)
+        let results = CoreQualificationTesterResults(events: events, diagnostics: diagnostics, fs: fs)
 
-            defer {
-                let validationResults = results.validate(sourceLocation: sourceLocation)
+        defer {
+            let validationResults = results.validate(sourceLocation: sourceLocation)
 
-                // Print the event log in the case of unchecked errors/warnings, which is useful on platforms where XCTAttachment doesn't exist
-                if validationResults.hadUncheckedErrors || validationResults.hadUncheckedWarnings {
-                    Issue.record("Build failed with unchecked errors and/or warnings; event log follows:\n\n\(loggedEvents.joined(separator: "\n"))", sourceLocation: sourceLocation)
-                }
+            // Print the event log in the case of unchecked errors/warnings, which is useful on platforms where XCTAttachment doesn't exist
+            if validationResults.hadUncheckedErrors || validationResults.hadUncheckedWarnings {
+                Issue.record("Build failed with unchecked errors and/or warnings; event log follows:\n\n\(loggedEvents.joined(separator: "\n"))", sourceLocation: sourceLocation)
             }
+        }
 
-            try await block(results)
+        try await block(results)
         //}
     }
 }
@@ -287,7 +287,7 @@ package final class CoreQualificationTesterResults: DiagnosticsCheckingResult, F
 }
 
 @available(*, unavailable)
-extension CoreQualificationTesterResults: Sendable { }
+extension CoreQualificationTesterResults: Sendable {}
 
 package enum EntitlementsDestination: Sendable {
     case signed
@@ -393,8 +393,8 @@ fileprivate extension SwiftBuildMessage.DiagnosticInfo.Kind {
         case .remark:
             return .remark
         #if !SWIFT_PACKAGE
-        @unknown default:
-            preconditionFailure("Unknown Behavior value")
+            @unknown default:
+                preconditionFailure("Unknown Behavior value")
         #endif
         }
     }

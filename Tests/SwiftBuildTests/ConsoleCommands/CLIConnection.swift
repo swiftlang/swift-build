@@ -18,12 +18,12 @@ import SWBLibc
 import SwiftBuild
 
 #if os(Windows)
-import WinSDK
-#if canImport(System)
-import System
-#else
-import SystemPackage
-#endif
+    import WinSDK
+    #if canImport(System)
+        import System
+    #else
+        import SystemPackage
+    #endif
 #endif
 
 /// Helper class for talking to 'swbuild' the tool
@@ -62,8 +62,8 @@ final class CLIConnection {
         }
 
         #if SWIFT_PACKAGE
-        // Add the parent directory of the bundle containing the build service (the package build directory)
-        searchPaths.append(Bundle(for: SWBBuildService.self).bundleURL.deletingLastPathComponent())
+            // Add the parent directory of the bundle containing the build service (the package build directory)
+            searchPaths.append(Bundle(for: SWBBuildService.self).bundleURL.deletingLastPathComponent())
         #endif
 
         return searchPaths
@@ -82,16 +82,18 @@ final class CLIConnection {
 
     static var environment: Environment {
         var env = Environment.current.filter(keys: [
-            "PATH", // important to allow swift to be looked up in PATH on Windows/Linux
+            "PATH",  // important to allow swift to be looked up in PATH on Windows/Linux
             "DEVELOPER_DIR",
             "DYLD_FRAMEWORK_PATH",
             "DYLD_LIBRARY_PATH",
             "LLVM_PROFILE_FILE",
-            "MallocNanoZone"
-        ]).addingContents(of: Environment([
-            // Prevent locally-enabled MSL from failing several tests because MSL prints messages to standard output streams.
-            "EnableMallocStackLoggingLiteOnStart": "0"
-        ]))
+            "MallocNanoZone",
+        ]).addingContents(
+            of: Environment([
+                // Prevent locally-enabled MSL from failing several tests because MSL prints messages to standard output streams.
+                "EnableMallocStackLoggingLiteOnStart": "0"
+            ])
+        )
         // For Windows when running in an IDE like VS Code
         if env[.path] == nil, let swiftRuntimePath = try? swiftRuntimePath() {
             env[.path] = swiftRuntimePath.str
@@ -105,41 +107,41 @@ final class CLIConnection {
 
     fileprivate init(currentDirectory: Path? = nil) async throws {
         #if os(Windows)
-        throw StubError.error("PTY not supported on Windows")
+            throw StubError.error("PTY not supported on Windows")
         #else
-        temporaryDirectory = try NamedTemporaryDirectory()
+            temporaryDirectory = try NamedTemporaryDirectory()
 
-        // Allocate a PTY we can use to talk to the tool.
-        var monitorFD = Int32(0)
-        var sessionFD = Int32(0)
-        if openpty(&monitorFD, &sessionFD, nil, nil, nil) != 0 {
-            throw POSIXError(errno, context: "openpty")
-        }
-        _ = fcntl(monitorFD, F_SETFD, FD_CLOEXEC)
-        _ = fcntl(sessionFD, F_SETFD, FD_CLOEXEC)
+            // Allocate a PTY we can use to talk to the tool.
+            var monitorFD = Int32(0)
+            var sessionFD = Int32(0)
+            if openpty(&monitorFD, &sessionFD, nil, nil, nil) != 0 {
+                throw POSIXError(errno, context: "openpty")
+            }
+            _ = fcntl(monitorFD, F_SETFD, FD_CLOEXEC)
+            _ = fcntl(sessionFD, F_SETFD, FD_CLOEXEC)
 
-        monitorHandle = FileHandle(fileDescriptor: monitorFD, closeOnDealloc: true)
-        let sessionHandle = FileHandle(fileDescriptor: sessionFD, closeOnDealloc: true)
+            monitorHandle = FileHandle(fileDescriptor: monitorFD, closeOnDealloc: true)
+            let sessionHandle = FileHandle(fileDescriptor: sessionFD, closeOnDealloc: true)
 
-        // Launch the tool.
-        task = Process()
-        task.executableURL = try CLIConnection.swiftbuildToolURL
-        task.currentDirectoryURL = URL(fileURLWithPath: (currentDirectory ?? temporaryDirectory.path).str)
-        task.standardInput = sessionHandle
-        task.standardOutput = sessionHandle
-        task.standardError = sessionHandle
-        task.environment = .init(Self.environment)
-        do {
-            exitPromise = try task.launch()
-        } catch {
-            throw StubError.error("Failed to launch the CLI connection: \(error)")
-        }
+            // Launch the tool.
+            task = Process()
+            task.executableURL = try CLIConnection.swiftbuildToolURL
+            task.currentDirectoryURL = URL(fileURLWithPath: (currentDirectory ?? temporaryDirectory.path).str)
+            task.standardInput = sessionHandle
+            task.standardOutput = sessionHandle
+            task.standardError = sessionHandle
+            task.environment = .init(Self.environment)
+            do {
+                exitPromise = try task.launch()
+            } catch {
+                throw StubError.error("Failed to launch the CLI connection: \(error)")
+            }
 
-        // Close the session handle, so the FD will close once the service stops.
-        try sessionHandle.close()
+            // Close the session handle, so the FD will close once the service stops.
+            try sessionHandle.close()
 
-        outputStream = monitorHandle._bytes()
-        outputStreamIterator = outputStream.flattened.cliResponses.makeAsyncIterator()
+            outputStream = monitorHandle._bytes()
+            outputStreamIterator = outputStream.flattened.cliResponses.makeAsyncIterator()
         #endif
     }
 
@@ -164,27 +166,27 @@ final class CLIConnection {
 
     static func terminate(processIdentifier: Int32) throws {
         #if os(Windows)
-        guard let proc = OpenProcess(DWORD(PROCESS_TERMINATE), false, DWORD(processIdentifier)) else {
-            throw Win32Error(GetLastError())
-        }
-        defer { CloseHandle(proc) }
-        if !TerminateProcess(proc, UINT(0xC0000000 | DWORD(9))) {
-            throw Win32Error(GetLastError())
-        }
+            guard let proc = OpenProcess(DWORD(PROCESS_TERMINATE), false, DWORD(processIdentifier)) else {
+                throw Win32Error(GetLastError())
+            }
+            defer { CloseHandle(proc) }
+            if !TerminateProcess(proc, UINT(0xC0000000 | DWORD(9))) {
+                throw Win32Error(GetLastError())
+            }
         #else
-        if SWBLibc.kill(processIdentifier, SIGKILL) != 0 { // ignore-unacceptable-language; POSIX API
-            throw POSIXError(errno, context: "kill", String(processIdentifier), String(SIGKILL)) // ignore-unacceptable-language; POSIX API
-        }
+            if SWBLibc.kill(processIdentifier, SIGKILL) != 0 {  // ignore-unacceptable-language; POSIX API
+                throw POSIXError(errno, context: "kill", String(processIdentifier), String(SIGKILL))  // ignore-unacceptable-language; POSIX API
+            }
         #endif
     }
 
     func send(command: String) throws {
         #if !os(Windows)
-        // Give readline a chance to disable the terminal echo attribute by
-        // waiting for a few ms. This works around a non-deterministic issue
-        // where the user input may be echoed back to the terminal twice on
-        // occasion, prompting test failures <rdar://51241102>.
-        usleep(10)
+            // Give readline a chance to disable the terminal echo attribute by
+            // waiting for a few ms. This works around a non-deterministic issue
+            // where the user input may be echoed back to the terminal twice on
+            // occasion, prompting test failures <rdar://51241102>.
+            usleep(10)
         #endif
         try monitorHandle.write(contentsOf: Data(command.appending("\n").utf8))
     }
@@ -252,12 +254,12 @@ public struct AsyncCLIConnectionResponseSequence<Base: AsyncSequence>: AsyncSequ
                         // The result of a read operation when pty session is closed is platform-dependent.
                         // BSDs send EOF, Linux raises EIO...
                         #if os(Linux) || os(Android)
-                        if error.code == EIO {
-                            if reply.isEmpty {
-                                return nil
+                            if error.code == EIO {
+                                if reply.isEmpty {
+                                    return nil
+                                }
+                                break
                             }
-                            break
-                        }
                         #endif
                         throw error
                     }
@@ -284,12 +286,12 @@ public struct AsyncCLIConnectionResponseSequence<Base: AsyncSequence>: AsyncSequ
                     // The result of a read operation when pty session is closed is platform-dependent.
                     // BSDs send EOF, Linux raises EIO...
                     #if os(Linux) || os(Android)
-                    if error.code == EIO {
-                        if reply.isEmpty {
-                            return nil
+                        if error.code == EIO {
+                            if reply.isEmpty {
+                                return nil
+                            }
+                            break
                         }
-                        break
-                    }
                     #endif
                     throw error
                 }
@@ -313,29 +315,29 @@ extension AsyncSequence where Self.Element == UInt8 {
     }
 }
 
-extension AsyncCLIConnectionResponseSequence: Sendable where Base: Sendable { }
+extension AsyncCLIConnectionResponseSequence: Sendable where Base: Sendable {}
 
 @available(*, unavailable)
-extension AsyncCLIConnectionResponseSequence.AsyncIterator: Sendable { }
+extension AsyncCLIConnectionResponseSequence.AsyncIterator: Sendable {}
 
 fileprivate func swiftRuntimePath() throws -> Path? {
     #if os(Windows)
-    let name = "swiftCore.dll"
-    return try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
-        guard let handle = GetModuleHandleW(wName) else {
-            throw Win32Error(GetLastError())
+        let name = "swiftCore.dll"
+        return try name.withCString(encodedAs: CInterop.PlatformUnicodeEncoding.self) { wName in
+            guard let handle = GetModuleHandleW(wName) else {
+                throw Win32Error(GetLastError())
+            }
+            return try Path(SWB_GetModuleFileNameW(handle)).dirname
         }
-        return try Path(SWB_GetModuleFileNameW(handle)).dirname
-    }
     #else
-    return nil
+        return nil
     #endif
 }
 
 fileprivate func systemRoot() throws -> Path? {
     #if os(Windows)
-    return try Path(SWB_GetWindowsDirectoryW())
+        return try Path(SWB_GetWindowsDirectoryW())
     #else
-    return nil
+        return nil
     #endif
 }

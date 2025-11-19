@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBMacro
 
-public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class SwiftStdLibToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.swift-stdlib-tool"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -22,7 +22,7 @@ public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentif
     }
 
     /// Construct a new task to run the Swift standard library tool.
-    public func constructSwiftStdLibraryToolTask(_ cbc:CommandBuildContext, _ delegate: any TaskGenerationDelegate, foldersToScan: MacroStringListExpression?, filterForSwiftOS: Bool, backDeploySwiftConcurrency: Bool, backDeploySwiftSpan: Bool) async {
+    public func constructSwiftStdLibraryToolTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, foldersToScan: MacroStringListExpression?, filterForSwiftOS: Bool, backDeploySwiftConcurrency: Bool, backDeploySwiftSpan: Bool) async {
         precondition(cbc.outputs.isEmpty, "Unexpected output paths \(cbc.outputs.map { "'\($0.str)'" }) passed to \(type(of: self)).")
 
         let input = cbc.input
@@ -32,19 +32,19 @@ public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentif
 
         // Create a lookup closure for build setting overrides.
         let lookup: ((MacroDeclaration) -> MacroExpression?) =
-        { macro in
-            switch macro
-            {
-            case BuiltinMacros.SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN:
-                return foldersToScan
+            { macro in
+                switch macro
+                {
+                case BuiltinMacros.SWIFT_STDLIB_TOOL_FOLDERS_TO_SCAN:
+                    return foldersToScan
 
-            case BuiltinMacros.OutputPath, BuiltinMacros.OutputFile:
-                return wrapperPathMacroExpression
+                case BuiltinMacros.OutputPath, BuiltinMacros.OutputFile:
+                    return wrapperPathMacroExpression
 
-            default:
-                return nil
+                default:
+                    return nil
+                }
             }
-        }
 
         // Compute the rule info.
         let ruleInfo = defaultRuleInfo(cbc, delegate, lookup: lookup)
@@ -92,6 +92,6 @@ public final class SwiftStdLibToolSpec : GenericCommandLineToolSpec, SpecIdentif
 
         let outputs = [delegate.createVirtualNode("CopySwiftStdlib \(wrapperPathString.str)")]
 
-        delegate.createTask(type: self, dependencyData: .dependencyInfo(dependencyInfoFilePath), ruleInfo: ruleInfo, commandLine: commandLine, environment: EnvironmentBindings(environment.map { ($0, $1) }), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [ delegate.createNode(input.absolutePath) ], outputs: outputs, mustPrecede: [], action: action, execDescription: resolveExecutionDescription(cbc, delegate, lookup: lookup), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, dependencyData: .dependencyInfo(dependencyInfoFilePath), ruleInfo: ruleInfo, commandLine: commandLine, environment: EnvironmentBindings(environment.map { ($0, $1) }), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [delegate.createNode(input.absolutePath)], outputs: outputs, mustPrecede: [], action: action, execDescription: resolveExecutionDescription(cbc, delegate, lookup: lookup), enableSandboxing: enableSandboxing)
     }
 }

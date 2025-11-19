@@ -91,20 +91,20 @@ final class SwiftSymbolExtractor: GenericCompilerSpec, GCCCompatibleCompilerComm
                 let userHeaderSearchPaths = cbc.scope.evaluate(BuiltinMacros.SYMBOL_GRAPH_EXTRACTOR_SEARCH_PATHS).map {
                     return "-I" + $0
                 }
-                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope:cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
+                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope: cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
 
                 // swift-symbolgraph-extract doesn't expect the `-iquote`, `-isystem`, or `-iframework` flags so we map those to `-I` and `-Fsystem` instead.
                 let allSearchPaths = (defaultHeaderSearchPaths + userHeaderSearchPaths + defaultFrameworkSearchPaths)
                     .map { (argument: String) -> String in
-                    switch argument {
-                    case "-iquote", "-isystem":
-                        return "-I"
-                    case "-iframework":
-                        return "-Fsystem"
-                    default:
-                        return argument
+                        switch argument {
+                        case "-iquote", "-isystem":
+                            return "-I"
+                        case "-iframework":
+                            return "-Fsystem"
+                        default:
+                            return argument
+                        }
                     }
-                }
 
                 return cbc.scope.namespace.parseLiteralStringList(allSearchPaths)
 

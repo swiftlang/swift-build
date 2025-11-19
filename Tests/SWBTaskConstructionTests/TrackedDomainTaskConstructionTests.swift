@@ -38,7 +38,8 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
                     TestFile("FrameworkB/PrivacyInfo.xcprivacy"),
                     TestFile("FrameworkC/PrivacyInfo.xcprivacy"),
                     TestFile("Support.xcframework"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -50,18 +51,22 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": "5",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "LIBTOOL": libtoolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "MyInfo.plist",
-                            // This should be enabled by default, so do not explicitly set this.
-                            // "AGGREGATE_TRACKED_DOMAINS": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "MyInfo.plist"
+                                    // This should be enabled by default, so do not explicitly set this.
+                                    // "AGGREGATE_TRACKED_DOMAINS": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -76,11 +81,15 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
                             TestBuildFile(.target("OtherPackageProduct")),
                             TestBuildFile(.target("PackageProductWithTransitiveRefs")),
                         ]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile(.target("FrameworkTargetB")),
-                            TestBuildFile(.target("FrameworkTargetC")),
-                            TestBuildFile("Support.xcframework"),
-                        ], destinationSubfolder: TestCopyFilesBuildPhase.TestDestinationSubfolder.frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile(.target("FrameworkTargetB")),
+                                TestBuildFile(.target("FrameworkTargetC")),
+                                TestBuildFile("Support.xcframework"),
+                            ],
+                            destinationSubfolder: TestCopyFilesBuildPhase.TestDestinationSubfolder.frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: [
                         "FrameworkTargetA",
@@ -95,43 +104,44 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
                     "FrameworkTargetA",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "main.swift",
                             "FrameworkA/PrivacyInfo.xcprivacy",
-                        ]),
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "FrameworkTargetB",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "main.swift",
                             "FrameworkB/PrivacyInfo.xcprivacy",
-                        ]),
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "FrameworkTargetC",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "main.swift",
                             "FrameworkC/PrivacyInfo.xcprivacy",
-                        ]),
+                        ])
                     ]
                 ),
 
-            ])
+            ]
+        )
 
         let testPackage = try await TestPackageProject(
             "Package",
@@ -140,88 +150,123 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("foo.c"),
                     TestFile("Package/PrivacyInfo.xcprivacy"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "CODE_SIGN_IDENTITY": "",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "LIBTOOL": libtoolPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "LIBTOOL": libtoolPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestPackageProductTarget(
                     "SomePackageProduct",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("A"))]),
-                    dependencies: ["A"]),
+                        TestBuildFile(.target("A"))
+                    ]),
+                    dependencies: ["A"]
+                ),
                 TestPackageProductTarget(
                     "OtherPackageProduct",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("A"))]),
-                    dependencies: ["A"]),
+                        TestBuildFile(.target("A"))
+                    ]),
+                    dependencies: ["A"]
+                ),
                 TestPackageProductTarget(
                     "NestedPackagedProduct",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
-                        TestBuildFile(.target("B"))]),
-                    dependencies: ["B"]),
+                        TestBuildFile(.target("B"))
+                    ]),
+                    dependencies: ["B"]
+                ),
                 TestPackageProductTarget(
                     "PackageProductWithTransitiveRefs",
                     frameworksBuildPhase: TestFrameworksBuildPhase([
                         TestBuildFile(.target("SomePackageProduct")),
                         TestBuildFile(.target("NestedPackagedProduct")),
                         TestBuildFile(.target("C")),
-                        TestBuildFile(.target("E"))]),
-                    dependencies: ["SomePackageProduct", "NestedPackageProduct", "C", "E"]),
+                        TestBuildFile(.target("E")),
+                    ]),
+                    dependencies: ["SomePackageProduct", "NestedPackageProduct", "C", "E"]
+                ),
                 TestStandardTarget(
-                    "A", type: .staticLibrary,
+                    "A",
+                    type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
-                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "FOO",
-                        ])),
+                        TestBuildConfiguration(
+                            "Debug",
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "FOO"
+                            ])
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["foo.c"]),
-                        TestCopyFilesBuildPhase(["Package/PrivacyInfo.xcprivacy"], destinationSubfolder: .resources)
-                    ], dependencies: [
-                        "FOO",
-                    ]),
+                        TestCopyFilesBuildPhase(["Package/PrivacyInfo.xcprivacy"], destinationSubfolder: .resources),
+                    ],
+                    dependencies: [
+                        "FOO"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "B", type: .framework,
-                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                    "B",
+                    type: .framework,
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                ),
                 TestStandardTarget(
-                    "C", type: .dynamicLibrary,
+                    "C",
+                    type: .dynamicLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["foo.c"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("C_Impl"))])],
-                    dependencies: ["C_Impl"]),
+                            TestBuildFile(.target("C_Impl"))
+                        ]),
+                    ],
+                    dependencies: ["C_Impl"]
+                ),
                 TestStandardTarget(
-                    "C_Impl", type: .staticLibrary,
-                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]),
+                    "C_Impl",
+                    type: .staticLibrary,
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                ),
                 TestPackageProductTarget(
                     "SwiftyJSON",
                     frameworksBuildPhase: TestFrameworksBuildPhase([]),
                     buildConfigurations: [],
-                    dependencies: ["D"]),
+                    dependencies: ["D"]
+                ),
                 TestStandardTarget(
-                    "E", type: .objectFile,
+                    "E",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase([]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("F"))])
-                    ], dependencies: ["F"]),
+                            TestBuildFile(.target("F"))
+                        ]),
+                    ],
+                    dependencies: ["F"]
+                ),
                 TestStandardTarget(
-                    "F", type: .objectFile,
+                    "F",
+                    type: .objectFile,
                     buildPhases: [
                         TestSourcesBuildPhase(["foo.c"])
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
-                    "FOO", type: .bundle
-                )
-            ])
+                    "FOO",
+                    type: .bundle
+                ),
+            ]
+        )
 
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject, testPackage])
         let core = try await getCore()
@@ -232,10 +277,13 @@ fileprivate struct TrackedDomainTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let supportXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-        ])
+        let supportXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+            ]
+        )
         let supportXCFrameworkPath = Path(SRCROOT).join("Support.xcframework")
         try fs.createDirectory(supportXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()

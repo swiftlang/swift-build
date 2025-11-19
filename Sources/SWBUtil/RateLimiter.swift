@@ -42,4 +42,4 @@ public struct RateLimiter: ~Copyable {
 }
 
 @available(*, unavailable)
-extension RateLimiter: Sendable { }
+extension RateLimiter: Sendable {}

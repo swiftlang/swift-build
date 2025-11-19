@@ -13,8 +13,8 @@
 import SWBProtocol
 
 public enum SWBBuildAction: String, Sendable {
-    case analyze = "analyze" // used by legacy target-based builds using xcodebuild
-    case archive = "archive" // used by legacy target-based builds using xcodebuild
+    case analyze = "analyze"  // used by legacy target-based builds using xcodebuild
+    case archive = "archive"  // used by legacy target-based builds using xcodebuild
     case clean = "clean"
     case build = "build"
     case exportLoc = "exportloc"

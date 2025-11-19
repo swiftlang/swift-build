@@ -19,7 +19,7 @@ public struct DiscoveredTAPIToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
     public let toolVersion: Version?
 }
 
-public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
+public final class TAPIToolSpec: GenericCommandLineToolSpec, GCCCompatibleCompilerCommandLineBuilder, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.tapi.installapi"
 
     public static let dSYMSupportRequiredVersion = try! FuzzyVersion("1500.*.7")
@@ -48,12 +48,12 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
                 let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, cbc.scope)
                 let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(cbc.producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
 
-                let defaultHeaderSearchPaths = headerSearchPaths.searchPathArguments(for:self, scope:cbc.scope)
+                let defaultHeaderSearchPaths = headerSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
 
                 let userHeaderSearchPaths = cbc.scope.evaluate(BuiltinMacros.TAPI_HEADER_SEARCH_PATHS, lookup: lookup).map {
                     return "-I" + $0
                 }
-                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope:cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for:self, scope:cbc.scope)
+                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope: cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
 
                 return cbc.scope.namespace.parseLiteralStringList(defaultHeaderSearchPaths + userHeaderSearchPaths + defaultFrameworkSearchPaths)
 
@@ -82,7 +82,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         let lookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
             switch macro {
             case BuiltinMacros.TAPI_INPUTS:
-                return useOnlyFilelist ? nil : scope.namespace.parseLiteralStringList(cbc.inputs.map{ $0.absolutePath.str })
+                return useOnlyFilelist ? nil : scope.namespace.parseLiteralStringList(cbc.inputs.map { $0.absolutePath.str })
 
             case BuiltinMacros.BuiltBinaryPath:
                 return scope.namespace.parseLiteralString(builtBinaryPath?.normalize().str ?? "")
@@ -107,9 +107,10 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         var commandLine: [String] = await commandLineFromTemplate(cbc, delegate, optionContext: toolInfo, lookup: lookup).map(\.asString)
 
         // Compute inputs.
-        var inputs = cbc.inputs.map({ delegate.createNode($0.absolutePath) }) as [PlannedPathNode]
-        + (fileListPath.flatMap({ [delegate.createNode($0)] }) ?? []) as [PlannedPathNode]
-        + generatedTBDFiles.map({ delegate.createNode($0) }) as [PlannedPathNode]
+        var inputs =
+            cbc.inputs.map({ delegate.createNode($0.absolutePath) }) as [PlannedPathNode]
+            + (fileListPath.flatMap({ [delegate.createNode($0)] }) ?? []) as [PlannedPathNode]
+            + generatedTBDFiles.map({ delegate.createNode($0) }) as [PlannedPathNode]
             + cbc.commandOrderingInputs
 
         // Compute swift aware arguments for installapi consumption and verification.
@@ -124,8 +125,10 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
 
             if !scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME).isEmpty && scope.evaluate(BuiltinMacros.SWIFT_INSTALL_OBJC_HEADER) {
                 let generatedHeaderPath = SwiftCompilerSpec.generatedObjectiveCHeaderOutputPath(scope).str
-                commandLine.append(contentsOf: ["-exclude-public-header",
-                                                generatedHeaderPath])
+                commandLine.append(contentsOf: [
+                    "-exclude-public-header",
+                    generatedHeaderPath,
+                ])
                 inputs.append(delegate.createNode(Path(generatedHeaderPath)))
             }
         }
@@ -138,7 +141,8 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         inputs.append(contentsOf: (dsymPath.flatMap({ [delegate.createNode($0)] }) ?? []) as [PlannedPathNode])
 
         if let version = toolInfo?.toolVersion, version >= TAPIToolSpec.dSYMSupportRequiredVersion,
-                dsymPath != nil, scope.evaluate(BuiltinMacros.TAPI_READ_DSYM) {
+            dsymPath != nil, scope.evaluate(BuiltinMacros.TAPI_READ_DSYM)
+        {
             let dsymBundle = scope.evaluate(BuiltinMacros.DWARF_DSYM_FOLDER_PATH)
                 .join(scope.evaluate(BuiltinMacros.DWARF_DSYM_FILE_NAME))
             commandLine.append(contentsOf: ["--dsym=" + dsymBundle.str])
@@ -166,7 +170,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
     }
 }
 
-final class TAPIMergeToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
+final class TAPIMergeToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     static let identifier = "com.apple.build-tools.tapi.merge"
 
     class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
@@ -181,7 +185,7 @@ final class TAPIMergeToolSpec : CommandLineToolSpec, SpecImplementationType, @un
         // FIXME: We don't have a spec to work with here, we should get one.
         var commandLine = [resolveExecutablePath(cbc.producer, Path(cbc.scope.tapiExecutablePath())).str]
         commandLine += ["archive", "--merge", "--allow-arch-merges"]
-        commandLine += cbc.inputs.map{ $0.absolutePath.str }
+        commandLine += cbc.inputs.map { $0.absolutePath.str }
         commandLine += ["-o", outputPath.str]
 
         let outputs: [any PlannedNode] = [delegate.createNode(outputPath)] + cbc.commandOrderingOutputs

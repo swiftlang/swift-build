@@ -29,10 +29,12 @@ final class CopySwiftPackageResourcesTaskProducer: PhasedTaskProducer, TaskProdu
         //
         // FIXME: The latter feature here is rarely used, and not very flexible as any target which needs other copy phases won't be able to disable them selectively.
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
-        guard buildComponents.contains("build")
+        guard
+            buildComponents.contains("build")
                 || buildComponents.contains("installLoc")
                 || (buildComponents.contains("api") && scope.evaluate(BuiltinMacros.INSTALLAPI_COPY_PHASE))
-                || (buildComponents.contains("headers") && scope.evaluate(BuiltinMacros.INSTALLHDRS_COPY_PHASE)) else {
+                || (buildComponents.contains("headers") && scope.evaluate(BuiltinMacros.INSTALLHDRS_COPY_PHASE))
+        else {
             return []
         }
 

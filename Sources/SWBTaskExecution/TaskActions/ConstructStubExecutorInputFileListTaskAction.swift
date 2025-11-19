@@ -81,8 +81,7 @@ public final class ConstructStubExecutorInputFileListTaskAction: TaskAction {
                     outputDelegate.emitWarning(
                         "Only \(slicesWithEntryPointSection.count) out of \(slices.count) slices in the debug dylib MachO contained Swift entry point sections. Using stub executor library with Swift entry point."
                     )
-                }
-                else {
+                } else {
                     outputDelegate.emitNote("Using stub executor library with Swift entry point.")
                 }
                 chosenLibraryPath = swiftEntryLibraryVariantPath
@@ -94,8 +93,7 @@ public final class ConstructStubExecutorInputFileListTaskAction: TaskAction {
             try fs.write(fileListPath, contents: ByteString(encodingAsUTF8: "\(chosenLibraryPath.str)\n"))
 
             return .succeeded
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("Unable to process debug dylib: \(error.localizedDescription)")
             return .failed
         }

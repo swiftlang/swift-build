@@ -13,14 +13,17 @@
 public import SWBUtil
 import SWBMacro
 
-public final class ConcatenateToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
+public final class ConcatenateToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.concatenate"
 
     public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
-        return self.init(registry, proxy,
-                         execDescription: registry.internalMacroNamespace.parseString("Concatenating to $(OutputRelativePath)"),
-                         ruleInfoTemplate: ["Concatenate", .output, .inputs],
-                         commandLineTemplate: [.execPath, .output, .inputs])
+        return self.init(
+            registry,
+            proxy,
+            execDescription: registry.internalMacroNamespace.parseString("Concatenating to $(OutputRelativePath)"),
+            ruleInfoTemplate: ["Concatenate", .output, .inputs],
+            commandLineTemplate: [.execPath, .output, .inputs]
+        )
     }
 
     public override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {

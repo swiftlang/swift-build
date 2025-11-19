@@ -31,8 +31,9 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -41,25 +42,34 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                     "DEBUG_INFORMATION_FORMAT": "dwarf",
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
                                 "App",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app",
-                                        "SUPPORTED_PLATFORMS": "macosx iphoneos",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app",
+                                            "SUPPORTED_PLATFORMS": "macosx iphoneos",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
+                                        "foo.c"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "Driver.dext"
-                                    ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(SYSTEM_EXTENSIONS_FOLDER_PATH)", onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "Driver.dext"
+                                        ],
+                                        destinationSubfolder: .builtProductsDir,
+                                        destinationSubpath: "$(SYSTEM_EXTENSIONS_FOLDER_PATH)",
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: ["Driver"]
                             ),
@@ -67,20 +77,25 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                 "Driver",
                                 type: .driverExtension,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app.driver",
-                                        "SDKROOT": "driverkit",
-                                        "SUPPORTED_PLATFORMS": "driverkit",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_BUNDLE_IDENTIFIER": "com.mycompany.app.driver",
+                                            "SDKROOT": "driverkit",
+                                            "SUPPORTED_PLATFORMS": "driverkit",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
@@ -115,8 +130,9 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -125,7 +141,8 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "INFOPLIST_FILE": "Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -133,8 +150,8 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                 type: .driverExtension,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ],
                                 dependencies: ["Framework"]
                             ),
@@ -143,21 +160,26 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
             let driverkitSDK = core.loadSDK(.driverKit)
 
-            try await tester.fs.writePlist(SRCROOT.join("Info.plist"), .plDict([
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
-                "CFBundleName": .plString("$(PRODUCT_NAME)"),
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Info.plist"),
+                .plDict([
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                    "CFBundleName": .plString("$(PRODUCT_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("foo.c")) { contents in
@@ -167,45 +189,51 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["SDKROOT": "driverkit"]), runDestination: .macOS, persistent: true) { results in
                 let xcodeActualStr = (core.xcodeVersion[0] * 100 + core.xcodeVersion[1] * 10 + core.xcodeVersion[2]).toString(format: "%04d")
 
-                try XCTAssertEqualPropertyListItems(try PropertyList.fromPath(SRCROOT.join("build/Debug-driverkit/Driver.dext/Info.plist"), fs: tester.fs), PropertyListItem.plDict([
-                    "BuildMachineOSBuild": .plString("99A98"),
-                    "CFBundleDevelopmentRegion": .plString("English"),
-                    "CFBundleExecutable": .plString("Driver"),
-                    "CFBundleInfoDictionaryVersion": .plString("6.0"),
-                    "CFBundleName": .plString("Driver"),
-                    "CFBundlePackageType": .plString("DEXT"),
-                    "CFBundleSupportedPlatforms": .plArray([.plString("DriverKit")]),
-                    "DTCompiler": .plString("com.apple.compilers.llvm.clang.1_0"),
-                    "DTPlatformBuild": .plString(#require(core.platformRegistry.lookup(name: "driverkit")?.productBuildVersion)),
-                    "DTPlatformName": .plString("driverkit"),
-                    // The DTPlatformVersion key is using SDK_MARKETING_FULL_VERSION.
-                    "DTPlatformVersion": .plString(driverkitSDK.version),
-                    "DTSDKBuild": .plString(""),
-                    "DTSDKName": .plString("driverkit\(driverkitSDK.version)"),
-                    "DTXcode": .plString(xcodeActualStr),
-                    "DTXcodeBuild": .plString(core.xcodeProductBuildVersionString),
-                    "OSMinimumDriverKitVersion": .plString(driverkitSDK.defaultDeploymentTarget),
-                ]))
+                try XCTAssertEqualPropertyListItems(
+                    try PropertyList.fromPath(SRCROOT.join("build/Debug-driverkit/Driver.dext/Info.plist"), fs: tester.fs),
+                    PropertyListItem.plDict([
+                        "BuildMachineOSBuild": .plString("99A98"),
+                        "CFBundleDevelopmentRegion": .plString("English"),
+                        "CFBundleExecutable": .plString("Driver"),
+                        "CFBundleInfoDictionaryVersion": .plString("6.0"),
+                        "CFBundleName": .plString("Driver"),
+                        "CFBundlePackageType": .plString("DEXT"),
+                        "CFBundleSupportedPlatforms": .plArray([.plString("DriverKit")]),
+                        "DTCompiler": .plString("com.apple.compilers.llvm.clang.1_0"),
+                        "DTPlatformBuild": .plString(#require(core.platformRegistry.lookup(name: "driverkit")?.productBuildVersion)),
+                        "DTPlatformName": .plString("driverkit"),
+                        // The DTPlatformVersion key is using SDK_MARKETING_FULL_VERSION.
+                        "DTPlatformVersion": .plString(driverkitSDK.version),
+                        "DTSDKBuild": .plString(""),
+                        "DTSDKName": .plString("driverkit\(driverkitSDK.version)"),
+                        "DTXcode": .plString(xcodeActualStr),
+                        "DTXcodeBuild": .plString(core.xcodeProductBuildVersionString),
+                        "OSMinimumDriverKitVersion": .plString(driverkitSDK.defaultDeploymentTarget),
+                    ])
+                )
 
-                try XCTAssertEqualPropertyListItems(try PropertyList.fromPath(SRCROOT.join("build/Debug-driverkit/Framework.framework/Info.plist"), fs: tester.fs), PropertyListItem.plDict([
-                    "BuildMachineOSBuild": .plString("99A98"),
-                    "CFBundleDevelopmentRegion": .plString("English"),
-                    "CFBundleExecutable": .plString("Framework"),
-                    "CFBundleInfoDictionaryVersion": .plString("6.0"),
-                    "CFBundleName": .plString("Framework"),
-                    "CFBundlePackageType": .plString("FMWK"),
-                    "CFBundleSupportedPlatforms": .plArray([.plString("DriverKit")]),
-                    "DTCompiler": .plString("com.apple.compilers.llvm.clang.1_0"),
-                    "DTPlatformBuild": .plString(#require(core.platformRegistry.lookup(name: "driverkit")?.productBuildVersion)),
-                    "DTPlatformName": .plString("driverkit"),
-                    // The DTPlatformVersion key is using SDK_MARKETING_FULL_VERSION.
-                    "DTPlatformVersion": .plString(driverkitSDK.version),
-                    "DTSDKBuild": .plString(""),
-                    "DTSDKName": .plString("driverkit\(driverkitSDK.version)"),
-                    "DTXcode": .plString(xcodeActualStr),
-                    "DTXcodeBuild": .plString(core.xcodeProductBuildVersionString),
-                    "OSMinimumDriverKitVersion": .plString(driverkitSDK.defaultDeploymentTarget),
-                ]))
+                try XCTAssertEqualPropertyListItems(
+                    try PropertyList.fromPath(SRCROOT.join("build/Debug-driverkit/Framework.framework/Info.plist"), fs: tester.fs),
+                    PropertyListItem.plDict([
+                        "BuildMachineOSBuild": .plString("99A98"),
+                        "CFBundleDevelopmentRegion": .plString("English"),
+                        "CFBundleExecutable": .plString("Framework"),
+                        "CFBundleInfoDictionaryVersion": .plString("6.0"),
+                        "CFBundleName": .plString("Framework"),
+                        "CFBundlePackageType": .plString("FMWK"),
+                        "CFBundleSupportedPlatforms": .plArray([.plString("DriverKit")]),
+                        "DTCompiler": .plString("com.apple.compilers.llvm.clang.1_0"),
+                        "DTPlatformBuild": .plString(#require(core.platformRegistry.lookup(name: "driverkit")?.productBuildVersion)),
+                        "DTPlatformName": .plString("driverkit"),
+                        // The DTPlatformVersion key is using SDK_MARKETING_FULL_VERSION.
+                        "DTPlatformVersion": .plString(driverkitSDK.version),
+                        "DTSDKBuild": .plString(""),
+                        "DTSDKName": .plString("driverkit\(driverkitSDK.version)"),
+                        "DTXcode": .plString(xcodeActualStr),
+                        "DTXcodeBuild": .plString(core.xcodeProductBuildVersionString),
+                        "OSMinimumDriverKitVersion": .plString(driverkitSDK.defaultDeploymentTarget),
+                    ])
+                )
             }
         }
     }
@@ -223,8 +251,9 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -233,7 +262,8 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "INFOPLIST_FILE": "Info.plist",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -241,19 +271,24 @@ fileprivate struct DriverKitBuildOperationTests: CoreBasedTests {
                                 type: .driverExtension,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
+                                        "foo.c"
+                                    ])
                                 ]
-                            ),
-                        ])
-                ])
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
-            try await tester.fs.writePlist(SRCROOT.join("Info.plist"), .plDict([
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
-                "CFBundleName": .plString("$(PRODUCT_NAME)"),
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Info.plist"),
+                .plDict([
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                    "CFBundleName": .plString("$(PRODUCT_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("foo.c")) { contents in

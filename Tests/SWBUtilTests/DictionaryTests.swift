@@ -23,16 +23,16 @@ import SWBUtil
 
     @Test
     func addContentsOf() {
-        var firstDict = [ "a": 1, "b": 2, "c": 3 ]
+        var firstDict = ["a": 1, "b": 2, "c": 3]
 
-        firstDict.addContents(of:  [ "d": 4, "e": 5 ])
-        #expect(firstDict == [ "a": 1, "b": 2, "c": 3 , "d": 4, "e": 5 ])
+        firstDict.addContents(of: ["d": 4, "e": 5])
+        #expect(firstDict == ["a": 1, "b": 2, "c": 3, "d": 4, "e": 5])
 
-        firstDict.addContents(of:  [ "b": 6 ] )
-        #expect(firstDict == [ "a": 1, "b": 6, "c": 3 , "d": 4, "e": 5 ])
+        firstDict.addContents(of: ["b": 6])
+        #expect(firstDict == ["a": 1, "b": 6, "c": 3, "d": 4, "e": 5])
 
-        firstDict.addContents(of:  [ "a": 7, "f": 8 ] )
-        #expect(firstDict == [ "a": 7, "b": 6, "c": 3 , "d": 4, "e": 5, "f": 8 ])
+        firstDict.addContents(of: ["a": 7, "f": 8])
+        #expect(firstDict == ["a": 7, "b": 6, "c": 3, "d": 4, "e": 5, "f": 8])
     }
 
     @Test
@@ -70,7 +70,7 @@ import SWBUtil
     func filterKeys() {
         let inDict = [
             "CFFoo": 1,
-            "NSBar": 2
+            "NSBar": 2,
         ]
 
         let emptyDict: [String: Int] = [:]

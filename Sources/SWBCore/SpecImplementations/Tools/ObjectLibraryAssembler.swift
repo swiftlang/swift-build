@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public final class ObjectLibraryAssemblerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class ObjectLibraryAssemblerSpec: GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier: String = "org.swift.linkers.object-library-assembler"
 
     public override func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {

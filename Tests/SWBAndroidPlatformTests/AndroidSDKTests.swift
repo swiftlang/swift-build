@@ -35,23 +35,21 @@ fileprivate struct AndroidSDKTests {
         try await withNDKVersions(fs: fs, sdkPath: sdkPath, versions: Version("24"), Version("25"), Version("26")) { host, fs, sdkPath, ndkVersionPaths in
             for ndkVersionPath in ndkVersionPaths {
                 try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
-                    contents <<<
-                """
-                {
-                }
-                """
+                    contents <<< """
+                        {
+                        }
+                        """
                 }
 
                 try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("platforms.json")) { contents in
-                    contents <<<
-                """
-                {
-                    "min": 21,
-                    "max": 35,
-                    "aliases": {
-                    }
-                }
-                """
+                    contents <<< """
+                        {
+                            "min": 21,
+                            "max": 35,
+                            "aliases": {
+                            }
+                        }
+                        """
                 }
             }
 
@@ -92,79 +90,77 @@ fileprivate struct AndroidSDKTests {
     @Test func abis_r26_3() async throws {
         try await withNDKVersion(version: Version("26.3.11579264")) { host, fs, sdkPath, ndkVersionPath in
             try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
-                contents <<<
-                """
-                {
-                    "armeabi-v7a": {
-                        "bitness": 32,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "armv7-a",
-                        "arch": "arm",
-                        "triple": "arm-linux-androideabi",
-                        "llvm_triple": "armv7-none-linux-androideabi"
-                    },
-                    "arm64-v8a": {
-                        "bitness": 64,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "aarch64",
-                        "arch": "arm64",
-                        "triple": "aarch64-linux-android",
-                        "llvm_triple": "aarch64-none-linux-android"
-                    },
-                    "x86": {
-                        "bitness": 32,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "i686",
-                        "arch": "x86",
-                        "triple": "i686-linux-android",
-                        "llvm_triple": "i686-none-linux-android"
-                    },
-                    "x86_64": {
-                        "bitness": 64,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "x86_64",
-                        "arch": "x86_64",
-                        "triple": "x86_64-linux-android",
-                        "llvm_triple": "x86_64-none-linux-android"
+                contents <<< """
+                    {
+                        "armeabi-v7a": {
+                            "bitness": 32,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "armv7-a",
+                            "arch": "arm",
+                            "triple": "arm-linux-androideabi",
+                            "llvm_triple": "armv7-none-linux-androideabi"
+                        },
+                        "arm64-v8a": {
+                            "bitness": 64,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "aarch64",
+                            "arch": "arm64",
+                            "triple": "aarch64-linux-android",
+                            "llvm_triple": "aarch64-none-linux-android"
+                        },
+                        "x86": {
+                            "bitness": 32,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "i686",
+                            "arch": "x86",
+                            "triple": "i686-linux-android",
+                            "llvm_triple": "i686-none-linux-android"
+                        },
+                        "x86_64": {
+                            "bitness": 64,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "x86_64",
+                            "arch": "x86_64",
+                            "triple": "x86_64-linux-android",
+                            "llvm_triple": "x86_64-none-linux-android"
+                        }
                     }
-                }
-                """
+                    """
             }
 
             try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("platforms.json")) { contents in
-                contents <<<
-                """
-                {
-                    "min": 21,
-                    "max": 34,
-                    "aliases": {
-                        "20": 19,
-                        "25": 24,
-                        "J": 16,
-                        "J-MR1": 17,
-                        "J-MR2": 18,
-                        "K": 19,
-                        "L": 21,
-                        "L-MR1": 22,
-                        "M": 23,
-                        "N": 24,
-                        "N-MR1": 24,
-                        "O": 26,
-                        "O-MR1": 27,
-                        "P": 28,
-                        "Q": 29,
-                        "R": 30,
-                        "S": 31,
-                        "Sv2": 32,
-                        "Tiramisu": 33,
-                        "UpsideDownCake": 34
+                contents <<< """
+                    {
+                        "min": 21,
+                        "max": 34,
+                        "aliases": {
+                            "20": 19,
+                            "25": 24,
+                            "J": 16,
+                            "J-MR1": 17,
+                            "J-MR2": 18,
+                            "K": 19,
+                            "L": 21,
+                            "L-MR1": 22,
+                            "M": 23,
+                            "N": 24,
+                            "N-MR1": 24,
+                            "O": 26,
+                            "O-MR1": 27,
+                            "P": 28,
+                            "Q": 29,
+                            "R": 30,
+                            "S": 31,
+                            "Sv2": 32,
+                            "Tiramisu": 33,
+                            "UpsideDownCake": 34
+                        }
                     }
-                }
-                """
+                    """
             }
 
             let installations = try AndroidSDK.NDK.findInstallations(host: host, sdkPath: sdkPath, fs: fs)
@@ -234,94 +230,92 @@ fileprivate struct AndroidSDKTests {
     @Test func abis_r27() async throws {
         try await withNDKVersion(version: Version("27.0.11718014")) { host, fs, sdkPath, ndkVersionPath in
             try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("abis.json")) { contents in
-                contents <<<
-                """
-                {
-                    "armeabi-v7a": {
-                        "bitness": 32,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "armv7-a",
-                        "arch": "arm",
-                        "triple": "arm-linux-androideabi",
-                        "llvm_triple": "armv7-none-linux-androideabi",
-                        "min_os_version": 21
-                    },
-                    "arm64-v8a": {
-                        "bitness": 64,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "aarch64",
-                        "arch": "arm64",
-                        "triple": "aarch64-linux-android",
-                        "llvm_triple": "aarch64-none-linux-android",
-                        "min_os_version": 21
-                    },
-                    "riscv64": {
-                        "bitness": 64,
-                        "default": false,
-                        "deprecated": false,
-                        "proc": "riscv64",
-                        "arch": "riscv64",
-                        "triple": "riscv64-linux-android",
-                        "llvm_triple": "riscv64-none-linux-android",
-                        "min_os_version": 35
-                    },
-                    "x86": {
-                        "bitness": 32,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "i686",
-                        "arch": "x86",
-                        "triple": "i686-linux-android",
-                        "llvm_triple": "i686-none-linux-android",
-                        "min_os_version": 21
-                    },
-                    "x86_64": {
-                        "bitness": 64,
-                        "default": true,
-                        "deprecated": false,
-                        "proc": "x86_64",
-                        "arch": "x86_64",
-                        "triple": "x86_64-linux-android",
-                        "llvm_triple": "x86_64-none-linux-android",
-                        "min_os_version": 21
+                contents <<< """
+                    {
+                        "armeabi-v7a": {
+                            "bitness": 32,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "armv7-a",
+                            "arch": "arm",
+                            "triple": "arm-linux-androideabi",
+                            "llvm_triple": "armv7-none-linux-androideabi",
+                            "min_os_version": 21
+                        },
+                        "arm64-v8a": {
+                            "bitness": 64,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "aarch64",
+                            "arch": "arm64",
+                            "triple": "aarch64-linux-android",
+                            "llvm_triple": "aarch64-none-linux-android",
+                            "min_os_version": 21
+                        },
+                        "riscv64": {
+                            "bitness": 64,
+                            "default": false,
+                            "deprecated": false,
+                            "proc": "riscv64",
+                            "arch": "riscv64",
+                            "triple": "riscv64-linux-android",
+                            "llvm_triple": "riscv64-none-linux-android",
+                            "min_os_version": 35
+                        },
+                        "x86": {
+                            "bitness": 32,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "i686",
+                            "arch": "x86",
+                            "triple": "i686-linux-android",
+                            "llvm_triple": "i686-none-linux-android",
+                            "min_os_version": 21
+                        },
+                        "x86_64": {
+                            "bitness": 64,
+                            "default": true,
+                            "deprecated": false,
+                            "proc": "x86_64",
+                            "arch": "x86_64",
+                            "triple": "x86_64-linux-android",
+                            "llvm_triple": "x86_64-none-linux-android",
+                            "min_os_version": 21
+                        }
                     }
-                }
-                """
+                    """
             }
 
             try await fs.writeFileContents(ndkVersionPath.path.join("meta").join("platforms.json")) { contents in
-                contents <<<
-                """
-                {
-                    "min": 21,
-                    "max": 35,
-                    "aliases": {
-                        "20": 19,
-                        "25": 24,
-                        "J": 16,
-                        "J-MR1": 17,
-                        "J-MR2": 18,
-                        "K": 19,
-                        "L": 21,
-                        "L-MR1": 22,
-                        "M": 23,
-                        "N": 24,
-                        "N-MR1": 24,
-                        "O": 26,
-                        "O-MR1": 27,
-                        "P": 28,
-                        "Q": 29,
-                        "R": 30,
-                        "S": 31,
-                        "Sv2": 32,
-                        "Tiramisu": 33,
-                        "UpsideDownCake": 34,
-                        "VanillaIceCream": 35
+                contents <<< """
+                    {
+                        "min": 21,
+                        "max": 35,
+                        "aliases": {
+                            "20": 19,
+                            "25": 24,
+                            "J": 16,
+                            "J-MR1": 17,
+                            "J-MR2": 18,
+                            "K": 19,
+                            "L": 21,
+                            "L-MR1": 22,
+                            "M": 23,
+                            "N": 24,
+                            "N-MR1": 24,
+                            "O": 26,
+                            "O-MR1": 27,
+                            "P": 28,
+                            "Q": 29,
+                            "R": 30,
+                            "S": 31,
+                            "Sv2": 32,
+                            "Tiramisu": 33,
+                            "UpsideDownCake": 34,
+                            "VanillaIceCream": 35
+                        }
                     }
-                }
-                """
+                    """
             }
 
             let installations = try AndroidSDK.NDK.findInstallations(host: host, sdkPath: sdkPath, fs: fs)

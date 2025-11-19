@@ -43,7 +43,7 @@ public enum CommandLineArgument: Equatable, Hashable, ExpressibleByStringLiteral
         self = .literal(ByteString(stringLiteral: value))
     }
 
-    public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+    public func serialize<T>(to serializer: T) where T: SWBUtil.Serializer {
         switch self {
         case .literal(let byteString):
             // FIXME: pack in one byte

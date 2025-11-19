@@ -26,7 +26,7 @@ public final class MacroConditionParameter: Hashable, CustomStringConvertible, E
         hasher.combine(ObjectIdentifier(self))
     }
 
-    public static func ==(lhs: MacroConditionParameter, rhs: MacroConditionParameter) -> Bool {
+    public static func == (lhs: MacroConditionParameter, rhs: MacroConditionParameter) -> Bool {
         return lhs === rhs
     }
 

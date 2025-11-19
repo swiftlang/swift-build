@@ -52,10 +52,10 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                 let projectFilesDir = "\(projectDir)/SomeFiles"
 
                 let workspacePIF: SWBPropertyListItem = [
-                    "guid":      "some-workspace-guid",
-                    "name":      "aWorkspace",
-                    "path":      .plString("\(tmpDirPath)/aWorkspace.xcworkspace/contents.xcworkspacedata"),
-                    "projects":  ["P1"]
+                    "guid": "some-workspace-guid",
+                    "name": "aWorkspace",
+                    "path": .plString("\(tmpDirPath)/aWorkspace.xcworkspace/contents.xcworkspacedata"),
+                    "projects": ["P1"],
                 ]
                 let projectPIF: SWBPropertyListItem = [
                     "guid": "P1",
@@ -72,27 +72,27 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                                 "type": "file",
                                 "sourceTree": "<group>",
                                 "path": "Source.c",
-                                "fileType": "sourcecode.c.c"
+                                "fileType": "sourcecode.c.c",
                             ],
                             [
                                 "guid": "source-file-fileReference-guid2",
                                 "type": "file",
                                 "sourceTree": "<group>",
                                 "path": "Source2.c",
-                                "fileType": "sourcecode.c.c"
-                            ]
-                        ]
+                                "fileType": "sourcecode.c.c",
+                            ],
+                        ],
                     ],
                     "buildConfigurations": [
                         [
                             "guid": "BC1",
                             "name": "Config1",
-                            "buildSettings": [:]
+                            "buildSettings": [:],
                         ]
                     ],
                     "defaultConfigurationName": "Config1",
                     "developmentRegion": "English",
-                    "targets": ["T1"]
+                    "targets": ["T1"],
                 ]
                 let targetPIF: SWBPropertyListItem = [
                     "guid": "T1",
@@ -111,42 +111,42 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                                 [
                                     "guid": "BF2",
                                     "name": "Source.c",
-                                    "fileReference": "source-file-fileReference-guid"
+                                    "fileReference": "source-file-fileReference-guid",
                                 ],
                                 [
                                     "guid": "BF3",
                                     "name": "Source2.c",
-                                    "fileReference": "source-file-fileReference-guid2"
-                                ]
-                            ]
+                                    "fileReference": "source-file-fileReference-guid2",
+                                ],
+                            ],
                         ]
                     ],
                     "buildConfigurations": [
                         [
                             "guid": "C2",
                             "name": "Config1",
-                            "buildSettings": [:]
+                            "buildSettings": [:],
                         ]
                     ],
                     "dependencies": [],
-                    "buildRules": []
+                    "buildRules": [],
                 ]
                 let topLevelPIF: SWBPropertyListItem = [
                     [
                         "type": "workspace",
                         "signature": "W1",
-                        "contents": workspacePIF
+                        "contents": workspacePIF,
                     ],
                     [
                         "type": "project",
                         "signature": "P1",
-                        "contents": projectPIF
+                        "contents": projectPIF,
                     ],
                     [
                         "type": "target",
                         "signature": "T1",
-                        "contents": targetPIF
-                    ]
+                        "contents": targetPIF,
+                    ],
                 ]
 
                 try await session.sendPIF(topLevelPIF)
@@ -289,7 +289,8 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                                 "SWIFT_VERSION": "5.0",
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -305,33 +306,42 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                             TestBuildFile("intentsmissing.intentdefinition", intentsCodegenVisibility: .public),
                         ]),
                         TestResourcesBuildPhase([
-                            "Assets.xcassets",
-                        ])
+                            "Assets.xcassets"
+                        ]),
                     ]
                 )
 
-                try await testSession.sendPIF(TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
+                try await testSession.sendPIF(
+                    TestWorkspace(
                         "Test",
-                        groupTree: TestGroup("Test", children: [
-                            TestFile("TestFile1.c"),
-                            TestFile("TestFile4.swift"),
-                            TestFile("Titanium.metal"),
-                            TestVersionGroup("Foo.xcdatamodeld", children: [TestFile("Foo.xcdatamodeld")]),
-                            TestFile("SmartStuff.mlmodel"),
-                            TestFile("Intents.intentdefinition"),
-                            TestFile("Assets.xcassets"),
-                            TestFile("mlmissing.mlmodel"),
-                            TestFile("intentsmissing.intentdefinition"),
-                        ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug")
-                        ],
-                        targets: [
-                            appTarget
+                        sourceRoot: tmpDir,
+                        projects: [
+                            TestProject(
+                                "Test",
+                                groupTree: TestGroup(
+                                    "Test",
+                                    children: [
+                                        TestFile("TestFile1.c"),
+                                        TestFile("TestFile4.swift"),
+                                        TestFile("Titanium.metal"),
+                                        TestVersionGroup("Foo.xcdatamodeld", children: [TestFile("Foo.xcdatamodeld")]),
+                                        TestFile("SmartStuff.mlmodel"),
+                                        TestFile("Intents.intentdefinition"),
+                                        TestFile("Assets.xcassets"),
+                                        TestFile("mlmissing.mlmodel"),
+                                        TestFile("intentsmissing.intentdefinition"),
+                                    ]
+                                ),
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug")
+                                ],
+                                targets: [
+                                    appTarget
+                                ]
+                            )
                         ]
                     )
-                ]))
+                )
 
                 try localFS.createDirectory(tmpDir.join("Test"), recursive: true)
 
@@ -451,11 +461,14 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
 
                 results.checkNoIndexingInfo()
 
-                await #expect(performing: {
-                    try await testSession.session.generateLegacyInfo(for: request, targetID: "missing")
-                }, throws: { error in
-                    error.localizedDescription.contains("could not find target with GUID: 'missing'")
-                })
+                await #expect(
+                    performing: {
+                        try await testSession.session.generateLegacyInfo(for: request, targetID: "missing")
+                    },
+                    throws: { error in
+                        error.localizedDescription.contains("could not find target with GUID: 'missing'")
+                    }
+                )
 
                 // Basic checks that the command line makes sense for indexing. Doesn't check everything, just a few to make sure we've made the calls to add/remove args.
                 func checkClangCommandLine(_ checkable: any CommandLineCheckable, input: String, output: String, sourceLocation: SourceLocation = #_sourceLocation) {
@@ -514,7 +527,8 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                                 "SDKROOT": "iphoneos",
                                 "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOL_INDEX_PATH": "foo.plist",
                                 "ONLY_ACTIVE_ARCH": "YES",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -522,21 +536,26 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                             TestBuildFile("test.swift"),
                         ]),
                         TestResourcesBuildPhase([
-                            "Assets.xcassets",
-                        ])
+                            "Assets.xcassets"
+                        ]),
                     ]
                 )
 
                 try await testSession.sendPIF(
                     TestWorkspace(
-                        "Test", sourceRoot: tmpDir, projects: [
+                        "Test",
+                        sourceRoot: tmpDir,
+                        projects: [
                             TestProject(
                                 "Test",
-                                groupTree: TestGroup("Test", children: [
-                                    TestFile("test.c"),
-                                    TestFile("test.swift"),
-                                    TestFile("Assets.xcassets"),
-                                ]),
+                                groupTree: TestGroup(
+                                    "Test",
+                                    children: [
+                                        TestFile("test.c"),
+                                        TestFile("test.swift"),
+                                        TestFile("Assets.xcassets"),
+                                    ]
+                                ),
                                 buildConfigurations: [
                                     TestBuildConfiguration("Debug")
                                 ],
@@ -544,22 +563,28 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                                     appTarget
                                 ]
                             )
-                        ])
+                        ]
+                    )
                 )
 
                 try localFS.createDirectory(tmpDir.join("Test"), recursive: true)
 
                 let activeRunDestination = SWBRunDestinationInfo.iOS
                 let buildParameters = SWBBuildParameters(
-                    configuration: "Debug", activeRunDestination: activeRunDestination
+                    configuration: "Debug",
+                    activeRunDestination: activeRunDestination
                 )
                 var request = SWBBuildRequest()
-                request.add(target: SWBConfiguredTarget(
-                    guid: appTarget.guid, parameters: buildParameters
-                ))
+                request.add(
+                    target: SWBConfiguredTarget(
+                        guid: appTarget.guid,
+                        parameters: buildParameters
+                    )
+                )
 
                 let results = try await testSession.session.generateLegacyInfo(
-                    for: request, targetID: appTarget.guid
+                    for: request,
+                    targetID: appTarget.guid
                 )
 
                 await results.checkIndexingInfo(.matchSourceFilePath(Path("\(tmpDir.str)/Test/test.c"))) { info in
@@ -593,7 +618,8 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                     sourceRoot: srcroot,
                     projects: [
                         TestProject(
-                            "aProject", defaultConfigurationName: "Debug",
+                            "aProject",
+                            defaultConfigurationName: "Debug",
                             groupTree: TestGroup(
                                 "Foo",
                                 children: [
@@ -603,17 +629,21 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                             ),
                             targets: [
                                 TestStandardTarget(
-                                    "Foo", guid: "Foo", type: .staticLibrary,
+                                    "Foo",
+                                    guid: "Foo",
+                                    type: .staticLibrary,
                                     buildConfigurations: [
                                         TestBuildConfiguration(
                                             "Debug",
                                             buildSettings: [
                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                 "USE_HEADERMAP": "NO",
-                                                "GCC_PREFIX_HEADER": "Foo/PrefixHeader.pch"
-                                            ])],
+                                                "GCC_PREFIX_HEADER": "Foo/PrefixHeader.pch",
+                                            ]
+                                        )
+                                    ],
                                     buildPhases: [
-                                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
+                                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
                                     ]
                                 )
                             ]
@@ -671,7 +701,7 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                             info.checkPrefixHeaderPath(.suffix("PrefixHeader.pch"))
                             info.checkPrecompiledHeaderPath(.suffix("PrefixHeader.pch.gch"))
 
-                            info.checkPrecompiledHeaderHashCriteria(nil) // rdar://problem/24469921
+                            info.checkPrecompiledHeaderHashCriteria(nil)  // rdar://problem/24469921
                             info.clangPrecompiledHeader.checkCommandLineDoesNotContain("--serialize-diagnostics")
                             info.clangPrecompiledHeader.checkCommandLineDoesNotContain("-fsyntax-only")
                             info.clangPrecompiledHeader.checkCommandLineMatches([.suffix("PrefixHeader.pch.gch")])
@@ -702,25 +732,30 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                     sourceRoot: srcroot,
                     projects: [
                         TestProject(
-                            "aProject", defaultConfigurationName: "Debug",
+                            "aProject",
+                            defaultConfigurationName: "Debug",
                             groupTree: TestGroup(
                                 "Foo",
                                 children: [
-                                    TestFile("foo.c"),
+                                    TestFile("foo.c")
                                 ]
                             ),
                             targets: [
                                 TestStandardTarget(
-                                    "Foo", guid: "Foo", type: .staticLibrary,
+                                    "Foo",
+                                    guid: "Foo",
+                                    type: .staticLibrary,
                                     buildConfigurations: [
                                         TestBuildConfiguration(
                                             "Debug",
                                             buildSettings: [
                                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                                 "ARCHS": "arm64 x86_64 i386",
-                                            ])],
+                                            ]
+                                        )
+                                    ],
                                     buildPhases: [
-                                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
+                                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
                                     ]
                                 )
                             ]
@@ -781,7 +816,8 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                                 "SWIFT_VERSION": "5.0",
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -792,30 +828,39 @@ fileprivate struct IndexingInfoTests: CoreBasedTests {
                             TestBuildFile("Intents.intentdefinition", intentsCodegenVisibility: .public),
                         ]),
                         TestResourcesBuildPhase([
-                            "Assets.xcassets",
-                        ])
+                            "Assets.xcassets"
+                        ]),
                     ]
                 )
 
-                try await testSession.sendPIF(TestWorkspace("Test", sourceRoot: tmpDir, projects: [
-                    TestProject(
+                try await testSession.sendPIF(
+                    TestWorkspace(
                         "Test",
-                        groupTree: TestGroup("Test", children: [
-                            TestFile("TestFile1.c"),
-                            TestFile("TestFile4.swift"),
-                            TestVersionGroup("Foo.xcdatamodeld", children: [TestFile("Foo.xcdatamodeld")]),
-                            TestFile("SmartStuff.mlmodel"),
-                            TestFile("Intents.intentdefinition"),
-                            TestFile("Assets.xcassets"),
-                        ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug")
-                        ],
-                        targets: [
-                            appTarget
+                        sourceRoot: tmpDir,
+                        projects: [
+                            TestProject(
+                                "Test",
+                                groupTree: TestGroup(
+                                    "Test",
+                                    children: [
+                                        TestFile("TestFile1.c"),
+                                        TestFile("TestFile4.swift"),
+                                        TestVersionGroup("Foo.xcdatamodeld", children: [TestFile("Foo.xcdatamodeld")]),
+                                        TestFile("SmartStuff.mlmodel"),
+                                        TestFile("Intents.intentdefinition"),
+                                        TestFile("Assets.xcassets"),
+                                    ]
+                                ),
+                                buildConfigurations: [
+                                    TestBuildConfiguration("Debug")
+                                ],
+                                targets: [
+                                    appTarget
+                                ]
+                            )
                         ]
                     )
-                ]))
+                )
 
                 let activeRunDestination = SWBRunDestinationInfo.iOS
                 let buildParameters = SWBBuildParameters(configuration: "Debug", activeRunDestination: activeRunDestination)
@@ -884,8 +929,10 @@ extension SWBBuildServiceSession {
     fileprivate func generateLegacyInfo(for request: SWBBuildRequest, targetID: String, filePath: String? = nil, outputPathOnly: Bool = false, delegate: (any SWBIndexingDelegate)? = nil) async throws -> IndexingInfoResults {
         let delegate = delegate ?? EmptyBuildOperationDelegate()
         let plists = try await self.generateIndexingFileSettings(for: request, targetID: targetID, filePath: filePath, outputPathOnly: outputPathOnly, delegate: delegate).sourceFileBuildInfos
-        return IndexingInfoResults(plists.map { plist in
-            plist.mapValues { $0.propertyListItem }
-        })
+        return IndexingInfoResults(
+            plists.map { plist in
+                plist.mapValues { $0.propertyListItem }
+            }
+        )
     }
 }

@@ -59,15 +59,19 @@ fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
                         TestFile("main.c"),
                         TestFile("dynamic.c"),
                         TestFile("static.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "\(operatingSystem.xcodePlatformName)",
-                        "SUPPORTED_PLATFORMS": "\(operatingSystem.xcodePlatformName)",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "\(operatingSystem.xcodePlatformName)",
+                            "SUPPORTED_PLATFORMS": "\(operatingSystem.xcodePlatformName)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -81,7 +85,7 @@ fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("dynamiclib")),
                                 TestBuildFile(.target("staticlib")),
-                            ])
+                            ]),
                         ],
                         dependencies: [
                             "dynamiclib",
@@ -92,15 +96,18 @@ fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
                         "dynamiclib",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic.c"]),
+                            TestSourcesBuildPhase(["dynamic.c"])
                         ],
                         productReferenceName: "libdynamiclib.so"
                     ),
@@ -108,16 +115,20 @@ fileprivate struct GenerixUnixBuildOperationTests: CoreBasedTests {
                         "staticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib"
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.c"]),
+                            TestSourcesBuildPhase(["static.c"])
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             let projectDir = tester.workspace.projects[0].sourceRoot

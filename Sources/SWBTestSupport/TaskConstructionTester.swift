@@ -77,7 +77,7 @@ package final class TaskConstructionTester {
         package var checkedNotes: Bool = false
         package var checkedRemarks: Bool = false
 
-        init(_ core: Core, _ workspace: Workspace, _ existingFiles: [Path], _ buildRequest: BuildRequest, _ buildPlanRequest: BuildPlanRequest,_ buildPlan: BuildPlan, _ delegate: TestTaskPlanningDelegate) {
+        init(_ core: Core, _ workspace: Workspace, _ existingFiles: [Path], _ buildRequest: BuildRequest, _ buildPlanRequest: BuildPlanRequest, _ buildPlan: BuildPlan, _ delegate: TestTaskPlanningDelegate) {
             self.core = core
             self.workspace = workspace
             self.existingFiles = Set(existingFiles)
@@ -164,7 +164,7 @@ package final class TaskConstructionTester {
         ///
         /// It is a test error if multiple such targets exist.
         package func checkTarget(_ name: String, platformDiscriminator: String? = nil, sdkroot: String? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (ConfiguredTarget) throws -> Void) rethrows {
-                    let matchedTargets = plannedTargets.filter { $0.target.name == name && (platformDiscriminator == nil || $0.platformDiscriminator == platformDiscriminator) && (sdkroot == nil || $0.parameters.overrides["SDKROOT"] == sdkroot) }
+            let matchedTargets = plannedTargets.filter { $0.target.name == name && (platformDiscriminator == nil || $0.platformDiscriminator == platformDiscriminator) && (sdkroot == nil || $0.parameters.overrides["SDKROOT"] == sdkroot) }
             if matchedTargets.isEmpty {
                 Issue.record("unable to find target with name '\(name)'\(platformDiscriminator.map{", platform '\($0)'"} ?? "")", sourceLocation: sourceLocation)
             } else if matchedTargets.count > 1 {
@@ -356,9 +356,7 @@ package final class TaskConstructionTester {
             do {
                 if let distance = try taskGraph.predecessorDistance(from: task, to: antecedent) {
                     let path = try taskGraph.shortestPath(from: task, to: antecedent) ?? []
-                    Issue.record(Comment(rawValue: "task '\(task.testIssueDescription)' has an edge forcing it to follow '\(antecedent.testIssueDescription)' " +
-                                 "by \(distance) tasks, but it was not expected to have one:\n\n" +
-                                 "\(taskGraphPathDebugInfo(path))"), sourceLocation: sourceLocation)
+                    Issue.record(Comment(rawValue: "task '\(task.testIssueDescription)' has an edge forcing it to follow '\(antecedent.testIssueDescription)' " + "by \(distance) tasks, but it was not expected to have one:\n\n" + "\(taskGraphPathDebugInfo(path))"), sourceLocation: sourceLocation)
                 }
             } catch {
                 Issue.record(error, sourceLocation: sourceLocation)
@@ -478,7 +476,7 @@ package final class TaskConstructionTester {
                     Issue.record("missing creator task for mutated node '\(mutatedNodeRef.instance.path.str)'", sourceLocation: sourceLocation)
                     continue
                 }
-                let creators = Set<Ref<any PlannedTask>>(Array<any PlannedTask>(producers).map{ Ref($0) }).subtracting(taskGraph.mutatingTasks)
+                let creators = Set<Ref<any PlannedTask>>(Array<any PlannedTask>(producers).map { Ref($0) }).subtracting(taskGraph.mutatingTasks)
                 guard !creators.isEmpty else {
                     Issue.record("missing creator task for mutated node '\(mutatedNodeRef.instance.path.str)' mutated by task '\(producers.first!.ruleInfo.quotedDescription)'", sourceLocation: sourceLocation)
                     continue
@@ -492,17 +490,21 @@ package final class TaskConstructionTester {
                 /// - parameter ignoring: The node to ignore. This means that the node will be disregarded when traversing the graph. This is useful when there are known to be multiple nodes connecting two tasks, as is the case in mutating tasks, which have the node being mutated as both an input and an output, but also a virtual node connecting the task to its predecessor. The concrete node is ignored and only the virtual nodes are used to traverse the graph.
                 /// - returns: The distance between the two nodes, or `nil` if `predecessor` does not precede `origin` in the graph.
                 func predecessorDistance(from origin: any PlannedTask, to predecessor: any PlannedTask, ignoring: any PlannedNode) -> Int? {
-                    return minimumDistance(from: Ref(origin), to: Ref(predecessor), successors: { taskRef in
+                    return minimumDistance(
+                        from: Ref(origin),
+                        to: Ref(predecessor),
+                        successors: { taskRef in
                             let inputNodes = taskGraph.taskInputs[taskRef] ?? []
-                        let inputs = inputNodes.flatMap { input -> [Ref<any PlannedTask>] in
+                            let inputs = inputNodes.flatMap { input -> [Ref<any PlannedTask>] in
                                 if input.uniqueNode === ignoring {
                                     return []
                                 }
 
-                                return taskGraph.producers[Ref(input.uniqueNode)]?.map{ Ref($0) } ?? []
+                                return taskGraph.producers[Ref(input.uniqueNode)]?.map { Ref($0) } ?? []
                             }
                             return inputs
-                        })
+                        }
+                    )
                 }
 
                 // Get the mutating tasks for this node and order them topologically, ignoring the node being mutated.
@@ -564,7 +566,7 @@ package final class TaskConstructionTester {
 
                 // Go through all the input nodes and work back through their producer tasks.  This iterates through all the nodes in a nondeterministic order, which is fine because we just want coverage.
                 for input in taskGraph.taskInputs[Ref(producer)] ?? [] {
-                	let inputRef = Ref(input.uniqueNode)
+                    let inputRef = Ref(input.uniqueNode)
                     for inputProducer in taskGraph.producers[inputRef] ?? [] {
                         lookForCycle(from: inputRef, through: inputProducer, nodeList: newNodeList, path: newPath)
                         // If we detected a cycle then bail out.
@@ -631,7 +633,7 @@ package final class TaskConstructionTester {
                         return []
 
                     } else {
-                        return producers[Ref(input.uniqueNode)]?.map{ Ref($0) } ?? []
+                        return producers[Ref(input.uniqueNode)]?.map { Ref($0) } ?? []
                     }
                 }
             }
@@ -703,7 +705,7 @@ package final class TaskConstructionTester {
                 }
 
                 // Compute information about mutated tasks and nodes in the graph.
-                let mutatedNodes = Set<Ref<any PlannedNode>>(task.inputs.map{ Ref(uniqueNode(for: $0)) }).intersection(Set<Ref<any PlannedNode>>(task.outputs.map{ Ref(uniqueNode(for: $0)) }))
+                let mutatedNodes = Set<Ref<any PlannedNode>>(task.inputs.map { Ref(uniqueNode(for: $0)) }).intersection(Set<Ref<any PlannedNode>>(task.outputs.map { Ref(uniqueNode(for: $0)) }))
                 if !mutatedNodes.isEmpty {
                     for mutatedNode in mutatedNodes {
                         let mutatingTasks = mutatedNodesToTasks.getOrInsert(mutatedNode, { [any PlannedTask]() })
@@ -768,21 +770,22 @@ package final class TaskConstructionTester {
         let parameters = parameters ?? BuildParameters(configuration: "Debug")
 
         // If the build parameters don't specify a run destination, but we were passed one, then use the one we were passed. (checkBuild() defaults this to .macOS.)
-        let activeRunDestination: RunDestinationInfo? = switch (parameters.activeRunDestination, runDestination) {
-        case let (.some(lhs), (.some(rhs))):
-            preconditionFailure("Specified run destinations from both explicit build parameters and default destination: \(lhs), \(rhs)")
-        case let (.some(destination), nil):
-            destination
-        case let (nil, .some(destination)):
-            destination
-        case (nil, nil):
-            nil
-        }
+        let activeRunDestination: RunDestinationInfo? =
+            switch (parameters.activeRunDestination, runDestination) {
+            case let (.some(lhs), (.some(rhs))):
+                preconditionFailure("Specified run destinations from both explicit build parameters and default destination: \(lhs), \(rhs)")
+            case let (.some(destination), nil):
+                destination
+            case let (nil, .some(destination)):
+                destination
+            case (nil, nil):
+                nil
+            }
 
         // Define a default set of overrides.
         var overrides = [
             // Always use separate headermaps by forcing ALWAYS_SEARCH_USER_PATHS off, unless the build parameters passed to checkBuild() explicitly enables it. (Since traditional headermaps are currently not supported by Swift Build, doing so is not presently useful.)  Doing this also suppresses the warning of traditional headermaps being unsupported.
-            "ALWAYS_SEARCH_USER_PATHS": "NO",
+            "ALWAYS_SEARCH_USER_PATHS": "NO"
         ]
 
         if useDefaultToolChainOverride {
@@ -808,8 +811,7 @@ package final class TaskConstructionTester {
             // If we were passed a build request, then reconstruct it using the parameters.
             let buildTargets = buildRequest.buildTargets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0.target) })
             return buildRequest.with(parameters: parameters, buildTargets: buildTargets)
-        }
-        else {
+        } else {
             // If we weren't passed a build request, then create one with some default characteristics we use in most task construction tests.
             let project = workspace.projects[0]
             let target: Target
@@ -838,7 +840,7 @@ package final class TaskConstructionTester {
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
 
         // Configure fake user and system info.
-        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/whoever"), environment: processEnvironment))
+        workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid: 12345, home: Path("/Users/whoever"), environment: processEnvironment))
         workspaceContext.updateSystemInfo(systemInfo ?? SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
         workspaceContext.updateUserPreferences(userPreferences ?? UserPreferences.defaultForTesting)
 
@@ -847,8 +849,7 @@ package final class TaskConstructionTester {
         if let inputBuildRequest, inputBuildRequest.parameters.action == .indexBuild {
             // Indexing tests pass exactly the build request they want to use, so we don't mess with it.
             buildRequest = inputBuildRequest
-        }
-        else {
+        } else {
             buildRequest = effectiveBuildRequest(inputBuildRequest, targetName: targetName, parameters: parameters)
         }
 
@@ -868,15 +869,15 @@ package final class TaskConstructionTester {
         }
         let results = PlanningResults(core, workspace, sourceFiles, buildRequest, buildPlanRequest, buildPlan, delegate)
 
-        /*@MainActor func addAttachments() {
-            // TODO: This `runActivity` call should be wider in scope, but this would significantly complicate the code flow due to threading requirements without having async/await.
-            XCTContext.runActivity(named: "Plan Build") { activity in
-                // TODO: <rdar://59432231> Longer term, we should find a way to share code with CoreQualificationTester, which has a number of APIs for emitting build operation debug info.
-                activity.attach(name: "Task Graph", string: results.dumpGraph())
-            }
-        }
+        // @MainActor func addAttachments() {
+        //     // TODO: This `runActivity` call should be wider in scope, but this would significantly complicate the code flow due to threading requirements without having async/await.
+        //     XCTContext.runActivity(named: "Plan Build") { activity in
+        //         // TODO: <rdar://59432231> Longer term, we should find a way to share code with CoreQualificationTester, which has a number of APIs for emitting build operation debug info.
+        //         activity.attach(name: "Task Graph", string: results.dumpGraph())
+        //     }
+        // }
 
-        await addAttachments()*/
+        // await addAttachments()
 
         // Check the results.
         try await body(results)
@@ -911,7 +912,8 @@ package final class TaskConstructionTester {
                 appIdentifierPrefix: overrides.appIdentifierPrefix ?? inputs.appIdentifierPrefix,
                 teamIdentifierPrefix: overrides.teamIdentifierPrefix ?? inputs.teamIdentifierPrefix,
                 isEnterpriseTeam: overrides.isEnterpriseTeam ?? inputs.isEnterpriseTeam,
-                keychainPath: overrides.keychainPath ?? inputs.keychainPath)
+                keychainPath: overrides.keychainPath ?? inputs.keychainPath
+            )
         }
 
         // Otherwise evaluated $(CODE_SIGN_IDENTITY) to use a default set of inputs.
@@ -933,14 +935,14 @@ package final class TaskConstructionTester {
             simulatedEntitlements = [:]
         case "macosx":
             signedEntitlements = [
-                "com.apple.security.get-task-allow": 1,
+                "com.apple.security.get-task-allow": 1
             ]
             simulatedEntitlements = [:]
         default:
             if settings.platform?.isSimulator == true {
                 // For a simulator platform, the signed entitlements get passed to codesign for the simulator bundle (they're macOS entitlements), while the simulated entitlements get passed to the linker (they're the entitlements for the platform itself, i.e. that would be passed to codesign when building for a device).
                 signedEntitlements = [
-                    "com.apple.security.get-task-allow": 1,
+                    "com.apple.security.get-task-allow": 1
                 ]
                 simulatedEntitlements = [
                     "application-identifier": .plString(appIdentifier),
@@ -950,8 +952,7 @@ package final class TaskConstructionTester {
                         appIdentifier
                     ],
                 ]
-            }
-            else {
+            } else {
                 signedEntitlements = [
                     "application-identifier": .plString(appIdentifier),
                     "com.apple.developer.team-identifier": .plString(teamIdentifierPrefix),
@@ -967,7 +968,7 @@ package final class TaskConstructionTester {
         // Create the provisioning task inputs.
         let isMacOS = settings.platform?.familyName == "macOS"
         switch codeSignIdentity {
-            // FIXME: <rdar://problem/29092604> Remove workaround for projects in ExternalTests data which are still using the deprecated value "Don't Code Sign" for CODE_SIGN_IDENTITY.
+        // FIXME: <rdar://problem/29092604> Remove workaround for projects in ExternalTests data which are still using the deprecated value "Don't Code Sign" for CODE_SIGN_IDENTITY.
         case "", "Don't Code Sign":
             // Don't sign
             return ProvisioningTaskInputs()
@@ -975,20 +976,23 @@ package final class TaskConstructionTester {
             // Ad-hoc signing - we support all platforms here.
             return mergeProvisioningTaskInputs(
                 inputs: ProvisioningTaskInputs(identityHash: "-", identityName: "-", signedEntitlements: .plDict(signedEntitlements), simulatedEntitlements: .plDict(simulatedEntitlements)),
-                overrides: provisioningOverrides)
+                overrides: provisioningOverrides
+            )
         case "Mac Developer",
-             "Apple Development" where isMacOS:
+            "Apple Development" where isMacOS:
             // Mac developer signing - we never have simulated entitlements here.
             return mergeProvisioningTaskInputs(
                 inputs: ProvisioningTaskInputs(identityHash: "3ACDE4E702E4", identityName: codeSignIdentity, signedEntitlements: .plDict(signedEntitlements)),
-                overrides: provisioningOverrides)
+                overrides: provisioningOverrides
+            )
         case "iOS Developer", "iPhone Developer",
-             "Apple Development" where !isMacOS:
+            "Apple Development" where !isMacOS:
             // iOS developer signing
             let profileUUID = "8db0e92c-592c-4f06-bfed-9d945841b78d"
             return mergeProvisioningTaskInputs(
                 inputs: ProvisioningTaskInputs(identityHash: "105DE4E702E4", identityName: codeSignIdentity, profileName: "iOS Team Provisioning Profile: *", profileUUID: profileUUID, profilePath: workspaceContext.userInfo!.home.join("Library/MobileDevice/Provisioning Profiles/\(profileUUID).mobileprovision"), signedEntitlements: .plDict(signedEntitlements), simulatedEntitlements: .plDict(simulatedEntitlements), appIdentifierPrefix: "\(appIdentifierPrefix).", teamIdentifierPrefix: "\(teamIdentifierPrefix).", isEnterpriseTeam: false),
-                overrides: provisioningOverrides)
+                overrides: provisioningOverrides
+            )
         default:
             // We have no default inputs for this identity.
             fatalError("unsupported CODE_SIGN_IDENTITY '\(codeSignIdentity)' - no default provisioning task inputs available for this identity")
@@ -997,10 +1001,10 @@ package final class TaskConstructionTester {
 }
 
 @available(*, unavailable)
-extension TaskConstructionTester: Sendable { }
+extension TaskConstructionTester: Sendable {}
 
 @available(*, unavailable)
-extension TaskConstructionTester.PlanningResults: Sendable { }
+extension TaskConstructionTester.PlanningResults: Sendable {}
 
 extension TaskConstructionTester {
     /// Construct the tasks for an index build operation, and test the result.
@@ -1023,7 +1027,6 @@ extension TaskConstructionTester {
         return try await checkBuild(runDestination: runDestination, buildRequest: buildRequest, systemInfo: systemInfo, sourceLocation: sourceLocation, body: body)
     }
 }
-
 
 package final class TestHeadermapContents {
     package let rawBytes: [UInt8]
@@ -1061,7 +1064,7 @@ package final class TestHeadermapContents {
 }
 
 @available(*, unavailable)
-extension TestHeadermapContents: Sendable { }
+extension TestHeadermapContents: Sendable {}
 
 /// Helper protocol to share command-line checking functions
 /// between PlannedTaskBuilder and MockTestTask.
@@ -1330,8 +1333,7 @@ extension EnvironmentBindings {
                 } else {
                     Issue.record("environment value '\(key)' should be defined but is nil", sourceLocation: sourceLocation)
                 }
-            }
-            else {
+            } else {
                 #expect(valueOpt == nil, "environment value '\(key)' should be nil but is '\(valueOpt!)'", sourceLocation: sourceLocation)
             }
         }

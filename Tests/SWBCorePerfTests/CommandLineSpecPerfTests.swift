@@ -85,15 +85,13 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
     var additionalCodeSignInputs: OrderedSet<Path> { return [] }
     var buildDirectories: Set<Path> { return [] }
 
-    func createTask(_ builder: inout PlannedTaskBuilder)
-    {
+    func createTask(_ builder: inout PlannedTaskBuilder) {
         shellTasksCount.withLock { $0 += 1 }
     }
     func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, name: String?, mustPrecede: [any PlannedTask], taskConfiguration: (inout PlannedTaskBuilder) -> Void) {
         // Store somewhere if a test needs it.
     }
-    func createOrReuseSharedNodeWithIdentifier(_ ident: String, creator: () -> (any PlannedNode, any Sendable)) -> (any PlannedNode, any Sendable)
-    {
+    func createOrReuseSharedNodeWithIdentifier(_ ident: String, creator: () -> (any PlannedNode, any Sendable)) -> (any PlannedNode, any Sendable) {
         return sharedIntermediateNodes.getOrInsert(ident, creator)
     }
     func access(path: Path) {}

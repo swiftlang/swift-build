@@ -20,18 +20,20 @@ final public class ClangStatCacheSpec: GenericCommandLineToolSpec, SpecIdentifie
     }
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
-        await delegate.createTask(type: self,
-                            ruleInfo: defaultRuleInfo(cbc, delegate),
-                            commandLine: commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString),
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            // We intentionally specify no inputs because clang-stat-cache always runs uses FSEvents to optimize invalidation so llbuild doesn't need to stat the entire SDK on every build.
-                            inputs: [],
-                            outputs: [delegate.createNode(cbc.output), delegate.createVirtualNode("ClangStatCache \(cbc.output.str)")],
-                            action: nil,
-                            execDescription: resolveExecutionDescription(cbc, delegate),
-                            preparesForIndexing: true,
-                            enableSandboxing: enableSandboxing,
-                            alwaysExecuteTask: true)
+        await delegate.createTask(
+            type: self,
+            ruleInfo: defaultRuleInfo(cbc, delegate),
+            commandLine: commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString),
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            // We intentionally specify no inputs because clang-stat-cache always runs uses FSEvents to optimize invalidation so llbuild doesn't need to stat the entire SDK on every build.
+            inputs: [],
+            outputs: [delegate.createNode(cbc.output), delegate.createVirtualNode("ClangStatCache \(cbc.output.str)")],
+            action: nil,
+            execDescription: resolveExecutionDescription(cbc, delegate),
+            preparesForIndexing: true,
+            enableSandboxing: enableSandboxing,
+            alwaysExecuteTask: true
+        )
     }
 }

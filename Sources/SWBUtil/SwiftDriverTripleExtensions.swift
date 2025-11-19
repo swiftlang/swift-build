@@ -19,10 +19,5 @@ package func normalizedTriplesCompareDisregardingOSVersions(_ firstTripleString:
     let secondTriple = Triple(secondTripleString, normalizing: true)
 
     // Ignore OS versions in the comparison
-    return firstTriple.arch == secondTriple.arch &&
-    firstTriple.subArch == secondTriple.subArch &&
-    firstTriple.vendor == secondTriple.vendor &&
-    firstTriple.os == secondTriple.os &&
-    firstTriple.environment == secondTriple.environment &&
-    firstTriple.objectFormat == secondTriple.objectFormat
+    return firstTriple.arch == secondTriple.arch && firstTriple.subArch == secondTriple.subArch && firstTriple.vendor == secondTriple.vendor && firstTriple.os == secondTriple.os && firstTriple.environment == secondTriple.environment && firstTriple.objectFormat == secondTriple.objectFormat
 }

@@ -19,7 +19,6 @@ import SWBProtocol
 import SWBUtil
 import SWBTaskExecution
 
-
 @Suite
 fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
@@ -41,8 +40,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                 if let signableTargets { return signableTargets }
                 if let provisioningInputs {
                     return Set(provisioningInputs.keys)
-                }
-                else {
+                } else {
                     return Set<String>()
                 }
             }()
@@ -59,7 +57,6 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             }
         }
     }
-
 
     // MARK: Application-hosted test targets
 
@@ -84,7 +81,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 // Test target sources
                                 TestFile("TestOne.swift"),
                                 TestFile("TestTwo.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -95,7 +93,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "COPY_PHASE_STRIP": "NO",
                                     "SDKROOT": "macosx",
                                     "SWIFT_VERSION": swiftVersion,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestAggregateTarget(
@@ -114,12 +113,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
                                             "BUNDLE_LOADER": "$(TEST_HOST)",
                                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestOne.swift",
-                                    ]),
+                                        "TestOne.swift"
+                                    ])
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -134,12 +134,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
                                             "BUNDLE_LOADER": "$(TEST_HOST)",
                                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestTwo.swift",
-                                    ]),
+                                        "TestTwo.swift"
+                                    ])
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -147,17 +148,19 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings:["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "main.c",
                                         "ClassOne.swift",
-                                    ]),
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the file data.
@@ -252,7 +255,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 // Test target sources
                                 TestFile("TestOne.swift"),
                                 TestFile("TestTwo.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -264,7 +268,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "COPY_PHASE_STRIP": "NO",
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_VERSION": swiftVersion,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestAggregateTarget(
@@ -283,12 +288,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
                                             "BUNDLE_LOADER": "$(TEST_HOST)",
                                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestOne.swift",
-                                    ]),
+                                        "TestOne.swift"
+                                    ])
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -303,12 +309,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
                                             "BUNDLE_LOADER": "$(TEST_HOST)",
                                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestTwo.swift",
-                                    ]),
+                                        "TestTwo.swift"
+                                    ])
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -316,17 +323,19 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings:["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "main.c",
                                         "ClassOne.swift",
-                                    ]),
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the file data.
@@ -450,7 +459,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
                                 // Lib sources
                                 TestFile("Lib.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -462,7 +472,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "SDKROOT": "macosx",
                                     "SWIFT_VERSION": swiftVersion,
                                     "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestAggregateTarget(
@@ -481,11 +492,12 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
                                             "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
                                             "BUNDLE_LOADER": "$(TEST_HOST)",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestOne.swift",
+                                        "TestOne.swift"
                                     ]),
                                     TestCopyFilesBuildPhase(["ResourceOne.txt"], destinationSubfolder: .resources, onlyForDeployment: false),
                                 ],
@@ -502,15 +514,16 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
                                             "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
                                             "BUNDLE_LOADER": "$(TEST_HOST)",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestTwo.swift",
+                                        "TestTwo.swift"
                                     ]),
                                     TestCopyFilesBuildPhase([TestBuildFile("Lib.framework", codeSignOnCopy: true)], destinationSubfolder: .frameworks),
                                     TestCopyFilesBuildPhase(["ResourceTwo.txt"], destinationSubfolder: .resources, onlyForDeployment: false),
-                                    TestShellScriptBuildPhase(name: "OutputTwo", shellPath: "/bin/bash", originalObjectID: "OutputTwo", contents: "touch $SCRIPT_OUTPUT_FILE_0", inputs: [], outputs: ["$(TARGET_BUILD_DIR)/nocycle.txt"])
+                                    TestShellScriptBuildPhase(name: "OutputTwo", shellPath: "/bin/bash", originalObjectID: "OutputTwo", contents: "touch $SCRIPT_OUTPUT_FILE_0", inputs: [], outputs: ["$(TARGET_BUILD_DIR)/nocycle.txt"]),
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -518,30 +531,33 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "App.swift",
+                                        "App.swift"
                                     ]),
                                     TestFrameworksBuildPhase([]),
                                     TestCopyFilesBuildPhase(["Resource.txt"], destinationSubfolder: .resources, onlyForDeployment: false),
-                                    TestShellScriptBuildPhase(name: "Output", shellPath: "/bin/bash", originalObjectID: "Output", contents: "echo $SCRIPT_OUTPUT_FILE_0", inputs: [], outputs: ["$(TARGET_BUILD_DIR)/nocycle.txt"])
+                                    TestShellScriptBuildPhase(name: "Output", shellPath: "/bin/bash", originalObjectID: "Output", contents: "echo $SCRIPT_OUTPUT_FILE_0", inputs: [], outputs: ["$(TARGET_BUILD_DIR)/nocycle.txt"]),
                                 ]
                             ),
                             TestStandardTarget(
                                 "Lib",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "Lib-Info.plist"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "Lib-Info.plist"])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "Lib.swift",
-                                    ]),
+                                        "Lib.swift"
+                                    ])
                                 ]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
@@ -549,12 +565,11 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             let buildDirectory = testWorkspace.sourceRoot.join("aProject/build").str
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/App.swift")) { stream in
-                stream <<<
-                """
-                import Cocoa
-                @main
-                class AppDelegate: NSObject, NSApplicationDelegate {}
-                """
+                stream <<< """
+                    import Cocoa
+                    @main
+                    class AppDelegate: NSObject, NSApplicationDelegate {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/TestOne.swift")) { stream in
@@ -564,10 +579,9 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                 stream <<< "func test2() {} \n"
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Lib.swift")) { stream in
-                stream <<<
-                """
-                func mylib() -> Int { return 12 }
-                """
+                stream <<< """
+                    func mylib() -> Int { return 12 }
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Resource.txt")) { stream in
@@ -588,11 +602,15 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
             let signableTargets: Set<String> = ["AppTarget", "UnitTestTargetOne", "UnitTestTargetTwo"]
 
-            let params = BuildParameters(action: .build, configuration: "Debug", overrides: [
-                // NOTE: THIS IS THE IMPORTANT SETTING! Ensure that opt-in is on, regardless of the default value.
-                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
-                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
-            ])
+            let params = BuildParameters(
+                action: .build,
+                configuration: "Debug",
+                overrides: [
+                    // NOTE: THIS IS THE IMPORTANT SETTING! Ensure that opt-in is on, regardless of the default value.
+                    "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
+                    "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
+                ]
+            )
 
             try await tester.checkBuild(parameters: params, runDestination: .macOS, schemeCommand: .test, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
@@ -676,7 +694,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
                                 // Test target sources
                                 TestFile("TestOne.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -687,7 +706,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "COPY_PHASE_STRIP": "NO",
                                     "SDKROOT": "macosx",
                                     "SWIFT_VERSION": swiftVersion,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -701,12 +721,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
                                             "BUNDLE_LOADER": "$(TEST_HOST)",
                                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestOne.swift",
-                                    ]),
+                                        "TestOne.swift"
+                                    ])
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -714,19 +735,24 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings:[
-                                        "INFOPLIST_FILE": "AppTarget-Info.plist",
-                                    ]),
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "INFOPLIST_FILE": "AppTarget-Info.plist"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "main.c",
                                         "ClassOne.swift",
-                                    ]),
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the file data.
@@ -854,7 +880,6 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
         }
     }
 
-
     // MARK: UI test targets
 
     /// Test building an application and a UI test target for macOS.
@@ -877,7 +902,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
                                 // Test target sources
                                 TestFile("TestOne.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -888,7 +914,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "COPY_PHASE_STRIP": "NO",
                                     "SDKROOT": "macosx",
                                     "SWIFT_VERSION": swiftVersion,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -903,12 +930,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
                                             "TEST_TARGET_NAME": "AppTarget",
                                             "PRODUCT_BUNDLE_IDENTIFIER": "com.apple.dt.UITestTarget-1",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestOne.swift",
-                                    ]),
+                                        "TestOne.swift"
+                                    ])
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -916,17 +944,19 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings:["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "main.c",
                                         "ClassOne.swift",
-                                    ]),
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the file data.
@@ -950,7 +980,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             "com.apple.application-identifier": "59GAB85EFG.com.apple.dt.UITestTarget-1",
             "com.apple.security.app-sandbox": 1,
             "com.apple.security.network.client": 1,
-            // This is a truncated dictionary of what gets actually used in a UI test target's entitlements.
+                // This is a truncated dictionary of what gets actually used in a UI test target's entitlements.
         ]
         let provisioningInputs = [
             "UITestTarget": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:]),
@@ -989,16 +1019,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                             #expect(infoDict["CFBundleIdentifier"]?.stringValue == "com.apple.dt.UITestTarget-1.xctrunner")
                             #expect(infoDict["CFBundleName"]?.stringValue == "UITestTarget-1-Runner")
                             #expect(infoDict["UIDeviceFamily"] == nil)
-                        }
-                        else {
+                        } else {
                             Issue.record("Could not read Info.plist for XCTRunner.app at path: \(infoPlistPath.str)")
                         }
-                    }
-                    else {
+                    } else {
                         Issue.record("Info.plist for XCTRunner.app does not exist at path: \(infoPlistPath.str)")
                     }
-                }
-                else {
+                } else {
                     Issue.record("Could not get path to Info.plist for XCTRunner.app from rule: \(task.ruleInfo)")
                 }
             }
@@ -1063,7 +1090,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
                                 // Test target sources
                                 TestFile("TestOne.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1075,7 +1103,8 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                     "COPY_PHASE_STRIP": "NO",
                                     "SDKROOT": "iphoneos",
                                     "SWIFT_VERSION": swiftVersion,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -1089,12 +1118,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                             "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
                                             "TEST_TARGET_NAME": "AppTarget",
                                             "PRODUCT_BUNDLE_IDENTIFIER": "com.apple.dt.UITestTarget",
-                                        ]),
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "TestOne.swift",
-                                    ]),
+                                        "TestOne.swift"
+                                    ])
                                 ],
                                 dependencies: ["AppTarget"]
                             ),
@@ -1102,17 +1132,19 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings:["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "main.c",
                                         "ClassOne.swift",
-                                    ]),
+                                    ])
                                 ]
                             ),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the file data.
@@ -1147,7 +1179,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
             "com.apple.application-identifier": "59GAB85EFG.com.apple.dt.UITestTarget",
             "com.apple.security.app-sandbox": 1,
             "com.apple.security.network.client": 1,
-            // This is a truncated dictionary of what gets actually used in a UI test target's entitlements.
+                // This is a truncated dictionary of what gets actually used in a UI test target's entitlements.
         ]
         let provisioningInputs = [
             "UITestTarget": ProvisioningTaskInputs(identityHash: "-", identityName: "Ad-Hoc Signing", signedEntitlements: testEntitlements, simulatedEntitlements: [:]),
@@ -1186,16 +1218,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                             #expect(infoDict["CFBundleIdentifier"]?.stringValue == "com.apple.dt.UITestTarget.xctrunner")
                             #expect(infoDict["CFBundleName"]?.stringValue == "UITestTarget-Runner")
                             #expect(infoDict["UIDeviceFamily"]?.intArrayValue == [1])
-                        }
-                        else {
+                        } else {
                             Issue.record("Could not read Info.plist for XCTRunner.app at path: \(infoPlistPath.str)")
                         }
-                    }
-                    else {
+                    } else {
                         Issue.record("Info.plist for XCTRunner.app does not exist at path: \(infoPlistPath.str)")
                     }
-                }
-                else {
+                } else {
                     Issue.record("Could not get path to Info.plist for XCTRunner.app from rule: \(task.ruleInfo)")
                 }
             }
@@ -1256,16 +1285,13 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                             #expect(infoDict["CFBundleExecutable"]?.stringValue == "UITestTarget-Runner")
                             #expect(infoDict["CFBundleIdentifier"]?.stringValue == "com.apple.dt.UITestTarget.xctrunner")
                             #expect(infoDict["CFBundleName"]?.stringValue == "UITestTarget-Runner")
-                        }
-                        else {
+                        } else {
                             Issue.record("Could not read Info.plist for XCTRunner.app at path: \(infoPlistPath.str)")
                         }
-                    }
-                    else {
+                    } else {
                         Issue.record("Info.plist for XCTRunner.app does not exist at path: \(infoPlistPath.str)")
                     }
-                }
-                else {
+                } else {
                     Issue.record("Could not get path to Info.plist for XCTRunner.app from rule: \(task.ruleInfo)")
                 }
             }

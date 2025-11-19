@@ -39,7 +39,7 @@ struct UniversalPlatformSpecsExtension: SpecificationsExtension {
 
     func specificationImplementations() -> [any SpecImplementationType.Type] {
         [
-            DiffToolSpec.self,
+            DiffToolSpec.self
         ]
     }
 
@@ -83,7 +83,7 @@ struct UniversalPlatformTaskProducerExtension: TaskProducerExtension {
 }
 
 struct UniversalPlatformTaskActionExtension: TaskActionExtension {
-    var taskActionImplementations: [SWBUtil.SerializableTypeCode : any SWBUtil.PolymorphicSerializable.Type] {
+    var taskActionImplementations: [SWBUtil.SerializableTypeCode: any SWBUtil.PolymorphicSerializable.Type] {
         [44: TestEntryPointGenerationTaskAction.self]
     }
 }

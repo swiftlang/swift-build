@@ -13,7 +13,7 @@
 /// A collection of unique `Element` instances with no defined ordering, but with a per-element count of the number of times that element is present in the counted set.
 // FIXME: We should make CountedSet a CollectionType.
 // FIXME: We should also make CountedSet a SequenceType.
-public struct CountedSet<T: Hashable> : CustomStringConvertible {
+public struct CountedSet<T: Hashable>: CustomStringConvertible {
 
     /// Private mapping from elements to counts.
     private var _elmsToCounts = Dictionary<T, Int>()
@@ -22,7 +22,7 @@ public struct CountedSet<T: Hashable> : CustomStringConvertible {
     private var _totalCount = 0
 
     /// Initializes a new CountedSet with the given elements.
-    public init(_ elements: T ...) {
+    public init(_ elements: T...) {
         for elm in elements {
             insert(elm)
         }
@@ -32,8 +32,7 @@ public struct CountedSet<T: Hashable> : CustomStringConvertible {
     public mutating func insert(_ element: T) {
         if let count = _elmsToCounts[element] {
             _elmsToCounts[element] = count + 1
-        }
-        else {
+        } else {
             _elmsToCounts[element] = 1
         }
         _totalCount += 1

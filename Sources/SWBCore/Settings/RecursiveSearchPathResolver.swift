@@ -39,7 +39,7 @@ public final class RecursiveSearchPathResolver: Sendable {
             self.excludedPatterns = excludedPatterns
             self.includedPatterns = includedPatterns
         }
-        public static func <(lhs: Request, rhs: Request) -> Bool {
+        public static func < (lhs: Request, rhs: Request) -> Bool {
             if lhs.path != rhs.path { return lhs.path.str < rhs.path.str }
             if lhs.sourcePath != rhs.sourcePath { return lhs.sourcePath.str < rhs.sourcePath.str }
             if lhs.excludedPatterns != rhs.excludedPatterns { return lhs.excludedPatterns < rhs.excludedPatterns }
@@ -80,7 +80,7 @@ public final class RecursiveSearchPathResolver: Sendable {
             self.warnings = warnings
         }
 
-        public static func ==(lhs: Result, rhs: Result) -> Bool {
+        public static func == (lhs: Result, rhs: Result) -> Bool {
             return lhs.paths == rhs.paths && lhs.warnings == rhs.warnings
         }
 
@@ -147,7 +147,7 @@ public final class RecursiveSearchPathResolver: Sendable {
 
     /// The canonical list of cached results.
     public var allResults: [CachedResult] {
-        return requestCache.keys.sorted().map{ CachedResult(request: $0, result: requestCache[$0]!) }
+        return requestCache.keys.sorted().map { CachedResult(request: $0, result: requestCache[$0]!) }
     }
 
     /// Expand a recursive search path.
@@ -259,7 +259,7 @@ public final class RecursiveSearchPathResolver: Sendable {
     }
 }
 
-private func <(lhs: [String]?, rhs: [String]?) -> Bool {
+private func < (lhs: [String]?, rhs: [String]?) -> Bool {
     switch (lhs, rhs) {
     case (let lhs?, let rhs?):
         return lhs.lexicographicallyPrecedes(rhs)

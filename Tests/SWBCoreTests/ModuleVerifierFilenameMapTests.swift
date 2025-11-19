@@ -22,13 +22,16 @@ import SWBTestSupport
         let fs = PseudoFS()
         try await withTemporaryDirectory(fs: fs) { tmpDir in
             let path = tmpDir.join("sampleFilenameMap.json")
-            try await fs.writeJSON(path, [
-                "case-sensitive":"false",
-                "contents": [
-                    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk/usr/include/err.h":"/tmp/DerivedData/test/Build/Products/Debug/test.framework/Headers/err.h"
-                ],
-                "version":"0"
-            ])
+            try await fs.writeJSON(
+                path,
+                [
+                    "case-sensitive": "false",
+                    "contents": [
+                        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk/usr/include/err.h": "/tmp/DerivedData/test/Build/Products/Debug/test.framework/Headers/err.h"
+                    ],
+                    "version": "0",
+                ]
+            )
 
             let filenameMap = ModuleVerifierFilenameMap(from: path, fs: fs)
             let filename = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk/usr/include/err.h"

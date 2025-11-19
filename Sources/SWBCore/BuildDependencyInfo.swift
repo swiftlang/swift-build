@@ -11,9 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #if canImport(System)
-import struct System.FilePath
+    import struct System.FilePath
 #else
-import struct SystemPackage.FilePath
+    import struct SystemPackage.FilePath
 #endif
 
 import struct Foundation.Data
@@ -24,7 +24,6 @@ import SWBUtil
 
 // MARK: Data structures
 
-
 /// Hierarchy of data structures containing the dependencies for all targets in a build.
 ///
 /// These structures can be encoded to and decoded from JSON.  The JSON is an API used by clients, and the data structures may become such an API eventually if we decide to share them directly with clients.
@@ -32,7 +31,6 @@ import SWBUtil
 /// The names of properties in these structures are chosen mainly to be useful in the JSON file, so they may be a bit more verbose for use in Swift than they might be otherwise.
 ///
 /// Presently the main way to instantiate these structures is to use `init(workspaceContext:buildRequest:buildRequestContext:operation:)`, which is defined below after the data structures.
-
 
 /// The input and output dependencies for all targets in a build.
 package struct BuildDependencyInfo: Codable {
@@ -199,9 +197,7 @@ package struct BuildDependencyInfo: Codable {
 
 }
 
-
 // MARK: Encoding and decoding
-
 
 extension BuildDependencyInfo.TargetDependencyInfo {
 
@@ -297,14 +293,11 @@ extension BuildDependencyInfo.TargetDependencyInfo.Input.NameType {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let path = try container.decodeIfPresent(String.self, forKey: .path) {
             self = .absolutePath(path)
-        }
-        else if let name = try container.decodeIfPresent(String.self, forKey: .name) {
+        } else if let name = try container.decodeIfPresent(String.self, forKey: .name) {
             self = .name(name)
-        }
-        else if let stem = try container.decodeIfPresent(String.self, forKey: .stem) {
+        } else if let stem = try container.decodeIfPresent(String.self, forKey: .stem) {
             self = .stem(stem)
-        }
-        else {
+        } else {
             throw StubError.error("unknown type for input name")
         }
     }
@@ -317,9 +310,7 @@ extension BuildDependencyInfo.TargetDependencyInfo.Input.NameType {
 
 }
 
-
 // MARK: Custom string definitions for better debugging
-
 
 extension BuildDependencyInfo.TargetDependencyInfo.Target: CustomStringConvertible {
     package var description: String {

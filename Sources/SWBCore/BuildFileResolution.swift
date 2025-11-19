@@ -86,8 +86,7 @@ extension BuildFileResolution {
             if let productRefTarget = productRef.target, let parameters = configuredTarget?.parameters {
                 settingsForRef = settingsForProductReferenceTarget(productRefTarget, parameters: parameters)
                 specLookupContext = SpecLookupCtxt(specRegistry: settingsForRef.platform?.specRegistry ?? workspaceContext.core.specRegistry, platform: settingsForRef.platform)
-            }
-            else {
+            } else {
                 // If the product reference doesn't have a producing target, or we don't have a configured target, then... that's very weird.
                 settingsForRef = settings
                 specLookupContext = self
@@ -100,8 +99,8 @@ extension BuildFileResolution {
         // Resolve the path and file type.
         let absolutePath: Path, fileType: FileTypeSpec?
         switch reference {
-            // Variant groups always resolve the path and file type of the first reference.
-            // FIXME: This is historical, and should be cleaned up by making the input model more explicit. This also isn't exactly what Xcode would do, which is very risky. It is possible that we should extend Xcode to pass this information down with the top-level variant group itself. (This FIXME is from 2017 and was ported from TaskProducer.)
+        // Variant groups always resolve the path and file type of the first reference.
+        // FIXME: This is historical, and should be cleaned up by making the input model more explicit. This also isn't exactly what Xcode would do, which is very risky. It is possible that we should extend Xcode to pass this information down with the top-level variant group itself. (This FIXME is from 2017 and was ported from TaskProducer.)
         case let asVariantGroup as VariantGroup where !asVariantGroup.children.isEmpty:
             absolutePath = settingsForRef.filePathResolver.resolveAbsolutePath(asVariantGroup.children[0])
             fileType = specLookupContext.lookupFileType(reference: asVariantGroup.children[0])
@@ -114,4 +113,3 @@ extension BuildFileResolution {
     }
 
 }
-

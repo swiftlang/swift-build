@@ -53,7 +53,7 @@ public struct EnvironmentBindings: Sendable {
 }
 
 extension EnvironmentBindings: Equatable {
-    public static func ==(lhs: EnvironmentBindings, rhs: EnvironmentBindings) -> Bool {
+    public static func == (lhs: EnvironmentBindings, rhs: EnvironmentBindings) -> Bool {
         return lhs.bindingsDictionary == rhs.bindingsDictionary
     }
 }

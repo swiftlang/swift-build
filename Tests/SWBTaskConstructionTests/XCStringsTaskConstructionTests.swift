@@ -27,12 +27,12 @@ final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unchecked Se
     let relativeOutputFilePaths: [String: [String]]
     let requiredCommandLine: [String]?
 
-    init(relativeOutputFilePaths: [String : [String]], requiredCommandLine: [String]?) {
+    init(relativeOutputFilePaths: [String: [String]], requiredCommandLine: [String]?) {
         self.relativeOutputFilePaths = relativeOutputFilePaths
         self.requiredCommandLine = requiredCommandLine
     }
 
-    override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+    override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         switch commandLine.first.map(Path.init)?.basename {
         case "xcstringstool":
             break
@@ -64,13 +64,14 @@ final class MockXCStringsTool: MockTestTaskPlanningClientDelegate, @unchecked Se
         }
 
         // Create full list of output paths.
-        var outputPaths = relativeOutputFilePaths[inputPath.str]?.map { relativePath in
-            return outputDir.join(relativePath)
-        } ?? []
+        var outputPaths =
+            relativeOutputFilePaths[inputPath.str]?.map { relativePath in
+                return outputDir.join(relativePath)
+            } ?? []
 
         // Grab requested languages from command line.
         var requestedLangs = Set<String>()
-        var cmdLine = commandLine[commandLine.startIndex...] // Create Array Slice
+        var cmdLine = commandLine[commandLine.startIndex...]  // Create Array Slice
         while let index = cmdLine.firstIndex(of: "-l"), cmdLine.indices.contains(index + 1) {
             let lang = cmdLine[index + 1]
             let (inserted, _) = requestedLangs.insert(lang)
@@ -108,28 +109,37 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
-                    ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -137,7 +147,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.strings"
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -168,25 +178,31 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestFile("Localizable.xcstrings"), // Note: xcstrings don't belong in lprojs / variant groups.
+                    TestFile("Localizable.xcstrings"),  // Note: xcstrings don't belong in lprojs / variant groups.
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -194,7 +210,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -202,17 +218,22 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
-            "en.lproj/Localizable.strings",
-            "en.lproj/Localizable.stringsdict",
-            "de.lproj/Localizable.strings",
-            "de.lproj/Localizable.stringsdict",
-                                                                                                                             ]], requiredCommandLine: [
-                                                                                                                                "xcstringstool", "compile",
-                                                                                                                                "--dry-run",
-                                                                                                                                "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
-                                                                                                                                "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
-                                                                                                                             ])
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [  // input
+                    "en.lproj/Localizable.strings",
+                    "en.lproj/Localizable.stringsdict",
+                    "de.lproj/Localizable.strings",
+                    "de.lproj/Localizable.stringsdict",
+                ]
+            ],
+            requiredCommandLine: [
+                "xcstringstool", "compile",
+                "--dry-run",
+                "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
+                "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -240,10 +261,9 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                     task.checkCommandLine([
                         "xcstringstool", "compile",
                         "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
-                        "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
+                        "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
                     ])
                 }
-
 
                 // Then we need the standard CopyStringsFile tasks to have the compiled .strings/dict as input.
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"])) { _ in }
@@ -268,25 +288,31 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestFile("Localizable.xcstrings"), // Note: In this test we pretend this file doesn't contain any strings that need built.
+                    TestFile("Localizable.xcstrings"),  // Note: In this test we pretend this file doesn't contain any strings that need built.
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -294,7 +320,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -302,12 +328,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file doesn't contain any strings needing to be built.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : []], requiredCommandLine: [
-            "xcstringstool", "compile",
-            "--dry-run",
-            "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
-            "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
-        ])
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: ["/tmp/Test/Project/Sources/Localizable.xcstrings": []],
+            requiredCommandLine: [
+                "xcstringstool", "compile",
+                "--dry-run",
+                "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
+                "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -336,25 +365,31 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestFile("Localizable.xcstrings"), // Note: In this test we pretend this file doesn't contain any strings that need built.
+                    TestFile("Localizable.xcstrings"),  // Note: In this test we pretend this file doesn't contain any strings that need built.
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -362,19 +397,22 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 ),
                 TestStandardTarget(
                     "MyFramework_Clone",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -382,15 +420,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
-                )
+                ),
             ],
             developmentRegion: "en"
         )
 
         // Pretend our xcstrings file doesn't contain any strings needing to be built.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : []], requiredCommandLine: nil)
+        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: ["/tmp/Test/Project/Sources/Localizable.xcstrings": []], requiredCommandLine: nil)
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -416,33 +454,43 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestFile("Localizable.xcstrings"), // Note: xcstrings don't belong in lprojs / variant groups.
+                    TestFile("Localizable.xcstrings"),  // Note: xcstrings don't belong in lprojs / variant groups.
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "MyFramework.swift"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "Localizable.xcstrings",
-                        ], destinationSubfolder: .resources, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Localizable.xcstrings"
+                            ],
+                            destinationSubfolder: .resources,
+                            onlyForDeployment: false
+                        ),
                     ]
                 )
             ],
@@ -483,21 +531,27 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -505,8 +559,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings",
-                            "CustomTable.xcstrings"
-                        ])
+                            "CustomTable.xcstrings",
+                        ]),
                     ]
                 )
             ],
@@ -514,16 +568,19 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ],
+                "/tmp/Test/Project/Sources/CustomTable.xcstrings": [
+                    "en.lproj/CustomTable.strings",
+                    "de.lproj/CustomTable.strings",
+                ],
             ],
-            "/tmp/Test/Project/Sources/CustomTable.xcstrings" : [
-                "en.lproj/CustomTable.strings",
-                "de.lproj/CustomTable.strings",
-            ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -556,28 +613,37 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("MyFramework.swift"),
                     TestFile("Localizable.xcstrings"),
-                    TestVariantGroup("CustomTable.strings", children: [
-                        TestFile("en.lproj/CustomTable.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/CustomTable.strings", regionVariantName: "de"),
-                    ]),
+                    TestVariantGroup(
+                        "CustomTable.strings",
+                        children: [
+                            TestFile("en.lproj/CustomTable.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/CustomTable.strings", regionVariantName: "de"),
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -585,8 +651,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings",
-                            "CustomTable.strings"
-                        ])
+                            "CustomTable.strings",
+                        ]),
                     ]
                 )
             ],
@@ -594,12 +660,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ]
             ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -632,28 +701,37 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("MyFramework.swift"),
                     TestFile("Localizable.xcstrings"),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
-                    ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -661,8 +739,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings",
-                            "Localizable.strings"
-                        ])
+                            "Localizable.strings",
+                        ]),
                     ]
                 )
             ],
@@ -670,12 +748,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ]
             ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -700,28 +781,38 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("MyFramework.swift"),
                     catalog1,
-                    TestGroup("Subdir", path: "Subdir", children: [
-                        catalog2
-                    ]),
-                    TestFile("Other.xcstrings")
+                    TestGroup(
+                        "Subdir",
+                        path: "Subdir",
+                        children: [
+                            catalog2
+                        ]
+                    ),
+                    TestFile("Other.xcstrings"),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -731,7 +822,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                             "Other.xcstrings",
                             TestBuildFile(catalog1),
                             TestBuildFile(catalog2),
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -739,20 +830,23 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ],
+                "/tmp/Test/Project/Sources/Subdir/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ],
+                "/tmp/Test/Project/Sources/Other.xcstrings": [
+                    "en.lproj/Other.strings",
+                    "de.lproj/Other.strings",
+                ],
             ],
-            "/tmp/Test/Project/Sources/Subdir/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
-            ],
-            "/tmp/Test/Project/Sources/Other.xcstrings" : [
-                "en.lproj/Other.strings",
-                "de.lproj/Other.strings",
-            ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -774,77 +868,97 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 "ProjectSources",
                 path: "Sources",
                 children: [
-                    TestGroup("Target1", path: "Target1", children: [
-                        TestFile("Target1.swift"),
-                        catalog1,
-                    ]),
-                    TestGroup("Target2", path: "Target2", children: [
-                        TestFile("Target2.swift"),
-                        catalog2,
-                    ])
+                    TestGroup(
+                        "Target1",
+                        path: "Target1",
+                        children: [
+                            TestFile("Target1.swift"),
+                            catalog1,
+                        ]
+                    ),
+                    TestGroup(
+                        "Target2",
+                        path: "Target2",
+                        children: [
+                            TestFile("Target2.swift"),
+                            catalog2,
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Target1",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "Target1.swift"
                         ]),
                         TestResourcesBuildPhase([
-                            TestBuildFile(catalog1),
-                        ])
+                            TestBuildFile(catalog1)
+                        ]),
                     ]
                 ),
                 TestStandardTarget(
                     "Target2",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "Target2.swift"
                         ]),
                         TestResourcesBuildPhase([
-                            TestBuildFile(catalog2),
-                        ])
+                            TestBuildFile(catalog2)
+                        ]),
                     ]
-                )
+                ),
             ],
             developmentRegion: "en"
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/Target1/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Target1/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ],
+                "/tmp/Test/Project/Sources/Target2/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ],
             ],
-            "/tmp/Test/Project/Sources/Target2/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
-            ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -883,29 +997,35 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "MyFramework.swift"
                         ]),
                         TestResourcesBuildPhase([
-                            TestBuildFile(catalog),
-                        ])
+                            TestBuildFile(catalog)
+                        ]),
                     ]
                 )
             ],
@@ -913,12 +1033,15 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/en.lproj/Localizable.xcstrings" : [
-                "en.lproj/Localizable.strings",
-                "de.lproj/Localizable.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/en.lproj/Localizable.xcstrings": [
+                    "en.lproj/Localizable.strings",
+                    "de.lproj/Localizable.strings",
+                ]
             ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -938,27 +1061,33 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestFile("Localizable.xcstrings"), // Note: xcstrings don't belong in lprojs / variant groups.
+                    TestFile("Localizable.xcstrings"),  // Note: xcstrings don't belong in lprojs / variant groups.
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT" : "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -966,7 +1095,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -974,18 +1103,23 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
-            "en.lproj/Localizable.strings",
-            "en.lproj/Localizable.stringsdict",
-            "de.lproj/Localizable.strings",
-            "de.lproj/Localizable.stringsdict",
-                                                                                                                             ]], requiredCommandLine: [
-                                                                                                                                "xcstringstool", "compile",
-                                                                                                                                "--dry-run",
-                                                                                                                                "-l", "de", // installloc builds are language-specific
-                                                                                                                                "--output-directory", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build",
-                                                                                                                                "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
-                                                                                                                             ])
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [  // input
+                    "en.lproj/Localizable.strings",
+                    "en.lproj/Localizable.stringsdict",
+                    "de.lproj/Localizable.strings",
+                    "de.lproj/Localizable.stringsdict",
+                ]
+            ],
+            requiredCommandLine: [
+                "xcstringstool", "compile",
+                "--dry-run",
+                "-l", "de",  // installloc builds are language-specific
+                "--output-directory", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build",
+                "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -998,7 +1132,6 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
                 // There should be a CompileXCStrings rule.
                 results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build/", "/tmp/Test/Project/Sources/Localizable.xcstrings"])) { _ in }
-
 
                 // Then we need the standard CopyStringsFile tasks to have the compiled .strings/dict as input.
                 // Only the German variants should be copied.
@@ -1027,27 +1160,33 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestFile("Localizable.xcstrings"), // Note: xcstrings don't belong in lprojs / variant groups.
+                    TestFile("Localizable.xcstrings"),  // Note: xcstrings don't belong in lprojs / variant groups.
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT" : "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -1055,7 +1194,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -1063,21 +1202,26 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English, German, and Japanese strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
-            "en.lproj/Localizable.strings",
-            "en.lproj/Localizable.stringsdict",
-            "de.lproj/Localizable.strings",
-            "de.lproj/Localizable.stringsdict",
-            "ja.lproj/Localizable.strings",
-            "ja.lproj/Localizable.stringsdict",
-                                                                                                                             ]], requiredCommandLine: [
-                                                                                                                                "xcstringstool", "compile",
-                                                                                                                                "--dry-run",
-                                                                                                                                "-l", "de",
-                                                                                                                                "-l", "ja",
-                                                                                                                                "--output-directory", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build",
-                                                                                                                                "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
-                                                                                                                             ])
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [  // input
+                    "en.lproj/Localizable.strings",
+                    "en.lproj/Localizable.stringsdict",
+                    "de.lproj/Localizable.strings",
+                    "de.lproj/Localizable.stringsdict",
+                    "ja.lproj/Localizable.strings",
+                    "ja.lproj/Localizable.stringsdict",
+                ]
+            ],
+            requiredCommandLine: [
+                "xcstringstool", "compile",
+                "--dry-run",
+                "-l", "de",
+                "-l", "ja",
+                "--output-directory", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build",
+                "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1090,7 +1234,6 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
                 // There should be a CompileXCStrings rule.
                 results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build/", "/tmp/Test/Project/Sources/Localizable.xcstrings"])) { _ in }
-
 
                 // Then we need the standard CopyStringsFile tasks to have the compiled .strings/dict as input.
                 // English variants should not be copied.
@@ -1122,35 +1265,45 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestFile("Localizable.xcstrings"), // Note: xcstrings don't belong in lprojs / variant groups.
+                    TestFile("Localizable.xcstrings"),  // Note: xcstrings don't belong in lprojs / variant groups.
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT" : "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_ALLOW_INSTALL_OBJC_HEADER": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "MyFramework.swift"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "Localizable.xcstrings"
-                        ], destinationSubfolder: .resources, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Localizable.xcstrings"
+                            ],
+                            destinationSubfolder: .resources,
+                            onlyForDeployment: false
+                        ),
                     ]
                 )
             ],
@@ -1158,18 +1311,23 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
-            "en.lproj/Localizable.strings",
-            "en.lproj/Localizable.stringsdict",
-            "de.lproj/Localizable.strings",
-            "de.lproj/Localizable.stringsdict",
-                                                                                                                             ]], requiredCommandLine: [
-                                                                                                                                "xcstringstool", "compile",
-                                                                                                                                "--dry-run",
-                                                                                                                                "-l", "de", // installloc builds are language-specific
-                                                                                                                                "--output-directory", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build",
-                                                                                                                                "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
-                                                                                                                             ])
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [  // input
+                    "en.lproj/Localizable.strings",
+                    "en.lproj/Localizable.stringsdict",
+                    "de.lproj/Localizable.strings",
+                    "de.lproj/Localizable.stringsdict",
+                ]
+            ],
+            requiredCommandLine: [
+                "xcstringstool", "compile",
+                "--dry-run",
+                "-l", "de",  // installloc builds are language-specific
+                "--output-directory", "/tmp/Test/Project/build/Project.build/Release-iphoneos/MyFramework.build",
+                "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1207,21 +1365,27 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -1229,7 +1393,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -1237,14 +1401,19 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // xcstringstool should not be called during planning since exportloc should not compile xcstrings.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
-            "en.lproj/Localizable.strings",
-            "en.lproj/Localizable.stringsdict",
-            "de.lproj/Localizable.strings",
-            "de.lproj/Localizable.stringsdict",
-        ]], requiredCommandLine: [
-            "don't call me"
-        ])
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [  // input
+                    "en.lproj/Localizable.strings",
+                    "en.lproj/Localizable.stringsdict",
+                    "de.lproj/Localizable.strings",
+                    "de.lproj/Localizable.stringsdict",
+                ]
+            ],
+            requiredCommandLine: [
+                "don't call me"
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1272,22 +1441,28 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "XCSTRINGS_FORCE_BUILD_ALL_STRINGS": "YES"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "XCSTRINGS_FORCE_BUILD_ALL_STRINGS": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -1295,7 +1470,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -1303,18 +1478,23 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [ "/tmp/Test/Project/Sources/Localizable.xcstrings" : [ // input
-            "en.lproj/Localizable.strings",
-            "en.lproj/Localizable.stringsdict",
-            "de.lproj/Localizable.strings",
-            "de.lproj/Localizable.stringsdict",
-                                                                                                                             ]], requiredCommandLine: [
-                                                                                                                                "xcstringstool", "compile",
-                                                                                                                                "--dry-run",
-                                                                                                                                "--force-build-all-strings",
-                                                                                                                                "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
-                                                                                                                                "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
-                                                                                                                             ])
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/Localizable.xcstrings": [  // input
+                    "en.lproj/Localizable.strings",
+                    "en.lproj/Localizable.stringsdict",
+                    "de.lproj/Localizable.strings",
+                    "de.lproj/Localizable.stringsdict",
+                ]
+            ],
+            requiredCommandLine: [
+                "xcstringstool", "compile",
+                "--dry-run",
+                "--force-build-all-strings",
+                "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
+                "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1343,10 +1523,9 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         "xcstringstool", "compile",
                         "--force-build-all-strings",
                         "--output-directory", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build",
-                        "/tmp/Test/Project/Sources/Localizable.xcstrings" // input file
+                        "/tmp/Test/Project/Sources/Localizable.xcstrings",  // input file
                     ])
                 }
-
 
                 // Then we need the standard CopyStringsFile tasks to have the compiled .strings/dict as input.
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"])) { _ in }
@@ -1369,42 +1548,60 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestVariantGroup("LegacyView.xib", children: [
-                        TestFile("Base.lproj/LegacyView.xib", regionVariantName: "Base"),
-                        TestFile("fr.lproj/LegacyView.strings", regionVariantName: "fr"),
-                        TestFile("de.lproj/LegacyView.strings", regionVariantName: "de"),
-                    ]),
-                    TestVariantGroup("View.xib", children: [
-                        TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
-                        TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"), // mul is the ISO code for multi-lingual
-                    ]),
-                    TestVariantGroup("OtherView.nib", children: [
-                        TestFile("Base.lproj/OtherView.nib", regionVariantName: "Base"),
-                        TestFile("mul.lproj/OtherView.xcstrings", regionVariantName: "mul"),
-                    ]),
-                    TestVariantGroup("Main.storyboard", children: [
-                        TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
-                        TestFile("mul.lproj/Main.xcstrings", regionVariantName: "mul"),
-                    ])
+                    TestVariantGroup(
+                        "LegacyView.xib",
+                        children: [
+                            TestFile("Base.lproj/LegacyView.xib", regionVariantName: "Base"),
+                            TestFile("fr.lproj/LegacyView.strings", regionVariantName: "fr"),
+                            TestFile("de.lproj/LegacyView.strings", regionVariantName: "de"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "View.xib",
+                        children: [
+                            TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
+                            TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),  // mul is the ISO code for multi-lingual
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "OtherView.nib",
+                        children: [
+                            TestFile("Base.lproj/OtherView.nib", regionVariantName: "Base"),
+                            TestFile("mul.lproj/OtherView.xcstrings", regionVariantName: "mul"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "Main.storyboard",
+                        children: [
+                            TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
+                            TestFile("mul.lproj/Main.xcstrings", regionVariantName: "mul"),
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "IBC_EXEC": ibtoolPath.str,
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "IBC_EXEC": ibtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -1415,7 +1612,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                             "View.xib",
                             "OtherView.nib",
                             "Main.storyboard",
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -1424,20 +1621,23 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
 
         // Pretend our xcstrings file contains French and German strings.
         // We won't have English because those are in the IB file itself and not typically overridden by xcstrings.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
-                "fr.lproj/View.strings",
-                "de.lproj/View.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings": [
+                    "fr.lproj/View.strings",
+                    "de.lproj/View.strings",
+                ],
+                "/tmp/Test/Project/Sources/mul.lproj/OtherView.xcstrings": [
+                    "fr.lproj/OtherView.strings",
+                    "de.lproj/OtherView.strings",
+                ],
+                "/tmp/Test/Project/Sources/mul.lproj/Main.xcstrings": [
+                    "fr.lproj/Main.strings",
+                    "de.lproj/Main.strings",
+                ],
             ],
-            "/tmp/Test/Project/Sources/mul.lproj/OtherView.xcstrings" : [
-                "fr.lproj/OtherView.strings",
-                "de.lproj/OtherView.strings",
-            ],
-            "/tmp/Test/Project/Sources/mul.lproj/Main.xcstrings" : [
-                "fr.lproj/Main.strings",
-                "de.lproj/Main.strings",
-            ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1485,41 +1685,59 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestVariantGroup("LegacyView.xib", children: [
-                        TestFile("Base.lproj/LegacyView.xib", regionVariantName: "Base"),
-                        TestFile("fr.lproj/LegacyView.strings", regionVariantName: "fr"),
-                        TestFile("de.lproj/LegacyView.strings", regionVariantName: "de"),
-                    ]),
-                    TestVariantGroup("View.xib", children: [
-                        TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
-                        TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"), // mul is the ISO code for multi-lingual
-                    ]),
-                    TestVariantGroup("OtherView.nib", children: [
-                        TestFile("Base.lproj/OtherView.nib", regionVariantName: "Base"),
-                        TestFile("mul.lproj/OtherView.xcstrings", regionVariantName: "mul"),
-                    ]),
-                    TestVariantGroup("Main.storyboard", children: [
-                        TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
-                        TestFile("mul.lproj/Main.xcstrings", regionVariantName: "mul"),
-                    ])
+                    TestVariantGroup(
+                        "LegacyView.xib",
+                        children: [
+                            TestFile("Base.lproj/LegacyView.xib", regionVariantName: "Base"),
+                            TestFile("fr.lproj/LegacyView.strings", regionVariantName: "fr"),
+                            TestFile("de.lproj/LegacyView.strings", regionVariantName: "de"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "View.xib",
+                        children: [
+                            TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
+                            TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),  // mul is the ISO code for multi-lingual
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "OtherView.nib",
+                        children: [
+                            TestFile("Base.lproj/OtherView.nib", regionVariantName: "Base"),
+                            TestFile("mul.lproj/OtherView.xcstrings", regionVariantName: "mul"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "Main.storyboard",
+                        children: [
+                            TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
+                            TestFile("mul.lproj/Main.xcstrings", regionVariantName: "mul"),
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -1530,7 +1748,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                             "View.xib",
                             "OtherView.nib",
                             "Main.storyboard",
-                        ])
+                        ]),
                     ]
                 )
             ],
@@ -1538,20 +1756,23 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
-                "fr.lproj/View.strings",
-                "de.lproj/View.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings": [
+                    "fr.lproj/View.strings",
+                    "de.lproj/View.strings",
+                ],
+                "/tmp/Test/Project/Sources/mul.lproj/OtherView.xcstrings": [
+                    "fr.lproj/OtherView.strings",
+                    "de.lproj/OtherView.strings",
+                ],
+                "/tmp/Test/Project/Sources/mul.lproj/Main.xcstrings": [
+                    "fr.lproj/Main.strings",
+                    "de.lproj/Main.strings",
+                ],
             ],
-            "/tmp/Test/Project/Sources/mul.lproj/OtherView.xcstrings" : [
-                "fr.lproj/OtherView.strings",
-                "de.lproj/OtherView.strings",
-            ],
-            "/tmp/Test/Project/Sources/mul.lproj/Main.xcstrings" : [
-                "fr.lproj/Main.strings",
-                "de.lproj/Main.strings",
-            ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1630,38 +1851,47 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestVariantGroup("View.xib", children: [
-                        TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
-                        TestFile("fr.lproj/View.strings", regionVariantName: "fr"),
-                        TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),
-                    ]),
+                    TestVariantGroup(
+                        "View.xib",
+                        children: [
+                            TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
+                            TestFile("fr.lproj/View.strings", regionVariantName: "fr"),
+                            TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "IBC_EXEC": ibtoolPath.str,
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "IBC_EXEC": ibtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "MyFramework.swift"
                         ]),
                         TestResourcesBuildPhase([
-                            "View.xib",
-                        ])
+                            "View.xib"
+                        ]),
                     ]
                 )
             ],
@@ -1669,11 +1899,14 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
-                "fr.lproj/View.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings": [
+                    "fr.lproj/View.strings"
+                ]
             ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1693,37 +1926,46 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 path: "Sources",
                 children: [
                     TestFile("MyFramework.swift"),
-                    TestVariantGroup("View.xib", children: [
-                        TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
-                        TestFile("fr.lproj/View.xib", regionVariantName: "fr"),
-                        TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),
-                    ]),
+                    TestVariantGroup(
+                        "View.xib",
+                        children: [
+                            TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
+                            TestFile("fr.lproj/View.xib", regionVariantName: "fr"),
+                            TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),
+                        ]
+                    ),
                 ]
             ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "MyFramework.swift"
                         ]),
                         TestResourcesBuildPhase([
-                            "View.xib",
-                        ])
+                            "View.xib"
+                        ]),
                     ]
                 )
             ],
@@ -1731,11 +1973,14 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         )
 
         // Pretend our xcstrings files contain English and German strings, without variation.
-        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
-            "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
-                "fr.lproj/View.strings",
+        let xcstringsTool = MockXCStringsTool(
+            relativeOutputFilePaths: [
+                "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings": [
+                    "fr.lproj/View.strings"
+                ]
             ],
-        ], requiredCommandLine: nil)
+            requiredCommandLine: nil
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1754,14 +1999,19 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Localizable.xcstrings"),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "English"),
-                        TestFile("de.lproj/Localizable.strings", regionVariantName: "German"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "English"),
+                            TestFile("de.lproj/Localizable.strings", regionVariantName: "German"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1769,20 +2019,23 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT" : "macosx",
-                    ]),
+                        "SDKROOT": "macosx",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Application", type: .application,
+                    "Application",
+                    type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings",
                             "Localizable.strings",
-                        ]),
+                        ])
                     ]
                 )
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in

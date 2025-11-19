@@ -200,7 +200,7 @@ import SWBMacro
         table.push(BuiltinMacros.DERIVED_FILE_DIR, literal: Path.root.join("tmp/output/obj/DerivedFiles").str)
         table.push(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME, literal: "App1-Swift.h")
         table.push(BuiltinMacros.SWIFT_INSTALL_OBJC_HEADER, literal: true)
-        table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH,  core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
+        table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH, core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
         table.push(BuiltinMacros.SWIFT_INSTALL_MODULE, literal: true)
         table.push(BuiltinMacros.SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT, literal: true)
         table.push(BuiltinMacros.SWIFT_ENABLE_EMIT_CONST_VALUES, literal: true)
@@ -244,8 +244,7 @@ import SWBMacro
             var additionalCommandLineArgs = [String]()
             if let swiftABIVersion = await (swiftSpec.discoveredCommandLineToolSpecInfo(producer, mockScope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift-\(swiftABIVersion)"]
-            }
-            else {
+            } else {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"]
             }
 
@@ -259,7 +258,7 @@ import SWBMacro
                 .path("/tmp/one.swift"),
                 .path("/tmp/two.swift"),
                 .path("/tmp/output/obj-normal/x86_64/App1.SwiftFileList"),
-                .path("/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json")
+                .path("/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json"),
             ])
             task.checkOutputs([
                 .path("/tmp/output/obj-normal/x86_64/one.o"),
@@ -270,7 +269,7 @@ import SWBMacro
                 .path("/tmp/output/obj-normal/x86_64/App1.swiftsourceinfo"),
                 .path("/tmp/output/obj-normal/x86_64/App1.abi.json"),
                 .path("/tmp/output/obj-normal/x86_64/App1-Swift.h"),
-                .path("/tmp/output/obj-normal/x86_64/App1.swiftdoc")
+                .path("/tmp/output/obj-normal/x86_64/App1.swiftdoc"),
             ])
         }
 
@@ -358,7 +357,7 @@ import SWBMacro
         table.push(BuiltinMacros.DERIVED_FILE_DIR, literal: "/tmp/output/obj/DerivedFiles")
         table.push(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME, literal: "App1-Swift.h")
         table.push(BuiltinMacros.SWIFT_INSTALL_OBJC_HEADER, literal: true)
-        table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH,  core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
+        table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH, core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
         table.push(BuiltinMacros.SWIFT_INSTALL_MODULE, literal: true)
         table.push(BuiltinMacros.SWIFT_INSTALL_MODULE_FOR_DEPLOYMENT, literal: true)
         table.push(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER, literal: true)
@@ -403,8 +402,7 @@ import SWBMacro
             var additionalCommandLineArgs = [String]()
             if let swiftABIVersion = await (swiftSpec.discoveredCommandLineToolSpecInfo(producer, mockScope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift-\(swiftABIVersion)"]
-            }
-            else {
+            } else {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"]
             }
 
@@ -422,7 +420,7 @@ import SWBMacro
                 .path("/tmp/output/obj-normal/x86_64/App1.swiftsourceinfo"),
                 .path("/tmp/output/obj-normal/x86_64/App1.abi.json"),
                 .path("/tmp/output/obj-normal/x86_64/App1-Swift.h"),
-                .path("/tmp/output/obj-normal/x86_64/App1.swiftdoc")
+                .path("/tmp/output/obj-normal/x86_64/App1.swiftdoc"),
             ])
         }
 
@@ -435,8 +433,7 @@ import SWBMacro
             var additionalCommandLineArgs = [String]()
             if let swiftABIVersion = await (swiftSpec.discoveredCommandLineToolSpecInfo(producer, mockScope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift-\(swiftABIVersion)"]
-            }
-            else {
+            } else {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"]
             }
 
@@ -567,8 +564,7 @@ import SWBMacro
             var additionalCommandLineArgs = [String]()
             if let swiftABIVersion = await (swiftSpec.discoveredCommandLineToolSpecInfo(producer, mockScope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift-\(swiftABIVersion)"]
-            }
-            else {
+            } else {
                 additionalCommandLineArgs += ["-Xlinker", "-rpath", "-Xlinker", "/usr/lib/swift"]
             }
 
@@ -581,7 +577,7 @@ import SWBMacro
             task.checkInputs([
                 .path("/tmp/one.swift"),
                 .path("/tmp/two.swift"),
-                .path("/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json")
+                .path("/tmp/output/obj-normal/x86_64/App1-OutputFileMap.json"),
             ])
             task.checkOutputs([
                 .path("/tmp/output/obj-normal/x86_64/one.o"),
@@ -592,7 +588,7 @@ import SWBMacro
                 .path("/tmp/output/obj-normal/x86_64/App1.swiftsourceinfo"),
                 .path("/tmp/output/obj-normal/x86_64/App1.abi.json"),
                 .path("/tmp/output/obj-normal/x86_64/App1-Swift.h"),
-                .path("/tmp/output/obj-normal/x86_64/App1.swiftdoc")
+                .path("/tmp/output/obj-normal/x86_64/App1.swiftdoc"),
             ])
         }
     }
@@ -612,7 +608,7 @@ import SWBMacro
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: Path.root.join("build").str)
         table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, literal: Path.root.join("build/objects").str)
         table.push(BuiltinMacros.SWIFT_MODULE_NAME, literal: "MyModule")
-        table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH,  core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
+        table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH, core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
 
         // remove in rdar://53000820
         table.push(BuiltinMacros.USE_SWIFT_RESPONSE_FILE, literal: true)
@@ -828,7 +824,7 @@ import SWBMacro
             task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-fmodules-ignore-macro=defn1", "-fmodules-ignore-macro=defn2", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", "/--VFS/all-product-headers.yaml", "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/product/type/specific/header/search/path").str)", "-I\(Path.root.join("tmp/derived-normal/x86_64").str)", "-I\(Path.root.join("tmp/derived/x86_64").str)", "-I\(Path.root.join("tmp/derived").str)", "-DX86.64", "-iframework", Path.root.join("tmp/product/type/specific/framework/search/path").str, "-DFrom_GLOBAL_CFLAGS", "-DFrom_OTHER_CFLAGS_normal", "-include", Path.root.join("tmp/prefix.h").str, "-Ddefn1", "-Ddefn2", "-DFrom_GCC_OTHER_CFLAGS_NOT_USED_IN_PRECOMPS", "-MMD", "-MT", "dependencies", "-MF", Path.root.join("tmp/output/obj-normal/x86_64/input.d").str, "--serialize-diagnostics", Path.root.join("tmp/output/obj-normal/x86_64/input.dia").str, "-c", Path.root.join("tmp/input.c").str, "-o", Path.root.join("tmp/output/obj-normal/x86_64/input.o").str])
             task.checkInputs([
                 .path(Path.root.join("tmp/prefix.h").str),
-                .path(Path.root.join("tmp/input.c").str)
+                .path(Path.root.join("tmp/input.c").str),
             ])
             task.checkOutputs([
                 .path(Path.root.join("tmp/output/obj-normal/x86_64/input.o").str)
@@ -848,7 +844,7 @@ import SWBMacro
             task.checkCommandLine(["clang", "-x", "c", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-fmodules-ignore-macro=defn1", "-fmodules-ignore-macro=defn2", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", "/--VFS/all-product-headers.yaml", "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/product/type/specific/header/search/path").str)", "-DX86.64", "-iframework", Path.root.join("tmp/product/type/specific/framework/search/path").str, "-DFrom_GLOBAL_CFLAGS", "-DFrom_OTHER_CFLAGS_normal", "-include", Path.root.join("tmp/prefix.h").str, "-Ddefn1", "-Ddefn2", "-DFrom_GCC_OTHER_CFLAGS_NOT_USED_IN_PRECOMPS", "-MMD", "-MT", "dependencies", "-MF", Path.root.join("tmp/output/obj-normal/x86_64/input.d").str, "--serialize-diagnostics", Path.root.join("tmp/output/obj-normal/x86_64/input.dia").str, "-c", Path.root.join("tmp/input.c").str, "-o", Path.root.join("tmp/output/obj-normal/x86_64/input.o").str])
             task.checkInputs([
                 .path(Path.root.join("tmp/prefix.h").str),
-                .path(Path.root.join("tmp/input.c").str)
+                .path(Path.root.join("tmp/input.c").str),
             ])
             task.checkOutputs([
                 .path(Path.root.join("tmp/output/obj-normal/x86_64/input.o").str)
@@ -926,35 +922,37 @@ import SWBMacro
         let pchHash: String
         if core.hostOperatingSystem == .windows {
             // non-constant on Windows because Path.root may evaluate to any drive letter
-            pchHash = String(ClangCompilerSpec.sharedPrecompiledHeaderSharingIdentifier(commandLine: [
-                "clang.exe",
-                "-x",
-                "c",
-                "-target",
-                "x86_64-apple-macos13.0",
-                "-fmodules",
-                "-fpascal-strings",
-                "-Os",
-                "-fasm-blocks",
-                "-iquote",
-                Path.root.join("tmp/Product-generated-files.hmap").str,
-                "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)",
-                "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)",
-                "-ivfsoverlay",
-                "\\--VFS\\all-product-headers.yaml",
-                "-iquote",
-                Path.root.join("tmp/Product-project-headers.hmap").str,
-                "-I\(Path.root.join("tmp/derived-normal/x86_64").str)",
-                "-I\(Path.root.join("tmp/derived/x86_64").str)",
-                "-I\(Path.root.join("tmp/derived").str)",
-                Path.root.join("tmp/prefix.h").str,
-            ]).hashValue)
+            pchHash = String(
+                ClangCompilerSpec.sharedPrecompiledHeaderSharingIdentifier(commandLine: [
+                    "clang.exe",
+                    "-x",
+                    "c",
+                    "-target",
+                    "x86_64-apple-macos13.0",
+                    "-fmodules",
+                    "-fpascal-strings",
+                    "-Os",
+                    "-fasm-blocks",
+                    "-iquote",
+                    Path.root.join("tmp/Product-generated-files.hmap").str,
+                    "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)",
+                    "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)",
+                    "-ivfsoverlay",
+                    "\\--VFS\\all-product-headers.yaml",
+                    "-iquote",
+                    Path.root.join("tmp/Product-project-headers.hmap").str,
+                    "-I\(Path.root.join("tmp/derived-normal/x86_64").str)",
+                    "-I\(Path.root.join("tmp/derived/x86_64").str)",
+                    "-I\(Path.root.join("tmp/derived").str)",
+                    Path.root.join("tmp/prefix.h").str,
+                ]).hashValue
+            )
         } else {
             pchHash = "1041705040740768206"
         }
 
         // Check the precompilation task
-        let precompileTask = delegate.shellTasks.first{ $0.ruleInfo.first! == "ProcessPCH" }!
+        let precompileTask = delegate.shellTasks.first { $0.ruleInfo.first! == "ProcessPCH" }!
         precompileTask.checkCommandLine([core.hostOperatingSystem.imageFormat.executableName(basename: "clang"), "-x", "c-header", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", Path("/--VFS/all-product-headers.yaml").str, "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/derived-normal/x86_64").str)", "-I\(Path.root.join("tmp/derived/x86_64").str)", "-I\(Path.root.join("tmp/derived").str)", "-c", Path.root.join("tmp/prefix.h").str, "-MD", "-MT", "dependencies", "-MF", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.d").str)", "-o", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str)", "--serialize-diagnostics", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.dia").str)"])
         #expect(precompileTask.ruleInfo == ["ProcessPCH", Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str, Path.root.join("tmp/prefix.h").str, "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0"])
         #expect(precompileTask.execDescription == "Precompile prefix.h (x86_64)")
@@ -969,14 +967,14 @@ import SWBMacro
 
         // Check the compile tasks
         for compileTaskIndex in 0..<numCompileTasks {
-            let compileTask = delegate.shellTasks.first{ $0.ruleInfo.first! == "CompileC" && $0.inputs.contains{ $0.path.basename == "input-\(compileTaskIndex).c" } }!
+            let compileTask = delegate.shellTasks.first { $0.ruleInfo.first! == "CompileC" && $0.inputs.contains { $0.path.basename == "input-\(compileTaskIndex).c" } }!
             #expect(compileTask.ruleInfo == ["CompileC", Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).o").str, Path.root.join("tmp/input-\(compileTaskIndex).c").str, "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0"])
             #expect(compileTask.execDescription == "Compile input-\(compileTaskIndex).c (x86_64)")
 
             compileTask.checkCommandLine([core.hostOperatingSystem.imageFormat.executableName(basename: "clang"), "-x", "c", "-target", "x86_64-apple-macos13.0", "-fmessage-length=0", "-fdiagnostics-show-note-include-stack", "-fmacro-backtrace-limit=0", "-fno-color-diagnostics", "-fmodules", "-fmodules-prune-interval=86400", "-fmodules-prune-after=345600", "-Wnon-modular-include-in-framework-module", "-Werror=non-modular-include-in-framework-module", "-Wno-trigraphs", "-fpascal-strings", "-Os", "-Wno-missing-field-initializers", "-Wno-missing-prototypes", "-Wno-return-type", "-Wno-missing-braces", "-Wparentheses", "-Wswitch", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wunused-value", "-Wno-empty-body", "-Wno-uninitialized", "-Wno-unknown-pragmas", "-Wno-shadow", "-Wno-four-char-constants", "-Wno-conversion", "-Wno-constant-conversion", "-Wno-int-conversion", "-Wno-bool-conversion", "-Wno-enum-conversion", "-Wno-shorten-64-to-32", "-Wpointer-sign", "-Wno-newline-eof", "-Wno-implicit-fallthrough", "-fasm-blocks", "-fstrict-aliasing", "-Wdeprecated-declarations", "-Wno-sign-conversion", "-Wno-infinite-recursion", "-Wno-semicolon-before-method-body", "-iquote", Path.root.join("tmp/Product-generated-files.hmap").str, "-I\(Path.root.join("tmp/Product-own-target-headers.hmap").str)", "-I\(Path.root.join("tmp/Product-all-non-framework-target-headers.hmap").str)", "-ivfsoverlay", Path("/--VFS/all-product-headers.yaml").str, "-iquote", Path.root.join("tmp/Product-project-headers.hmap").str, "-I\(Path.root.join("tmp/derived-normal/x86_64").str)", "-I\(Path.root.join("tmp/derived/x86_64").str)", "-I\(Path.root.join("tmp/derived").str)", "-include", "\(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h").str)", "-MMD", "-MT", "dependencies", "-MF", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).d").str)", "--serialize-diagnostics", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).dia").str)", "-c", "\(Path.root.join("tmp/input-\(compileTaskIndex).c").str)", "-o", "\(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).o").str)"])
             compileTask.checkInputs([
                 .path(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str),
-                .path(Path.root.join("tmp/input-\(compileTaskIndex).c").str)
+                .path(Path.root.join("tmp/input-\(compileTaskIndex).c").str),
             ])
             compileTask.checkOutputs([
                 .path(Path.root.join("tmp/output/obj-normal/x86_64/input-\(compileTaskIndex).o").str)
@@ -1017,8 +1015,12 @@ import SWBMacro
         table.push(BuiltinMacros.CLANG_USE_RESPONSE_FILE, literal: false)
 
         /// Utility method to create a task and pass it to a checker block.
-        func createTask(with table: MacroValueAssignmentTable, spec: String, _ checkTask: ((inout PlannedTaskBuilder) -> Void),
-                        sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        func createTask(
+            with table: MacroValueAssignmentTable,
+            spec: String,
+            _ checkTask: ((inout PlannedTaskBuilder) -> Void),
+            sourceLocation: SourceLocation = #_sourceLocation
+        ) async throws {
             // Create the delegate, scope, file type, etc.
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -1107,8 +1109,13 @@ import SWBMacro
         table.push(BuiltinMacros.CLANG_USE_RESPONSE_FILE, literal: false)
 
         /// Utility method to create a task and pass it to a checker block.
-        func createTask(with table: MacroValueAssignmentTable, cxxLangMode: String , spec: String, _ checkTask: ((inout PlannedTaskBuilder) -> Void),
-                        sourceLocation: SourceLocation = #_sourceLocation) async throws {
+        func createTask(
+            with table: MacroValueAssignmentTable,
+            cxxLangMode: String,
+            spec: String,
+            _ checkTask: ((inout PlannedTaskBuilder) -> Void),
+            sourceLocation: SourceLocation = #_sourceLocation
+        ) async throws {
             var configTable = table
             configTable.push(BuiltinMacros.CLANG_CXX_LANGUAGE_STANDARD, literal: cxxLangMode)
             // Create the delegate, scope, file type, etc.
@@ -1178,9 +1185,7 @@ import SWBMacro
             }
         }
 
-
     }
-
 
     /// Check that C_COMPILER_LAUNCHER is honored.
     @Test(.skipHostOS(.windows, "output file is coming out as tmp\\input.o (non-absolute)"))
@@ -1259,7 +1264,7 @@ import SWBMacro
             ".c": try core.specRegistry.getSpec("sourcecode.c.c") as FileTypeSpec,
             ".cpp": try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec,
             ".m": try core.specRegistry.getSpec("sourcecode.c.objc") as FileTypeSpec,
-            ".mm": try core.specRegistry.getSpec("sourcecode.cpp.objcpp") as FileTypeSpec
+            ".mm": try core.specRegistry.getSpec("sourcecode.cpp.objcpp") as FileTypeSpec,
         ]
 
         // Check with just CC.
@@ -1388,7 +1393,8 @@ import SWBMacro
             "-lbar_normal_search", "-Xlinker", "-reexport-lbar_reexport_search", "-Xlinker", "-merge-lbar_merge_search", "-Xlinker", "-no_merge-lbar_reexport_merge_search", "-weak-lbar_weak_search", Path.root.join("usr/lib/libbar_normal_abs.dylib").str, "-Xlinker", "-reexport_library", "-Xlinker", Path.root.join("usr/lib/libbar_reexport_abs.dylib").str, "-Xlinker", "-merge_library", "-Xlinker", Path.root.join("usr/lib/libbar_merge_abs.dylib").str, "-Xlinker", "-no_merge_library", "-Xlinker", Path.root.join("usr/lib/libbar_reexport_merge_abs.dylib").str, "-weak_library", Path.root.join("usr/lib/libbar_weak_abs.dylib").str,
             "-lbaz_normal_search", "-lbaz_reexport_search", "-lbaz_merge_search", "-lbaz_reexport_merge_search", "-weak-lbaz_weak_search", Path.root.join("usr/lib/libbaz_normal_abs.tbd").str, Path.root.join("usr/lib/libbaz_reexport_abs.tbd").str, Path.root.join("usr/lib/libbaz_merge_abs.tbd").str, Path.root.join("usr/lib/libbaz_reexport_merge_abs.tbd").str, "-weak_library", Path.root.join("usr/lib/libbaz_weak_abs.tbd").str,
             "-framework", "Foo_normal_search", "-Xlinker", "-reexport_framework", "-Xlinker", "Foo_reexport_search", "-Xlinker", "-merge_framework", "-Xlinker", "Foo_merge_search", "-Xlinker", "-no_merge_framework", "-Xlinker", "Foo_reexport_merge_search", "-weak_framework", "Foo_weak_search", Path.root.join("tmp/Foo_normal_abs.framework/Foo_normal_abs").str, "-Xlinker", "-reexport_library", "-Xlinker", Path.root.join("tmp/Foo_reexport_abs.framework/Foo_reexport_abs").str, "-Xlinker", "-merge_library", "-Xlinker", Path.root.join("tmp/Foo_merge_abs.framework/Foo_merge_abs").str, "-Xlinker", "-no_merge_library", "-Xlinker", Path.root.join("tmp/Foo_reexport_merge_abs.framework/Foo_reexport_merge_abs").str, "-weak_library", Path.root.join("tmp/Foo_weak_abs.framework/Foo_weak_abs").str,
-            "-o", Path.root.join("tmp/obj/normal/x86_64/output").str])
+            "-o", Path.root.join("tmp/obj/normal/x86_64/output").str,
+        ])
         // FIXME: The input here should really be the link file list.
         if SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
             task.checkInputs([
@@ -1626,12 +1632,13 @@ import SWBMacro
             "-lfoo1", "-lfoo2", Path.root.join("usr/lib/libfoo3.a").str, Path.root.join("usr/lib/libfoo4.a").str,
             // dylibs are not passed
             // tbd files are not passed
-            "-o", Path.root.join("tmp/obj/normal/x86_64/output").str])
+            "-o", Path.root.join("tmp/obj/normal/x86_64/output").str,
+        ])
         // FIXME: The input here should really be the link file list.
         task.checkInputs([
             .path(Path.root.join("tmp/obj/normal/x86_64/file1.o").str),
             .path(Path.root.join("usr/lib/libfoo3.a").str),
-            .path(Path.root.join("usr/lib/libfoo4.a").str)
+            .path(Path.root.join("usr/lib/libfoo4.a").str),
         ])
         task.checkOutputs([
             .path(Path.root.join("tmp/obj/normal/x86_64/output").str)
@@ -1667,28 +1674,40 @@ import SWBMacro
         }
 
         // Check with just LD.
-        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"clang++"))] {
-            try await check(name: name, expectedLinker: expected, macros: [
-                BuiltinMacros.LD: "SomeCLinker"
-                // NOTE: One wonders whether this shouldn't change the C++ linker.
-            ])
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename: "SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename: "clang++"))] {
+            try await check(
+                name: name,
+                expectedLinker: expected,
+                macros: [
+                    BuiltinMacros.LD: "SomeCLinker"
+                        // NOTE: One wonders whether this shouldn't change the C++ linker.
+                ]
+            )
         }
 
         // Check with LD & LDPLUSPLUS.
-        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeC++Linker"))] {
-            try await check(name: name, expectedLinker: expected, macros: [
-                BuiltinMacros.LD: "SomeCLinker",
-                BuiltinMacros.LDPLUSPLUS: "SomeC++Linker"
-            ])
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename: "SomeCLinker")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename: "SomeC++Linker"))] {
+            try await check(
+                name: name,
+                expectedLinker: expected,
+                macros: [
+                    BuiltinMacros.LD: "SomeCLinker",
+                    BuiltinMacros.LDPLUSPLUS: "SomeC++Linker",
+                ]
+            )
         }
 
         // Check with arch specific LD.
-        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeCLinker_x86_64")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename:"SomeC++Linker_x86_64"))] {
-            try await check(name: name, expectedLinker: expected, macros: [
-                BuiltinMacros.CURRENT_ARCH: "x86_64",
-                try core.specRegistry.internalMacroNamespace.declareStringMacro("LD_x86_64"): "SomeCLinker_x86_64",
-                try core.specRegistry.internalMacroNamespace.declareStringMacro("LDPLUSPLUS_x86_64"): "SomeC++Linker_x86_64"
-            ])
+        for (name, expected) in [("file.c", core.hostOperatingSystem.imageFormat.executableName(basename: "SomeCLinker_x86_64")), ("file.cpp", core.hostOperatingSystem.imageFormat.executableName(basename: "SomeC++Linker_x86_64"))] {
+            try await check(
+                name: name,
+                expectedLinker: expected,
+                macros: [
+                    BuiltinMacros.CURRENT_ARCH: "x86_64",
+                    try core.specRegistry.internalMacroNamespace.declareStringMacro("LD_x86_64"): "SomeCLinker_x86_64",
+                    try core.specRegistry.internalMacroNamespace.declareStringMacro("LDPLUSPLUS_x86_64"): "SomeC++Linker_x86_64",
+                ]
+            )
         }
     }
 
@@ -1728,8 +1747,7 @@ import SWBMacro
                 // For 'YES_THIN' there should be additional linker args.
                 #expect(delegate.shellTasks[safe: 0]?.commandLine.contains(.literal(ByteString(encodingAsUTF8: flag))) ?? false, "linker command line does not contain \(flag)")
                 // We're not checking the other stuff that's added by YES_THIN.
-            }
-            else {
+            } else {
                 // For all other values, there should not be additional linker args.
                 #expect((delegate.shellTasks[safe: 0]?.commandLine.contains(.literal(ByteString(encodingAsUTF8: flag))) ?? false) == false, "linker command line unexpectedly contains \(flag)")
             }
@@ -1979,28 +1997,52 @@ import SWBMacro
             try completion(prefixMaps)
         }
 
-        try await test(caching: false, prefixMapping: true, extraMaps: ["/a=/b"], completion: { args in
-            #expect(args == [])
-        })
-        try await test(caching: true, prefixMapping: false, extraMaps: ["/a=/b"], completion: { args in
-            #expect(args == [])
-        })
-        try await test(caching: true, prefixMapping: true, extraMaps: [], completion: { args in
-            #expect(args == [
-                "-fdepscan-prefix-map-sdk=/^sdk",
-                "-fdepscan-prefix-map-toolchain=/^toolchain",
-                "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
-            ])
-        })
-        try await test(caching: true, prefixMapping: true, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
-            #expect(args == [
-                "-fdepscan-prefix-map-sdk=/^sdk",
-                "-fdepscan-prefix-map-toolchain=/^toolchain",
-                "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
-                "-fdepscan-prefix-map=/a=/b",
-                "-fdepscan-prefix-map=/c=/d",
-            ])
-        })
+        try await test(
+            caching: false,
+            prefixMapping: true,
+            extraMaps: ["/a=/b"],
+            completion: { args in
+                #expect(args == [])
+            }
+        )
+        try await test(
+            caching: true,
+            prefixMapping: false,
+            extraMaps: ["/a=/b"],
+            completion: { args in
+                #expect(args == [])
+            }
+        )
+        try await test(
+            caching: true,
+            prefixMapping: true,
+            extraMaps: [],
+            completion: { args in
+                #expect(
+                    args == [
+                        "-fdepscan-prefix-map-sdk=/^sdk",
+                        "-fdepscan-prefix-map-toolchain=/^toolchain",
+                        "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
+                    ]
+                )
+            }
+        )
+        try await test(
+            caching: true,
+            prefixMapping: true,
+            extraMaps: ["/a=/b", "/c=/d"],
+            completion: { args in
+                #expect(
+                    args == [
+                        "-fdepscan-prefix-map-sdk=/^sdk",
+                        "-fdepscan-prefix-map-toolchain=/^toolchain",
+                        "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
+                        "-fdepscan-prefix-map=/a=/b",
+                        "-fdepscan-prefix-map=/c=/d",
+                    ]
+                )
+            }
+        )
     }
 
     @Test
@@ -2025,7 +2067,7 @@ import SWBMacro
             table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, literal: Path.root.join("build").str)
             table.push(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, literal: Path.root.join("build/objects").str)
             table.push(BuiltinMacros.SWIFT_MODULE_NAME, literal: "MyModule")
-            table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH,  core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
+            table.push(BuiltinMacros.SWIFT_RESPONSE_FILE_PATH, core.specRegistry.internalMacroNamespace.parseString("$(PER_ARCH_OBJECT_FILE_DIR)/$(TARGET_NAME).SwiftFileList"))
 
             // remove in rdar://53000820
             table.push(BuiltinMacros.USE_SWIFT_RESPONSE_FILE, literal: true)
@@ -2054,32 +2096,55 @@ import SWBMacro
             try completion(prefixMaps)
         }
 
-        try await test(caching: false, prefixMapping: true, extraMaps: ["/a=/b"], completion: { args in
-            #expect(args == [])
-        })
-        try await test(caching: true, prefixMapping: false, extraMaps: ["/a=/b"], completion: { args in
-            #expect(args == [])
-        })
-        try await test(caching: true, prefixMapping: true, extraMaps: [], completion: { args in
-            #expect(args == [
-                "-scanner-prefix-map-sdk", "/^sdk",
-                "-scanner-prefix-map-toolchain", "/^toolchain",
-                "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
-            ])
-        })
-        try await test(caching: true, prefixMapping: true, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
-            #expect(args == [
-                "-scanner-prefix-map-sdk", "/^sdk",
-                "-scanner-prefix-map-toolchain", "/^toolchain",
-                "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
-                "-scanner-prefix-map", "/a=/b",
-                "-scanner-prefix-map", "/c=/d",
-            ])
-        })
+        try await test(
+            caching: false,
+            prefixMapping: true,
+            extraMaps: ["/a=/b"],
+            completion: { args in
+                #expect(args == [])
+            }
+        )
+        try await test(
+            caching: true,
+            prefixMapping: false,
+            extraMaps: ["/a=/b"],
+            completion: { args in
+                #expect(args == [])
+            }
+        )
+        try await test(
+            caching: true,
+            prefixMapping: true,
+            extraMaps: [],
+            completion: { args in
+                #expect(
+                    args == [
+                        "-scanner-prefix-map-sdk", "/^sdk",
+                        "-scanner-prefix-map-toolchain", "/^toolchain",
+                        "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
+                    ]
+                )
+            }
+        )
+        try await test(
+            caching: true,
+            prefixMapping: true,
+            extraMaps: ["/a=/b", "/c=/d"],
+            completion: { args in
+                #expect(
+                    args == [
+                        "-scanner-prefix-map-sdk", "/^sdk",
+                        "-scanner-prefix-map-toolchain", "/^toolchain",
+                        "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
+                        "-scanner-prefix-map", "/a=/b",
+                        "-scanner-prefix-map", "/c=/d",
+                    ]
+                )
+            }
+        )
     }
 
 }
-
 
 // MARK: CommandLineSpecSimulatedTests
 
@@ -2117,35 +2182,35 @@ import SWBMacro
                 "Name": "THING_RECENTLY_ADDED",
                 "Type": "Boolean",
                 "DefaultValue": "YES",
-                "SupportedVersionRanges": [ "9.0.0" ],
+                "SupportedVersionRanges": ["9.0.0"],
                 "CommandLineFlag": "-recently_added",
             ],
             [
                 "Name": "THING_JUST_ADDED",
                 "Type": "Boolean",
                 "DefaultValue": "YES",
-                "SupportedVersionRanges": [ "9.0.3" ],
+                "SupportedVersionRanges": ["9.0.3"],
                 "CommandLineFlag": "-just_added",
             ],
             [
                 "Name": "THING_NOT_YET_ADDED",
                 "Type": "Boolean",
                 "DefaultValue": "YES",
-                "SupportedVersionRanges": [ "9.2.0" ],
+                "SupportedVersionRanges": ["9.2.0"],
                 "CommandLineFlag": "-not_yet_added",
             ],
             [
                 "Name": "THING_RECENTLY_ADDED_RANGE",
                 "Type": "Boolean",
                 "DefaultValue": "YES",
-                "SupportedVersionRanges": [ ["9.0.2", "9.1.99"], "9.2.2" ],
+                "SupportedVersionRanges": [["9.0.2", "9.1.99"], "9.2.2"],
                 "CommandLineFlag": "-recently_added_range",
             ],
             [
                 "Name": "THING_NOT_YET_ADDED_RANGE",
                 "Type": "Boolean",
                 "DefaultValue": "YES",
-                "SupportedVersionRanges": [ ["9.1.2", "9.1.99"], "9.3.2" ],
+                "SupportedVersionRanges": [["9.1.2", "9.1.99"], "9.3.2"],
                 "CommandLineFlag": "-not_yet_added_range",
             ],
 
@@ -2161,7 +2226,7 @@ import SWBMacro
                 "Name": "THING_BEHIND_MULTIPLE_EXISTING_FLAGS",
                 "Type": "Boolean",
                 "DefaultValue": "YES",
-                "FeatureFlags": [ "test-feature", "test-feature-2" ],
+                "FeatureFlags": ["test-feature", "test-feature-2"],
                 "CommandLineFlag": "-feature2_exists",
             ],
             [
@@ -2175,7 +2240,7 @@ import SWBMacro
                 "Name": "THING_BEHIND_MISSING_FLAGS",
                 "Type": "Boolean",
                 "DefaultValue": "YES",
-                "FeatureFlags": [ "test-feature", "missing-test-feature" ],
+                "FeatureFlags": ["test-feature", "missing-test-feature"],
                 "CommandLineFlag": "-missing_features",
             ],
         ]
@@ -2190,14 +2255,14 @@ import SWBMacro
                 "CommandLine": "thing [options] [input] -o [output]",
                 "RuleName": "Thingify $(InputFile)",
                 "InputFileTypes": [
-                    "file.thing",
+                    "file.thing"
                 ],
                 "Outputs": [
                     "$(ProductResourcesDir)/$(InputFileBase).something",
-                    "$(UnlocalizedProductResourcesDir)/$(InputFileRegionPathComponent)$(InputFileBase).somethingelse"
+                    "$(UnlocalizedProductResourcesDir)/$(InputFileRegionPathComponent)$(InputFileBase).somethingelse",
                 ],
                 "SynthesizeBuildRule": "YES",
-                "Options": PropertyListItem(options)
+                "Options": PropertyListItem(options),
             ],
             // The input file type.
             [
@@ -2216,14 +2281,17 @@ import SWBMacro
         try await withTemporaryDirectory(fs: fs) { tmpDir in
             try await Self.writeTestData(to: tmpDir.path, fs: fs)
 
-            let core = try await Self.makeCore(registerExtraPlugins: { pluginManager in
-                struct TestPlugin: SpecificationsExtension {
-                    func specificationClasses() -> [any SpecIdentifierType.Type] {
-                        [ThingToolSpec.self]
+            let core = try await Self.makeCore(
+                registerExtraPlugins: { pluginManager in
+                    struct TestPlugin: SpecificationsExtension {
+                        func specificationClasses() -> [any SpecIdentifierType.Type] {
+                            [ThingToolSpec.self]
+                        }
                     }
-                }
-                pluginManager.register(TestPlugin(), type: SpecificationsExtensionPoint.self)
-            }, simulatedInferiorProductsPath: tmpDir.path)
+                    pluginManager.register(TestPlugin(), type: SpecificationsExtensionPoint.self)
+                },
+                simulatedInferiorProductsPath: tmpDir.path
+            )
 
             do {
                 // Get the tool spec.
@@ -2248,25 +2316,26 @@ import SWBMacro
                     return
                 }
                 #expect(task.ruleInfo == ["Thingify", Path.root.join("tmp/file.thing").str])
-                task.checkCommandLine([             "thing",
-                                                    // Options
-                                                    "-always",
-                                                    "-recently_added",
-                                                    "-just_added",
-                                                    "-recently_added_range",
-                                                    "-feature_exists",
-                                                    "-feature2_exists",
-                                                    // Inputs and outputs
-                                                    Path.root.join("tmp/file.thing").str,
-                                                    "-o",
-                                                    Path.root.join("tmp/dst/file.something").str,
-                                      ])
+                task.checkCommandLine([
+                    "thing",
+                    // Options
+                    "-always",
+                    "-recently_added",
+                    "-just_added",
+                    "-recently_added_range",
+                    "-feature_exists",
+                    "-feature2_exists",
+                    // Inputs and outputs
+                    Path.root.join("tmp/file.thing").str,
+                    "-o",
+                    Path.root.join("tmp/dst/file.something").str,
+                ])
                 task.checkInputs([
                     .path(Path.root.join("tmp/file.thing").str)
                 ])
                 task.checkOutputs([
                     .path(Path.root.join("tmp/dst/file.something").str),
-                    .path(Path.root.join("tmp/dst/file.somethingelse").str)
+                    .path(Path.root.join("tmp/dst/file.somethingelse").str),
                 ])
             }
 
@@ -2312,7 +2381,7 @@ import SWBMacro
                 ])
                 task.checkOutputs([
                     .path(Path.root.join("tmp/dst/en.lproj/file.something").str),
-                    .path(Path.root.join("tmp/dst/en.lproj/file.somethingelse").str)
+                    .path(Path.root.join("tmp/dst/en.lproj/file.somethingelse").str),
                 ])
             }
         }

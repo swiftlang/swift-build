@@ -75,17 +75,27 @@ import SWBMacro
 
     @Test
     func groupTreePaths() throws {
-        let model = try TestGroup("SomeProject", sourceTree: .buildSetting("PROJECT_DIR"),
-                                  children: [
-                                    TestGroup("SomeFiles", children: [
-                                        TestGroup("OtherFiles",
-                                                  children: [TestFile("SourceFile.m"), TestFile("HeaderFile.h")]),
-                                        TestFile("SourceFile2.c", sourceTree: .buildSetting("SOURCE_TREE_ONE")),
-                                        TestFile("Frameworks/Cocoa.framework", sourceTree: .buildSetting("SYSTEM_LIBRARY_DIR")),
-                                        TestVariantGroup("View.xib",
-                                                         children: [TestFile("Base.lproj/View.xib"), TestFile("fr.lproj/View.strings", regionVariantName: "fr")])
-                                    ])
-                                  ]).toProtocol()
+        let model = try TestGroup(
+            "SomeProject",
+            sourceTree: .buildSetting("PROJECT_DIR"),
+            children: [
+                TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestGroup(
+                            "OtherFiles",
+                            children: [TestFile("SourceFile.m"), TestFile("HeaderFile.h")]
+                        ),
+                        TestFile("SourceFile2.c", sourceTree: .buildSetting("SOURCE_TREE_ONE")),
+                        TestFile("Frameworks/Cocoa.framework", sourceTree: .buildSetting("SYSTEM_LIBRARY_DIR")),
+                        TestVariantGroup(
+                            "View.xib",
+                            children: [TestFile("Base.lproj/View.xib"), TestFile("fr.lproj/View.strings", regionVariantName: "fr")]
+                        ),
+                    ]
+                )
+            ]
+        ).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
         // Test the individual references.
@@ -186,13 +196,23 @@ import SWBMacro
 
     @Test
     func dotDotEmbeddedInFileGroupPath() throws {
-        let model = try TestGroup("SomeProject", sourceTree: .buildSetting("PROJECT_DIR"), children: [
-            TestGroup("Sources", children: [
-                TestGroup("../OtherFiles", children: [
-                    TestFile("Resource.txt")
-                ]),
-            ])
-        ]).toProtocol()
+        let model = try TestGroup(
+            "SomeProject",
+            sourceTree: .buildSetting("PROJECT_DIR"),
+            children: [
+                TestGroup(
+                    "Sources",
+                    children: [
+                        TestGroup(
+                            "../OtherFiles",
+                            children: [
+                                TestFile("Resource.txt")
+                            ]
+                        )
+                    ]
+                )
+            ]
+        ).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
         // Get the absolute path for the reference and test it.

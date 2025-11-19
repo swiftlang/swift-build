@@ -48,7 +48,7 @@ struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
         }
         let outputPath = outputDir.join("GeneratedHeader-Swift.h")
         commandLine.append(contentsOf: [
-            "-o", outputPath.str
+            "-o", outputPath.str,
         ])
 
         // Construct and run the task action.
@@ -87,14 +87,7 @@ struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
         let archs = ["arm64", "x86_64"]
         try await testSwiftHeaderToolTaskAction(archs: archs) { outputFileContents in
             let expectedFileContents =
-                "#if 0\n" +
-                "#elif defined(__arm64__) && __arm64__\n" +
-                "Contents of file for arm64\n\n" +
-                "#elif defined(__x86_64__) && __x86_64__\n" +
-                "Contents of file for x86_64\n\n" +
-                "#else\n" +
-                "#error unsupported Swift architecture\n" +
-                "#endif\n"
+                "#if 0\n" + "#elif defined(__arm64__) && __arm64__\n" + "Contents of file for arm64\n\n" + "#elif defined(__x86_64__) && __x86_64__\n" + "Contents of file for x86_64\n\n" + "#else\n" + "#error unsupported Swift architecture\n" + "#endif\n"
             #expect(outputFileContents == expectedFileContents)
         }
     }
@@ -105,14 +98,7 @@ struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
         let archs = ["arm64e", "x86_64"]
         try await testSwiftHeaderToolTaskAction(archs: archs) { outputFileContents in
             let expectedFileContents =
-                "#if 0\n" +
-                "#elif defined(__arm64__) && __arm64__\n" +
-                "Contents of file for arm64e\n\n" +
-                "#elif defined(__x86_64__) && __x86_64__\n" +
-                "Contents of file for x86_64\n\n" +
-                "#else\n" +
-                "#error unsupported Swift architecture\n" +
-                "#endif\n"
+                "#if 0\n" + "#elif defined(__arm64__) && __arm64__\n" + "Contents of file for arm64e\n\n" + "#elif defined(__x86_64__) && __x86_64__\n" + "Contents of file for x86_64\n\n" + "#else\n" + "#error unsupported Swift architecture\n" + "#endif\n"
             #expect(outputFileContents == expectedFileContents)
         }
     }
@@ -123,14 +109,7 @@ struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
         let archs = ["arm64", "arm64e"]
         try await testSwiftHeaderToolTaskAction(archs: archs) { outputFileContents in
             let expectedFileContents =
-                "#if 0\n" +
-                "#elif defined(__arm64e__) && __arm64e__\n" +
-                "Contents of file for arm64e\n\n" +
-                "#elif defined(__arm64__) && __arm64__\n" +
-                "Contents of file for arm64\n\n" +
-                "#else\n" +
-                "#error unsupported Swift architecture\n" +
-                "#endif\n"
+                "#if 0\n" + "#elif defined(__arm64e__) && __arm64e__\n" + "Contents of file for arm64e\n\n" + "#elif defined(__arm64__) && __arm64__\n" + "Contents of file for arm64\n\n" + "#else\n" + "#error unsupported Swift architecture\n" + "#endif\n"
             #expect(outputFileContents == expectedFileContents)
         }
     }

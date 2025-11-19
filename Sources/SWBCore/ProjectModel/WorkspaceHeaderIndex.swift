@@ -24,9 +24,11 @@ public final class WorkspaceHeaderIndex: Sendable {
 
     /// Construct the header index for a workspace.
     @_spi(Testing) public init(core: Core, workspace: Workspace) async {
-        self.projectHeaderInfo = await Dictionary(uniqueKeysWithValues: workspace.projects.concurrentMap(maximumParallelism: 10) { project in
-            await (project, ProjectHeaderInfo(core, project, workspace))
-        })
+        self.projectHeaderInfo = await Dictionary(
+            uniqueKeysWithValues: workspace.projects.concurrentMap(maximumParallelism: 10) { project in
+                await (project, ProjectHeaderInfo(core, project, workspace))
+            }
+        )
     }
 }
 
@@ -90,7 +92,6 @@ public struct ProjectHeaderInfo: Sendable {
             }
         }
 
-
         // Construct the set of known header files.
         let knownHeaders = {
             var knownHeaders = OrderedSet<FileReference>()
@@ -100,12 +101,17 @@ public struct ProjectHeaderInfo: Sendable {
         self.knownHeaders = knownHeaders
 
         // Collect the per target information.
-        self.targetHeaderInfo = await Dictionary(uniqueKeysWithValues: project.targets.concurrentMap(maximumParallelism: 100, { target -> (BuildPhaseTarget, TargetHeaderInfo)? in
-            if case let target as BuildPhaseTarget = target, let headerInfo = TargetHeaderInfo(target, knownHeaders, workspace) {
-                return (target, headerInfo)
-            }
-            return nil
-        }).compactMap { $0 })
+        self.targetHeaderInfo = await Dictionary(
+            uniqueKeysWithValues: project.targets.concurrentMap(
+                maximumParallelism: 100,
+                { target -> (BuildPhaseTarget, TargetHeaderInfo)? in
+                    if case let target as BuildPhaseTarget = target, let headerInfo = TargetHeaderInfo(target, knownHeaders, workspace) {
+                        return (target, headerInfo)
+                    }
+                    return nil
+                }
+            ).compactMap { $0 }
+        )
     }
 }
 
@@ -137,8 +143,9 @@ public struct TargetHeaderInfo: Sendable {
         for buildFile in headersPhase.buildFiles {
             // Ignore non-file references.
             guard case let .reference(guid) = buildFile.buildableItem,
-                  let reference = workspace.lookupReference(for: guid),
-                  let fileRef = reference as? FileReference else { continue }
+                let reference = workspace.lookupReference(for: guid),
+                let fileRef = reference as? FileReference
+            else { continue }
 
             // If we don't have any entry for the target, ignore it.
             //
@@ -160,11 +167,11 @@ public struct TargetHeaderInfo: Sendable {
     }
 
     public struct HeaderDestDirs {
-        public let publicPath : Path
-        public let privatePath : Path
-        public let basePath : Path
+        public let publicPath: Path
+        public let privatePath: Path
+        public let basePath: Path
 
-        public init(publicPath: Path, privatePath: Path, basePath: Path ) {
+        public init(publicPath: Path, privatePath: Path, basePath: Path) {
             self.publicPath = publicPath
             self.privatePath = privatePath
             self.basePath = basePath
@@ -180,9 +187,11 @@ public struct TargetHeaderInfo: Sendable {
         let publicHeadersPath = scope.evaluate(BuiltinMacros.PUBLIC_HEADERS_FOLDER_PATH)
         let privateHeadersPath = scope.evaluate(BuiltinMacros.PRIVATE_HEADERS_FOLDER_PATH)
 
-        return HeaderDestDirs(publicPath: wrapperPath.join(publicHeadersPath.basename),
-                              privatePath: wrapperPath.join(privateHeadersPath.basename),
-                              basePath: wrapperPath)
+        return HeaderDestDirs(
+            publicPath: wrapperPath.join(publicHeadersPath.basename),
+            privatePath: wrapperPath.join(privateHeadersPath.basename),
+            basePath: wrapperPath
+        )
     }
 
     /// Utility method that generates the destination dir path for a given visibility. Returns `nil` if the path does not exist for that visibility.

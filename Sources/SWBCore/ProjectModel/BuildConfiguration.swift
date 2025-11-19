@@ -14,8 +14,7 @@ import SWBProtocol
 import SWBUtil
 public import SWBMacro
 
-public final class BuildConfiguration: ProjectModelItem, Encodable, Sendable
-{
+public final class BuildConfiguration: ProjectModelItem, Encodable, Sendable {
     public let name: String
 
     /// The (cached) parsed build settings table.
@@ -40,7 +39,7 @@ public final class BuildConfiguration: ProjectModelItem, Encodable, Sendable
 
     public let impartedBuildProperties: ImpartedBuildProperties
 
-    private enum CodingKeys : String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
         case name
         case namespace
         case baseConfigurationFileReferenceGUID
@@ -57,7 +56,7 @@ public final class BuildConfiguration: ProjectModelItem, Encodable, Sendable
             case .string(let value):
                 settings[setting.key] = .plString(value)
             case .stringList(let value):
-                settings[setting.key] = .plArray(value.map{ .plString($0) })
+                settings[setting.key] = .plArray(value.map { .plString($0) })
             }
         }
         return settings
@@ -113,7 +112,7 @@ public final class BuildConfiguration: ProjectModelItem, Encodable, Sendable
             // We also construct a condition set if we have conditions.
             var conditionSet: MacroConditionSet?
             if let conditions {
-                conditionSet = MacroConditionSet(conditions: conditions.map{ MacroCondition(parameter: namespace.declareConditionParameter($0.0), valuePattern: $0.1) })
+                conditionSet = MacroConditionSet(conditions: conditions.map { MacroCondition(parameter: namespace.declareConditionParameter($0.0), valuePattern: $0.1) })
             }
 
             // Parse the value in a manner consistent with the macro definition.
@@ -122,7 +121,7 @@ public final class BuildConfiguration: ProjectModelItem, Encodable, Sendable
             case .plString(let stringValue):
                 expr = namespace.parseForMacro(macro, value: stringValue)
             case .plArray(let contents):
-                let asStringList = contents.map{ item -> String in
+                let asStringList = contents.map { item -> String in
                     guard case let .plString(string) = item else { fatalError("unexpected build configuration data") }
                     return string
                 }

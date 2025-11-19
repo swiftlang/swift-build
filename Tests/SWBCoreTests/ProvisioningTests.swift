@@ -40,7 +40,7 @@ private func createMockProject() throws -> SWBCore.Project {
     return try Project(fromDictionary: projectPIF, signature: "mock", withPIFLoader: pifLoader)
 }
 
-private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [MacroDeclaration:String](), tableSetupHandler: ((inout MacroValueAssignmentTable) -> Void)? = nil) -> MacroEvaluationScope{
+private func setupMacroEvaluationScope(_ settings: [MacroDeclaration: String] = [MacroDeclaration: String](), tableSetupHandler: ((inout MacroValueAssignmentTable) -> Void)? = nil) -> MacroEvaluationScope {
     var table = MacroValueAssignmentTable(namespace: BuiltinMacros.namespace)
 
     for (key, value) in settings {
@@ -59,16 +59,15 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
     return MacroEvaluationScope(table: table)
 }
 
-
 @Suite fileprivate struct ProvisioningTests: CoreBasedTests {
     @Test
     func computeBundleIdentifier() {
         let bundleIdentifierFromInfoPlist = BuiltinMacros.namespace.parseString("com.apple.$(PRODUCT_NAME)")
-        let scope = setupMacroEvaluationScope([ BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER: "BundleID" ])
+        let scope = setupMacroEvaluationScope([BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER: "BundleID"])
         var result = SWBCore.computeBundleIdentifier(from: scope, bundleIdentifierFromInfoPlist: bundleIdentifierFromInfoPlist)
         #expect(result == "BundleID")
 
-        let scopeWithoutBundleID = setupMacroEvaluationScope([ BuiltinMacros.PRODUCT_NAME: "ProductName" ])
+        let scopeWithoutBundleID = setupMacroEvaluationScope([BuiltinMacros.PRODUCT_NAME: "ProductName"])
         result = SWBCore.computeBundleIdentifier(from: scopeWithoutBundleID, bundleIdentifierFromInfoPlist: bundleIdentifierFromInfoPlist)
         #expect(result == "com.apple.ProductName")
     }
@@ -84,14 +83,14 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
         var result = SWBCore.computeBundleIdentifier(from: scope, bundleIdentifierFromInfoPlist: bundleIdentifierFromInfoPlist)
         #expect(result == "BundleID.xctrunner")
 
-        let scopeWithoutBundleID = setupMacroEvaluationScope([ BuiltinMacros.PRODUCT_NAME: "ProductName" ])
+        let scopeWithoutBundleID = setupMacroEvaluationScope([BuiltinMacros.PRODUCT_NAME: "ProductName"])
         result = SWBCore.computeBundleIdentifier(from: scopeWithoutBundleID, bundleIdentifierFromInfoPlist: bundleIdentifierFromInfoPlist)
         #expect(result == "com.apple.ProductName")
     }
 
     @Test(.requireSDKs(.iOS))
     func computeSigningCertificateIdentifier() async throws {
-        let scope = setupMacroEvaluationScope([ BuiltinMacros.CODE_SIGN_IDENTITY: "MyIdentity" ])
+        let scope = setupMacroEvaluationScope([BuiltinMacros.CODE_SIGN_IDENTITY: "MyIdentity"])
         do {
             if let platform = try await getCore().platformRegistry.lookup(identifier: "com.apple.platform.iphoneos") {
                 let result = SWBCore.computeSigningCertificateIdentifier(from: scope, platform: platform)
@@ -104,7 +103,7 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
         do {
             if let platform = try await getCore().platformRegistry.lookup(identifier: "com.apple.platform.iphonesimulator") {
                 let result = SWBCore.computeSigningCertificateIdentifier(from: scope, platform: platform)
-                #expect(result == "-") // always Ad-hoc sign for simulator even if CODE_SIGN_IDENTITY has been overridden
+                #expect(result == "-")  // always Ad-hoc sign for simulator even if CODE_SIGN_IDENTITY has been overridden
             } else {
                 Issue.record("couldn't lookup platform com.apple.platform.iphonesimulator")
             }
@@ -124,9 +123,9 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
         let entitlementsPath = Path("/Entitlements/entitlements.plist")
         let sdkEntitlementsPath = sdk.path.join(Path("Entitlements.plist"))
 
-        let scope = setupMacroEvaluationScope([ BuiltinMacros.CODE_SIGN_ENTITLEMENTS: entitlementsPath.str ])
+        let scope = setupMacroEvaluationScope([BuiltinMacros.CODE_SIGN_ENTITLEMENTS: entitlementsPath.str])
         var result = SWBCore.lookupEntitlementsFilePath(from: scope, project: project, sdk: sdk, fs: fs)
-        #expect(result == entitlementsPath) // FIXME: Path isn't checked for existence, is that correct?
+        #expect(result == entitlementsPath)  // FIXME: Path isn't checked for existence, is that correct?
 
         try fs.createDirectory(entitlementsPath.dirname, recursive: false)
         try fs.write(entitlementsPath, contents: "foo = bar")
@@ -164,24 +163,24 @@ private func setupMacroEvaluationScope(_ settings: [MacroDeclaration:String] = [
                     groupTree: TestGroup(
                         "Sources",
                         children: [
-                            TestFile("aClass.m"),
+                            TestFile("aClass.m")
                         ]
                     ),
-                    buildConfigurations:[
-                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",])
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])
                     ],
                     targets: [
                         TestStandardTarget(
                             "AppTarget",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug"),
+                                TestBuildConfiguration("Debug")
                             ],
                             buildPhases: [
-                                TestSourcesBuildPhase(["aClass.m"]),
+                                TestSourcesBuildPhase(["aClass.m"])
                             ],
                             provisioningSourceData: [
-                                ProvisioningSourceData(configurationName: "Debug", provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget"),
+                                ProvisioningSourceData(configurationName: "Debug", provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget")
                             ]
                         )
                     ]

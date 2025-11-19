@@ -37,7 +37,7 @@ public struct OrderedSet<Element: Hashable>: Hashable {
         hasher.combine(array)
     }
 
-    public static func ==<T>(lhs: OrderedSet<T>, rhs: OrderedSet<T>) -> Bool {
+    public static func == <T>(lhs: OrderedSet<T>, rhs: OrderedSet<T>) -> Bool {
         return lhs.array == rhs.array
     }
 
@@ -78,7 +78,7 @@ public struct OrderedSet<Element: Hashable>: Hashable {
 
     /// Removes the elements of the given set from this set.
     /// - parameter other: A set of the same type as the current set.
-    public mutating func subtract<S>(_ other: S) where Element == S.Element, S : Sequence {
+    public mutating func subtract<S>(_ other: S) where Element == S.Element, S: Sequence {
         let removeIndices = other.compactMap { uniqueIndices.removeValue(forKey: $0) }.sorted()
         for index in removeIndices.reversed() {
             array.remove(at: index)
@@ -97,7 +97,7 @@ public struct OrderedSet<Element: Hashable>: Hashable {
     /// Returns a new set containing the elements of the receiver that do not occur in the given sequence.
     /// - parameter sequence: Another sequence whose elements will be removed from the receiver if present.
     /// - returns: A new ordered set.
-    public func subtracting<S>(_ sequence: S) -> OrderedSet<Element> where Element == S.Element, S : Sequence {
+    public func subtracting<S>(_ sequence: S) -> OrderedSet<Element> where Element == S.Element, S: Sequence {
         var newSet = self
         newSet.subtract(sequence)
         return newSet
@@ -193,7 +193,7 @@ extension OrderedSet {
     /// Returns a new set containing the elements of the receiver followed by the elements of another sequence.
     /// - parameter sequence: Another sequence.
     /// - returns: A new ordered set.
-    public func appending<S>(contentsOf sequence: S) -> OrderedSet<Element> where Element == S.Element, S : Sequence {
+    public func appending<S>(contentsOf sequence: S) -> OrderedSet<Element> where Element == S.Element, S: Sequence {
         var newSet = self
         newSet.append(contentsOf: sequence)
         return newSet

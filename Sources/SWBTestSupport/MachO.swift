@@ -15,9 +15,9 @@ package import SWBUtil
 extension MachO.Slice {
     package func targetTripleStrings(infoLookup: any PlatformInfoLookup) throws -> [String] {
         #if canImport(Darwin)
-        return try buildVersions().map { $0.targetTripleString(arch: self.arch, infoLookup: infoLookup) }
+            return try buildVersions().map { $0.targetTripleString(arch: self.arch, infoLookup: infoLookup) }
         #else
-        throw BinaryReaderError.parseError("Mach-O parsing not supported on this platform")
+            throw BinaryReaderError.parseError("Mach-O parsing not supported on this platform")
         #endif
     }
 }
@@ -57,7 +57,7 @@ extension BuildVersion.Platform {
             return "driverkit"
         default:
             guard let llvmTargetTripleSys = infoLookup.lookupPlatformInfo(platform: self)?.llvmTargetTripleSys else {
-                  fatalError("external Mach-O based platform \(self) must provide a llvmTargetTripleSys value")
+                fatalError("external Mach-O based platform \(self) must provide a llvmTargetTripleSys value")
             }
             return llvmTargetTripleSys
         }

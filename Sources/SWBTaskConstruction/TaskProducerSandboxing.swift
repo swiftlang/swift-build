@@ -44,7 +44,7 @@ extension TaskProducerContext {
         //   * the generic template for sandboxes
 
         sandboxProfileContents <<< "(version 1)" <<< "\n"
-        sandboxProfileContents <<< "(allow default)" <<< "\n" // Required; Removing this will cause testEnsureProperlyDeclaredInputOutputSucceeds to fail
+        sandboxProfileContents <<< "(allow default)" <<< "\n"  // Required; Removing this will cause testEnsureProperlyDeclaredInputOutputSucceeds to fail
 
         // TODO: rdar://87285630 (User script sandboxing: network requests)
         // Ideally we'd like the build system to track HTTP artifacts and guide the users to include them as dependencies.

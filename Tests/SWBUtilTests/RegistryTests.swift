@@ -14,7 +14,7 @@ import Foundation
 import Testing
 import SWBUtil
 
-@Suite fileprivate struct RegistryTests  {
+@Suite fileprivate struct RegistryTests {
 
     // Basic test class for use as a registry value.
     final class TestValueClass: Equatable, Sendable {
@@ -23,14 +23,14 @@ import SWBUtil
             self.label = label
         }
 
-        static func ==(lhs: TestValueClass, rhs: TestValueClass) -> Bool {
+        static func == (lhs: TestValueClass, rhs: TestValueClass) -> Bool {
             return lhs.label == rhs.label
         }
     }
 
     @Test
     func registryFunctionality() {
-        let registry = Registry<String,TestValueClass>()
+        let registry = Registry<String, TestValueClass>()
         #expect(registry["missing"] == nil)
 
         // Do a lookup-and-insert of a key that shouldn't already be in the registry.

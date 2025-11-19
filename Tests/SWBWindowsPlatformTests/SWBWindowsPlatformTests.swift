@@ -19,9 +19,9 @@ import SWBMacro
 
 @Suite fileprivate struct CommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     // Linker tool discovery is a bit more complex as it afffected by the ALTERNATE_LINKER build setting.
-    func ldMacroTable() async throws ->  MacroValueAssignmentTable {
-            let core = try await getCore()
-            return MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+    func ldMacroTable() async throws -> MacroValueAssignmentTable {
+        let core = try await getCore()
+        return MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
     }
 
     @Test(.requireSDKs(.windows))

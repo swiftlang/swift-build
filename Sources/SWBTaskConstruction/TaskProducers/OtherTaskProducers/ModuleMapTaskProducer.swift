@@ -162,7 +162,7 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
     }
 
     @discardableResult
-    override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+    override func appendGeneratedTasks(_ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
         return await super.appendGeneratedTasks(&tasks, options: options) { delegate in
             //
             await body(ModuleMapPhaseBasedTaskGenerationDelegate(delegate: delegate, copyHeadersCompletionTasks: copyHeadersCompletionTasks))
@@ -202,7 +202,7 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
                     let moduleMapExtensionPath = moduleMapTmpPath.appendingFileNameSuffix("-swiftextension")
                     let moduleMapExtensionFile = FileToBuild(context: context, absolutePath: context.makeAbsolute(moduleMapExtensionPath))
                     await appendGeneratedTasks(&tasks) { delegate in
-                        context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: scope, inputs: [], output: moduleMapExtensionPath), delegate, contents: moduleMapExtension, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions:  [.immediate, .ignorePhaseOrdering])
+                        context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: scope, inputs: [], output: moduleMapExtensionPath), delegate, contents: moduleMapExtension, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
                         if unifdef {
                             let originalModuleMapPath = moduleMapTmpPath.appendingFileNameSuffix("-original")
                             await context.unifdefSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [moduleMapSourceFile], output: originalModuleMapPath), delegate)
@@ -392,7 +392,7 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
             let moduleName = scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
 
             let interfaceHeaderName = scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME)
-            assert(!interfaceHeaderName.isEmpty) // implied by exportsSwiftObjCAPI
+            assert(!interfaceHeaderName.isEmpty)  // implied by exportsSwiftObjCAPI
 
             // Swift only module map contents is a top level framework module. Swift contents
             // for a mixed module map is a submodule of the top level framework module (whose
@@ -418,7 +418,7 @@ final class ModuleMapTaskProducer: PhasedTaskProducer, TaskProducer {
         let moduleName = scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
 
         let interfaceHeaderName = scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME)
-        assert(!interfaceHeaderName.isEmpty) // implied by exportsSwiftObjCAPI
+        assert(!interfaceHeaderName.isEmpty)  // implied by exportsSwiftObjCAPI
 
         outputStream <<< "\n"
         outputStream <<< "module \(try moduleName.asModuleIdentifierString()).__Swift {\n"

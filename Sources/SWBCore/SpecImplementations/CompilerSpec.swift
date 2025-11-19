@@ -14,7 +14,7 @@ import Foundation
 public import SWBUtil
 import SWBMacro
 
-open class CompilerSpec : CommandLineToolSpec, @unchecked Sendable {
+open class CompilerSpec: CommandLineToolSpec, @unchecked Sendable {
     class public override var typeName: String {
         return "Compiler"
     }
@@ -28,15 +28,16 @@ open class CompilerSpec : CommandLineToolSpec, @unchecked Sendable {
     @_spi(Testing) public let supportedLanguageVersions: [Version]
 
     public override init(_ parser: SpecParser, _ basedOnSpec: Spec?, isGeneric: Bool) {
-        supportedLanguageVersions = parser.parseStringList("SupportedLanguageVersions")?.compactMap {
-            do {
-                return try Version($0)
-            } catch {
-                // FIXME: This should eventually become an error.
-                parser.warning("Could not parse `SupportedLanguageVersions`: \(error)")
-                return nil
-            }
-        } ?? []
+        supportedLanguageVersions =
+            parser.parseStringList("SupportedLanguageVersions")?.compactMap {
+                do {
+                    return try Version($0)
+                } catch {
+                    // FIXME: This should eventually become an error.
+                    parser.warning("Could not parse `SupportedLanguageVersions`: \(error)")
+                    return nil
+                }
+            } ?? []
 
         // Parse and ignore keys we have no use for.
         //
@@ -123,7 +124,7 @@ extension ProjectFailuresBlockList {
     }
 }
 
-open class GenericCompilerSpec : CompilerSpec, @unchecked Sendable {
+open class GenericCompilerSpec: CompilerSpec, @unchecked Sendable {
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec, isGeneric: true)
     }

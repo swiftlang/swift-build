@@ -172,7 +172,6 @@ extension ProjectModel {
 
 }
 
-
 extension ProjectModel.Project: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -222,4 +221,3 @@ extension ProjectModel.Project: Codable {
         case appPreferencesBuildSettings
     }
 }
-

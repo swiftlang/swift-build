@@ -17,8 +17,10 @@ import SWBUtil
 
 @Suite(.skipHostOS(.windows))
 fileprivate struct GeneralCommandsTests {
-    @Test(.skipHostOS(.windows), // PTY not supported on Windows
-        .requireHostOS(.macOS)) // something with terminal echo is different on macOS vs Linux
+    @Test(
+        .skipHostOS(.windows),  // PTY not supported on Windows
+        .requireHostOS(.macOS)
+    )  // something with terminal echo is different on macOS vs Linux
     func generalCommands() async throws {
         // Test the basic functioning of the swbuild command line tool.
         try await withCLIConnection { cli in
@@ -41,7 +43,7 @@ fileprivate struct GeneralCommandsTests {
                 "setConfig a b",
                 "showStatistics",
                 "version",
-                "quit"
+                "quit",
             ]
             for command in commands {
                 try cli.send(command: command)
@@ -64,41 +66,46 @@ fileprivate struct GeneralCommandsTests {
                 case "headermap", "serializedDiagnostics":
                     XCTAssertMatch(reply, .suffix("\(command)\r\nerror: no path specified\r\n\r\nusage: \(command) --dump path\r\nswbuild> "))
                 case "help":
-                    XCTAssertMatch(reply, .suffix("""
-                    help\r
-                    build\r
-                    clang-scan\r
-                    clearAllCaches\r
-                    createBuildDescription\r
-                    createSession\r
-                    createXCFramework\r
-                    deleteSession\r
-                    describeBuildSettings\r
-                    dumpDependencyInfo\r
-                    dumpMsgPack\r
-                    dumpPID\r
-                    exit\r
-                    generateDependencyInfo\r
-                    headermap\r
-                    help\r
-                    isAlive\r
-                    listSessions\r
-                    openIDEConsole\r
-                    prepareForIndex\r
-                    quit\r
-                    selectSession\r
-                    sendMockPIF\r
-                    serializedDiagnostics\r
-                    setConfig\r
-                    showPlatforms\r
-                    showSDKs\r
-                    showSession\r
-                    showSpecs\r
-                    showStatistics\r
-                    showToolchains\r
-                    version\r
-                    swbuild>
-                    """ + " "))
+                    XCTAssertMatch(
+                        reply,
+                        .suffix(
+                            """
+                            help\r
+                            build\r
+                            clang-scan\r
+                            clearAllCaches\r
+                            createBuildDescription\r
+                            createSession\r
+                            createXCFramework\r
+                            deleteSession\r
+                            describeBuildSettings\r
+                            dumpDependencyInfo\r
+                            dumpMsgPack\r
+                            dumpPID\r
+                            exit\r
+                            generateDependencyInfo\r
+                            headermap\r
+                            help\r
+                            isAlive\r
+                            listSessions\r
+                            openIDEConsole\r
+                            prepareForIndex\r
+                            quit\r
+                            selectSession\r
+                            sendMockPIF\r
+                            serializedDiagnostics\r
+                            setConfig\r
+                            showPlatforms\r
+                            showSDKs\r
+                            showSession\r
+                            showSpecs\r
+                            showStatistics\r
+                            showToolchains\r
+                            version\r
+                            swbuild>
+                            """ + " "
+                        )
+                    )
                 case "isAlive":
                     XCTAssertMatch(reply, .contains("is alive? yes"))
                 case "sendMockPIF":
@@ -110,10 +117,10 @@ fileprivate struct GeneralCommandsTests {
                     XCTAssertMatch(reply, .contains("swift-build.Service.messagesReceived:"))
                 case "version":
                     #if SWIFT_PACKAGE
-                    break
+                        break
                     #else
-                    let version = try SwiftBuildGetVersion()
-                    XCTAssertMatch(reply, .contains(version))
+                        let version = try SwiftBuildGetVersion()
+                        XCTAssertMatch(reply, .contains(version))
                     #endif
                 default:
                     XCTAssertMatch(reply, .suffix("quit\r\n"))
@@ -160,19 +167,21 @@ fileprivate struct GeneralCommandsTests {
             "showSpecs",
             "showStatistics",
             "showToolchains",
-            "version"
+            "version",
         ].sorted()
 
-        let commands = output.split(separator: String.newline).filter({ !$0.isEmpty }).map({ String($0)}).sorted()
+        let commands = output.split(separator: String.newline).filter({ !$0.isEmpty }).map({ String($0) }).sorted()
 
         if commands != allCommands.sorted() {
-            Issue.record("""
-                    The list of commands is incorrect.
-                    actual:
-                    \(commands.joined(separator: String.newline))
-                    expected:
-                    \(allCommands.joined(separator: String.newline))"
-                    """)
+            Issue.record(
+                """
+                The list of commands is incorrect.
+                actual:
+                \(commands.joined(separator: String.newline))
+                expected:
+                \(allCommands.joined(separator: String.newline))"
+                """
+            )
         }
     }
 

@@ -15,7 +15,7 @@ import SWBUtil
 
 import Foundation
 
-func swbuild_handle_command_result(result: SWBServiceConsoleResult)  {
+func swbuild_handle_command_result(result: SWBServiceConsoleResult) {
     print(result.output, terminator: "")
 }
 

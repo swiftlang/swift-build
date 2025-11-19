@@ -103,10 +103,10 @@ class SWBServiceConsoleOpenIDEConsoleCommand: SWBServiceConsoleCommand {
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
         #if os(macOS) || targetEnvironment(macCatalyst)
-        DistributedNotificationCenter.default.post(name: Notification.Name("IDEOpenXCBuildConsole"), object: nil)
-        return .success(SWBServiceConsoleResult(output: "ok\n"))
+            DistributedNotificationCenter.default.post(name: Notification.Name("IDEOpenXCBuildConsole"), object: nil)
+            return .success(SWBServiceConsoleResult(output: "ok\n"))
         #else
-        return .failure(.invalidCommandError(description: "not supported on this platform\n"))
+            return .failure(.invalidCommandError(description: "not supported on this platform\n"))
         #endif
     }
 }
@@ -122,7 +122,7 @@ class SWBServiceConsoleSendPIFCommand: SWBServiceConsoleCommand {
             "guid": "W1",
             "name": "aWorkspace",
             "path": "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
-            "projects": ["PROJECT"]
+            "projects": ["PROJECT"],
         ]
         let projectPIF: SWBPropertyListItem = [
             "guid": "P1",
@@ -136,7 +136,7 @@ class SWBServiceConsoleSendPIFCommand: SWBServiceConsoleCommand {
                     "name": "Config1",
                     "buildSettings": [
                         "USER_PROJECT_SETTING": "USER_PROJECT_VALUE"
-                    ]
+                    ],
                 ]
             ],
             "groupTree": [
@@ -144,20 +144,20 @@ class SWBServiceConsoleSendPIFCommand: SWBServiceConsoleCommand {
                 "type": "group",
                 "name": "SomeFiles",
                 "sourceTree": "PROJECT_DIR",
-                "path": "/tmp/SomeProject/SomeFiles"
-            ]
+                "path": "/tmp/SomeProject/SomeFiles",
+            ],
         ]
         let topLevelPIF: SWBPropertyListItem = [
             [
                 "type": "workspace",
                 "signature": "WORKSPACE",
-                "contents": workspacePIF
+                "contents": workspacePIF,
             ],
             [
                 "type": "project",
                 "signature": "PROJECT",
-                "contents": projectPIF
-            ]
+                "contents": projectPIF,
+            ],
         ]
 
         do {
@@ -217,12 +217,16 @@ class SWBServiceConsolePassThroughCommand {
         // FIXME: We need to be able to abstract the console output.
         let stdoutHandle = FileHandle.standardOutput
         let stderrHandle = FileHandle.standardError
-        let result = await invocation.console.service.executeCommandLineTool(invocation.commandLine, workingDirectory: Path.currentDirectory,
-                                                    stdoutHandler:{ data in
-                                                        try! stdoutHandle.write(contentsOf: data)
-        }, stderrHandler:{ data in
-            try! stderrHandle.write(contentsOf: data)
-        })
+        let result = await invocation.console.service.executeCommandLineTool(
+            invocation.commandLine,
+            workingDirectory: Path.currentDirectory,
+            stdoutHandler: { data in
+                try! stdoutHandle.write(contentsOf: data)
+            },
+            stderrHandler: { data in
+                try! stderrHandle.write(contentsOf: data)
+            }
+        )
 
         if result {
             return .success(SWBServiceConsoleResult(output: ""))

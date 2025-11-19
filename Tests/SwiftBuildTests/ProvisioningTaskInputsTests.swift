@@ -28,22 +28,26 @@ fileprivate struct ProvisioningTaskInputsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
-                        TestFile("main.m"),
+                    "Sources",
+                    children: [
+                        TestFile("main.m")
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ONLY_ACTIVE_ARCH": "YES",
-                        "SDKROOT": "macosx",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
-                        "CODE_SIGN_ENTITLEMENTS_CONTENTS": ByteString(try PropertyListItem.plDict(["com.apple.entitlement-from-build-setting": true]).asBytes(.xml)).asString,
-                        "PRODUCT_BUNDLE_IDENTIFIER": "com.apple.App",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ONLY_ACTIVE_ARCH": "YES",
+                            "SDKROOT": "macosx",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
+                            "CODE_SIGN_ENTITLEMENTS_CONTENTS": ByteString(try PropertyListItem.plDict(["com.apple.entitlement-from-build-setting": true]).asBytes(.xml)).asString,
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.apple.App",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -51,10 +55,10 @@ fileprivate struct ProvisioningTaskInputsTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "main.m",
+                                "main.m"
                             ])
                         ]
-                    ),
+                    )
                 ]
             )
 
@@ -89,11 +93,13 @@ fileprivate struct ProvisioningTaskInputsTests: CoreBasedTests {
                         results.checkNoDiagnostics()
 
                         try await results.checkEntitlements(.signed, Path(SRCROOT).join("build/Debug/App.app/Contents/MacOS/App")) { plist in
-                            #expect(plist == [
-                                "application-identifier": "com.apple.App",
-                                "com.apple.entitlement-from-build-setting": true,
-                                "com.apple.entitlement-from-file": true,
-                            ])
+                            #expect(
+                                plist == [
+                                    "application-identifier": "com.apple.App",
+                                    "com.apple.entitlement-from-build-setting": true,
+                                    "com.apple.entitlement-from-file": true,
+                                ]
+                            )
                         }
                     }
                 }

@@ -29,12 +29,17 @@ fileprivate struct TaskConstructionPerfTests: CoreBasedTests, PerfTests {
             let targets: [TestStandardTarget] = (0..<500).map {
                 let buildPath = tmpDir.join("build/\($0)")
                 return TestStandardTarget(
-                    "CoreFoo\($0)", type: .framework,
+                    "CoreFoo\($0)",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
-                            buildSettings: ["OBJROOT": buildPath.str, "SYMROOT": buildPath.str, "DSTROOT": buildPath.str])],
-                    buildPhases: [TestSourcesBuildPhase(["foo.c"])], dependencies: ["OtherFramework"])
+                            buildSettings: ["OBJROOT": buildPath.str, "SYMROOT": buildPath.str, "DSTROOT": buildPath.str]
+                        )
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])],
+                    dependencies: ["OtherFramework"]
+                )
             }
 
             let testWorkspace = TestWorkspace(
@@ -44,10 +49,18 @@ fileprivate struct TaskConstructionPerfTests: CoreBasedTests, PerfTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
-                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                              "GENERATE_INFOPLIST_FILE": "YES",
-                                                                                              "USE_HEADERMAP": "NO"])],
-                        targets: [TestAggregateTarget("all", dependencies: targets.map(\.name))] + targets)
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "USE_HEADERMAP": "NO",
+                                ]
+                            )
+                        ],
+                        targets: [TestAggregateTarget("all", dependencies: targets.map(\.name))] + targets
+                    )
                 ]
             )
             let tester = try await TaskConstructionTester(self.getCore(), testWorkspace)

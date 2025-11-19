@@ -26,12 +26,14 @@ extension PerfTests {
             var timings: [Duration] = []
             for _ in 0..<iterationCount {
                 for _ in 0..<subiterations {
-                    try await timings.append(SuspendingClock.suspending.measure {
-                        try await body()
-                    })
+                    try await timings.append(
+                        SuspendingClock.suspending.measure {
+                            try await body()
+                        }
+                    )
                 }
             }
-            return timings.reduce(Duration.seconds(0), { $0 + ($1 / Double(timings.count)) }) // average
+            return timings.reduce(Duration.seconds(0), { $0 + ($1 / Double(timings.count)) })  // average
         }
         _ = time
     }
@@ -41,9 +43,9 @@ extension Trait where Self == Testing.ConditionTrait {
     package static var performance: Self {
         enabled("Skipping performance test") {
             #if DEBUG
-            return getEnvironmentVariable("SWB_PERF_TESTS_ENABLE")?.boolValue ?? false
+                return getEnvironmentVariable("SWB_PERF_TESTS_ENABLE")?.boolValue ?? false
             #else
-            return true
+                return true
             #endif
         }
     }

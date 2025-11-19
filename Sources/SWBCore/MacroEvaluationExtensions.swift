@@ -14,8 +14,7 @@ public import SWBUtil
 public import SWBMacro
 import Foundation
 
-public extension PropertyListItem
-{
+public extension PropertyListItem {
     // TODO: In principle we could push 'preserveReferencesToSettings' down to the core evaluation methods, but that's a lot more work and not immediately needed.  I only added it here because evaluating macros in a whole property list structure is nontrivial.
     //
     /// Method which returns a new property list with macros evaluated in all string values.  By default, macros in dictionary keys are *not* evaluated, but they optionally can be.
@@ -24,11 +23,9 @@ public extension PropertyListItem
     /// - parameter preserveReferencesToSettings: If not nil, then any macros in this set will not be evaluated but will be preserved for later potential evaluation.  Macros in this set take precedence over the later `lookup` parameter.
     /// - parameter lookup: A block used to override evaluation of macros in the scope.
     /// - returns: The receiver with settings evaluated as directed.
-    func byEvaluatingMacros(withScope scope: MacroEvaluationScope, andDictionaryKeys: Bool = false, preserveReferencesToSettings: Set<MacroDeclaration>? = nil, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> PropertyListItem
-    {
+    func byEvaluatingMacros(withScope scope: MacroEvaluationScope, andDictionaryKeys: Bool = false, preserveReferencesToSettings: Set<MacroDeclaration>? = nil, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> PropertyListItem {
         // Helper function to evaluate macros in a string,
-        func stringByEvaluatingMacros(_ string: String, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String
-        {
+        func stringByEvaluatingMacros(_ string: String, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
             // If preserveSettingsReferences is not nil, then we create a lookup block to preserve settings references during evaluation.  We define this block here rather than in the outermost call so we can track whether we actually preserved any references and skip the .replacingOccurrences(of:) call below if we don't need to do it.
             var anyReferencesWerePreserved = false
             let preservingLookup: ((MacroDeclaration) -> MacroExpression?)?
@@ -41,8 +38,7 @@ public extension PropertyListItem
                     }
                     return lookup?(macro) ?? nil
                 }
-            }
-            else {
+            } else {
                 preservingLookup = lookup
             }
             let parsedString = scope.table.namespace.parseString(string)
@@ -68,8 +64,7 @@ public extension PropertyListItem
         case .plDict(let value):
             // Expand macros in values of a dictionary, and if requested, in keys.
             var result = [String: PropertyListItem]()
-            for (key, item) in value
-            {
+            for (key, item) in value {
                 let newKey = andDictionaryKeys ? stringByEvaluatingMacros(key, lookup: lookup) : key
                 let newValue = item.byEvaluatingMacros(withScope: scope, andDictionaryKeys: andDictionaryKeys, preserveReferencesToSettings: preserveReferencesToSettings, lookup: lookup)
                 result[newKey] = newValue
@@ -122,9 +117,12 @@ extension MacroEvaluationScope {
     /// Get the value of `$(TARGET_BUILD_DIR)` unmodified by `$(TARGET_BUILD_SUBPATH)`.
     /// This is used to retrieve the "original" target build directory for test targets using a host bundle.
     public var unmodifiedTargetBuildDir: Path {
-        return evaluate(BuiltinMacros.TARGET_BUILD_DIR, lookup: {
-            return ($0 == BuiltinMacros.TARGET_BUILD_SUBPATH) ? self.table.namespace.parseLiteralString("") : nil
-        })
+        return evaluate(
+            BuiltinMacros.TARGET_BUILD_DIR,
+            lookup: {
+                return ($0 == BuiltinMacros.TARGET_BUILD_SUBPATH) ? self.table.namespace.parseLiteralString("") : nil
+            }
+        )
     }
 
     public func subscopeBindingArchAndTriple(arch: String) -> MacroEvaluationScope {

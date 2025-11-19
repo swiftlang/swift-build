@@ -198,8 +198,6 @@ extension ProjectModel {
     }
 }
 
-
-
 extension ProjectModel.BuildPhase: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -430,4 +428,3 @@ extension ProjectModel.ShellScriptBuildPhase: Codable {
         case alwaysRunForInstallHdrs
     }
 }
-

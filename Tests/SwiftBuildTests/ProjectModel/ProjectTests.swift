@@ -72,7 +72,8 @@ fileprivate func testProjectCodable(
     let decoder = JSONDecoder()
     for target in original.targets {
         if let signature = target.common.signature,
-           let key = CodingUserInfoKey(rawValue: signature) {
+            let key = CodingUserInfoKey(rawValue: signature)
+        {
             assert(decoder.userInfo[key] == nil)
             decoder.userInfo[key] = target
         }
@@ -80,4 +81,3 @@ fileprivate func testProjectCodable(
     let obj = try decoder.decode(ProjectModel.Project.self, from: data)
     #expect(original == obj, sourceLocation: SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column))
 }
-

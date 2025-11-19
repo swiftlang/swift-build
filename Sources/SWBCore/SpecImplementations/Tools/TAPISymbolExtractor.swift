@@ -26,7 +26,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
     ///   - cbc: The command build context
     ///   - clangCompilerInfo: Optional information about the installed copy of clang. Pass nil if clang is not being used.
     ///
-    static public func shouldConstructSymbolExtractionTask(_ cbc: CommandBuildContext, clangCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)? ) async -> Bool {
+    static public func shouldConstructSymbolExtractionTask(_ cbc: CommandBuildContext, clangCompilerInfo: (any DiscoveredCommandLineToolSpecInfo)?) async -> Bool {
         let (canGenerateCXXTasks, hasPlusPlusHeaders) = await (canGenerateCXXTasks(cbc), hasPlusPlusHeaders(cbc))
         return ((supportsPlusPlus(cbc: cbc, clangCompilerInfo: clangCompilerInfo) && canGenerateCXXTasks) || !hasPlusPlusHeaders) && DocumentationCompilerSpec.shouldConstructSymbolGenerationTask(cbc)
     }
@@ -98,9 +98,9 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                 }
                 return predicate(foundFileType)
             })
-        || headers.publicHeaders.contains(where: { predicate(cbc.producer.lookupFileType(identifier: $0.fileTypeIdentifier)) })
-        || headers.privateHeaders.contains(where: { predicate(cbc.producer.lookupFileType(identifier: $0.fileTypeIdentifier)) })
-        || headers.projectHeaders.contains(where: { predicate(cbc.producer.lookupFileType(identifier: $0.fileTypeIdentifier)) })
+            || headers.publicHeaders.contains(where: { predicate(cbc.producer.lookupFileType(identifier: $0.fileTypeIdentifier)) })
+            || headers.privateHeaders.contains(where: { predicate(cbc.producer.lookupFileType(identifier: $0.fileTypeIdentifier)) })
+            || headers.projectHeaders.contains(where: { predicate(cbc.producer.lookupFileType(identifier: $0.fileTypeIdentifier)) })
     }
 
     /// A list of headers to consider for documentation
@@ -149,9 +149,9 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
 
         for buildFile in target.headersBuildPhase?.buildFiles ?? [] {
             guard headerVisibilityToProcess.contains(buildFile.headerVisibility),
-                  case let .reference(guid) = buildFile.buildableItem,
-                  let fileRef = cbc.producer.lookupReference(for: guid) as? FileReference,
-                  let path = fileRef.path.asLiteralString
+                case let .reference(guid) = buildFile.buildableItem,
+                let fileRef = cbc.producer.lookupReference(for: guid) as? FileReference,
+                let path = fileRef.path.asLiteralString
             else { continue }
             fileReferencePlatformFilters[fileRef] = buildFile.platformFilters
 
@@ -174,9 +174,9 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                 // The developer has opted in to build multi-language documentation.
                 return SwiftCompilerSpec.generatedObjectiveCHeaderOutputPath(cbc.scope)
             }
-            guard willProcessAnyHeaders, // Only process the Swift interface header if some other headers are also processed ...
-                    // ... and if the target has Swift code that can end up in the Swift interface header.
-                    target.sourcesBuildPhase?.containsSwiftSources(cbc.producer, cbc.producer, cbc.scope, cbc.producer.filePathResolver) == true
+            guard willProcessAnyHeaders,  // Only process the Swift interface header if some other headers are also processed ...
+                // ... and if the target has Swift code that can end up in the Swift interface header.
+                target.sourcesBuildPhase?.containsSwiftSources(cbc.producer, cbc.producer, cbc.scope, cbc.producer.filePathResolver) == true
             else {
                 return nil
             }
@@ -208,7 +208,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             //
             // If this target is an executable, continue with a heuristic for finding what headers to extract symbol information from for documentation.
             guard case .executable = DocumentationCompilerSpec.DocumentationType(from: cbc),
-                  let cFamilySourceFileType = cbc.producer.lookupFileType(identifier: "sourcecode.c")
+                let cFamilySourceFileType = cbc.producer.lookupFileType(identifier: "sourcecode.c")
             else {
                 // Otherwise, if it's not an executable, don't look for headers to process for documentation.
                 return .init(publicHeaders: [], privateHeaders: [], projectHeaders: [], generatedSwiftHeader: generatedSwiftHeaderPath(willProcessAnyHeaders: false), headerBuildFiles: [])
@@ -226,9 +226,9 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
 
             for file in target.sourcesBuildPhase?.buildFiles ?? [] {
                 guard case let .reference(guid) = file.buildableItem,
-                      let fileRef = cbc.producer.lookupReference(for: guid) as? FileReference,
-                      let fileType = cbc.producer.lookupFileType(identifier: fileRef.fileTypeIdentifier),
-                      fileType.conformsTo(cFamilySourceFileType)
+                    let fileRef = cbc.producer.lookupReference(for: guid) as? FileReference,
+                    let fileType = cbc.producer.lookupFileType(identifier: fileRef.fileTypeIdentifier),
+                    fileType.conformsTo(cFamilySourceFileType)
                 else { continue }
 
                 let path = cbc.producer.filePathResolver.resolveAbsolutePath(fileRef)
@@ -277,12 +277,12 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
 
         var commandLine = [
             clangPath.str,
-            "-extract-api"
+            "-extract-api",
         ]
 
-
         if let compatibilitySymbolsPath = swiftCompilerInfo?.toolPath.dirname.dirname.join("share").join("swift").join("compatibility-symbols"), let ignoresFlagAvailable = clangCompilerInfo?.hasFeature("extract-api-ignores"),
-           localFS.exists(compatibilitySymbolsPath) && ignoresFlagAvailable {
+            localFS.exists(compatibilitySymbolsPath) && ignoresFlagAvailable
+        {
             commandLine.append("--extract-api-ignores=\(compatibilitySymbolsPath.str)")
         }
 
@@ -302,7 +302,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                 let userHeaderSearchPaths = cbc.scope.evaluate(BuiltinMacros.TAPI_EXTRACT_API_SEARCH_PATHS).map {
                     return "-I" + $0
                 }
-                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope:cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
+                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope: cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
 
                 let moduleMapSearchPaths = dependenciesModuleMaps.map { "-fmodule-map-file=\($0.str)" }
 
@@ -342,7 +342,8 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         } else {
             commandLine += headerList.compactMap {
                 if let language = $0.language,
-                   GCCCompatibleLanguageDialect(dialectName: language).isPlusPlus {
+                    GCCCompatibleLanguageDialect(dialectName: language).isPlusPlus
+                {
                     return nil
                 }
                 return $0.path.str
@@ -370,8 +371,9 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
             return
         }
 
-        let inputs = cbc.inputs.map({ delegate.createNode($0.absolutePath) }) as [PlannedPathNode]
-                   + cbc.commandOrderingInputs
+        let inputs =
+            cbc.inputs.map({ delegate.createNode($0.absolutePath) }) as [PlannedPathNode]
+            + cbc.commandOrderingInputs
 
         let symbolGraphFile = Self.getMainSymbolGraphFile(cbc.scope)
 
@@ -393,7 +395,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
                 let userHeaderSearchPaths = cbc.scope.evaluate(BuiltinMacros.TAPI_EXTRACT_API_SEARCH_PATHS).map {
                     return "-I" + $0
                 }
-                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope:cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
+                let defaultFrameworkSearchPaths = frameworkSearchPaths.searchPathArguments(for: self, scope: cbc.scope) + sparseSDKSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
 
                 let moduleMapSearchPaths = dependenciesModuleMaps.map { "-fmodule-map-file=\($0.str)" }
 

@@ -15,6 +15,6 @@ import SWBUtil
 import Foundation
 
 public func SwiftBuildGetVersion() throws -> String {
-    final class C { }
+    final class C {}
     return try ((Bundle(for: C.self).infoDictionary?["CFBundleVersion"] as? String).map { try Version($0) } ?? Version()).description
 }

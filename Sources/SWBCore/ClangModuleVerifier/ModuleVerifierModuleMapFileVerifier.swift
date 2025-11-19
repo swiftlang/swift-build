@@ -29,10 +29,12 @@ public struct ModuleVerifierModuleMapFileVerifier {
         }
 
         if let publicModuleMap = framework.publicModuleMap {
-            let publicDiagnostics = self.moduleMapCheck(moduleMapKind: .publicModule,
-                                                        path: publicModuleMap.path,
-                                                        hasHeaders: framework.hasPublicHeaders,
-                                                        modulesCount: publicModuleMap.modulesHaveContents ? publicModuleMap.modules.count : 0)
+            let publicDiagnostics = self.moduleMapCheck(
+                moduleMapKind: .publicModule,
+                path: publicModuleMap.path,
+                hasHeaders: framework.hasPublicHeaders,
+                modulesCount: publicModuleMap.modulesHaveContents ? publicModuleMap.modules.count : 0
+            )
 
             if publicDiagnostics.count > 0 {
                 verifyPublic = false
@@ -41,10 +43,12 @@ public struct ModuleVerifierModuleMapFileVerifier {
         }
 
         if let privateModuleMap = framework.privateModuleMap {
-            let privateDiagnostics = self.moduleMapCheck(moduleMapKind: .privateModule,
-                                                         path: privateModuleMap.path,
-                                                         hasHeaders: framework.hasPrivateHeaders,
-                                                         modulesCount: privateModuleMap.modules.count)
+            let privateDiagnostics = self.moduleMapCheck(
+                moduleMapKind: .privateModule,
+                path: privateModuleMap.path,
+                hasHeaders: framework.hasPrivateHeaders,
+                modulesCount: privateModuleMap.modules.count
+            )
 
             if privateDiagnostics.count > 0 {
                 verifyPrivate = false
@@ -55,7 +59,7 @@ public struct ModuleVerifierModuleMapFileVerifier {
         return (verifyPublic, verifyPrivate, diagnostics)
     }
 
-    private static func moduleMapCheck(moduleMapKind:ModuleMapKind, path: Path, hasHeaders: Bool, modulesCount: Int) -> [Diagnostic] {
+    private static func moduleMapCheck(moduleMapKind: ModuleMapKind, path: Path, hasHeaders: Bool, modulesCount: Int) -> [Diagnostic] {
         // Xcode currently does not properly support a framework with only private headers being modularized
         // In order to make it work an empty module map has to be supplied which will throw a bunch of errors unless we bail early
         if moduleMapKind == .publicModule && !hasHeaders && modulesCount == 0 {

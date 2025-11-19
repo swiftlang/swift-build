@@ -36,7 +36,8 @@ fileprivate struct ClangModulesTaskConstructionTests: CoreBasedTests {
                         TestFile("c.cpp"),
                         TestFile("d.mm"),
                         TestFile("e.s"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -45,18 +46,20 @@ fileprivate struct ClangModulesTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CLANG_USE_RESPONSE_FILE": "NO",
                             "CLANG_ENABLE_MODULES": "YES",
-                            "CC": clangCompilerPath.str
-                        ]),
+                            "CC": clangCompilerPath.str,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Test",
                         type: .staticLibrary,
                         buildPhases: [
-                            TestSourcesBuildPhase(["a.c", "b.m", "c.cpp", "d.mm", "e.s"]),
+                            TestSourcesBuildPhase(["a.c", "b.m", "c.cpp", "d.mm", "e.s"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)

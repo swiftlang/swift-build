@@ -18,15 +18,18 @@ import Foundation
 struct BareMetalPlatformExtension: PlatformInfoExtension {
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
-            (.root, [
-                "Type": .plString("Platform"),
-                "Name": .plString("none"),
-                "Identifier": .plString("none"),
-                "Description": .plString("Bare Metal"),
-                "FamilyName": .plString("None"),
-                "FamilyIdentifier": .plString("none"),
-                "IsDeploymentPlatform": .plString("YES"),
-            ])
+            (
+                .root,
+                [
+                    "Type": .plString("Platform"),
+                    "Name": .plString("none"),
+                    "Identifier": .plString("none"),
+                    "Description": .plString("Bare Metal"),
+                    "FamilyName": .plString("None"),
+                    "FamilyIdentifier": .plString("none"),
+                    "IsDeploymentPlatform": .plString("YES"),
+                ]
+            )
         ]
     }
 }
@@ -38,24 +41,31 @@ struct BareMetalPlatformExtension: PlatformInfoExtension {
         }
 
         let defaultProperties: [String: PropertyListItem] = [
-            "SDK_STAT_CACHE_ENABLE": "NO",
+            "SDK_STAT_CACHE_ENABLE": "NO"
         ]
 
-        return [(.root, platform, [
-            "Type": .plString("SDK"),
-            "Version": .plString("0.0.0"),
-            "CanonicalName": .plString("none"),
-            "IsBaseSDK": .plBool(true),
-            "DefaultProperties": .plDict([
-                "PLATFORM_NAME": .plString("none"),
-            ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-            "CustomProperties": .plDict([:]),
-            "SupportedTargets": .plDict([
-                "none": .plDict([
-                    "Archs": .plArray([]),
-                    "LLVMTargetTripleSys": .plString("none"),
-                ])
-            ]),
-        ])]
+        return [
+            (
+                .root, platform,
+                [
+                    "Type": .plString("SDK"),
+                    "Version": .plString("0.0.0"),
+                    "CanonicalName": .plString("none"),
+                    "IsBaseSDK": .plBool(true),
+                    "DefaultProperties": .plDict(
+                        [
+                            "PLATFORM_NAME": .plString("none")
+                        ].merging(defaultProperties, uniquingKeysWith: { _, new in new })
+                    ),
+                    "CustomProperties": .plDict([:]),
+                    "SupportedTargets": .plDict([
+                        "none": .plDict([
+                            "Archs": .plArray([]),
+                            "LLVMTargetTripleSys": .plString("none"),
+                        ])
+                    ]),
+                ]
+            )
+        ]
     }
 }

@@ -41,9 +41,12 @@ fileprivate struct ServiceTests {
         #expect(service.terminated)
 
         // Verify we do not crash if attempting to re-use a closed connection.
-        await #expect(throws: (any Error).self, performing: {
-            try await service.checkAlive()
-        })
+        await #expect(
+            throws: (any Error).self,
+            performing: {
+                try await service.checkAlive()
+            }
+        )
     }
 
     // Regression test for rdar://84997640.
@@ -56,7 +59,7 @@ fileprivate struct ServiceTests {
                     type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("foo.c"),
+                            TestBuildFile("foo.c")
                         ])
                     ]
                 )
@@ -66,14 +69,18 @@ fileprivate struct ServiceTests {
                     defaultConfigurationName: "Debug",
                     groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "USE_HEADERMAP": "YES",
-                            "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            "DEFINES_MODULE": "YES",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "USE_HEADERMAP": "YES",
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "DEFINES_MODULE": "YES",
+                            ]
+                        )
                     ],
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDir, projects: [testProject])
 
                 try localFS.write(tmpDir.join("foo.c"), contents: "int main() { return 0; }")
@@ -138,8 +145,8 @@ fileprivate struct ServiceTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let session = testSession.session
@@ -148,59 +155,86 @@ fileprivate struct ServiceTests {
                     error.localizedDescription.contains("missingWorkspaceContext")
                 }
 
-                await #expect(performing: {
-                    try await session.createBuildOperation(request: SWBBuildRequest(), delegate: EmptyBuildOperationDelegate())
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.createBuildOperation(request: SWBBuildRequest(), delegate: EmptyBuildOperationDelegate())
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.generateIndexingFileSettings(for: SWBBuildRequest(), targetID: "", delegate: EmptyBuildOperationDelegate())
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.generateIndexingFileSettings(for: SWBBuildRequest(), targetID: "", delegate: EmptyBuildOperationDelegate())
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.generatePreviewInfo(for: SWBBuildRequest(), targetID: "", sourceFile: "", thunkVariantSuffix: "", delegate: EmptyBuildOperationDelegate())
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.generatePreviewInfo(for: SWBBuildRequest(), targetID: "", sourceFile: "", thunkVariantSuffix: "", delegate: EmptyBuildOperationDelegate())
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.generatePreviewTargetDependencyInfo(for: SWBBuildRequest(), targetIDs: [""], delegate: EmptyBuildOperationDelegate())
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.generatePreviewTargetDependencyInfo(for: SWBBuildRequest(), targetIDs: [""], delegate: EmptyBuildOperationDelegate())
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.describeArchivableProducts(input: [])
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.describeArchivableProducts(input: [])
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.describeSchemes(input: [])
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.describeSchemes(input: [])
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.describeProducts(input: .init(configurationName: "Debug", targetIdentifiers: []), platformName: "macosx")
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.describeProducts(input: .init(configurationName: "Debug", targetIdentifiers: []), platformName: "macosx")
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.setSystemInfo(.defaultForTesting)
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.setSystemInfo(.defaultForTesting)
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
 
-                await #expect(performing: {
-                    try await session.setUserInfo(.defaultForTesting)
-                }, throws: {
-                    assertErrorIsMissingWorkspaceContext($0)
-                })
+                await #expect(
+                    performing: {
+                        try await session.setUserInfo(.defaultForTesting)
+                    },
+                    throws: {
+                        assertErrorIsMissingWorkspaceContext($0)
+                    }
+                )
             }
         }
     }
@@ -257,7 +291,8 @@ fileprivate struct ServiceTests {
                 "aProject",
                 defaultConfigurationName: "Debug",
                 groupTree: TestGroup("Foo", children: [TestFile("tool.c"), TestFile("foo.intentdefinition")]),
-                targets: [])
+                targets: []
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDir, projects: [testProject])
 
             func testVariant(variant: SWBBuildServiceVariant, _ expectedExecutableFileName: String, file: StaticString = #filePath, line: UInt = #line) async throws {
@@ -288,17 +323,20 @@ fileprivate struct ServiceTests {
             // The default is to launch the _asan service if the currently executing image is an _asan one
             try await testVariant(
                 variant: .default,
-                runningWithASanSupport ? "\(executableName)_asan" : executableName)
+                runningWithASanSupport ? "\(executableName)_asan" : executableName
+            )
 
             // An explicit request for normal always uses normal
             try await testVariant(
                 variant: .normal,
-                executableName)
+                executableName
+            )
 
             // An explicit request for ASan launches the ASan service if it exists, otherwise uses normal
             try await testVariant(
                 variant: .asan,
-                builtWithASanSupport ? "\(executableName)_asan" : executableName)
+                builtWithASanSupport ? "\(executableName)_asan" : executableName
+            )
         }
     }
 
@@ -314,7 +352,7 @@ fileprivate struct ServiceTests {
                     type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("tool.c"),
+                            TestBuildFile("tool.c")
                         ])
                     ],
                     dependencies: ["Tool2"]
@@ -325,7 +363,7 @@ fileprivate struct ServiceTests {
                     type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("tool.c"),
+                            TestBuildFile("tool.c")
                         ])
                     ]
                 )
@@ -335,26 +373,30 @@ fileprivate struct ServiceTests {
                     defaultConfigurationName: "Debug",
                     groupTree: TestGroup("Foo", children: [TestFile("tool.c")]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
 
-                            // We need a setting that'll cause a diagnostic to get emitted quite early,
-                            // but not one that's an error and stops the build
-                            "DEVELOPMENT_ASSET_PATHS": "bogus",
-                            "VALIDATE_DEVELOPMENT_ASSET_PATHS": "YES",
+                                // We need a setting that'll cause a diagnostic to get emitted quite early,
+                                // but not one that's an error and stops the build
+                                "DEVELOPMENT_ASSET_PATHS": "bogus",
+                                "VALIDATE_DEVELOPMENT_ASSET_PATHS": "YES",
 
-                        ])
+                            ]
+                        )
                     ],
-                    targets: [testTarget, testTarget2])
+                    targets: [testTarget, testTarget2]
+                )
                 let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDir, projects: [testProject])
 
                 // Construct the test session.
                 let testSession = try await TestSWBSession(connectionMode: .outOfProcess, temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let tester = try await CoreQualificationTester(testWorkspace, testSession)
@@ -389,8 +431,8 @@ fileprivate struct ServiceTests {
                 let testSession = try await TestSWBSession(connectionMode: .outOfProcess, temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let developerPath = try await testSession.session.developerPath()
@@ -409,11 +451,14 @@ fileprivate struct ServiceTests {
             _ = try await InstalledXcode.currentlySelected().xcrun(["-sdk", "macosx", "clang", "-target", "\(#require(Architecture.host.stringValue))-apple-macos\(deploymentTarget.canonicalDeploymentTargetForm)", "main.c"], workingDirectory: path)
 
             _ = await withEnvironment(["SWBBUILDSERVICE_PATH": path.join("a.out").str]) {
-                await #expect(performing: {
-                    try await SWBBuildService(connectionMode: .outOfProcess)
-                }, throws: { error in
-                    String(describing: error) == "Couldn't launch the build service process '\(path.str)/a.out' because it requires macOS \(deploymentTarget.canonicalDeploymentTargetForm) or later (running macOS \(osVersion.canonicalDeploymentTargetForm))."
-                })
+                await #expect(
+                    performing: {
+                        try await SWBBuildService(connectionMode: .outOfProcess)
+                    },
+                    throws: { error in
+                        String(describing: error) == "Couldn't launch the build service process '\(path.str)/a.out' because it requires macOS \(deploymentTarget.canonicalDeploymentTargetForm) or later (running macOS \(osVersion.canonicalDeploymentTargetForm))."
+                    }
+                )
             }
         }
     }
@@ -425,7 +470,7 @@ fileprivate struct ServiceTests {
 
         // Create a session, which references the service.
         let (sessionResult, diagnostics) = await service.createSession(name: "Test", cachePath: nil)
-        #expect(diagnostics.filter { $0.kind == .error}.isEmpty)
+        #expect(diagnostics.filter { $0.kind == .error }.isEmpty)
         let session = try sessionResult.get()
 
         // Send a simple session message, which should succeed.
@@ -436,21 +481,27 @@ fileprivate struct ServiceTests {
         #expect(service.terminated)
 
         // Send a simple message, which should now fail due to the underlying service termination.
-        await #expect(performing: {
-            try await session.developerPath()
-        }, throws: { error in
-            (error as? SwiftBuildError) == .requestError(description: "The Xcode build system has crashed. Build again to continue.")
-        })
+        await #expect(
+            performing: {
+                try await session.developerPath()
+            },
+            throws: { error in
+                (error as? SwiftBuildError) == .requestError(description: "The Xcode build system has crashed. Build again to continue.")
+            }
+        )
 
         // Restart the service.
         try await service.restart()
 
         // Send a simple message again, which should fail because the session is no longer valid.
-        await #expect(performing: {
-            try await session.developerPath()
-        }, throws: { error in
-            (error as? SwiftBuildError) == .requestError(description: "unknownSession(handle: \"S0\")")
-        })
+        await #expect(
+            performing: {
+                try await session.developerPath()
+            },
+            throws: { error in
+                (error as? SwiftBuildError) == .requestError(description: "unknownSession(handle: \"S0\")")
+            }
+        )
 
         // The service has already been restart, so it should not be marked terminated.
         #expect(!service.terminated)
@@ -460,10 +511,13 @@ fileprivate struct ServiceTests {
         #expect(session.terminated)
 
         // Closing will also fail because the session is no longer valid, but we need to attempt closing or we'll assert.
-        await #expect(performing: {
-            try await session.close()
-        }, throws: { error in
-            (error as? SwiftBuildError) == .requestError(description: "unknownSession(handle: \"S0\")")
-        })
+        await #expect(
+            performing: {
+                try await session.close()
+            },
+            throws: { error in
+                (error as? SwiftBuildError) == .requestError(description: "unknownSession(handle: \"S0\")")
+            }
+        )
     }
 }

@@ -14,7 +14,7 @@ public import SWBUtil
 import SWBMacro
 import Foundation
 
-public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class ProductPackagingToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.product-pkg-utility"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -175,7 +175,7 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
             delegate.access(path: path)
         }
 
-        delegate.createTask(type: self, ruleInfo: ["ProcessProductPackaging", codeSignEntitlementsInput?.absolutePath.str ?? "", outputPath.str], commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs.map(\.absolutePath), outputs: [ outputPath ], action: action, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, ruleInfo: ["ProcessProductPackaging", codeSignEntitlementsInput?.absolutePath.str ?? "", outputPath.str], commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs.map(\.absolutePath), outputs: [outputPath], action: action, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
     /// Construct a task to create the provisioning file (commonly named `embedded.mobileprovision`).
@@ -202,10 +202,10 @@ public final class ProductPackagingToolSpec : GenericCommandLineToolSpec, SpecId
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
 
         let action = delegate.taskActionCreationDelegate.createProcessProductProvisioningProfileTaskAction()
-        delegate.createTask(type: self, ruleInfo: ["ProcessProductPackaging", inputPath.str, outputPath.str], commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [ outputPath ], action: action, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, ruleInfo: ["ProcessProductPackaging", inputPath.str, outputPath.str], commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [outputPath], action: action, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
 
         // FIXME: Need to add this signature info to the command once commands support signatures.  (I think we probably only need to add the UUID.)
-//        producer.extraSignatureInfo = inputs.profileUUID ?: inputs.profilePath.pathString;
+        //        producer.extraSignatureInfo = inputs.profileUUID ?: inputs.profilePath.pathString;
     }
 }
 
@@ -230,7 +230,7 @@ private extension ProductPackagingToolSpec {
                         message = "The '\(buildSettingName)' build setting is set to '\(buildSettingValue)', but entitlement '\(entitlement)' is set to '\(entitlementValue ? "YES" : "NO")' in your entitlements file."
                         childDiagnostics = [
                             .init(behavior: .note, location: entitlementsLocation, data: .init("To enable '\(buildSettingName)', remove the entitlement from your entitlements file.")),
-                            .init(behavior: .note, location: .buildSettings(names: [buildSettingName]), data: .init("To disable '\(buildSettingName)', remove the entitlement from your entitlements file and disable '\(buildSettingName)' in  build settings."))
+                            .init(behavior: .note, location: .buildSettings(names: [buildSettingName]), data: .init("To disable '\(buildSettingName)', remove the entitlement from your entitlements file and disable '\(buildSettingName)' in  build settings.")),
                         ]
 
                         delegate.warning(message, childDiagnostics: childDiagnostics)

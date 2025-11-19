@@ -25,7 +25,7 @@ private enum TaskType: Equatable {
     case other
 }
 
-private func ==(lhs: TaskType, rhs: TaskType) -> Bool {
+private func == (lhs: TaskType, rhs: TaskType) -> Bool {
     switch (lhs, rhs) {
     case (.beginTargetTask(_), .beginTargetTask(_)): return true
     case (.endTargetTask(_), .endTargetTask(_)): return true
@@ -157,8 +157,7 @@ struct DependencyCycleFormatter {
         let rulesInCycle: [BuildKey]
         do {
             rulesInCycle = try rulesInsideCycle()
-        }
-        catch {
+        } catch {
             return error.localizedDescription
         }
 
@@ -186,8 +185,7 @@ struct DependencyCycleFormatter {
             } else {
                 (cycleOutput, involvesManualTargetOrder) = try formattedMultiTargetCycleOutput(rulesInCycle)
             }
-        }
-        catch {
+        } catch {
             return error.localizedDescription
         }
 
@@ -335,94 +333,93 @@ struct DependencyCycleFormatter {
         var previousConfiguredTarget: ConfiguredTarget? = nil
         var previousTargetDependencies = [ResolvedTargetDependency]()
         var savedTasks = [(rule: BuildKey, task: any ExecutableTask)]()
-        let cycleMessagePayloads: [DependencyCycleMessagePayload] = (try cycleRules.compactMap({ rule in
-            // The custom rule explaining the reason for the target dependency, if we create one for this rule.
-            var messagePayloads: [DependencyCycleMessagePayload]? = nil
+        let cycleMessagePayloads: [DependencyCycleMessagePayload] =
+            (try cycleRules.compactMap({ rule in
+                // The custom rule explaining the reason for the target dependency, if we create one for this rule.
+                var messagePayloads: [DependencyCycleMessagePayload]? = nil
 
-            // Get the task for the rule, if any.
-            let task: (any ExecutableTask)? = try {
-                if let task = executableTask(for: rule) {
-                    return task
-                } else if let customRule = rule as? BuildKey.CustomTask, let task = try executableTaskForCustomRule(customRule) {
-                    return task
-                } else {
-                    return nil
-                }
-            }()
+                // Get the task for the rule, if any.
+                let task: (any ExecutableTask)? = try {
+                    if let task = executableTask(for: rule) {
+                        return task
+                    } else if let customRule = rule as? BuildKey.CustomTask, let task = try executableTaskForCustomRule(customRule) {
+                        return task
+                    } else {
+                        return nil
+                    }
+                }()
 
-            if let task {
-                if let configuredTarget = task.forTarget {
-                    // We're only going to report anything if we've crossed a target boundary.
-                    // In the future we can adjust this if we find multi-target cycles where tasks within a target are relevant, either materially or to provide useful context to humans.
-                    if configuredTarget != previousConfiguredTarget {
-                        // We only create a message if we have saved tasks.
-                        if !savedTasks.isEmpty, let previousConfiguredTarget {
-                            // If both this and the saved task are gate tasks, then we almost certainly have a target dependency, either explicit, implicit, or due to ordering.
-                            // It would be weird if there is a task without a target between the previous task and this task, which is why we use .first here.  If we find a scenario where that happens, we can revise this.  (We use .first rather than .only so we don't drop something on the floor that we are capable of reporting.)
-                            if task.isGate, let previousTask = savedTasks.first?.task, previousTask.isGate {
-                                // Resolve the dependency between the previous target and this one.
-                                let resolvedTargetDependency = previousTargetDependencies.filter({ $0.target == configuredTarget }).only
+                if let task {
+                    if let configuredTarget = task.forTarget {
+                        // We're only going to report anything if we've crossed a target boundary.
+                        // In the future we can adjust this if we find multi-target cycles where tasks within a target are relevant, either materially or to provide useful context to humans.
+                        if configuredTarget != previousConfiguredTarget {
+                            // We only create a message if we have saved tasks.
+                            if !savedTasks.isEmpty, let previousConfiguredTarget {
+                                // If both this and the saved task are gate tasks, then we almost certainly have a target dependency, either explicit, implicit, or due to ordering.
+                                // It would be weird if there is a task without a target between the previous task and this task, which is why we use .first here.  If we find a scenario where that happens, we can revise this.  (We use .first rather than .only so we don't drop something on the floor that we are capable of reporting.)
+                                if task.isGate, let previousTask = savedTasks.first?.task, previousTask.isGate {
+                                    // Resolve the dependency between the previous target and this one.
+                                    let resolvedTargetDependency = previousTargetDependencies.filter({ $0.target == configuredTarget }).only
 
-                                // We only note that manual target order is in use if we see that we've crossed a target boundary but we couldn't find an expressed target dependency.  Otherwise it (in theory) doesn't matter whether manual target order is in use, because the target dependencies in the cycle should be the same even if it weren't.
-                                if resolvedTargetDependency == nil, !buildDescription.targetsBuildInParallel {
-                                    involvesManualTargetOrder = true
-                                }
-
-                                // Create a new custom task with the message describing the dependency between these targets.
-                                // Note that we would only not have a previous target here if we're still in the first target of the cycle.  But we should find the dependency again later on.
-                                // FIXME: This doesn't handle the case where the workspace has multiple targets with the same name (in different projects).
-                                let targetName = configuredTarget.target.name
-                                let previousTargetName = previousConfiguredTarget.target.name
-                                let message: String
-                                switch resolvedTargetDependency?.reason {
-                                case .explicit?:
-                                    message = "Target '\(previousTargetName)' has an explicit dependency on Target '\(targetName)'"
-                                case let .implicitBuildPhaseLinkage(filename, _, buildPhase)?:
-                                    message = "Target '\(previousTargetName)' has an implicit dependency on Target '\(targetName)' because '\(previousTargetName)' references the file '\(filename)' in the build phase '\(buildPhase)'"
-                                case let .implicitBuildSetting(settingName, options)?:
-                                    message = "Target '\(previousTargetName)' has an implicit dependency on Target '\(targetName)' because '\(previousTargetName)' defines the option '\(options.joined(separator: " "))' in the build setting '\(settingName)'"
-                                case let .impliedByTransitiveDependencyViaRemovedTargets(intermediateTargetName: intermediateTargetName):
-                                    message = "Target '\(previousTargetName)' has a dependency on Target '\(targetName)' via its transitive dependency through '\(intermediateTargetName)'"
-                                case nil:
-                                    if !buildDescription.targetsBuildInParallel {
-                                        message = "Target '\(previousTargetName)' is ordered after Target '\(targetName)' in a “Target Dependencies” build phase" + (buildRequest.schemeCommand != nil ? " or in the scheme" : "")
-                                    } else {
-                                        message = "Target '\(previousTargetName)' depends on Target '\(targetName)', but the reason for the dependency could not be determined"
+                                    // We only note that manual target order is in use if we see that we've crossed a target boundary but we couldn't find an expressed target dependency.  Otherwise it (in theory) doesn't matter whether manual target order is in use, because the target dependencies in the cycle should be the same even if it weren't.
+                                    if resolvedTargetDependency == nil, !buildDescription.targetsBuildInParallel {
+                                        involvesManualTargetOrder = true
                                     }
+
+                                    // Create a new custom task with the message describing the dependency between these targets.
+                                    // Note that we would only not have a previous target here if we're still in the first target of the cycle.  But we should find the dependency again later on.
+                                    // FIXME: This doesn't handle the case where the workspace has multiple targets with the same name (in different projects).
+                                    let targetName = configuredTarget.target.name
+                                    let previousTargetName = previousConfiguredTarget.target.name
+                                    let message: String
+                                    switch resolvedTargetDependency?.reason {
+                                    case .explicit?:
+                                        message = "Target '\(previousTargetName)' has an explicit dependency on Target '\(targetName)'"
+                                    case let .implicitBuildPhaseLinkage(filename, _, buildPhase)?:
+                                        message = "Target '\(previousTargetName)' has an implicit dependency on Target '\(targetName)' because '\(previousTargetName)' references the file '\(filename)' in the build phase '\(buildPhase)'"
+                                    case let .implicitBuildSetting(settingName, options)?:
+                                        message = "Target '\(previousTargetName)' has an implicit dependency on Target '\(targetName)' because '\(previousTargetName)' defines the option '\(options.joined(separator: " "))' in the build setting '\(settingName)'"
+                                    case let .impliedByTransitiveDependencyViaRemovedTargets(intermediateTargetName: intermediateTargetName):
+                                        message = "Target '\(previousTargetName)' has a dependency on Target '\(targetName)' via its transitive dependency through '\(intermediateTargetName)'"
+                                    case nil:
+                                        if !buildDescription.targetsBuildInParallel {
+                                            message = "Target '\(previousTargetName)' is ordered after Target '\(targetName)' in a “Target Dependencies” build phase" + (buildRequest.schemeCommand != nil ? " or in the scheme" : "")
+                                        } else {
+                                            message = "Target '\(previousTargetName)' depends on Target '\(targetName)', but the reason for the dependency could not be determined"
+                                        }
+                                    }
+
+                                    messagePayloads = [DependencyCycleMessagePayload(configuredTarget, .message(message))]
                                 }
 
-                                messagePayloads = [DependencyCycleMessagePayload(configuredTarget, .message(message))]
+                                // If the two tasks are not gate tasks, then we're crossing a target boundary for a different reason and we need to create a message from the tasks and the intervening node.
+                                else {
+                                    messagePayloads = savedTasks.enumerated().map({ index, saved in DependencyCycleMessagePayload(index == 0 ? previousConfiguredTarget : nil, .rule(saved.rule)) }) + [DependencyCycleMessagePayload(configuredTarget, .rule(rule))]
+                                }
                             }
 
-                            // If the two tasks are not gate tasks, then we're crossing a target boundary for a different reason and we need to create a message from the tasks and the intervening node.
-                            else {
-                                messagePayloads = savedTasks.enumerated().map({ index, saved in DependencyCycleMessagePayload( index == 0 ? previousConfiguredTarget : nil, .rule(saved.rule)) }) +
-                                    [DependencyCycleMessagePayload(configuredTarget, .rule(rule))]
-                            }
+                            // Record the current target as the new previous target.  Also zero out previousTargetDependencies since we're in a new target.
+                            previousConfiguredTarget = configuredTarget
+                            previousTargetDependencies = []
                         }
 
-                        // Record the current target as the new previous target.  Also zero out previousTargetDependencies since we're in a new target.
-                        previousConfiguredTarget = configuredTarget
-                        previousTargetDependencies = []
+                        // Save this task rule and task.
+                        savedTasks = [(rule, task)]
+                    } else {
+                        // If this task doesn't have a target, then add this task rule and task to the saved list so we have tasks going back to the last task with a target.
+                        savedTasks.append((rule, task))
                     }
 
-                    // Save this task rule and task.
-                    savedTasks = [(rule, task)]
-                }
-                else {
-                    // If this task doesn't have a target, then add this task rule and task to the saved list so we have tasks going back to the last task with a target.
-                    savedTasks.append((rule, task))
+                    // If this task has target dependencies, then record them as the previous target's dependencies.
+                    // Note that only (some?) gate tasks populate this property; see the comment in ExecutableTask.targetDependencies.
+                    if !task.targetDependencies.isEmpty {
+                        previousTargetDependencies = task.targetDependencies
+                    }
                 }
 
-                // If this task has target dependencies, then record them as the previous target's dependencies.
-                // Note that only (some?) gate tasks populate this property; see the comment in ExecutableTask.targetDependencies.
-                if !task.targetDependencies.isEmpty {
-                    previousTargetDependencies = task.targetDependencies
-                }
-            }
-
-            return messagePayloads
-        }) as [[DependencyCycleMessagePayload]]).reduce([], +)
+                return messagePayloads
+            }) as [[DependencyCycleMessagePayload]]).reduce([], +)
 
         // Create the formatted output for the cycle.
         let messages: [(target: ConfiguredTarget?, message: String)] = try cycleMessagePayloads.compactMap { payload in
@@ -462,14 +459,16 @@ struct DependencyCycleFormatter {
         // For target dependencies, remove the task that led to it.
         var effectiveRules = cycleRules
         for rule in cycleRules.enumerated().dropLast(4) {
-            let nodePairs = [("entry", "end"),
-                             ("begin-compiling", "modules-ready"),
-                             ("begin-linking", "linker-inputs-ready")]
+            let nodePairs = [
+                ("entry", "end"),
+                ("begin-compiling", "modules-ready"),
+                ("begin-linking", "linker-inputs-ready"),
+            ]
 
             for (begin, end) in nodePairs {
                 // Check if the successor build keys match a target dependency:
                 // target entry node => target entry gate task => target end node => target end gate task
-                if let cmd = self.executableTask(for: cycleRules[rule.offset + 2]), cmd.taskType == .beginTargetTask(targetName: ""), cycleRules[rule.offset + 1].key.hasSuffix("-\(begin)>")  {
+                if let cmd = self.executableTask(for: cycleRules[rule.offset + 2]), cmd.taskType == .beginTargetTask(targetName: ""), cycleRules[rule.offset + 1].key.hasSuffix("-\(begin)>") {
                     if let cmd = self.executableTask(for: cycleRules[rule.offset + 4]), cmd.taskType == .endTargetTask(targetName: ""), cycleRules[rule.offset + 3].key.hasSuffix("-\(end)>") {
                         // If they do, replace the current task, because only the target's name is relevant but not the concrete task.
                         if let targetName = self.executableTask(for: rule.element)?.forTarget?.target.name {
@@ -594,15 +593,15 @@ struct DependencyCycleFormatter {
             } else {
                 rawDescription = String(bytes: rule.keyData, encoding: .utf8) ?? rule.key
             }
-            default:
-                rawDescription = rule.key
+        default:
+            rawDescription = rule.key
         }
         return "\(rule.kind): \(rawDescription)"
     }
 
     /// Look up and return an `ExecutableTask` from the `BuildDescription` if `buildKey` is a command.
     private func executableTask(for buildKey: BuildKey) -> (any ExecutableTask)? {
-        return  buildKey.kind == .command ? buildDescription.taskStore.task(for: TaskIdentifier(rawValue: buildKey.key)) : nil
+        return buildKey.kind == .command ? buildDescription.taskStore.task(for: TaskIdentifier(rawValue: buildKey.key)) : nil
     }
 
     /// Grab target names from the rules involved in the cycle.

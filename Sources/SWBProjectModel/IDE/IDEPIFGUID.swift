@@ -13,7 +13,7 @@
 import Foundation
 
 /// A unique identifier for a PIF object.  It doesn't have to be unique globally; just within the workspace.
-public class IDEPIFGUID : CustomStringConvertible {
+public class IDEPIFGUID: CustomStringConvertible {
 
     /// Immutable string containing the string representation; right now, this is the only representation we carry.
     public let stringRepresentation: String

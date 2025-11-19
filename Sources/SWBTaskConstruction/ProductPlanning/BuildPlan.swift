@@ -94,11 +94,11 @@ package final class BuildPlan: StaleFileRemovalContext {
         // Compute a collated list of result contexts and task producers, so we can do a single parallel dispatch.
         //
         // This computation is cheap, so this is overall more efficient than trying to interleave them with our current infrastructure.
-        let messageShortening =  planRequest.workspaceContext.userPreferences.activityTextShorteningLevel
+        let messageShortening = planRequest.workspaceContext.userPreferences.activityTextShorteningLevel
         let (productPlans, globalProductPlan) = await planner.productPlans()
-        let productPlanResultContexts = productPlans.map{ ProductPlanResultContext(for: $0) }
-        let producersToEvaluate = productPlanResultContexts.flatMap{ context in
-            return context.productPlan.taskProducers.map{ (resultContext: context, producer: $0) }
+        let productPlanResultContexts = productPlans.map { ProductPlanResultContext(for: $0) }
+        let producersToEvaluate = productPlanResultContexts.flatMap { context in
+            return context.productPlan.taskProducers.map { (resultContext: context, producer: $0) }
         }
 
         // Due to the nature of task producers having no relationship with respect to ordering amongst other task producers, it is necessary to allow task producers within a particular context to build up any information that may be necessary for other task producers to consume. It is important to note that this mechanism is not intended to share information across individual task producers, but rather, it is to be used to build up contextual information that can be used from the `generateTasks()` phase.
@@ -119,7 +119,8 @@ package final class BuildPlan: StaleFileRemovalContext {
                 var preplannedCount = 0
                 for await _ in progressStream {
                     preplannedCount += 1
-                    let statusMessage = messageShortening >= .allDynamicText
+                    let statusMessage =
+                        messageShortening >= .allDynamicText
                         ? "Pre-planning \(activityMessageFractionString(preplannedCount, over: producersToEvaluate.count))"
                         : "Pre-Planning from \(preplannedCount) of \(producersToEvaluate.count) task producers"
 
@@ -156,7 +157,8 @@ package final class BuildPlan: StaleFileRemovalContext {
                 var evaluatedCount = 0
                 for await _ in progressStream {
                     evaluatedCount += 1
-                    let statusMessage = messageShortening >= .allDynamicText
+                    let statusMessage =
+                        messageShortening >= .allDynamicText
                         ? "Planning \(activityMessageFractionString(evaluatedCount, over: producersToEvaluate.count))"
                         : "Constructing from \(evaluatedCount) of \(producersToEvaluate.count) task producers"
 
@@ -186,7 +188,7 @@ package final class BuildPlan: StaleFileRemovalContext {
             await group.waitForAll()
         }
 
-        await aggregationQueue.sync{ }
+        await aggregationQueue.sync {}
         if delegate.cancelled {
             // Reset any deferred producers, which may participate in cycles.
             for context in productPlanResultContexts {
@@ -239,7 +241,7 @@ package final class BuildPlan: StaleFileRemovalContext {
         }
 
         // Wait for task validation.
-        await aggregationQueue.sync{ }
+        await aggregationQueue.sync {}
         if delegate.cancelled {
             return nil
         }
@@ -289,14 +291,16 @@ package final class BuildPlan: StaleFileRemovalContext {
     }
 
     static func unexpectedDuplicateTasksWithIdentifier(_ tasks: [any PlannedTask], _ workspace: Workspace, _ delegate: any TaskPlanningDelegate) {
-        delegate.emit(Diagnostic(behavior: .error,
-                                 location: .unknown,
-                                 data: DiagnosticData("Unexpected duplicate tasks"),
-                                 childDiagnostics: tasks.map({ .task($0.execTask) }).richFormattedRuleInfo(workspace: workspace)))
+        delegate.emit(
+            Diagnostic(
+                behavior: .error,
+                location: .unknown,
+                data: DiagnosticData("Unexpected duplicate tasks"),
+                childDiagnostics: tasks.map({ .task($0.execTask) }).richFormattedRuleInfo(workspace: workspace)
+            )
+        )
     }
 }
-
-
 
 /// This context stores the results of task generation for a product plan.  It is used by a build plan to collect results of task generation, and once task generation is complete to compute the final set of planned tasks to be used for a product plan by evaluating task validity criteria..
 ///

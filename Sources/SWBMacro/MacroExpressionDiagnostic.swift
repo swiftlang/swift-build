@@ -72,7 +72,7 @@ public struct MacroExpressionDiagnostic: CustomDebugStringConvertible, Sendable 
 }
 
 extension MacroExpressionDiagnostic: Equatable {
-    public static func ==(lhs: MacroExpressionDiagnostic, rhs: MacroExpressionDiagnostic) -> Bool {
+    public static func == (lhs: MacroExpressionDiagnostic, rhs: MacroExpressionDiagnostic) -> Bool {
         if lhs.string != rhs.string { return false }
         if lhs.range != rhs.range { return false }
         if lhs.kind != rhs.kind { return false }

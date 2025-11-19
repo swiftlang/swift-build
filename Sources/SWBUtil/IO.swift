@@ -13,9 +13,9 @@
 import Foundation
 
 #if canImport(System)
-public import System
+    public import System
 #else
-public import SystemPackage
+    public import SystemPackage
 #endif
 
 public struct IOPipe: Sendable {
@@ -32,9 +32,9 @@ public struct IOPipe: Sendable {
 extension FileDescriptor {
     public func setBinaryMode() throws {
         #if os(Windows)
-        if _setmode(rawValue, _O_BINARY) == -1 {
-            throw Errno(rawValue: errno)
-        }
+            if _setmode(rawValue, _O_BINARY) == -1 {
+                throw Errno(rawValue: errno)
+            }
         #endif
     }
 }
