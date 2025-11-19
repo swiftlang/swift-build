@@ -8,3 +8,4 @@
 .swift-version
 CODEOWNERS
 Package.swift
+.git-blame-ignore-revs
