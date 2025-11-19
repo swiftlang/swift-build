@@ -203,7 +203,7 @@ typealias swb_build_service_connection_message_handler_t = @Sendable (UInt64, SW
                     // Now we look for the rpath the linker added.  We expect it to end in "lib/darwin".  Additionally we expect it to either contain "/Applications/Xcode.app/", or be a path into DEVELOPER_DIR (for unit testing, since the main bundle will be the test runner).
                     if rpath.hasSuffix("lib/darwin") {
                         var xcodeRelativeRpath: String? = nil
-                        if rpath.hasPrefix(currentXcodeApp + "/") {
+                        if rpath.starts(with: currentXcodeApp + "/") {
                             xcodeRelativeRpath = "\(rpath.dropFirst((currentXcodeApp + "/").count))"
                         }
                         else if rpath.contains("/Applications/Xcode.app/") {
