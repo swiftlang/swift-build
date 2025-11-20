@@ -92,23 +92,23 @@ fileprivate enum CoreMLIndexingInfo: Serializable, SourceFileIndexingInfo, Encod
         var dict = [String: PropertyListItem]()
 
         switch self {
-            case .success(let generatedFilePaths, let languageToGenerate, let notice):
-                if let generatedFilePaths {
-                    dict["COREMLCOMPILER_GENERATED_FILE_PATHS"] = PropertyListItem(generatedFilePaths.map({ $0.str }))
-                }
-                dict["COREMLCOMPILER_LANGUAGE_TO_GENERATE"] = PropertyListItem(languageToGenerate)
-                if let notice {
-                    dict["COREMLCOMPILER_GENERATOR_NOTICE"] = PropertyListItem(notice)
-                }
-            case .failure(let error):
-                dict["COREMLCOMPILER_GENERATOR_ERROR"] = PropertyListItem(error)
+        case .success(let generatedFilePaths, let languageToGenerate, let notice):
+            if let generatedFilePaths {
+                dict["COREMLCOMPILER_GENERATED_FILE_PATHS"] = PropertyListItem(generatedFilePaths.map({ $0.str }))
+            }
+            dict["COREMLCOMPILER_LANGUAGE_TO_GENERATE"] = PropertyListItem(languageToGenerate)
+            if let notice {
+                dict["COREMLCOMPILER_GENERATOR_NOTICE"] = PropertyListItem(notice)
+            }
+        case .failure(let error):
+            dict["COREMLCOMPILER_GENERATOR_ERROR"] = PropertyListItem(error)
         }
 
         return .plDict(dict)
     }
 }
 
-public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class CoreMLCompilerSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.coreml"
 
     public override var supportsInstallHeaders: Bool {
@@ -178,8 +178,7 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 delegate.warning("\(input.absolutePath.basename): Target's predominant language \"\(languageString)\" is not supported for CoreML code generation.  Selecting Objective-C by default.  Set COREML_CODEGEN_LANGUAGE to preferred language.")
                 codegenLanguage = "Objective-C"
             }
-        }
-        else {
+        } else {
             guard Set<String>(["Swift", "Objective-C", "None"]).contains(languageSettingValue) else {
                 // If the setting is set to an unexpected value, then emit an error and return.
                 delegate.error("\(input.absolutePath.basename): COREML_CODEGEN_LANGUAGE set to unsupported language \"\(languageSettingValue)\".  Set COREML_CODEGEN_LANGUAGE to preferred language.")
@@ -227,10 +226,10 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
 
         // Support .mlpackage
         let inputs = cbc.inputs.map { input -> (any PlannedNode) in
-                                        if input.fileType.isWrapper {
-                                            return delegate.createDirectoryTreeNode(input.absolutePath)
-                                        }
-                                        return delegate.createNode(input.absolutePath)
+            if input.fileType.isWrapper {
+                return delegate.createDirectoryTreeNode(input.absolutePath)
+            }
+            return delegate.createNode(input.absolutePath)
         }
 
         let ruleInfo = ["CoreMLModelCodegen", input.absolutePath.str]
@@ -296,7 +295,8 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 guard
                     let target = cbc.producer.configuredTarget?.target as? SWBCore.BuildPhaseTarget,
                     let outputPath = headerOutputPath,
-                    target.headersBuildPhase != nil else { continue }
+                    target.headersBuildPhase != nil
+                else { continue }
 
                 await cbc.producer.copySpec.constructCopyTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [outputFile], output: outputPath, preparesForIndexing: true), delegate, additionalTaskOrderingOptions: .compilationRequirement)
             }

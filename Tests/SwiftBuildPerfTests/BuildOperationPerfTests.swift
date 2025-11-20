@@ -42,39 +42,49 @@ fileprivate struct BuildOperationPerfTests: PerfTests {
                     }
                 }
 
-                let targets = (0 ..< numTargets).map { i in
+                let targets = (0..<numTargets).map { i in
                     return TestStandardTarget(
-                        "Tool-\(i)", type: .commandLineTool,
+                        "Tool-\(i)",
+                        type: .commandLineTool,
                         buildPhases: [
-                            TestSourcesBuildPhase((0 ..< numFiles).map{ TestBuildFile("File-\($0).c") }),
-                            TestFrameworksBuildPhase()
+                            TestSourcesBuildPhase((0..<numFiles).map { TestBuildFile("File-\($0).c") }),
+                            TestFrameworksBuildPhase(),
                         ],
                         provisioningSourceData: [
                             SWBProtocol.ProvisioningSourceData(
                                 configurationName: "Debug",
                                 provisioningStyle: .manual,
-                                bundleIdentifierFromInfoPlist: "$(PRODUCT_BUNDLE_IDENTIFIER)")])
+                                bundleIdentifierFromInfoPlist: "$(PRODUCT_BUNDLE_IDENTIFIER)"
+                            )
+                        ]
+                    )
                 }
-                let allTarget = TestAggregateTarget("ALL", dependencies: targets.map{ $0.name })
+                let allTarget = TestAggregateTarget("ALL", dependencies: targets.map { $0.name })
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Debug",
-                    groupTree: TestGroup("Root", children: (0 ..< numFiles).map{ TestFile("File-\($0).c") }),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "USE_HEADERMAP": "NO",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ])],
-                    targets: [allTarget] + targets)
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: tmpDir.join("Test"),
-                                                  projects: [testProject])
+                    groupTree: TestGroup("Root", children: (0..<numFiles).map { TestFile("File-\($0).c") }),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "USE_HEADERMAP": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )
+                    ],
+                    targets: [allTarget] + targets
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: tmpDir.join("Test"),
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 // Write the header files.
                 if !separateHeaders {
-                    for i in 0 ..< numHeaders {
+                    for i in 0..<numHeaders {
                         try await localFS.writeFileContents(SRCROOT.join("Header-\(i).h")) { contents in
                             if i + 1 < numHeaders {
                                 contents <<< "#include \"Header-\(i + 1).h\"\n"
@@ -84,9 +94,9 @@ fileprivate struct BuildOperationPerfTests: PerfTests {
                 }
 
                 // Write the source files.
-                for i in 0 ..< numFiles {
+                for i in 0..<numFiles {
                     if separateHeaders {
-                        for j in 0 ..< numHeaders {
+                        for j in 0..<numHeaders {
                             try await localFS.writeFileContents(SRCROOT.join("File-\(i)-\(j).h")) { contents in
                                 if j + 1 < numHeaders {
                                     contents <<< "#include \"File-\(i)-\(j + 1).h\"\n"
@@ -136,12 +146,15 @@ fileprivate struct BuildOperationPerfTests: PerfTests {
                 do {
                     let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
                     let reportedBuildDescriptionID = try #require(events.reportBuildDescriptionMessage?.buildDescriptionID)
-                    #expect(events.allOutput().bytes.unsafeStringValue.hasPrefix(
-                """
-                Build description signature: \(reportedBuildDescriptionID)
-                Build description path: \(SRCROOT.str)/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
+                    #expect(
+                        events.allOutput().bytes.unsafeStringValue.hasPrefix(
+                            """
+                            Build description signature: \(reportedBuildDescriptionID)
+                            Build description path: \(SRCROOT.str)/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
 
-                """))
+                            """
+                        )
+                    )
 
                     try await tester.checkResults(events: events) { results in
                         results.checkTasks { tasks in
@@ -154,19 +167,21 @@ fileprivate struct BuildOperationPerfTests: PerfTests {
                         results.checkNoFailedTasks()
                     }
 
-                    #expect(events.filter { event in
-                        switch event {
-                        case .targetUpToDate:
-                            return true
-                        default:
-                            return false
-                        }
-                    }.count == 0)
+                    #expect(
+                        events.filter { event in
+                            switch event {
+                            case .targetUpToDate:
+                                return true
+                            default:
+                                return false
+                            }
+                        }.count == 0
+                    )
                 }
 
                 // Check the performance of the null build.
                 try await measure {
-                    for _ in 0 ..< (getEnvironmentVariable("CI")?.boolValue == true ? 1 : iterations) {
+                    for _ in 0..<(getEnvironmentVariable("CI")?.boolValue == true ? 1 : iterations) {
                         let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
                         try await tester.checkResults(events: events) { results in
@@ -180,14 +195,16 @@ fileprivate struct BuildOperationPerfTests: PerfTests {
                         }
 
                         #expect(events.allOutput().bytes == "")
-                        #expect(events.filter { event in
-                            switch event {
-                            case .targetUpToDate:
-                                return true
-                            default:
-                                return false
-                            }
-                        }.count == numTargets)
+                        #expect(
+                            events.filter { event in
+                                switch event {
+                                case .targetUpToDate:
+                                    return true
+                                default:
+                                    return false
+                                }
+                            }.count == numTargets
+                        )
                     }
                 }
             }

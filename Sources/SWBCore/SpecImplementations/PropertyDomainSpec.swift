@@ -27,7 +27,7 @@ private protocol BuildOptionType: Sendable {
     /// Declare a macro suitable for the given option type.
     func declareMacro(_ namespace: MacroNamespace, _ name: String) throws -> MacroDeclaration
 }
-private final class BoolBuildOptionType : BuildOptionType {
+private final class BoolBuildOptionType: BuildOptionType {
     let typeName = "Boolean"
     let isListType = false
     let supportsValuesDefinitions = true
@@ -36,7 +36,7 @@ private final class BoolBuildOptionType : BuildOptionType {
         return try namespace.declareBooleanMacro(name)
     }
 }
-private final class CodeSignIdentityBuildOptionType : BuildOptionType {
+private final class CodeSignIdentityBuildOptionType: BuildOptionType {
     let typeName = "CodeSignIdentity"
     let isListType = false
     let supportsValuesDefinitions = false
@@ -45,7 +45,7 @@ private final class CodeSignIdentityBuildOptionType : BuildOptionType {
         return try namespace.declareStringMacro(name)
     }
 }
-private final class CodeSignStyleBuildOptionType : BuildOptionType {
+private final class CodeSignStyleBuildOptionType: BuildOptionType {
     let typeName = "CodeSignStyle"
     let isListType = false
     let supportsValuesDefinitions = true
@@ -54,7 +54,7 @@ private final class CodeSignStyleBuildOptionType : BuildOptionType {
         return try namespace.declareStringMacro(name)
     }
 }
-private final class CompilerVersionBuildOptionType : BuildOptionType {
+private final class CompilerVersionBuildOptionType: BuildOptionType {
     let typeName = "CompilerVersion"
     let isListType = false
     let supportsValuesDefinitions = false
@@ -63,7 +63,7 @@ private final class CompilerVersionBuildOptionType : BuildOptionType {
         return try namespace.declareStringMacro(name)
     }
 }
-private final class DevelopmentTeamBuildOptionType : BuildOptionType {
+private final class DevelopmentTeamBuildOptionType: BuildOptionType {
     let typeName = "DevelopmentTeam"
     let isListType = false
     let supportsValuesDefinitions = false
@@ -72,7 +72,7 @@ private final class DevelopmentTeamBuildOptionType : BuildOptionType {
         return try namespace.declareStringMacro(name)
     }
 }
-private final class EnumBuildOptionType : BuildOptionType {
+private final class EnumBuildOptionType: BuildOptionType {
     let typeName = "Enumeration"
     let isListType = false
     let supportsValuesDefinitions = true
@@ -129,7 +129,7 @@ private final class EnumBuildOptionType : BuildOptionType {
         }
     }
 }
-private final class StringBuildOptionType : BuildOptionType {
+private final class StringBuildOptionType: BuildOptionType {
     let typeName = "String"
     let isListType = false
     let supportsValuesDefinitions = false
@@ -138,7 +138,7 @@ private final class StringBuildOptionType : BuildOptionType {
         return try namespace.declareStringMacro(name)
     }
 }
-private final class StringListBuildOptionType : BuildOptionType {
+private final class StringListBuildOptionType: BuildOptionType {
     let typeName = "StringList"
     let isListType = true
     let supportsValuesDefinitions = false
@@ -147,7 +147,7 @@ private final class StringListBuildOptionType : BuildOptionType {
         return try namespace.declareStringListMacro(name)
     }
 }
-private final class OpenCLArchitecturesBuildOptionType : BuildOptionType {
+private final class OpenCLArchitecturesBuildOptionType: BuildOptionType {
     let typeName = "OpenCLArchitectures"
     let isListType = true
     let supportsValuesDefinitions = false
@@ -156,7 +156,7 @@ private final class OpenCLArchitecturesBuildOptionType : BuildOptionType {
         return try namespace.declareStringListMacro(name)
     }
 }
-private final class PathBuildOptionType : BuildOptionType {
+private final class PathBuildOptionType: BuildOptionType {
     let typeName = "Path"
     let isListType = false
     let supportsValuesDefinitions = false
@@ -165,7 +165,7 @@ private final class PathBuildOptionType : BuildOptionType {
         return try namespace.declarePathMacro(name)
     }
 }
-private final class PathListBuildOptionType : BuildOptionType {
+private final class PathListBuildOptionType: BuildOptionType {
     let typeName = "PathList"
     let isListType = true
     let supportsValuesDefinitions = false
@@ -174,7 +174,7 @@ private final class PathListBuildOptionType : BuildOptionType {
         return try namespace.declarePathListMacro(name)
     }
 }
-private final class ProvisioningProfileBuildOptionType : BuildOptionType {
+private final class ProvisioningProfileBuildOptionType: BuildOptionType {
     let typeName = "ProvisioningProfile"
     let isListType = false
     let supportsValuesDefinitions = false
@@ -183,7 +183,7 @@ private final class ProvisioningProfileBuildOptionType : BuildOptionType {
         return try namespace.declareStringMacro(name)
     }
 }
-private final class ProvisioningProfileSpecifierBuildOptionType : BuildOptionType {
+private final class ProvisioningProfileSpecifierBuildOptionType: BuildOptionType {
     let typeName = "ProvisioningProfileSpecifier"
     let isListType = false
     let supportsValuesDefinitions = false
@@ -281,11 +281,11 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
 @_spi(Testing) public final class BuildOption: CustomStringConvertible, Sendable {
     /// Helper type for representing the type of command line argument specifier that was used for a build option.
     private enum CommandLineSpecifier {
-    case arrayArgs(value: [String])
-    case dictArgs(value: [String: PropertyListItem])
-    case stringArgs(value: String)
-    case flag(value: String)
-    case prefixFlag(value: String)
+        case arrayArgs(value: [String])
+        case dictArgs(value: [String: PropertyListItem])
+        case stringArgs(value: String)
+        case flag(value: String)
+        case prefixFlag(value: String)
     }
 
     /// The name (build setting) of the option.
@@ -371,7 +371,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         var valueNameOpt: String? = nil
         var commandLineTemplateOpt: BuildOptionValue.CommandLineTemplateSpecifier? = nil
         var commandLineKey: String? = nil
-        for (key,valueData) in data {
+        for (key, valueData) in data {
             switch key {
             case "Value":
                 guard case .plString(let value) = valueData else {
@@ -507,7 +507,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
                     valueDefns[valueName] = BuildOptionValue(commandLineTemplate: nil)
                 case .plDict(let items):
                     // Parse the option from the definition dict.
-                    guard let (valueName,option) = parseBuildOptionValue(parser, name, type, items) else { continue }
+                    guard let (valueName, option) = parseBuildOptionValue(parser, name, type, items) else { continue }
                     if valueDefns[valueName] != nil {
                         error("duplicate value definition '\(valueName)'")
                         continue
@@ -562,7 +562,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
                         return nil
                     }
                 }
-                for (key,valueData) in items.sorted(byKey: <) {
+                for (key, valueData) in items.sorted(byKey: <) {
                     // Convert the valueData to the appropriate option.
                     guard let template = getTemplateForData(key, valueData) else { continue }
 
@@ -668,7 +668,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         // For boolean types, validate and normalize the keys.
         if type is BoolBuildOptionType {
             if let valueDefns = valueDefnsOpt {
-                for (key,item) in valueDefns {
+                for (key, item) in valueDefns {
                     if key == "NO" {
                         emptyValueDefn = item
                     } else if key == "YES" {
@@ -870,7 +870,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
                 switch key {
                 case "CommandLineArgs":
                     switch valueData {
-                        // FIXME: The string form is very rarely used, although conceptually it makes sense. We should verify it is worth the complexity though.
+                    // FIXME: The string form is very rarely used, although conceptually it makes sense. We should verify it is worth the complexity though.
                     case .plString(let value):
                         commandLineSpecifierOpt = .stringArgs(value: value)
                     case .plArray(let value):
@@ -1109,8 +1109,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
                                 return nil
                             }
                             return VersionRange(start: startVersion)
-                        }
-                        else if valueItems.count == 2 {
+                        } else if valueItems.count == 2 {
                             guard case .plString(let startValue) = valueItems[0], let startVersion = try? Version(startValue) else {
                                 error("could not parse first element of value '\(valueItems)' in array for '\(key)'")
                                 return nil
@@ -1122,11 +1121,10 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
                             do {
                                 return try VersionRange(start: startVersion, end: endVersion)
                             } catch let e {
-                                error("unexpected value '\(valueItems)' in array for '\(key)' - \(e)") // e == "version range start must be less than or equal to end, but \(start) greater than \(end)"
+                                error("unexpected value '\(valueItems)' in array for '\(key)' - \(e)")  // e == "version range start must be less than or equal to end, but \(start) greater than \(end)"
                                 return nil
                             }
-                        }
-                        else {
+                        } else {
                             error("unexpected value '\(valueItems)' in array for '\(key)' - array contains more than 2 elements")
                             return nil
                         }
@@ -1170,7 +1168,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         }
 
         // If we have a name and no type was assigned, infer from the known macro type.
-        if let name = nameOpt, type == nil  {
+        if let name = nameOpt, type == nil {
             if let macro = parser.delegate.internalMacroNamespace.lookupMacroDeclaration(name) {
                 if macro is StringMacroDeclaration {
                     // This is the default, no warning about type incompatibility.
@@ -1402,14 +1400,15 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
 
         // Handle list typed options.
         guard !type.isListType else {
-            var values = switch self.macro {
-            case let macro as StringListMacroDeclaration:
-                scope.evaluate(macro, lookup: lookup)
-            case let macro as PathListMacroDeclaration:
-                scope.evaluate(macro, lookup: lookup)
-            default:
-                fatalError("invalid macro type for List option")
-            }
+            var values =
+                switch self.macro {
+                case let macro as StringListMacroDeclaration:
+                    scope.evaluate(macro, lookup: lookup)
+                case let macro as PathListMacroDeclaration:
+                    scope.evaluate(macro, lookup: lookup)
+                default:
+                    fatalError("invalid macro type for List option")
+                }
 
             // Get the value definition to use.
             let valueDefnOpt = values.isEmpty ? emptyValueDefn : otherValueDefn
@@ -1419,8 +1418,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
                 return []
             }
 
-            if self.name == "TAPI_HEADER_SEARCH_PATHS" && (scope.evaluate(BuiltinMacros.TAPI_ENABLE_PROJECT_HEADERS) ||
-                scope.evaluate(BuiltinMacros.TAPI_USE_SRCROOT)) {
+            if self.name == "TAPI_HEADER_SEARCH_PATHS" && (scope.evaluate(BuiltinMacros.TAPI_ENABLE_PROJECT_HEADERS) || scope.evaluate(BuiltinMacros.TAPI_USE_SRCROOT)) {
                 return values.map { valuesArePaths ? .path(Path($0)) : .literal(ByteString(encodingAsUTF8: $0)) }
             }
 
@@ -1538,14 +1536,15 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             }
             // Handle list typed options.
             guard !type.isListType else {
-                let values = switch self.macro {
-                case let macro as StringListMacroDeclaration:
-                    cbc.scope.evaluate(macro, lookup: lookup)
-                case let macro as PathListMacroDeclaration:
-                    cbc.scope.evaluate(macro, lookup: lookup)
-                default:
-                    fatalError("invalid macro type for List option")
-                }
+                let values =
+                    switch self.macro {
+                    case let macro as StringListMacroDeclaration:
+                        cbc.scope.evaluate(macro, lookup: lookup)
+                    case let macro as PathListMacroDeclaration:
+                        cbc.scope.evaluate(macro, lookup: lookup)
+                    default:
+                        fatalError("invalid macro type for List option")
+                    }
                 // FIXME: This is probably not right - we likely need to quote or escape the values here.
                 return values.isEmpty ? nil : (key, values.joined(separator: " "))
             }
@@ -1601,14 +1600,15 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
 
         // Handle list typed options.
         guard !type.isListType else {
-            let values = switch self.macro {
-            case let macro as StringListMacroDeclaration:
-                scope.evaluate(macro, lookup: lookup)
-            case let macro as PathListMacroDeclaration:
-                scope.evaluate(macro, lookup: lookup)
-            default:
-                fatalError("invalid macro type for List option")
-            }
+            let values =
+                switch self.macro {
+                case let macro as StringListMacroDeclaration:
+                    scope.evaluate(macro, lookup: lookup)
+                case let macro as PathListMacroDeclaration:
+                    scope.evaluate(macro, lookup: lookup)
+                default:
+                    fatalError("invalid macro type for List option")
+                }
 
             // Get the value definition to use.
             let valueDefnOpt = values.isEmpty ? emptyValueDefn : otherValueDefn
@@ -1641,7 +1641,6 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     }
 }
 
-
 /// A `BuildOptionGenerationContext` provides information that a `BuildOption` need to generate command-line options for a tool.
 public protocol BuildOptionGenerationContext {
     /// The path to the tool in question.
@@ -1660,7 +1659,7 @@ extension BuildOptionGenerationContext {
 }
 
 /// This is a shared base class, but cannot itself be a declared spec type.
-open class PropertyDomainSpec : Spec, @unchecked Sendable {
+open class PropertyDomainSpec: Spec, @unchecked Sendable {
     /// The ordered list of build options associated with this spec, not including any buildOptions from its BasedOn spec (see `flattenedBuildOptions` and `flattenedOrderedBuildOptions` instead).
     @_spi(Testing) public let buildOptions: [BuildOption]
 
@@ -1693,7 +1692,7 @@ open class PropertyDomainSpec : Spec, @unchecked Sendable {
         return flattenedOrderedBuildOptionsCache.getValue(self)
     }
     private var flattenedOrderedBuildOptionsCache = LazyCache { (spec: PropertyDomainSpec) -> [BuildOption] in
-    // We start with a list of ordered option names defined by our basedOnSpec.
+        // We start with a list of ordered option names defined by our basedOnSpec.
         var orderedOptionNames = OrderedSet<String>((spec.basedOnSpec != nil) ? (spec.basedOnSpec! as! PropertyDomainSpec).flattenedOrderedBuildOptions.map({ $0.name }) : [])
         // Now we go through our own options, and decide where to add each one.  An invariant is that no option should appear in the list more than once.
         for option in spec.buildOptions {
@@ -1709,8 +1708,7 @@ open class PropertyDomainSpec : Spec, @unchecked Sendable {
             if let index = orderedOptionNames.firstIndex(of: option.name) {
                 orderedOptionNames.remove(at: index)
                 orderedOptionNames.insert(option.name, at: index)
-            }
-            else {
+            } else {
                 orderedOptionNames.append(option.name)
             }
         }
@@ -1753,7 +1751,6 @@ open class PropertyDomainSpec : Spec, @unchecked Sendable {
         super.init(parser, basedOnSpec)
     }
 }
-
 
 /// Extensions to PropertyDomainSpec for performance testing.
 extension PropertyDomainSpec {

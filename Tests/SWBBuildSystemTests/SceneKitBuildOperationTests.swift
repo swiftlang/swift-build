@@ -25,35 +25,41 @@ fileprivate struct SceneKitBuildOperationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("A.dae"),
                         TestFile("B.dae"),
-                        TestFile("C.DAE"), // test that uppercase extensions work too
+                        TestFile("C.DAE"),  // test that uppercase extensions work too
                         TestFile("D.scnassets"),
                         TestFile("E.scncache"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("App",
-                                       type: .application,
-                                       buildPhases: [
-                        TestResourcesBuildPhase([
-                            TestBuildFile("A.dae", decompress: false),
-                            TestBuildFile("B.dae", decompress: true),
-                            TestBuildFile("C.DAE", decompress: false),
-                            TestBuildFile("D.scnassets"),
-                            TestBuildFile("E.scncache"),
-                        ]),
-                    ]),
-                ])
+                    TestStandardTarget(
+                        "App",
+                        type: .application,
+                        buildPhases: [
+                            TestResourcesBuildPhase([
+                                TestBuildFile("A.dae", decompress: false),
+                                TestBuildFile("B.dae", decompress: true),
+                                TestBuildFile("C.DAE", decompress: false),
+                                TestBuildFile("D.scnassets"),
+                                TestBuildFile("E.scncache"),
+                            ])
+                        ]
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -91,7 +97,7 @@ fileprivate struct SceneKitBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("Copy"), .matchRuleItemBasename("D.scnassets")) { task in
                     task.checkRuleInfo(["Copy", "SceneKit", "assets", "\(SRCROOT)/Sources/D.scnassets"])
                     task.checkCommandLineContainsUninterrupted(["\(core.developerPath.path.str)/usr/bin/copySceneKitAssets", "\(SRCROOT)/Sources/D.scnassets", "-o", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/D.scnassets", "--target-platform=macosx", "--target-version=\(core.loadSDK(.macOS).defaultDeploymentTarget)"])
-                    task.checkCommandLineContainsUninterrupted([ "--target-build-dir=\(SRCROOT)/build/Debug", "--resources-folder-path=App.app/Contents/Resources"])
+                    task.checkCommandLineContainsUninterrupted(["--target-build-dir=\(SRCROOT)/build/Debug", "--resources-folder-path=App.app/Contents/Resources"])
                     task.checkEnvironment([:], exact: true)
                 }
                 results.checkTask(.matchRuleType("Compile"), .matchRuleItemBasename("E.scncache")) { task in

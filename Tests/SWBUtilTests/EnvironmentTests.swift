@@ -41,7 +41,7 @@ import Testing
         let environment = Environment(dictionary)
 
         if isCaseInsensitive {
-            #expect(environment["TestKey"] == "TestValue2") // uppercase sorts before lowercase, so the second value overwrites the first
+            #expect(environment["TestKey"] == "TestValue2")  // uppercase sorts before lowercase, so the second value overwrites the first
             #expect(environment.count == 1)
         } else {
             #expect(environment["TestKey"] == "TestValue")

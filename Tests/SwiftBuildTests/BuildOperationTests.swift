@@ -42,10 +42,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    targets: []
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -80,10 +83,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    targets: []
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -117,10 +123,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    targets: []
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -158,10 +167,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         TestAggregateTarget("All", dependencies: ["aFramework", "bFramework"]),
                         TestStandardTarget("aFramework", type: .application, buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
                         TestStandardTarget("bFramework", type: .application, buildPhases: [TestSourcesBuildPhase([TestBuildFile("Test.c")])]),
-                    ])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    ]
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -175,14 +187,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
-                let pathMap = try #require(events.compactMap({ msg in
-                    switch msg {
-                    case let .reportPathMap(msg):
-                        return msg.generatedFilesPathMap
-                    default:
-                        return nil
-                    }
-                }).only)
+                let pathMap = try #require(
+                    events.compactMap({ msg in
+                        switch msg {
+                        case let .reportPathMap(msg):
+                            return msg.generatedFilesPathMap
+                        default:
+                            return nil
+                        }
+                    }).only
+                )
                 #expect(pathMap.count == 4)
                 for arch in ["arm64", "x86_64"] {
                     for target in ["aFramework", "bFramework"] {
@@ -196,7 +210,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check the basic behavior of a build operation's messages.
-    @Test(.requireSDKs(.macOS), .skipHostOS(.windows)) // relies on UNIX shell, consider adding Windows command shell support for script phases?
+    @Test(.requireSDKs(.macOS), .skipHostOS(.windows))  // relies on UNIX shell, consider adding Windows command shell support for script phases?
     func basics() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -209,38 +223,54 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let srcroot = tmpDir.join("Test")
-                let testTarget = TestAggregateTarget("A",
-                                                     buildPhases: [
-                                                        TestShellScriptBuildPhase(
-                                                            name: "A.Script", originalObjectID: "A.Script", contents: (OutputByteStream()
-                                                                                                                       <<< "/usr/bin/touch ${SCRIPT_OUTPUT_FILE_0}"
-                                                                                                                      ).bytes.asString, inputs: [], outputs: ["$(DERIVED_FILE_DIR)/stamp"])
-                                                     ],
-                                                     dependencies: ["B"]
+                let testTarget = TestAggregateTarget(
+                    "A",
+                    buildPhases: [
+                        TestShellScriptBuildPhase(
+                            name: "A.Script",
+                            originalObjectID: "A.Script",
+                            contents: (OutputByteStream()
+                                <<< "/usr/bin/touch ${SCRIPT_OUTPUT_FILE_0}").bytes.asString,
+                            inputs: [],
+                            outputs: ["$(DERIVED_FILE_DIR)/stamp"]
+                        )
+                    ],
+                    dependencies: ["B"]
                 )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [testTarget,
-                              TestAggregateTarget("B",
-                                                  buildPhases: [
-                                                    // This task will be up-to-date after the first build
-                                                    TestShellScriptBuildPhase(
-                                                        name: "B.Once", originalObjectID: "B.Once",
-                                                        contents: "/usr/bin/touch ${SCRIPT_OUTPUT_FILE_0}",
-                                                        inputs: [], outputs: ["$(DERIVED_FILE_DIR)/stamp"]),
-                                                    // This task will always run.
-                                                    TestShellScriptBuildPhase(
-                                                        name: "B.Always", originalObjectID: "B.Always",
-                                                        contents: "true",
-                                                        inputs: [], outputs: [])
-                                                  ]
-                                                 )
-                             ])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    targets: [
+                        testTarget,
+                        TestAggregateTarget(
+                            "B",
+                            buildPhases: [
+                                // This task will be up-to-date after the first build
+                                TestShellScriptBuildPhase(
+                                    name: "B.Once",
+                                    originalObjectID: "B.Once",
+                                    contents: "/usr/bin/touch ${SCRIPT_OUTPUT_FILE_0}",
+                                    inputs: [],
+                                    outputs: ["$(DERIVED_FILE_DIR)/stamp"]
+                                ),
+                                // This task will always run.
+                                TestShellScriptBuildPhase(
+                                    name: "B.Always",
+                                    originalObjectID: "B.Always",
+                                    contents: "true",
+                                    inputs: [],
+                                    outputs: []
+                                ),
+                            ]
+                        ),
+                    ]
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -288,7 +318,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .skipHostOS(.windows)) // version info discovery isn't working on Windows
+    @Test(.requireSDKs(.macOS), .skipHostOS(.windows))  // version info discovery isn't working on Windows
     func onlyCreateBuildDescription() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -301,7 +331,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .framework,
+                    "Foo",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -310,13 +341,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let otherTargetWithHeader = TestStandardTarget(
-                    "Bar", type: .framework,
+                    "Bar",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -325,21 +360,30 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("foo.c"), TestFile("foo.h")]),
-                    targets: [testTarget, otherTargetWithHeader])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("foo.c"), TestFile("foo.h"),
+                        ]
+                    ),
+                    targets: [testTarget, otherTargetWithHeader]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: tmpDir.join("Test"),
-                    projects: [testProject])
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 // Run a test build.
@@ -364,29 +408,35 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 do {
                     let (events, _) = try await testSession.runBuildDescriptionCreationOperation(request: request, delegate: TestBuildOperationDelegate())
 
-                    try await tester.checkResults(events: events, { results in
-                        results.checkTask(.matchRule(["ComputeTargetDependencyGraph"])) { task in
-                            #expect(task.executionDescription == "Compute target dependency graph")
-                        }
-                        results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
-                            #expect(task.executionDescription == "Gather provisioning inputs")
-                        }
-                        results.checkTask(.matchRule(["CreateBuildDescription"])) { task in
-                            #expect(task.executionDescription == "Create build description")
-
-                            // FIXME: Check the hierarchical relationship when we have infrastructure to do so.
-                            results.checkTasks(.matchRuleType("ExecuteExternalTool")) { tasks in
-                                XCTAssertEqualSequences(Set(tasks.map(\.executionDescription)).sorted(), [
-                                    "Discovering version info for clang",
-                                    "Discovering version info for ld"
-                                ])
+                    try await tester.checkResults(
+                        events: events,
+                        { results in
+                            results.checkTask(.matchRule(["ComputeTargetDependencyGraph"])) { task in
+                                #expect(task.executionDescription == "Compute target dependency graph")
                             }
-                        }
-                        results.checkNoTask()
+                            results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
+                                #expect(task.executionDescription == "Gather provisioning inputs")
+                            }
+                            results.checkTask(.matchRule(["CreateBuildDescription"])) { task in
+                                #expect(task.executionDescription == "Create build description")
 
-                        results.checkNoDiagnostics()
-                        results.checkNoFailedTasks()
-                    })
+                                // FIXME: Check the hierarchical relationship when we have infrastructure to do so.
+                                results.checkTasks(.matchRuleType("ExecuteExternalTool")) { tasks in
+                                    XCTAssertEqualSequences(
+                                        Set(tasks.map(\.executionDescription)).sorted(),
+                                        [
+                                            "Discovering version info for clang",
+                                            "Discovering version info for ld",
+                                        ]
+                                    )
+                                }
+                            }
+                            results.checkNoTask()
+
+                            results.checkNoDiagnostics()
+                            results.checkNoFailedTasks()
+                        }
+                    )
                 }
 
                 // Check that we can invoke build description creation operation concurrently while a normal build is in progress.
@@ -395,24 +445,30 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 try await withThrowingTaskGroup(of: Void.self) { group in
                     group.addTask {
                         let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
-                        try await tester.checkResults(events: events, { results in
-                            results.checkTasks { tasks in
-                                #expect(!tasks.isEmpty)
+                        try await tester.checkResults(
+                            events: events,
+                            { results in
+                                results.checkTasks { tasks in
+                                    #expect(!tasks.isEmpty)
+                                }
                             }
-                        })
+                        )
                     }
 
                     group.addTask {
                         let (events, _) = try await testSession.runBuildDescriptionCreationOperation(request: request, delegate: TestBuildOperationDelegate())
-                        try await tester.checkResults(events: events, { results in
-                            results.checkTask(.matchRule(["ComputeTargetDependencyGraph"])) { task in
-                                #expect(task.executionDescription == "Compute target dependency graph")
+                        try await tester.checkResults(
+                            events: events,
+                            { results in
+                                results.checkTask(.matchRule(["ComputeTargetDependencyGraph"])) { task in
+                                    #expect(task.executionDescription == "Compute target dependency graph")
+                                }
+                                results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
+                                    #expect(task.executionDescription == "Gather provisioning inputs")
+                                }
+                                results.checkNoTask()
                             }
-                            results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
-                                #expect(task.executionDescription == "Gather provisioning inputs")
-                            }
-                            results.checkNoTask()
-                        })
+                        )
                     }
 
                     try await group.waitForAll()
@@ -422,15 +478,18 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 try await withThrowingTaskGroup(of: Void.self) { group in
                     group.addTask {
                         let (events, _) = try await testSession.runBuildDescriptionCreationOperation(request: request, delegate: TestBuildOperationDelegate())
-                        try await tester.checkResults(events: events, { results in
-                            results.checkTask(.matchRule(["ComputeTargetDependencyGraph"])) { task in
-                                #expect(task.executionDescription == "Compute target dependency graph")
+                        try await tester.checkResults(
+                            events: events,
+                            { results in
+                                results.checkTask(.matchRule(["ComputeTargetDependencyGraph"])) { task in
+                                    #expect(task.executionDescription == "Compute target dependency graph")
+                                }
+                                results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
+                                    #expect(task.executionDescription == "Gather provisioning inputs")
+                                }
+                                results.checkNoTask()
                             }
-                            results.checkTask(.matchRule(["GatherProvisioningInputs"])) { task in
-                                #expect(task.executionDescription == "Gather provisioning inputs")
-                            }
-                            results.checkNoTask()
-                        })
+                        )
                     }
 
                     group.addTask {
@@ -461,7 +520,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .framework,
+                    "Foo",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -470,13 +530,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let otherTargetWithHeader = TestStandardTarget(
-                    "Bar", type: .framework,
+                    "Bar",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -485,21 +549,30 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("foo.c"), TestFile("foo.h")]),
-                    targets: [testTarget, otherTargetWithHeader])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("foo.c"), TestFile("foo.h"),
+                        ]
+                    ),
+                    targets: [testTarget, otherTargetWithHeader]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: tmpDir.join("Test"),
-                    projects: [testProject])
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 // Run a test build.
@@ -535,23 +608,29 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                             // FIXME: Check the hierarchical relationship when we have infrastructure to do so.
                             results.checkTasks(.matchRuleType("ExecuteExternalTool")) { tasks in
-                                XCTAssertEqualSequences(Set(tasks.map(\.executionDescription)).sorted(), [
-                                    "Discovering version info for clang",
-                                    "Discovering version info for ld"
-                                ])
+                                XCTAssertEqualSequences(
+                                    Set(tasks.map(\.executionDescription)).sorted(),
+                                    [
+                                        "Discovering version info for clang",
+                                        "Discovering version info for ld",
+                                    ]
+                                )
                             }
                         }
                         results.checkNoTask()
                     }
 
-                    #expect(events.contains { event in
-                        switch event {
-                        case .planningOperationStarted, .planningOperationCompleted:
-                            return true
-                        default:
-                            return false
-                        }
-                    }, "unexpected events: \(events)")
+                    #expect(
+                        events.contains { event in
+                            switch event {
+                            case .planningOperationStarted, .planningOperationCompleted:
+                                return true
+                            default:
+                                return false
+                            }
+                        },
+                        "unexpected events: \(events)"
+                    )
                 }
 
                 // Check that passing a `buildDescriptionID` will avoid planning.
@@ -566,14 +645,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         results.checkNoTask()
                     }
 
-                    #expect(!events.contains { event in
-                        switch event {
-                        case .planningOperationStarted, .planningOperationCompleted:
-                            return true
-                        default:
-                            return false
-                        }
-                    }, "unexpected events: \(events)")
+                    #expect(
+                        !events.contains { event in
+                            switch event {
+                            case .planningOperationStarted, .planningOperationCompleted:
+                                return true
+                            default:
+                                return false
+                            }
+                        },
+                        "unexpected events: \(events)"
+                    )
                     #expect(events.reportBuildDescriptionMessage?.buildDescriptionID == buildDescriptionID)
                 }
             }
@@ -593,7 +675,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .framework,
+                    "Foo",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -602,13 +685,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let otherTargetWithHeader = TestStandardTarget(
-                    "Bar", type: .framework,
+                    "Bar",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -617,21 +704,30 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("foo.c"), TestFile("foo.h")]),
-                    targets: [testTarget, otherTargetWithHeader])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("foo.c"), TestFile("foo.h"),
+                        ]
+                    ),
+                    targets: [testTarget, otherTargetWithHeader]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: tmpDir.join("Test"),
-                    projects: [testProject])
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 let fs = localFS
@@ -710,12 +806,20 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: tmpDir.join("Test"),
-                    projects: [TestProject(
-                        "aProject",
-                        defaultConfigurationName: "Release",
-                        groupTree: TestGroup("Foo", children: [
-                            TestFile("foo.c"), TestFile("foo.h")]),
-                        targets: [TestExternalTarget("Sleeper", toolPath: "/bin/sleep", arguments: "10")])])
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            defaultConfigurationName: "Release",
+                            groupTree: TestGroup(
+                                "Foo",
+                                children: [
+                                    TestFile("foo.c"), TestFile("foo.h"),
+                                ]
+                            ),
+                            targets: [TestExternalTarget("Sleeper", toolPath: "/bin/sleep", arguments: "10")]
+                        )
+                    ]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 try await testSession.sendPIF(testWorkspace)
@@ -734,11 +838,14 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     _ = try await operation.start()
 
                     // Starting a second build operation concurrently with the first should fail.
-                    await #expect(performing: {
-                        try await testSession.session.createBuildOperation(request: buildRequest, delegate: TestBuildOperationDelegate())
-                    }, throws: { error in
-                        (error as (any Error)).localizedDescription == "unexpected attempt to have multiple concurrent normal build operations"
-                    })
+                    await #expect(
+                        performing: {
+                            try await testSession.session.createBuildOperation(request: buildRequest, delegate: TestBuildOperationDelegate())
+                        },
+                        throws: { error in
+                            (error as (any Error)).localizedDescription == "unexpected attempt to have multiple concurrent normal build operations"
+                        }
+                    )
 
                     operation.cancel()
 
@@ -761,22 +868,29 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let frameTarget = TestStandardTarget(
-                    "Frame", type: .framework,
+                    "Frame",
+                    type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("frame.swift")]),
-                    ])
+                        TestSourcesBuildPhase([TestBuildFile("frame.swift")])
+                    ]
+                )
                 let toolTarget = TestStandardTarget(
-                    "Tool", type: .commandLineTool,
+                    "Tool",
+                    type: .commandLineTool,
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("tool.swift")]),
                         TestFrameworksBuildPhase(["Frame.framework"]),
-                    ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
-                    groupTree: TestGroup("Files", children: [
-                        TestFile("frame.swift"),
-                        TestFile("tool.swift")
-                    ]),
+                    groupTree: TestGroup(
+                        "Files",
+                        children: [
+                            TestFile("frame.swift"),
+                            TestFile("tool.swift"),
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -785,12 +899,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_VERSION": "5",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
-                    targets: [frameTarget, toolTarget])
+                            ]
+                        )
+                    ],
+                    targets: [frameTarget, toolTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: tmpDir.join("Test"),
-                    projects: [testProject])
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 let fs = localFS
@@ -898,7 +1016,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .framework,
+                    "Foo",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -907,13 +1026,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let otherTargetWithHeader = TestStandardTarget(
-                    "Bar", type: .framework,
+                    "Bar",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -922,21 +1045,30 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
-                    ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("foo.c"), TestFile("foo.h")]),
-                    targets: [testTarget, otherTargetWithHeader])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("foo.c"), TestFile("foo.h"),
+                        ]
+                    ),
+                    targets: [testTarget, otherTargetWithHeader]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: tmpDir.join("Test"),
-                    projects: [testProject])
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 // Run a test build.
@@ -972,11 +1104,14 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     }
 
                     let reportedBuildDescriptionID = try #require(events.reportBuildDescriptionMessage?.buildDescriptionID)
-                    #expect(events.allOutput().bytes.unsafeStringValue.hasPrefix(
-                """
-                Build description signature: \(reportedBuildDescriptionID)
-                Build description path: \(tmpDir.str)/Test/aProject/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
-                """))
+                    #expect(
+                        events.allOutput().bytes.unsafeStringValue.hasPrefix(
+                            """
+                            Build description signature: \(reportedBuildDescriptionID)
+                            Build description path: \(tmpDir.str)/Test/aProject/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
+                            """
+                        )
+                    )
                 }
 
                 // Check that we get a null build.
@@ -1045,7 +1180,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.skipHostOS(.windows)) // Windows: $PRODUCT_NAME-preparedForIndex-target node is missing?
+    @Test(.skipHostOS(.windows))  // Windows: $PRODUCT_NAME-preparedForIndex-target node is missing?
     func prepareForIndexAvoidsProvisioning() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -1058,31 +1193,41 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .framework,
+                    "Foo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                               ])],
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("foo.c")]),
                         TestHeadersBuildPhase([TestBuildFile("foo.h")]),
                     ],
                     provisioningSourceData: [
-                        ProvisioningSourceData(configurationName: "Debug", provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget"),
+                        ProvisioningSourceData(configurationName: "Debug", provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "AppTarget")
                     ]
                 )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("foo.c"), TestFile("foo.h")]),
-                    targets: [testTarget])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("foo.c"), TestFile("foo.h"),
+                        ]
+                    ),
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: tmpDir.join("Test"),
-                    projects: [testProject])
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 let fs = localFS
@@ -1134,10 +1279,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [testTarget])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    targets: [testTarget]
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -1173,10 +1321,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    targets: []
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -1207,10 +1358,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 "aProject",
                 defaultConfigurationName: "Release",
                 groupTree: TestGroup("Foo"),
-                targets: [testTarget])
-            let testWorkspace = TestWorkspace("aWorkspace",
-                                              sourceRoot: srcroot,
-                                              projects: [testProject])
+                targets: [testTarget]
+            )
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: srcroot,
+                projects: [testProject]
+            )
 
             try await testSession.sendPIF(testWorkspace)
 
@@ -1229,11 +1383,14 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             await testSession.service.terminate()
 
-            await #expect(performing: {
-                try await testSession.close()
-            }, throws: { error in
-                error.localizedDescription == "The Xcode build system has crashed. Build again to continue."
-            })
+            await #expect(
+                performing: {
+                    try await testSession.close()
+                },
+                throws: { error in
+                    error.localizedDescription == "The Xcode build system has crashed. Build again to continue."
+                }
+            )
         }
     }
 
@@ -1252,7 +1409,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let srcroot = tmpDir.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .staticLibrary,
+                    "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -1261,19 +1419,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "USE_HEADERMAP": "NO",
                                 // We run a task which will never finish.
                                 "CC": "/usr/bin/yes",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
-                    ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: srcroot,
-                    projects: [testProject])
+                    projects: [testProject]
+                )
 
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
@@ -1323,7 +1486,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let srcroot = tmpDir.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .staticLibrary,
+                    "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -1332,19 +1496,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "USE_HEADERMAP": "NO",
                                 // We run a task which will never finish.
                                 "CC": "/usr/bin/yes",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
-                    ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: srcroot,
-                    projects: [testProject])
+                    projects: [testProject]
+                )
 
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
@@ -1395,7 +1564,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let srcroot = tmpDir.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .staticLibrary,
+                    "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -1404,19 +1574,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "USE_HEADERMAP": "NO",
                                 // We run a task which will never finish.
                                 "CC": "/usr/bin/yes",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
-                    ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: srcroot,
-                    projects: [testProject])
+                    projects: [testProject]
+                )
 
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
@@ -1477,7 +1652,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let srcroot = tmpDir.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .staticLibrary,
+                    "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -1486,19 +1662,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "USE_HEADERMAP": "NO",
                                 // We run a task which will never finish.
                                 "CC": "/usr/bin/yes",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
-                    ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: srcroot,
-                    projects: [testProject])
+                    projects: [testProject]
+                )
 
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
@@ -1557,7 +1738,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let srcroot = tmpDir.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .staticLibrary,
+                    "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -1566,19 +1748,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "USE_HEADERMAP": "NO",
                                 // We run a task which will never finish.
                                 "CC": "/usr/bin/yes",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
-                    ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: srcroot,
-                    projects: [testProject])
+                    projects: [testProject]
+                )
 
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
@@ -1631,26 +1818,32 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let srcroot = tmpDir.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Foo", type: .staticLibrary,
+                    "Foo",
+                    type: .staticLibrary,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "NO",
-                            ])],
+                            ]
+                        )
+                    ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.c")]),
-                    ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.c")])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace(
                     "aWorkspace",
                     sourceRoot: srcroot,
-                    projects: [testProject])
+                    projects: [testProject]
+                )
 
                 try await testSession.sendPIF(testWorkspace)
 
@@ -1716,7 +1909,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     do {
                         let srcroot = tmpDir.join("Test")
                         testTarget = TestStandardTarget(
-                            "Foo", type: .staticLibrary,
+                            "Foo",
+                            type: .staticLibrary,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -1725,19 +1919,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                         "USE_HEADERMAP": "NO",
                                         // We run a task which will never finish.
                                         "CC": "/usr/bin/yes",
-                                    ])],
+                                    ]
+                                )
+                            ],
                             buildPhases: [
-                                TestSourcesBuildPhase([TestBuildFile("foo.c")]),
-                            ])
+                                TestSourcesBuildPhase([TestBuildFile("foo.c")])
+                            ]
+                        )
                         let testProject = TestProject(
                             "aProject",
                             defaultConfigurationName: "Release",
                             groupTree: TestGroup("Foo", children: [TestFile("foo.c")]),
-                            targets: [testTarget])
+                            targets: [testTarget]
+                        )
                         let testWorkspace = TestWorkspace(
                             "aWorkspace",
                             sourceRoot: srcroot,
-                            projects: [testProject])
+                            projects: [testProject]
+                        )
 
                         // Write the test file.
                         try localFS.createDirectory(testWorkspace.sourceRoot.join("aProject"), recursive: true)
@@ -1774,7 +1973,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
     }
 
     /// Check scraped build issues.
-    @Test(.requireSDKs(.macOS), .skipHostOS(.windows)) // relies on UNIX shell, consider adding Windows command shell support for script phases?
+    @Test(.requireSDKs(.macOS), .skipHostOS(.windows))  // relies on UNIX shell, consider adding Windows command shell support for script phases?
     func buildScriptIssues() async throws {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
@@ -1791,24 +1990,32 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "Target",
                     buildPhases: [
                         TestShellScriptBuildPhase(
-                            name: "Script1", originalObjectID: "Script1", contents: (OutputByteStream()
-                                                                                     <<< "echo 'foo:1:1: error: bar'\n"
-                                                                                     <<< "echo 'foo:1:1: warning: bar'\n"
-                                                                                     <<< "echo 'foo:1:1: note: bar'\n"
-                                                                                     <<< "echo 'foo: error: bar'\n"
-                                                                                     <<< "echo 'foo: warning: bar'\n"
-                                                                                     <<< "echo 'foo: note: bar'\n"
-                                                                                    ).bytes.asString, inputs: [], outputs: [], alwaysOutOfDate: true)
+                            name: "Script1",
+                            originalObjectID: "Script1",
+                            contents: (OutputByteStream()
+                                <<< "echo 'foo:1:1: error: bar'\n"
+                                <<< "echo 'foo:1:1: warning: bar'\n"
+                                <<< "echo 'foo:1:1: note: bar'\n"
+                                <<< "echo 'foo: error: bar'\n"
+                                <<< "echo 'foo: warning: bar'\n"
+                                <<< "echo 'foo: note: bar'\n").bytes.asString,
+                            inputs: [],
+                            outputs: [],
+                            alwaysOutOfDate: true
+                        )
                     ]
                 )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [testTarget])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    targets: [testTarget]
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
 
                 let tester = try await CoreQualificationTester(testWorkspace, testSession)
 
@@ -1838,17 +2045,19 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let reportedBuildDescriptionID = try #require(events.reportBuildDescriptionMessage?.buildDescriptionID)
-                #expect(events.allOutput().bytes.unsafeStringValue == """
-            Build description signature: \(reportedBuildDescriptionID)
-            Build description path: \(tmpDir.str)/Test/aProject/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
-            foo:1:1: error: bar
-            foo:1:1: warning: bar
-            foo:1:1: note: bar
-            foo: error: bar
-            foo: warning: bar
-            foo: note: bar
+                #expect(
+                    events.allOutput().bytes.unsafeStringValue == """
+                        Build description signature: \(reportedBuildDescriptionID)
+                        Build description path: \(tmpDir.str)/Test/aProject/build/XCBuildData/\(reportedBuildDescriptionID).xcbuilddata
+                        foo:1:1: error: bar
+                        foo:1:1: warning: bar
+                        foo:1:1: note: bar
+                        foo: error: bar
+                        foo: warning: bar
+                        foo: note: bar
 
-            """)
+                        """
+                )
             }
         }
     }
@@ -1869,7 +2078,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let testTargetA = TestStandardTarget(
-                    "aTarget", type: .framework,
+                    "aTarget",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -1878,15 +2088,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "USE_HEADERMAP": "YES",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            ])],
-                    buildPhases: [TestSourcesBuildPhase(["foo.c"])])
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                )
                 let testProject1 = TestProject(
                     "aProject",
                     groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
-                    targets: [testTargetA])
-                let testWorkspace1 = TestWorkspace("aWorkspace",
-                                                   sourceRoot: tmpDir.join("Test"),
-                                                   projects: [testProject1])
+                    targets: [testTargetA]
+                )
+                let testWorkspace1 = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: tmpDir.join("Test"),
+                    projects: [testProject1]
+                )
                 let SRCROOT = testWorkspace1.sourceRoot.join("aProject")
 
                 let fs = localFS
@@ -1897,8 +2113,11 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 let transferred1 = try await testSession.sendPIFIncrementally(testWorkspace1)
-                #expect(transferred1 == [
-                    testWorkspace1.signature, testProject1.signature, testTargetA.signature])
+                #expect(
+                    transferred1 == [
+                        testWorkspace1.signature, testProject1.signature, testTargetA.signature,
+                    ]
+                )
 
                 // Run a test build.
                 var request = SWBBuildRequest()
@@ -1922,14 +2141,20 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 let testProject2 = TestProject(
                     "aProject",
                     groupTree: TestGroup("Sources", children: [TestFile("foo.c"), TestFile("baz.c")]),
-                    targets: [testTargetA])
-                let testWorkspace2 = TestWorkspace("aWorkspace",
-                                                   sourceRoot: tmpDir.join("Test"),
-                                                   projects: [testProject2])
+                    targets: [testTargetA]
+                )
+                let testWorkspace2 = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: tmpDir.join("Test"),
+                    projects: [testProject2]
+                )
 
                 let transferred2 = try await testSession.sendPIFIncrementally(testWorkspace2)
-                #expect(transferred2 == [
-                    testWorkspace2.signature, testProject2.signature])
+                #expect(
+                    transferred2 == [
+                        testWorkspace2.signature, testProject2.signature,
+                    ]
+                )
                 do {
                     let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
@@ -1943,12 +2168,17 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
 
                 // Build once again with a new workspace but shared project, but a new build request (to force task reconstruction).
-                let testWorkspace3 = TestWorkspace("aWorkspace",
-                                                   sourceRoot: tmpDir.join("Test"),
-                                                   projects: [testProject1])
+                let testWorkspace3 = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: tmpDir.join("Test"),
+                    projects: [testProject1]
+                )
                 let transferred3 = try await testSession.sendPIFIncrementally(testWorkspace3)
-                #expect(transferred3 == [
-                    testWorkspace3.signature])
+                #expect(
+                    transferred3 == [
+                        testWorkspace3.signature
+                    ]
+                )
                 do {
                     let events = try await testSession.runBuildOperation(request: request, delegate: TestBuildOperationDelegate())
 
@@ -1988,11 +2218,11 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "G1",
                                 children: [
                                     TestFile("aFramework.framework"),
-                                    TestFile("bFramework", path: "bFramework.framework/Versions/A/bFramework", fileType: "compiled.mach-o.executable", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR"))
+                                    TestFile("bFramework", path: "bFramework.framework/Versions/A/bFramework", fileType: "compiled.mach-o.executable", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
                                 ]
                             ),
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [:]),
+                                TestBuildConfiguration("Debug", buildSettings: [:])
                             ],
                             targets: [
                                 TestStandardTarget(
@@ -2000,13 +2230,13 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                     guid: "Foo",
                                     type: .application,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                                     ],
                                     buildPhases: [
                                         TestFrameworksBuildPhase([
                                             "aFramework.framework",
                                             "bFramework",
-                                        ]),
+                                        ])
                                     ]
                                 )
                             ]
@@ -2015,39 +2245,38 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             "P2",
                             groupTree: TestGroup(
                                 "G2",
-                                children:[
-                                ]
+                                children: []
                             ),
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [:]),
+                                TestBuildConfiguration("Debug", buildSettings: [:])
                             ],
                             targets: [
                                 TestStandardTarget(
                                     "aFramework1",
                                     type: .framework,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                                     ]
                                 ),
                                 TestStandardTarget(
                                     "aFramework2",
                                     type: .framework,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                                     ]
                                 ),
                                 TestStandardTarget(
                                     "bFramework1",
                                     type: .framework,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"]),
+                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"])
                                     ]
                                 ),
                                 TestStandardTarget(
                                     "bFramework2",
                                     type: .framework,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"]),
+                                        TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"])
                                     ]
                                 ),
                             ]
@@ -2105,10 +2334,10 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             guid: "BS1",
                             originalObjectID: "A.Script",
                             contents: (OutputByteStream()
-                                       <<< "echo test"
-                                      ).bytes.asString,
+                                <<< "echo test").bytes.asString,
                             inputs: [],
-                            outputs: [])
+                            outputs: []
+                        )
                     ]
                 )
 
@@ -2116,18 +2345,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "aWorkspace",
                     guid: "W1",
                     sourceRoot: srcroot,
-                    projects: [TestProject(
-                        "aProject",
-                        guid: "P1",
-                        defaultConfigurationName: "Debug",
-                        groupTree: TestGroup(
-                            "Foo",
-                            guid: "G1"
-                        ),
-                        targets: [
-                            testTarget,
-                        ]
-                    )])
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            guid: "P1",
+                            defaultConfigurationName: "Debug",
+                            groupTree: TestGroup(
+                                "Foo",
+                                guid: "G1"
+                            ),
+                            targets: [
+                                testTarget
+                            ]
+                        )
+                    ]
+                )
 
                 var request = SWBBuildRequest()
                 request.parameters = SWBBuildParameters()
@@ -2165,8 +2397,9 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         TestSourcesBuildPhase([
                             "file1.swift",
                             "file2.swift",
-                        ]),
-                    ])
+                        ])
+                    ]
+                )
 
                 let testWorkspace = try await TestWorkspace(
                     "Test",
@@ -2180,7 +2413,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 children: [
                                     TestFile("file1.swift"),
                                     TestFile("file2.swift"),
-                                ]),
+                                ]
+                            ),
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -2193,11 +2427,14 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                         "ARCHS": "arm64e",
 
                                         // This file does not exist and should fail the build
-                                        "SWIFT_OBJC_BRIDGING_HEADER": "foo.h"
-                                    ])
+                                        "SWIFT_OBJC_BRIDGING_HEADER": "foo.h",
+                                    ]
+                                )
                             ],
-                            targets: [ testTarget ])
-                    ])
+                            targets: [testTarget]
+                        )
+                    ]
+                )
 
                 let fs = localFS
                 let tester = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
@@ -2245,7 +2482,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
                 let srcroot = tmpDirPath.join("Test")
                 let testTarget = TestStandardTarget(
-                    "Tool", type: .framework,
+                    "Tool",
+                    type: .framework,
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -2256,23 +2494,34 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "USE_HEADERMAP": "NO",
                                 "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "SWIFT_ENABLE_EXPLICIT_MODULES": "NO"
-                            ])],
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                            ]
+                        )
+                    ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("File1.swift"),
-                            TestBuildFile("File2.swift")]),
-                    ])
+                            TestBuildFile("File2.swift"),
+                        ])
+                    ]
+                )
                 let testProject = TestProject(
                     "aProject",
                     defaultConfigurationName: "Release",
-                    groupTree: TestGroup("Foo", children: [
-                        TestFile("File1.swift"),
-                        TestFile("File2.swift")]),
-                    targets: [testTarget])
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: srcroot,
-                                                  projects: [testProject])
+                    groupTree: TestGroup(
+                        "Foo",
+                        children: [
+                            TestFile("File1.swift"),
+                            TestFile("File2.swift"),
+                        ]
+                    ),
+                    targets: [testTarget]
+                )
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: srcroot,
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 let fs = localFS

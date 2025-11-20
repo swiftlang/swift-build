@@ -19,8 +19,9 @@ extension BuildPhaseTarget {
         let buildFilesProcessingContext = BuildFilesProcessingContext(scope)
         return buildFiles.compactMap { buildFile in
             guard let resolvedBuildFileInfo = try? context.resolveBuildFileReference(buildFile),
-                  !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
-                  resolvedBuildFileInfo.fileType.conformsTo(fileType) else {
+                !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
+                resolvedBuildFileInfo.fileType.conformsTo(fileType)
+            else {
                 return nil
             }
 
@@ -42,18 +43,18 @@ final class GenerateAppPlaygroundAssetCatalogTaskProducer: PhasedTaskProducer, T
 
         if !scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) { return [] }
 
-        let assetCatalogsBeingBuilt = (context.configuredTarget?.target as? BuildPhaseTarget)?.assetCatalogsToBuild(
-            context: context,
-            scope: scope
-        ) ?? []
+        let assetCatalogsBeingBuilt =
+            (context.configuredTarget?.target as? BuildPhaseTarget)?.assetCatalogsToBuild(
+                context: context,
+                scope: scope
+            ) ?? []
 
         let assetCatalogToBeGenerated = scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATED_ASSET_CATALOG_FILE)
 
         let specialArgs: [String]
         if !assetCatalogsBeingBuilt.isEmpty {
             specialArgs = ["-assetCatalogResourcePaths"] + assetCatalogsBeingBuilt.map { $0.absolutePath.str }
-        }
-        else {
+        } else {
             specialArgs = []
         }
 

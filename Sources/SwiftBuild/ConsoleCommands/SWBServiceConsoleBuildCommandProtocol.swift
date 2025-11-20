@@ -478,7 +478,8 @@ extension SwiftBuildMessage.LocationContext: Codable, Equatable, Sendable {
         case .task:
             self = try .task(
                 taskID: container.decode(Int.self, forKey: .taskID),
-                targetID: container.decode(Int.self, forKey: .targetID))
+                targetID: container.decode(Int.self, forKey: .targetID)
+            )
         case .target:
             self = try .target(targetID: container.decode(Int.self, forKey: .targetID))
         case .globalTask:

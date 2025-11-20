@@ -15,7 +15,7 @@ public import SWBCore
 public import SWBMacro
 import Synchronization
 
-public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @unchecked Sendable {
+public class IbtoolCompilerSpec: GenericCompilerSpec, IbtoolCompilerSupport, @unchecked Sendable {
     /// The info object collects information across the build phase so that an ibtool task doesn't try to produce a ~device output which is already being explicitly produced from another input.
     private final class BuildPhaseInfo: BuildPhaseInfoForToolSpec, Sendable {
         let allInputFilenames = SWBMutex<Set<String>>([])
@@ -26,7 +26,7 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @u
             guard ftb.fileType.identifier == "file.xib" else {
                 return
             }
-            allInputFilenames.withLock{ $0.insert(ftb.absolutePath.basenameWithoutSuffix) }
+            allInputFilenames.withLock { $0.insert(ftb.absolutePath.basenameWithoutSuffix) }
         }
 
         func filterOutputFiles(_ outputs: [any PlannedNode], inputs: [Path]) -> [any PlannedNode] {
@@ -171,7 +171,8 @@ public final class IbtoolCompilerSpecStoryboard: IbtoolCompilerSpec, SpecIdentif
                 sandboxDirectory: cbc.scope.evaluate(BuiltinMacros.TEMP_SANDBOX_DIR),
                 extraSandboxSubdirectories: [],
                 developerDirectory: cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR),
-                casOptions: casOptions)
+                casOptions: casOptions
+            )
         } else {
             return nil
         }

@@ -134,10 +134,10 @@ public final class SWBBuildServiceSession: Sendable {
         closed.withLock { closed in
             if !closed {
                 #if os(Windows)
-                // FIXME: This is getting hit sometimes in the test suite
-                print("Expected SWBBuildServiceSession to be closed before deinit")
+                    // FIXME: This is getting hit sometimes in the test suite
+                    print("Expected SWBBuildServiceSession to be closed before deinit")
                 #else
-                assertionFailure("Expected SWBBuildServiceSession to be closed before deinit")
+                    assertionFailure("Expected SWBBuildServiceSession to be closed before deinit")
                 #endif
             }
         }
@@ -245,7 +245,8 @@ public final class SWBBuildServiceSession: Sendable {
 
         return try SWBIndexingHeaderInfo(
             productName: msg.productName,
-            copiedPathMap: Dictionary(uniqueKeysWithValues: msg.copiedPathMap.map { (try AbsolutePath(validating: $0.key), try AbsolutePath(validating: $0.value)) }))
+            copiedPathMap: Dictionary(uniqueKeysWithValues: msg.copiedPathMap.map { (try AbsolutePath(validating: $0.key), try AbsolutePath(validating: $0.value)) })
+        )
     }
 
     /// Generate information about the documentation that will be built for a given build request.
@@ -264,9 +265,11 @@ public final class SWBBuildServiceSession: Sendable {
             throw StubError.error("The documentation info operation was cancelled.")
         }
 
-        return SWBDocumentationInfo(builtDocumentationBundles: msg.output.map {
-            SWBDocumentationBundleInfo(outputPath: $0.outputPath.normalize().str, targetIdentifier: $0.targetIdentifier)
-        })
+        return SWBDocumentationInfo(
+            builtDocumentationBundles: msg.output.map {
+                SWBDocumentationBundleInfo(outputPath: $0.outputPath.normalize().str, targetIdentifier: $0.targetIdentifier)
+            }
+        )
     }
 
     /// Generate and return information about the localizable content of a given build request.
@@ -441,7 +444,7 @@ public final class SWBBuildServiceSession: Sendable {
                 request: buildRequest.messagePayloadRepresentation,
                 targets: targets.map { TargetGUID(rawValue: $0.rawValue) }
             )
-         )
+        )
 
         return response.configuredTargets.map {
             SWBConfiguredTargetIdentifier(
@@ -452,7 +455,6 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     // MARK: Macro evaluation
-
 
     // Helper methods to send a macro evaluation request and handle the response.
 
@@ -480,62 +482,57 @@ public final class SWBBuildServiceSession: Sendable {
         }
     }
 
-
     // Public methods to perform macro evaluations for a level and build parameters.
 
-    public func evaluateMacroAsString(_ macro: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String : String]?) async throws -> String {
+    public func evaluateMacroAsString(_ macro: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String: String]?) async throws -> String {
         let parameters = buildParameters.messagePayloadRepresentation
         let request = MacroEvaluationRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters), request: .macro(macro), overrides: overrides, resultType: .string)
         return try await sendMacroEvaluationStringRequest(self, request)
     }
 
-    public func evaluateMacroAsStringList(_ macro: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String : String]?) async throws -> [String] {
+    public func evaluateMacroAsStringList(_ macro: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String: String]?) async throws -> [String] {
         let parameters = buildParameters.messagePayloadRepresentation
         let request = MacroEvaluationRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters), request: .macro(macro), overrides: overrides, resultType: .stringList)
         return try await sendMacroEvaluationStringListRequest(self, request)
     }
 
-    public func evaluateMacroAsBoolean(_ macro: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String : String]?) async throws -> Bool {
+    public func evaluateMacroAsBoolean(_ macro: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String: String]?) async throws -> Bool {
         let parameters = buildParameters.messagePayloadRepresentation
         let request = MacroEvaluationRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters), request: .macro(macro), overrides: overrides, resultType: .string)
         return try await sendMacroEvaluationStringRequest(self, request) == "YES"
     }
 
-    public func evaluateMacroExpressionAsString(_ expr: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String : String]?) async throws -> String {
+    public func evaluateMacroExpressionAsString(_ expr: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String: String]?) async throws -> String {
         let parameters = buildParameters.messagePayloadRepresentation
         let request = MacroEvaluationRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters), request: .stringExpression(expr), overrides: overrides, resultType: .string)
         return try await sendMacroEvaluationStringRequest(self, request)
     }
 
-    public func evaluateMacroExpressionAsStringList(_ expr: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String : String]?) async throws -> [String] {
+    public func evaluateMacroExpressionAsStringList(_ expr: String, level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String: String]?) async throws -> [String] {
         let parameters = buildParameters.messagePayloadRepresentation
         let request = MacroEvaluationRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters), request: .stringExpression(expr), overrides: overrides, resultType: .stringList)
         return try await sendMacroEvaluationStringListRequest(self, request)
     }
 
-    public func evaluateMacroExpressionArrayAsStringList(_ expr: [String], level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String : String]?) async throws -> [String] {
+    public func evaluateMacroExpressionArrayAsStringList(_ expr: [String], level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters, overrides: [String: String]?) async throws -> [String] {
         let parameters = buildParameters.messagePayloadRepresentation
         let request = MacroEvaluationRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters), request: .stringExpressionArray(expr), overrides: overrides, resultType: .stringList)
         return try await sendMacroEvaluationStringListRequest(self, request)
     }
 
-
     // MARK: Other methods to get information about macros
 
-    public func allExportedMacroNamesAndValues(level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters) async throws -> [String : String] {
+    public func allExportedMacroNamesAndValues(level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters) async throws -> [String: String] {
         let parameters = buildParameters.messagePayloadRepresentation
         return try await service.send(request: AllExportedMacrosAndValuesRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters))).result
     }
 
-
     // MARK: Build settings editor support
-
 
     public func buildSettingsEditorInfo(level: SWBMacroEvaluationLevel, buildParameters: SWBBuildParameters) async throws -> SWBBuildSettingsEditorInfo {
         let parameters = buildParameters.messagePayloadRepresentation
         return SWBBuildSettingsEditorInfo(from: try await service.send(request: BuildSettingsEditorInfoRequest(sessionHandle: uid, context: .components(level: level.toSWBRequest, buildParameters: parameters))).result)
     }
-
 
     /// Loads the workspace at the specified container path.
     ///
@@ -819,7 +816,7 @@ extension SWBBuildQoS {
 
 extension SWBBuildRequest {
     var messagePayloadRepresentation: BuildRequestMessagePayload {
-        return BuildRequestMessagePayload(parameters: parameters.messagePayloadRepresentation, configuredTargets: configuredTargets.map{ $0.messagePayloadRepresentation }, dependencyScope: dependencyScope.messagePayload, continueBuildingAfterErrors: continueBuildingAfterErrors, hideShellScriptEnvironment: hideShellScriptEnvironment, useParallelTargets: useParallelTargets, useImplicitDependencies: useImplicitDependencies, useDryRun: useDryRun, showNonLoggedProgress: showNonLoggedProgress, recordBuildBacktraces: recordBuildBacktraces, generatePrecompiledModulesReport: generatePrecompiledModulesReport, buildPlanDiagnosticsDirPath: buildPlanDiagnosticsDirPath.map(Path.init), buildCommand: buildCommand.messagePayloadRepresentation, schemeCommand: schemeCommand?.messagePayloadRepresentation, containerPath: containerPath.map(Path.init), buildDescriptionID: buildDescriptionID, qos: qos?.messagePayloadRepresentation, schedulerLaneWidthOverride: schedulerLaneWidthOverride, jsonRepresentation: try? jsonData())
+        return BuildRequestMessagePayload(parameters: parameters.messagePayloadRepresentation, configuredTargets: configuredTargets.map { $0.messagePayloadRepresentation }, dependencyScope: dependencyScope.messagePayload, continueBuildingAfterErrors: continueBuildingAfterErrors, hideShellScriptEnvironment: hideShellScriptEnvironment, useParallelTargets: useParallelTargets, useImplicitDependencies: useImplicitDependencies, useDryRun: useDryRun, showNonLoggedProgress: showNonLoggedProgress, recordBuildBacktraces: recordBuildBacktraces, generatePrecompiledModulesReport: generatePrecompiledModulesReport, buildPlanDiagnosticsDirPath: buildPlanDiagnosticsDirPath.map(Path.init), buildCommand: buildCommand.messagePayloadRepresentation, schemeCommand: schemeCommand?.messagePayloadRepresentation, containerPath: containerPath.map(Path.init), buildDescriptionID: buildDescriptionID, qos: qos?.messagePayloadRepresentation, schedulerLaneWidthOverride: schedulerLaneWidthOverride, jsonRepresentation: try? jsonData())
     }
 }
 
@@ -832,7 +829,7 @@ extension SWBConfiguredTarget {
 extension SWBBuildParameters {
     var messagePayloadRepresentation: BuildParametersMessagePayload {
         let overridesPayload = overrides.messagePayloadRepresentation
-        return BuildParametersMessagePayload(action: action ?? "", configuration: configurationName, activeRunDestination: activeRunDestination.flatMap{RunDestinationInfo($0)}, activeArchitecture: activeArchitecture, arenaInfo: arenaInfo.flatMap{ArenaInfo($0)}, overrides: overridesPayload)
+        return BuildParametersMessagePayload(action: action ?? "", configuration: configurationName, activeRunDestination: activeRunDestination.flatMap { RunDestinationInfo($0) }, activeArchitecture: activeArchitecture, arenaInfo: arenaInfo.flatMap { ArenaInfo($0) }, overrides: overridesPayload)
     }
 }
 

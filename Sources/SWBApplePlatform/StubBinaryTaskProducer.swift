@@ -81,10 +81,10 @@ extension TaskProducerContext {
         let stubBinaries = [
             StubBinaryTaskProducer.watchKitStubBinary(scope, productType: productType),
             StubBinaryTaskProducer.messagesAppStubBinary(scope),
-            StubBinaryTaskProducer.messagesAppExtensionStubBinary(scope)
+            StubBinaryTaskProducer.messagesAppExtensionStubBinary(scope),
         ]
 
-        return stubBinaries.filter{ !$0.sourcePath.isEmpty }.only
+        return stubBinaries.filter { !$0.sourcePath.isEmpty }.only
     }
 }
 
@@ -94,8 +94,10 @@ final class StubBinaryTaskProducer: PhasedTaskProducer, TaskProducer {
 
         let (bundleSidecarPath, archiveSidecarPath): (Path?, Path?) = {
             if productType?.identifier == "com.apple.product-type.application.watchapp2" {
-                return (scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME)).join("_WatchKitStub/WK"),
-                        Path(scope.evaluate(BuiltinMacros.WATCHKIT_2_SUPPORT_FOLDER_PATH)))
+                return (
+                    scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME)).join("_WatchKitStub/WK"),
+                    Path(scope.evaluate(BuiltinMacros.WATCHKIT_2_SUPPORT_FOLDER_PATH))
+                )
             }
             return (nil, nil)
         }()
@@ -154,16 +156,18 @@ final class GlobalStubBinaryTaskProducer: StandardTaskProducer, TaskProducer {
             let thinArchs: Bool
         }
 
-        let stubBinaries: Set<StubBinaryWithArchs> = Set(targetContexts.compactMap { targetContext in
-            let scope = targetContext.settings.globalScope
+        let stubBinaries: Set<StubBinaryWithArchs> = Set(
+            targetContexts.compactMap { targetContext in
+                let scope = targetContext.settings.globalScope
 
-            // The stub is copied only when the "build" component is present.
-            guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else { return nil }
+                // The stub is copied only when the "build" component is present.
+                guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else { return nil }
 
-            guard var tmp = targetContext.stubBinary else { return nil }
-            tmp.bundleSidecarPath = nil
-            return StubBinaryWithArchs(stubBinary: tmp, archs: Set(scope.evaluate(BuiltinMacros.ARCHS)), thinArchs: scope.evaluate(BuiltinMacros.THIN_PRODUCT_STUB_BINARY))
-        })
+                guard var tmp = targetContext.stubBinary else { return nil }
+                tmp.bundleSidecarPath = nil
+                return StubBinaryWithArchs(stubBinary: tmp, archs: Set(scope.evaluate(BuiltinMacros.ARCHS)), thinArchs: scope.evaluate(BuiltinMacros.THIN_PRODUCT_STUB_BINARY))
+            }
+        )
 
         var tasks = [any PlannedTask]()
         await appendGeneratedTasks(&tasks) { delegate in

@@ -60,7 +60,7 @@ struct MockExecutionDelegate: TaskExecutionDelegate {
 }
 
 struct MockTaskExecutionClientDelegate: TaskExecutionClientDelegate {
-    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         .deferred
     }
 }
@@ -84,17 +84,17 @@ final class MockTaskOutputDelegate: TaskOutputDelegate {
         }
     }
 
-    var counters: [SWBProtocol.BuildOperationMetrics.Counter : Int] {
+    var counters: [SWBProtocol.BuildOperationMetrics.Counter: Int] {
         state.state.withLock { $0.counters }
     }
 
-    var taskCounters: [SWBProtocol.BuildOperationMetrics.TaskCounter : Int] {
+    var taskCounters: [SWBProtocol.BuildOperationMetrics.TaskCounter: Int] {
         state.state.withLock { $0.taskCounters }
     }
 
     struct State {
-        var counters: [BuildOperationMetrics.Counter : Int] = [:]
-        var taskCounters: [BuildOperationMetrics.TaskCounter : Int] = [:]
+        var counters: [BuildOperationMetrics.Counter: Int] = [:]
+        var taskCounters: [BuildOperationMetrics.TaskCounter: Int] = [:]
         var messages: [String] = []
         var errors: [String] = []
         var warnings: [String] = []
@@ -225,7 +225,7 @@ final class MockTaskOutputDelegate: TaskOutputDelegate {
 final class MockTaskTypeDescription: TaskTypeDescription {
     let isUnsafeToInterrupt: Bool = false
 
-    init() { }
+    init() {}
 
     let payloadType: (any TaskPayload.Type)? = nil
     var toolBasenameAliases: [String] { return [] }

@@ -27,20 +27,27 @@ import SWBMacro
             projects: [
                 TestProject(
                     "aProject",
-                    groupTree: TestGroup("Sources", children: [
-                        TestFile("Foo.h"),
-                        TestFile("FooPublic.h"),
-                        TestFile("FooPrivate.h"),
-                        TestFile("Not-Header.cpp"),
-                        // Variant groups are not searched for headers.
-                        TestVariantGroup("Variant-Group", children: [
-                            TestFile("not-really-a-header.h")
-                        ])
-                    ]),
+                    groupTree: TestGroup(
+                        "Sources",
+                        children: [
+                            TestFile("Foo.h"),
+                            TestFile("FooPublic.h"),
+                            TestFile("FooPrivate.h"),
+                            TestFile("Not-Header.cpp"),
+                            // Variant groups are not searched for headers.
+                            TestVariantGroup(
+                                "Variant-Group",
+                                children: [
+                                    TestFile("not-really-a-header.h")
+                                ]
+                            ),
+                        ]
+                    ),
                     buildConfigurations: [TestBuildConfiguration("Debug")],
                     targets: [
                         TestStandardTarget(
-                            "Fwk1", type: .framework,
+                            "Fwk1",
+                            type: .framework,
                             buildPhases: [
                                 TestHeadersBuildPhase([
                                     TestBuildFile("FooPublic.h", headerVisibility: .public),
@@ -49,13 +56,18 @@ import SWBMacro
                                     "Not-Header.cpp",
                                     "Variant-Group",
                                 ])
-                            ]),
+                            ]
+                        ),
                         // A target w/o a headers phase should be ignored.
                         TestStandardTarget(
-                            "EmptyFwk", type: .framework,
-                            buildPhases: [])
-                    ])
-            ])
+                            "EmptyFwk",
+                            type: .framework,
+                            buildPhases: []
+                        ),
+                    ]
+                )
+            ]
+        )
         let workspace = try testWorkspace.load(core)
 
         let index = await WorkspaceHeaderIndex(core: core, workspace: workspace)

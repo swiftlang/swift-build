@@ -14,9 +14,9 @@ import SWBLibc
 import Foundation
 
 #if canImport(System)
-public import System
+    public import System
 #else
-public import SystemPackage
+    public import SystemPackage
 #endif
 
 private extension String.UTF8View {
@@ -38,9 +38,9 @@ private extension String.UTF8View {
 public struct Path: Serializable, Sendable {
     private var useLegacyImplementation: Bool {
         #if os(Windows)
-        return false
+            return false
         #else
-        return true
+            return true
         #endif
     }
 
@@ -68,39 +68,39 @@ public struct Path: Serializable, Sendable {
 
     /// The system path separator.
     #if os(Windows)
-    public static let pathSeparator = Character("\\")
-    @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "\\") }
-    public static let pathEnvironmentSeparator = Character(";")
-    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
-        guard let separators else {
-            return char == pathSeparatorUTF8 || char == UInt8(ascii: "/")
+        public static let pathSeparator = Character("\\")
+        @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "\\") }
+        public static let pathEnvironmentSeparator = Character(";")
+        @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
+            guard let separators else {
+                return char == pathSeparatorUTF8 || char == UInt8(ascii: "/")
+            }
+            // This is a bit inefficient, but separators should always be nil outside of tests
+            return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
         }
-        // This is a bit inefficient, but separators should always be nil outside of tests
-        return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
-    }
-    @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
-        guard let separators else {
-            return str.utf8.firstIndex(where: { Path.isUTF8PathSeparator($0, separators: separators) })
+        @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
+            guard let separators else {
+                return str.utf8.firstIndex(where: { Path.isUTF8PathSeparator($0, separators: separators) })
+            }
+            return str.firstIndex(where: { separators.contains($0) })
         }
-        return str.firstIndex(where: { separators.contains($0) })
-    }
     #else
-    public static let pathSeparator = Character("/")
-    @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "/") }
-    public static let pathEnvironmentSeparator = Character(":")
-    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
-        guard let separators else  {
-            return char == pathSeparatorUTF8
+        public static let pathSeparator = Character("/")
+        @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "/") }
+        public static let pathEnvironmentSeparator = Character(":")
+        @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
+            guard let separators else {
+                return char == pathSeparatorUTF8
+            }
+            // This is a bit inefficient, but separators should always be nil outside of tests
+            return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
         }
-        // This is a bit inefficient, but separators should always be nil outside of tests
-        return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
-    }
-    @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
-        guard let separators else {
-            return str.utf8.firstIndex(of: pathSeparatorUTF8)
+        @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
+            guard let separators else {
+                return str.utf8.firstIndex(of: pathSeparatorUTF8)
+            }
+            return str.firstIndex(where: { separators.contains($0) })
         }
-        return str.firstIndex(where: { separators.contains($0) })
-    }
     #endif
 
     @inline(__always) public static func isPathSeparator(_ char: Character, separators: (some Collection<Character>)?) -> Bool {
@@ -114,8 +114,8 @@ public struct Path: Serializable, Sendable {
     //Reserved path characters
     //See https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
     #if os(Windows)
-       static let reservedPathCharacters = CharacterSet(charactersIn: "\\<>:|*?\u{000000}\"").union(CharacterSet(charactersIn: "\u{000001}"..."\u{00001F}"))
-       static let reservedRootPathCharacters = CharacterSet(charactersIn: "<>\"|*\u{000000}").union(CharacterSet(charactersIn: "\u{000001}"..."\u{00001F}"))
+        static let reservedPathCharacters = CharacterSet(charactersIn: "\\<>:|*?\u{000000}\"").union(CharacterSet(charactersIn: "\u{000001}"..."\u{00001F}"))
+        static let reservedRootPathCharacters = CharacterSet(charactersIn: "<>\"|*\u{000000}").union(CharacterSet(charactersIn: "\u{000001}"..."\u{00001F}"))
     #else
         static let reservedPathCharacters = CharacterSet(charactersIn: "/\u{000000}")
         static let reservedRootPathCharacters = CharacterSet(charactersIn: "\u{000000}")
@@ -124,9 +124,9 @@ public struct Path: Serializable, Sendable {
     /// Returns the null device path; `/dev/null` on Unix-like platforms, or `NUL` on Windows.
     public static var null: Path {
         #if os(Windows)
-        Path("NUL")
+            Path("NUL")
         #else
-        Path("/dev/null")
+            Path("/dev/null")
         #endif
     }
 
@@ -172,9 +172,9 @@ public struct Path: Serializable, Sendable {
         // performing this conversion early.
         rawPath.makeContiguousUTF8()
         #if os(Windows)
-        if rawPath.hasPrefix("/") {
-            rawPath.removeFirst()
-        }
+            if rawPath.hasPrefix("/") {
+                rawPath.removeFirst()
+            }
         #endif
         let fp = Path(rawPath)
         precondition(fp.isAbsolute, "path '\(fp.str)' is not absolute")
@@ -198,12 +198,12 @@ public struct Path: Serializable, Sendable {
     /// - note: It's not clear if relying on the working directory in this manner is a good idea, but there are some places we need an absolute root path.
     public static var root: Path {
         #if os(Windows)
-        var fp = FilePath(FileManager.default.currentDirectoryPath)
-        fp.components.removeAll()
-        return Path(fp.string).withTrailingSlash
+            var fp = FilePath(FileManager.default.currentDirectoryPath)
+            fp.components.removeAll()
+            return Path(fp.string).withTrailingSlash
         #else
-        // Performance optimization for Unix-like platforms, and because FileManager's currentDirectoryPath can crash if there is an error retrieving the current directory: https://github.com/swiftlang/swift-foundation/issues/946
-        return Path("/")
+            // Performance optimization for Unix-like platforms, and because FileManager's currentDirectoryPath can crash if there is an error retrieving the current directory: https://github.com/swiftlang/swift-foundation/issues/946
+            return Path("/")
         #endif
     }
 
@@ -438,13 +438,13 @@ public struct Path: Serializable, Sendable {
     /// POSIX/GNU is extremely forgiving.
     public var isConformant: Bool {
         #if os(Windows)
-        //FIXME: The legacy implementation of will not work for windows roots. By default on windows we never use the legacy implementation.
-        precondition(!useLegacyImplementation)
-        if let root = _impl.root?.string {
-            if root.rangeOfCharacter(from: Path.reservedRootPathCharacters) != nil {
-                return false
+            //FIXME: The legacy implementation of will not work for windows roots. By default on windows we never use the legacy implementation.
+            precondition(!useLegacyImplementation)
+            if let root = _impl.root?.string {
+                if root.rangeOfCharacter(from: Path.reservedRootPathCharacters) != nil {
+                    return false
+                }
             }
-        }
         #endif
         // Validate the non-root portion
         if useLegacyImplementation {
@@ -472,9 +472,9 @@ public struct Path: Serializable, Sendable {
     public var commandQuoted: String? {
         guard isConformant else { return nil }
         #if os(Windows)
-        return "\"\(str)\""
+            return "\"\(str)\""
         #else
-        return str.quotedStringListRepresentation
+            return str.quotedStringListRepresentation
         #endif
     }
 
@@ -751,8 +751,7 @@ public struct Path: Serializable, Sendable {
                     if !nextCharacterIsEscaped {
                         isInPathComponent = false
                     }
-                }
-                else {
+                } else {
                     // If we're not in a path component, then we found a new one.
                     if !isInPathComponent {
                         numComponents += 1
@@ -762,8 +761,7 @@ public struct Path: Serializable, Sendable {
                 // Handle escape characters.
                 if nextCharacterIsEscaped {
                     nextCharacterIsEscaped = false
-                }
-                else {
+                } else {
                     nextCharacterIsEscaped = (byte == UInt8(ascii: "\\"))
                 }
             }
@@ -786,13 +784,11 @@ public struct Path: Serializable, Sendable {
                     }
                     break
                 }
-            }
-            else if idx == utf8Str.startIndex {
+            } else if idx == utf8Str.startIndex {
                 // If we didn't encounter a path separator, then the full string is the trailing subpath.
                 firstIdx = idx
                 break
-            }
-            else {
+            } else {
                 // If we're not in a path component, then we found a new one.
                 if !isInPathComponent {
                     numPathComponentsInPath += 1
@@ -871,13 +867,13 @@ extension Path: Hashable {
 }
 
 extension Path: Equatable {
-    public static func ==(lhs: Path, rhs: Path) -> Bool {
+    public static func == (lhs: Path, rhs: Path) -> Bool {
         return lhs.str == rhs.str
     }
 }
 
 extension Path: Comparable {
-    public static func <(lhs: Path, rhs: Path) -> Bool {
+    public static func < (lhs: Path, rhs: Path) -> Bool {
         return lhs.str < rhs.str
     }
 }
@@ -949,9 +945,9 @@ extension Path {
     /// This is necessary for some cases where tools may treat the `\` character as part of an escape sequence rather than a path separator even on Windows. Use sparingly.
     public var strWithPosixSlashes: String {
         #if os(Windows)
-        str.replacingOccurrences(of: "\\", with: "/")
+            str.replacingOccurrences(of: "\\", with: "/")
         #else
-        str
+            str
         #endif
     }
 }
@@ -960,34 +956,33 @@ extension String {
     @_spi(Testing) public var canonicalPathRepresentation: String {
         get throws {
             #if os(Windows)
-            return try withCString(encodedAs: UTF16.self) { platformPath in
-                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
-                    return String(decodingCString: canonicalPath, as: UTF16.self)
+                return try withCString(encodedAs: UTF16.self) { platformPath in
+                    return try platformPath.withCanonicalPathRepresentation { canonicalPath in
+                        return String(decodingCString: canonicalPath, as: UTF16.self)
+                    }
                 }
-            }
             #else
-            return self
+                return self
             #endif
         }
     }
 }
 
 extension Path {
-     @_spi(Testing) public var canonicalPathRepresentation: String {
+    @_spi(Testing) public var canonicalPathRepresentation: String {
         get throws {
             #if os(Windows)
-            return try withPlatformString { platformPath in
-                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
-                    return String(decodingCString: canonicalPath, as: UTF16.self)
+                return try withPlatformString { platformPath in
+                    return try platformPath.withCanonicalPathRepresentation { canonicalPath in
+                        return String(decodingCString: canonicalPath, as: UTF16.self)
+                    }
                 }
-            }
             #else
-            return str
+                return str
             #endif
         }
     }
 }
-
 
 /// A wrapper for a string which is used to identify an absolute path on the file system.
 public struct AbsolutePath: Hashable, Equatable, Serializable, Sendable {
@@ -1019,7 +1014,7 @@ public struct AbsolutePath: Hashable, Equatable, Serializable, Sendable {
         try self.init(validating: Path(from: deserializer))
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         path.serialize(to: serializer)
     }
 
@@ -1058,7 +1053,7 @@ public struct RelativePath: Hashable, Equatable, Serializable, Sendable {
         try self.init(validating: Path(from: deserializer))
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         path.serialize(to: serializer)
     }
 

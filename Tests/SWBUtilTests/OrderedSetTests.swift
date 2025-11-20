@@ -122,8 +122,7 @@ import struct SWBUtil.OrderedSet
 
         // Iterate over the objects and add them to an array.
         var array = [String]()
-        for str in set
-        {
+        for str in set {
             array.append(str)
         }
         #expect(array == ["two", "six", "five", "seven", "one"])

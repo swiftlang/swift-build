@@ -28,36 +28,41 @@ final class PCHModuleMapTaskProducer: StandardTaskProducer, TaskProducer {
         var tasks = [any PlannedTask]()
 
         do {
-            let prefixHeadersToPrecompile = try Dictionary(try await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> (Path, ByteString)? in
-                let scope = targetContext.settings.globalScope
+            let prefixHeadersToPrecompile = try Dictionary(
+                try await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> (Path, ByteString)? in
+                    let scope = targetContext.settings.globalScope
 
-                // If there is not prefix header, we are done.
-                var prefixHeader = scope.evaluate(BuiltinMacros.GCC_PREFIX_HEADER)
-                guard !prefixHeader.isEmpty else {
-                    return nil
-                }
-
-                // Make the path absolute.
-                prefixHeader = targetContext.createNode(prefixHeader).path
-
-                let prefixModuleMapFile = ClangCompilerSpec.getPrefixHeaderModuleMap(prefixHeader, scope)
-
-                if let prefixModuleMapFile {
-                    let moduleMapContents = ByteString(encodingAsUTF8: """
-                    module __PCH {
-                        header "\(prefixHeader.str)"
-                        export *
+                    // If there is not prefix header, we are done.
+                    var prefixHeader = scope.evaluate(BuiltinMacros.GCC_PREFIX_HEADER)
+                    guard !prefixHeader.isEmpty else {
+                        return nil
                     }
-                    """)
-                    return (prefixModuleMapFile, moduleMapContents)
+
+                    // Make the path absolute.
+                    prefixHeader = targetContext.createNode(prefixHeader).path
+
+                    let prefixModuleMapFile = ClangCompilerSpec.getPrefixHeaderModuleMap(prefixHeader, scope)
+
+                    if let prefixModuleMapFile {
+                        let moduleMapContents = ByteString(
+                            encodingAsUTF8: """
+                                module __PCH {
+                                    header "\(prefixHeader.str)"
+                                    export *
+                                }
+                                """
+                        )
+                        return (prefixModuleMapFile, moduleMapContents)
+                    }
+                    return nil
+                }.compactMap { $0 },
+                uniquingKeysWith: { first, second in
+                    guard first == second else {
+                        throw StubError.error("Unexpected difference in PCH module map content.\nFirst: \(first.asString)\nSecond:\(second.asString)")
+                    }
+                    return first
                 }
-                return nil
-            }.compactMap{ $0 }, uniquingKeysWith: { first, second in
-                guard first == second else {
-                    throw StubError.error("Unexpected difference in PCH module map content.\nFirst: \(first.asString)\nSecond:\(second.asString)")
-                }
-                return first
-            })
+            )
 
             for (prefixModuleMapFilePath, moduleMapContents) in prefixHeadersToPrecompile {
                 await appendGeneratedTasks(&tasks) { delegate in

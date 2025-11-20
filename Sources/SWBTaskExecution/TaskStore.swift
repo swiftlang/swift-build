@@ -50,7 +50,7 @@ package final class TaskStore {
 @available(*, unavailable) extension TaskStore: Sendable {}
 
 package final class FrozenTaskStore: Sendable {
-    fileprivate init(tasks: [TaskIdentifier : Task], stringArena: FrozenStringArena, byteStringArena: FrozenByteStringArena) {
+    fileprivate init(tasks: [TaskIdentifier: Task], stringArena: FrozenStringArena, byteStringArena: FrozenByteStringArena) {
         self.tasks = tasks
         self.stringArena = stringArena
         self.byteStringArena = byteStringArena
@@ -91,7 +91,7 @@ package final class FrozenTaskStore: Sendable {
 }
 
 extension FrozenTaskStore: Serializable {
-    package func serialize<T>(to serializer: T) where T : Serializer {
+    package func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serialize(Array(tasks.values))
     }
 

@@ -15,8 +15,7 @@ public import SWBMacro
 import SWBProtocol
 
 /// A FilePathResolver is used to resolve the absolute paths for Reference objects.
-public final class FilePathResolver: Sendable
-{
+public final class FilePathResolver: Sendable {
     /// The MacroEvaluationScope used to expand source trees.
     private let scope: MacroEvaluationScope
 
@@ -29,8 +28,7 @@ public final class FilePathResolver: Sendable
     /// Private table use to cache paths already evaluated for build settings in the MacroEvaluationScope.
     private let buildSettingCache = Cache<MacroDeclaration, Path>()
 
-    public init(scope: MacroEvaluationScope, projectDir: Path? = nil)
-    {
+    public init(scope: MacroEvaluationScope, projectDir: Path? = nil) {
         self.scope = scope
         self.projectDir = projectDir ?? scope.evaluate(BuiltinMacros.PROJECT_DIR)
 
@@ -42,11 +40,9 @@ public final class FilePathResolver: Sendable
     }
 
     /// Resolve and return the absolute path for a Reference.
-    public func resolveAbsolutePath(_ reference: Reference) -> Path
-    {
+    public func resolveAbsolutePath(_ reference: Reference) -> Path {
         // If this is a FileGroup, look it up in the cache.
-        if let fileGroup = reference as? FileGroup
-        {
+        if let fileGroup = reference as? FileGroup {
             return fileGroupCache.getOrInsert(fileGroup) {
                 return computeAbsolutePath(fileGroup)
             }
@@ -56,8 +52,7 @@ public final class FilePathResolver: Sendable
     }
 
     /// Computes the absolute path for a Reference and returns it.  This method does no memoizing of the result, so resolveAbsolutePath() is the preferred client method.
-    private func computeAbsolutePath(_ reference: Reference) -> Path
-    {
+    private func computeAbsolutePath(_ reference: Reference) -> Path {
         // Evaluate the path for the reference.
         switch reference
         {
@@ -91,8 +86,7 @@ public final class FilePathResolver: Sendable
     }
 
     /// Resolve and return the absolute path for a Reference's source tree.  This method will always return an absolute path even if sourceTree is .Absolute, so that it can be prepended to a path even if that path should be absolute but is not.  So the caller should use the result appropriately based on what it will be prepended to.
-    func resolveSourceTree(_ sourceTree: SourceTree, forReference reference: Reference) -> Path
-    {
+    func resolveSourceTree(_ sourceTree: SourceTree, forReference reference: Reference) -> Path {
         // Resolve the source tree.
         // Note: If the Reference's path is relative, then we want to always append it to something, so we always compute a value for the source tree here, defaulting to $(PROJECT_DIR) if no other value can be determined
         switch sourceTree
@@ -124,8 +118,7 @@ public final class FilePathResolver: Sendable
                 var pathForSetting = Path(pathString)
 
                 // If the path for the setting is not absolute, then we append it to the value of $(PROJECT_DIR).
-                if !pathForSetting.isAbsolute
-                {
+                if !pathForSetting.isAbsolute {
                     pathForSetting = projectDir.join(pathForSetting)
                 }
 
@@ -136,8 +129,7 @@ public final class FilePathResolver: Sendable
     }
 
     /// Resolve and return the path for a Reference's path property, evaluating any build settings in it if necessary.
-    func resolvePath(_ refPath: MacroStringExpression, forReference reference: Reference) -> Path
-    {
+    func resolvePath(_ refPath: MacroStringExpression, forReference reference: Reference) -> Path {
         return Path(scope.evaluate(refPath))
     }
 

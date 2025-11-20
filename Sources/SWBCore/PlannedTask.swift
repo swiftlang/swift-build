@@ -168,7 +168,7 @@ public final class ConstructedTask: PlannedTask, Sendable {
         self.additionalSignatureData = builder.additionalSignatureData
         self.inputs = builder.inputs
         self.outputs = builder.outputs
-        self.mustPrecede = builder.mustPrecede.map{ UnownedPlannedTask($0) }
+        self.mustPrecede = builder.mustPrecede.map { UnownedPlannedTask($0) }
         self.execTask = execTask
         self.alwaysExecuteTask = builder.alwaysExecuteTask
         self.priority = builder.priority
@@ -189,7 +189,7 @@ public final class ConstructedTask: PlannedTask, Sendable {
 
     // MARK: Forwarding methods
 
-    public var type: any TaskTypeDescription { return execTask.type}
+    public var type: any TaskTypeDescription { return execTask.type }
     public var forTarget: ConfiguredTarget? { return execTask.forTarget }
     public var ruleInfo: [String] { return execTask.ruleInfo }
     public var commandLine: [ByteString] { return execTask.commandLine.map(\.asByteString) }
@@ -197,7 +197,6 @@ public final class ConstructedTask: PlannedTask, Sendable {
     public var execDescription: String? { return execTask.execDescription }
     public var llbuildControlDisabled: Bool { return execTask.llbuildControlDisabled }
 }
-
 
 public final class GateTask: PlannedTask, Sendable {
     /// A static task type description for gate tasks.
@@ -282,7 +281,7 @@ public final class GateTask: PlannedTask, Sendable {
         self.additionalSignatureData = builder.additionalSignatureData
         self.inputs = builder.inputs
         self.outputs = builder.outputs
-        self.mustPrecede = builder.mustPrecede.map{ UnownedPlannedTask($0) }
+        self.mustPrecede = builder.mustPrecede.map { UnownedPlannedTask($0) }
         // FIXME: It seems unfortunate that GateTask has to take an ExecutableTask, but I think that the BuildDescription expects that every PlannedTask will have an ExecutableTask.
         self.execTask = execTask
     }

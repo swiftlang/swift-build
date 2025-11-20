@@ -20,7 +20,7 @@ package import SWBMacro
 extension CoreBasedTests {
     package func testActiveRunDestination(_ targetType: TestStandardTarget.TargetType = .application, extraBuildSettings: [String: String] = [:], runDestination: RunDestinationInfo?, activeArchitecture: String? = nil, hostArchitecture: String? = nil, _ check: (WorkspaceContext, Settings, MacroEvaluationScope) throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         var buildSettings = [
-            "ONLY_ACTIVE_ARCH": "YES",
+            "ONLY_ACTIVE_ARCH": "YES"
         ]
         buildSettings.addContents(of: extraBuildSettings)
 
@@ -37,8 +37,15 @@ extension CoreBasedTests {
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
-                                    buildSettings: buildSettings)],
-                            buildPhases: [TestSourcesBuildPhase(["file.c"])])])]).load(getCore(sourceLocation: sourceLocation))
+                                    buildSettings: buildSettings
+                                )
+                            ],
+                            buildPhases: [TestSourcesBuildPhase(["file.c"])]
+                        )
+                    ]
+                )
+            ]
+        ).load(getCore(sourceLocation: sourceLocation))
 
         let context = try await contextForTestData(testWorkspace, systemInfo: hostArchitecture.map { hostArchitecture in SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: hostArchitecture) } ?? nil)
         let buildRequestContext = BuildRequestContext(workspaceContext: context)

@@ -55,4 +55,3 @@ extension ProjectModel.BuildConfig: Codable {
         case impartedBuildProperties
     }
 }
-

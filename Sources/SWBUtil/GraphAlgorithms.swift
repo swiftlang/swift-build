@@ -16,7 +16,9 @@
 ///
 /// - Returns: The distance (in number of edges) of the shortest path from the source to the destination, or nil if there is no such path.
 public func minimumDistance<T: Hashable>(
-    from source: T, to destination: T, successors: (T) throws -> [T]
+    from source: T,
+    to destination: T,
+    successors: (T) throws -> [T]
 ) rethrows -> Int? {
     var queue = Queue([(distance: 0, source)])
     var visited = Set([source])
@@ -48,7 +50,9 @@ public func minimumDistance<T: Hashable>(
 ///
 /// - Returns: The shortest path (starting with the source and ending with the destination), or nil if there is no such path.
 public func shortestPath<T: Hashable>(
-    from source: T, to destination: T, successors: (T) throws -> [T]
+    from source: T,
+    to destination: T,
+    successors: (T) throws -> [T]
 ) rethrows -> [T]? {
     var queue = Queue([[source]])
     var visited = Set([source])
@@ -80,8 +84,9 @@ public func shortestPath<T: Hashable>(
 ///         not automatically include `nodes` unless present in the relation defined by
 ///         `successors`.
 public func transitiveClosure<T>(
-    _ nodes: [T], successors: (T) throws -> [T]
-    ) rethrows -> (result: OrderedSet<T>, dupes: OrderedSet<T>) {
+    _ nodes: [T],
+    successors: (T) throws -> [T]
+) rethrows -> (result: OrderedSet<T>, dupes: OrderedSet<T>) {
     var dupes = OrderedSet<T>()
     var result = OrderedSet<T>()
 

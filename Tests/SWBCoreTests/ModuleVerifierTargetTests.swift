@@ -64,7 +64,7 @@ import Testing
             ModuleVerifierTargetSet(language: .c, standard: .gnu11, target: "a-1", targetVariant: "a-2"),
             ModuleVerifierTargetSet(language: .c, standard: .gnu11, target: "a-2", targetVariant: "a-1"),
             ModuleVerifierTargetSet(language: .c, standard: .gnu11, target: "b-1", targetVariant: nil),
-            ModuleVerifierTargetSet(language: .c, standard: .gnu11, target: "b-2", targetVariant: nil)
+            ModuleVerifierTargetSet(language: .c, standard: .gnu11, target: "b-2", targetVariant: nil),
         ]
         var expectedDiagnostics: [Diagnostic] = [
             Diagnostic(behavior: .warning, location: .buildSettings(names: ["MODULE_VERIFIER_TARGET_TRIPLE_ARCHS"]), data: DiagnosticData("Duplicate target architectures found - b-1, b-2")),

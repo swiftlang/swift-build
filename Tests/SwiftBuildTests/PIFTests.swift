@@ -40,22 +40,28 @@ fileprivate struct PIFTests {
                 }
 
                 // We should get an error and one lookup.
-                await #expect(performing: {
-                    try await testSession.session.sendPIF(workspaceSignature: "FOOBAR", lookupObject: lookup)
-                }, throws: { error in
-                    // TODO: Check specifically for `PIFLoadingError.invalidObject`, but we lose the type information over the wire
-                    (error as? SwiftBuildError)?.errorDescription?.contains("PIF object must be a dictionary") == true
-                })
+                await #expect(
+                    performing: {
+                        try await testSession.session.sendPIF(workspaceSignature: "FOOBAR", lookupObject: lookup)
+                    },
+                    throws: { error in
+                        // TODO: Check specifically for `PIFLoadingError.invalidObject`, but we lose the type information over the wire
+                        (error as? SwiftBuildError)?.errorDescription?.contains("PIF object must be a dictionary") == true
+                    }
+                )
                 #expect(lookups.withLock(\.count) == 1)
 
                 // Perform the request again, it should do the lookup again.
                 lookups.withLock { $0.removeAll() }
-                await #expect(performing: {
-                    try await testSession.session.sendPIF(workspaceSignature: "FOOBAR", lookupObject: lookup)
-                }, throws: { error in
-                    // TODO: Check specifically for `PIFLoadingError.invalidObject`, but we lose the type information over the wire
-                    (error as? SwiftBuildError)?.errorDescription?.contains("PIF object must be a dictionary") == true
-                })
+                await #expect(
+                    performing: {
+                        try await testSession.session.sendPIF(workspaceSignature: "FOOBAR", lookupObject: lookup)
+                    },
+                    throws: { error in
+                        // TODO: Check specifically for `PIFLoadingError.invalidObject`, but we lose the type information over the wire
+                        (error as? SwiftBuildError)?.errorDescription?.contains("PIF object must be a dictionary") == true
+                    }
+                )
                 #expect(lookups.withLock(\.count) == 1)
             }
         }
@@ -69,10 +75,13 @@ fileprivate struct PIFTests {
                     "testWorkspace",
                     sourceRoot: temporaryDirectory.path,
                     projects: [
-                        TestProject("aProject",
-                                    groupTree: TestGroup("foo"),
-                                    targets: [TestStandardTarget("aTarget", type: .application)])
-                    ])
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup("foo"),
+                            targets: [TestStandardTarget("aTarget", type: .application)]
+                        )
+                    ]
+                )
 
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
@@ -95,16 +104,20 @@ fileprivate struct PIFTests {
                 let workspace = TestWorkspace(
                     "testWorkspace",
                     sourceRoot: tmpDirPath,
-                    projects: [])
+                    projects: []
+                )
 
                 let auditWorkspace = TestWorkspace(
                     "testWorkspace",
                     sourceRoot: temporaryDirectory.path,
                     projects: [
-                        TestProject("aProject",
-                                    groupTree: TestGroup("foo"),
-                                    targets: [TestStandardTarget("aTarget", type: .application)])
-                    ])
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup("foo"),
+                            targets: [TestStandardTarget("aTarget", type: .application)]
+                        )
+                    ]
+                )
 
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
@@ -126,11 +139,14 @@ fileprivate struct PIFTests {
         try await withTemporaryDirectory { temporaryDirectory in
             try await withAsyncDeferrable { deferrable in
                 let signature = "abc"
-                let workspace = [[
-                    "signature": .plString(signature),
-                    "type": "workspace",
-                    "contents": [:]
-                ]] as SWBPropertyListItem
+                let workspace =
+                    [
+                        [
+                            "signature": .plString(signature),
+                            "type": "workspace",
+                            "contents": [:],
+                        ]
+                    ] as SWBPropertyListItem
 
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
@@ -139,22 +155,36 @@ fileprivate struct PIFTests {
                     }
                 }
 
-                await #expect(performing: {
-                    try await testSession.session.sendPIF(workspaceSignature: signature, auditPIF: workspace, lookupObject: { (objectType, signature) async throws -> SWBPropertyListItem in
-                        return workspace
-                    })
-                }, throws: { error in
-                    "\(error)".contains("Required key 'guid' is missing in Workspace dictionary")
-                })
+                await #expect(
+                    performing: {
+                        try await testSession.session.sendPIF(
+                            workspaceSignature: signature,
+                            auditPIF: workspace,
+                            lookupObject: { (objectType, signature) async throws -> SWBPropertyListItem in
+                                return workspace
+                            }
+                        )
+                    },
+                    throws: { error in
+                        "\(error)".contains("Required key 'guid' is missing in Workspace dictionary")
+                    }
+                )
 
                 // Ensure that we properly cancelled the PIF transfer when the error was encountered, and that we get the same error as before, instead of an error that a transfer operation is still in progress
-                await #expect(performing: {
-                    try await testSession.session.sendPIF(workspaceSignature: signature, auditPIF: workspace, lookupObject: { (objectType, signature) async throws -> SWBPropertyListItem in
-                        return workspace
-                    })
-                }, throws: { error in
-                    "\(error)".contains("Required key 'guid' is missing in Workspace dictionary")
-                })
+                await #expect(
+                    performing: {
+                        try await testSession.session.sendPIF(
+                            workspaceSignature: signature,
+                            auditPIF: workspace,
+                            lookupObject: { (objectType, signature) async throws -> SWBPropertyListItem in
+                                return workspace
+                            }
+                        )
+                    },
+                    throws: { error in
+                        "\(error)".contains("Required key 'guid' is missing in Workspace dictionary")
+                    }
+                )
             }
         }
     }
@@ -167,34 +197,36 @@ fileprivate struct PIFTests {
                 let workspaceSignature = "abc"
                 let projectSignature = "proj"
 
-                let workspace = [
-                    "signature": .plString(workspaceSignature),
-                    "type": "workspace",
-                    "contents": [
-                        "guid": "W1",
-                        "name": "WS",
-                        "path": "/foo/bar",
-                        "projects": [
-                            .plString(projectSignature)
+                let workspace =
+                    [
+                        "signature": .plString(workspaceSignature),
+                        "type": "workspace",
+                        "contents": [
+                            "guid": "W1",
+                            "name": "WS",
+                            "path": "/foo/bar",
+                            "projects": [
+                                .plString(projectSignature)
+                            ],
                         ],
-                    ]
-                ] as SWBPropertyListItem
+                    ] as SWBPropertyListItem
 
-                let project = [
-                    "signature": .plString(projectSignature),
-                    "type": "project",
-                    "contents": [
-                        "guid": "P1",
-                        "path": "/bar/baz",
-                        "groupTree": [
-                            "guid": "G1",
-                            "name": "G",
-                            "type": "group",
+                let project =
+                    [
+                        "signature": .plString(projectSignature),
+                        "type": "project",
+                        "contents": [
+                            "guid": "P1",
+                            "path": "/bar/baz",
+                            "groupTree": [
+                                "guid": "G1",
+                                "name": "G",
+                                "type": "group",
+                            ],
+                            "targets": [],
+                            "buildConfigurations": [],
                         ],
-                        "targets": [],
-                        "buildConfigurations": [],
-                    ]
-                ] as SWBPropertyListItem
+                    ] as SWBPropertyListItem
 
                 @Sendable func lookup(_ objectType: SwiftBuildServicePIFObjectType, _ signature: String) async throws -> SWBPropertyListItem {
                     switch signature {
@@ -214,11 +246,14 @@ fileprivate struct PIFTests {
                     }
                 }
 
-                await #expect(performing: {
-                    try await testSession.session.sendPIF(workspaceSignature: workspaceSignature, auditPIF: nil, lookupObject: lookup)
-                }, throws: { error in
-                    "\(error)".contains("unable to load transferred PIF: Required key 'defaultConfigurationName' is missing in Project dictionary")
-                })
+                await #expect(
+                    performing: {
+                        try await testSession.session.sendPIF(workspaceSignature: workspaceSignature, auditPIF: nil, lookupObject: lookup)
+                    },
+                    throws: { error in
+                        "\(error)".contains("unable to load transferred PIF: Required key 'defaultConfigurationName' is missing in Project dictionary")
+                    }
+                )
             }
         }
     }
@@ -234,11 +269,11 @@ fileprivate struct PIFTests {
             "type": "workspace",
             "signature": "WORKSPACE@v11_",
             "contents": [
-                "guid":        "some-workspace-guid",
-                "name":        "aWorkspace",
-                "path":        "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
-                "projects":    ["PROJECT-A@v11_", "PROJECT-B@v11_"]
-            ]
+                "guid": "some-workspace-guid",
+                "name": "aWorkspace",
+                "path": "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
+                "projects": ["PROJECT-A@v11_", "PROJECT-B@v11_"],
+            ],
         ]
         let projectAPIFObject: SWBPropertyListItem = [
             "type": "project",
@@ -253,15 +288,17 @@ fileprivate struct PIFTests {
                     "sourceTree": "PROJECT_DIR",
                     "path": "/tmp/SomeProject/SomeFiles",
                 ],
-                "buildConfigurations": [[
-                    "guid": "A_BC1",
-                    "name": "Config1",
-                    "buildSettings": [:]
-                ]],
+                "buildConfigurations": [
+                    [
+                        "guid": "A_BC1",
+                        "name": "Config1",
+                        "buildSettings": [:],
+                    ]
+                ],
                 "defaultConfigurationName": "Config1",
                 "developmentRegion": "English",
                 "targets": [],
-            ]
+            ],
         ]
         let projectBPIFObject: SWBPropertyListItem = [
             "type": "project",
@@ -276,15 +313,17 @@ fileprivate struct PIFTests {
                     "sourceTree": "PROJECT_DIR",
                     "path": "/tmp/SomeProject/SomeFiles",
                 ],
-                "buildConfigurations": [[
-                    "guid": "B_BC1",
-                    "name": "Config1",
-                    "buildSettings": [:]
-                ]],
+                "buildConfigurations": [
+                    [
+                        "guid": "B_BC1",
+                        "name": "Config1",
+                        "buildSettings": [:],
+                    ]
+                ],
                 "defaultConfigurationName": "Config1",
                 "developmentRegion": "English",
                 "targets": [],
-            ]
+            ],
         ]
 
         // Send the initial PIF.
@@ -335,11 +374,11 @@ fileprivate struct PIFTests {
                     "type": "workspace",
                     "signature": "WORKSPACE@v11_",
                     "contents": [
-                        "guid":        "some-workspace-guid",
-                        "name":        "aWorkspace",
-                        "path":        "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
-                        "projects":    []
-                    ]
+                        "guid": "some-workspace-guid",
+                        "name": "aWorkspace",
+                        "path": "/tmp/aWorkspace.xcworkspace/contents.xcworkspacedata",
+                        "projects": [],
+                    ],
                 ]
 
                 let tmpDirPath = tmpDir.str

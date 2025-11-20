@@ -33,19 +33,19 @@ import SWBUtil
     @Test
     func parsingUmbrellaHeaderFromModuleMap() {
         let contentWithUmbrellaHeader = """
-        framework module FrameworkName [extern_c] {
-          umbrella header "TheUmbrellaHeader.h"
-          export *
-        }
-        """
+            framework module FrameworkName [extern_c] {
+              umbrella header "TheUmbrellaHeader.h"
+              export *
+            }
+            """
         #expect(parseUmbrellaHeaderName(contentWithUmbrellaHeader) == "TheUmbrellaHeader.h")
 
         let contentWithoutUmbrellaHeader = """
-        framework module FrameworkName [extern_c] {
-          header "NonUmbrellaHeader.h"
-          export *
-        }
-        """
+            framework module FrameworkName [extern_c] {
+              header "NonUmbrellaHeader.h"
+              export *
+            }
+            """
         #expect(parseUmbrellaHeaderName(contentWithoutUmbrellaHeader) == nil)
     }
 

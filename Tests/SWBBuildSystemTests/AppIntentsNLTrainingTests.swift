@@ -38,64 +38,74 @@ fileprivate struct AppIntentsNLTrainingTests: CoreBasedTests {
                     children: [
                         TestFile(appShortcutsStringsFileName),
                         TestFile(appIntentsSourceFileName),
-                        TestFile(infoPlistFileName)
-                    ]),
+                        TestFile(infoPlistFileName),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "PRODUCT_BUNDLE_IDENTIFIER": "com.foo.bar",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": swiftVersion,
-                        "VERSIONING_SYSTEM": "apple-generic",
-                        "INFOPLIST_FILE": "Sources/Info.plist",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.foo.bar",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "VERSIONING_SYSTEM": "apple-generic",
+                            "INFOPLIST_FILE": "Sources/Info.plist",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
-                        "testTarget", type: .bundle,
+                        "testTarget",
+                        type: .bundle,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "USE_HEADERMAP": "NO",
-                                "DEFINES_MODULE": "YES",
-                                "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
-                                "APPLY_RULES_IN_COPY_FILES": "YES",
-                                // Disable the SetOwnerAndGroup action by setting them to empty values.
-                                "INSTALL_GROUP": "",
-                                "INSTALL_OWNER": "",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "USE_HEADERMAP": "NO",
+                                    "DEFINES_MODULE": "YES",
+                                    "PACKAGE_RESOURCE_BUNDLE_NAME": "best_resources",
+                                    "APPLY_RULES_IN_COPY_FILES": "YES",
+                                    // Disable the SetOwnerAndGroup action by setting them to empty values.
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_OWNER": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([TestBuildFile(appShortcutsStringsFileName)]),
                             TestSourcesBuildPhase([TestBuildFile(appIntentsSourceFileName)]),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
             let projectDir = tester.workspace.projects[0].sourceRoot
 
-            try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleName": .plString("$(EXECUTABLE_NAME)"),
-                "CFBundleIdentifier": .plString("com.foo.bar")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Sources/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleName": .plString("$(EXECUTABLE_NAME)"),
+                    "CFBundleIdentifier": .plString("com.foo.bar"),
+                ])
+            )
 
             try await tester.fs.writeFileContents(projectDir.join(appShortcutsStringsFileName)) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     /* Valid strings file with correct utterance syntax for \(appShortcutsStringsFileName) (contains ${applicationName}) */
                     "Call ${applicationName}" = "Call ${applicationName}";
                     """
             }
 
             try await tester.fs.writeFileContents(projectDir.join(appIntentsSourceFileName)) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     import AppIntents
                     import SwiftUI
 
@@ -152,4 +162,3 @@ fileprivate struct AppIntentsNLTrainingTests: CoreBasedTests {
         }
     }
 }
-

@@ -36,7 +36,9 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
                                 TestFile("CoreBaz.h"),
@@ -47,64 +49,77 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                                 TestFile("CoreBar.xcdatamodel"),
                                 TestFile("CoreBaz.xcdatamodeld"),
                                 TestFile("CoreQux.xcdatamodeld"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "ARCHS[sdk=iphoneos*]": "arm64",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "DEFINES_MODULE": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "INFOPLIST_FILE": "Sources/Info.plist",
-
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": GetCurrentUserGroupName()!,
-                                "INSTALL_MODE_FLAG": "+w",
-                                "SWIFT_VERSION": "5.0",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS[sdk=iphoneos*]": "arm64",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "DEFINES_MODULE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "INFOPLIST_FILE": "Sources/Info.plist",
+
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": GetCurrentUserGroupName()!,
+                                    "INSTALL_MODE_FLAG": "+w",
+                                    "SWIFT_VERSION": "5.0",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget("All", dependencies: ["CoreFoo", "CoreBar", "CoreBaz", "CoreQux"]),
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "CoreFoo.m",
                                         "CoreFoo.xcdatamodel",
                                     ]),
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
-                                "CoreBar", type: .framework,
+                                "CoreBar",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "CoreFoo.swift",
                                         "CoreBar.xcdatamodel",
-                                    ]),
-                                ]),
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
-                                "CoreBaz", type: .framework,
+                                "CoreBaz",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "CoreBaz.m",
                                         "CoreBaz.xcdatamodeld",
                                     ]),
                                     TestHeadersBuildPhase([TestBuildFile("CoreBaz.h", headerVisibility: .public)]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
-                                "CoreQux", type: .framework,
+                                "CoreQux",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "CoreFoo.swift",
                                         "CoreQux.xcdatamodeld",
-                                    ]),
-                                ])
-                        ])
-                ])
+                                    ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             // Create the tester.
             let fs = localFS
@@ -112,10 +127,13 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             // Write the Info.plist file.
-            try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Sources/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.h")) { contents in
@@ -142,17 +160,20 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
             try tester.fs.writeCoreDataModelD(testWorkspace.sourceRoot.join("aProject/Sources/CoreQux.xcdatamodeld"), language: .swift, .entity("EntityOne"))
 
             // We enable deployment postprocessing explicitly, to check the full range of basic behaviors.
-            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
-                "DSTROOT": tmpDirPath.join("dst").str,
-            ])
+            let parameters = BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "DSTROOT": tmpDirPath.join("dst").str
+                ]
+            )
 
             // Check the build.
             try await tester.checkBuild(parameters: parameters, runDestination: .iOS, persistent: true) { results in
                 // Check that the module session validation file was written.
                 if let moduleSessionFilePath = results.buildDescription.moduleSessionFilePath {
                     #expect(tester.fs.exists(moduleSessionFilePath))
-                }
-                else {
+                } else {
                     Issue.record("No module session validation file path was computed")
                 }
 
@@ -300,66 +321,87 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
                                 TestFile("CoreFoo.swift"),
                                 TestFile("Info.plist"),
                                 TestFile("CoreBaz.mlmodel"),
                                 TestFile("CoreBaz2.mlpackage"),
-                            ].compactMap { $0 }),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "ARCHS[sdk=iphoneos*]": "arm64",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "DEFINES_MODULE": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "INFOPLIST_FILE": "Sources/Info.plist",
+                            ].compactMap { $0 }
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS[sdk=iphoneos*]": "arm64",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "DEFINES_MODULE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "INFOPLIST_FILE": "Sources/Info.plist",
 
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": GetCurrentUserGroupName()!,
-                                "INSTALL_MODE_FLAG": "+w",
-                                "SWIFT_VERSION": "5.0",
-                            ]
-                        )],
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": GetCurrentUserGroupName()!,
+                                    "INSTALL_MODE_FLAG": "+w",
+                                    "SWIFT_VERSION": "5.0",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget("All", dependencies: ["CoreFoo", "CoreBar"]),
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "COREML_CODEGEN_LANGUAGE": "Objective-C",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "COREML_CODEGEN_LANGUAGE": "Objective-C"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase([
-                                        "CoreFoo.m",
-                                        TestBuildFile("CoreBaz.mlmodel", intentsCodegenVisibility: .public),
-                                        TestBuildFile("CoreBaz2.mlpackage", intentsCodegenVisibility: .public),
-                                    ].compactMap { $0 }),
+                                    TestSourcesBuildPhase(
+                                        [
+                                            "CoreFoo.m",
+                                            TestBuildFile("CoreBaz.mlmodel", intentsCodegenVisibility: .public),
+                                            TestBuildFile("CoreBaz2.mlpackage", intentsCodegenVisibility: .public),
+                                        ].compactMap { $0 }
+                                    ),
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
-                                "CoreBar", type: .framework,
+                                "CoreBar",
+                                type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "COREML_CODEGEN_LANGUAGE": "Swift",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "COREML_CODEGEN_LANGUAGE": "Swift"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase([
-                                        "CoreFoo.swift",
-                                        TestBuildFile("CoreBaz.mlmodel", intentsCodegenVisibility: .public),
-                                        TestBuildFile("CoreBaz2.mlpackage", intentsCodegenVisibility: .public),
-                                    ].compactMap { $0 }),
-                                ])
-                        ])
-                ])
+                                    TestSourcesBuildPhase(
+                                        [
+                                            "CoreFoo.swift",
+                                            TestBuildFile("CoreBaz.mlmodel", intentsCodegenVisibility: .public),
+                                            TestBuildFile("CoreBaz2.mlpackage", intentsCodegenVisibility: .public),
+                                        ].compactMap { $0 }
+                                    )
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             // Create the tester.
             let fs = localFS
@@ -367,10 +409,13 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             // Write the Info.plist file.
-            try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Sources/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.h")) { contents in
@@ -390,17 +435,20 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
             try tester.fs.copy(Path(mlpackageSourcePath), to: testWorkspace.sourceRoot.join("aProject/Sources/CoreBaz2.mlpackage"))
 
             // We enable deployment postprocessing explicitly, to check the full range of basic behaviors.
-            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
-                "DSTROOT": tmpDirPath.join("dst").str,
-            ])
+            let parameters = BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "DSTROOT": tmpDirPath.join("dst").str
+                ]
+            )
 
             // Check the build.
             try await tester.checkBuild(parameters: parameters, runDestination: .iOS, persistent: true) { results in
                 // Check that the module session validation file was written.
                 if let moduleSessionFilePath = results.buildDescription.moduleSessionFilePath {
                     #expect(tester.fs.exists(moduleSessionFilePath))
-                }
-                else {
+                } else {
                     Issue.record("No module session validation file path was computed")
                 }
 
@@ -492,12 +540,18 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                     results.check(event: .taskHadEvent(coreMLCodeGenTaskMLModel, event: .completed), precedes: .taskHadEvent(linkerTask, event: .started))
                     results.check(event: .taskHadEvent(coreMLTaskMLModel, event: .started), precedes: .taskHadEvent(coreMLTaskMLModel, event: .completed))
 
-                    results.check(event: .taskHadEvent(coreMLCodeGenTaskMLPackage, event: .started),
-                                  precedes: .taskHadEvent(coreMLCodeGenTaskMLPackage, event: .completed))
-                    results.check(event: .taskHadEvent(coreMLCodeGenTaskMLPackage, event: .completed),
-                                  precedes: .taskHadEvent(linkerTask, event: .started))
-                    results.check(event: .taskHadEvent(coreMLTaskMLPackage, event: .started),
-                                  precedes: .taskHadEvent(coreMLTaskMLPackage, event: .completed))
+                    results.check(
+                        event: .taskHadEvent(coreMLCodeGenTaskMLPackage, event: .started),
+                        precedes: .taskHadEvent(coreMLCodeGenTaskMLPackage, event: .completed)
+                    )
+                    results.check(
+                        event: .taskHadEvent(coreMLCodeGenTaskMLPackage, event: .completed),
+                        precedes: .taskHadEvent(linkerTask, event: .started)
+                    )
+                    results.check(
+                        event: .taskHadEvent(coreMLTaskMLPackage, event: .started),
+                        precedes: .taskHadEvent(coreMLTaskMLPackage, event: .completed)
+                    )
 
                     // Check that the module map file was created.
                     try results.check(contains: .taskHadEvent(#require(moduleMapWriteTask), event: .started))
@@ -526,63 +580,80 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
                                 TestFile("CoreFoo.swift"),
                                 TestFile("Info.plist"),
                                 TestFile("Intents.intentdefinition"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "ARCHS[sdk=iphoneos*]": "arm64",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "DEFINES_MODULE": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "INFOPLIST_FILE": "Sources/Info.plist",
-
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": GetCurrentUserGroupName()!,
-                                "INSTALL_MODE_FLAG": "+w",
-                                "SWIFT_VERSION": "5.0",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS[sdk=iphoneos*]": "arm64",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "DEFINES_MODULE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "INFOPLIST_FILE": "Sources/Info.plist",
+
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": GetCurrentUserGroupName()!,
+                                    "INSTALL_MODE_FLAG": "+w",
+                                    "SWIFT_VERSION": "5.0",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget("All", dependencies: ["CoreFoo", "CoreBar"]),
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "INTENTS_CODEGEN_LANGUAGE": "Objective-C",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "INTENTS_CODEGEN_LANGUAGE": "Objective-C"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "CoreFoo.m",
-                                        TestBuildFile("Intents.intentdefinition", intentsCodegenVisibility: .public)
+                                        TestBuildFile("Intents.intentdefinition", intentsCodegenVisibility: .public),
                                     ]),
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
-                                "CoreBar", type: .framework,
+                                "CoreBar",
+                                type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "INTENTS_CODEGEN_LANGUAGE": "Swift",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "INTENTS_CODEGEN_LANGUAGE": "Swift"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "CoreFoo.swift",
-                                        TestBuildFile("Intents.intentdefinition", intentsCodegenVisibility: .public)
-                                    ]),
-                                ])
-                        ])
-                ])
+                                        TestBuildFile("Intents.intentdefinition", intentsCodegenVisibility: .public),
+                                    ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             // Create the tester.
             let fs = localFS
@@ -590,10 +661,13 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             // Write the Info.plist file.
-            try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Sources/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.h")) { contents in
@@ -608,17 +682,20 @@ fileprivate struct CodeGenerationToolTests: CoreBasedTests {
             try await tester.fs.writeIntentDefinition(testWorkspace.sourceRoot.join("aProject/Sources/Intents.intentdefinition"))
 
             // We enable deployment postprocessing explicitly, to check the full range of basic behaviors.
-            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
-                "DSTROOT": tmpDirPath.join("dst").str,
-            ])
+            let parameters = BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "DSTROOT": tmpDirPath.join("dst").str
+                ]
+            )
 
             // Check the build.
             try await tester.checkBuild(parameters: parameters, runDestination: .iOS, persistent: true) { results in
                 // Check that the module session validation file was written.
                 if let moduleSessionFilePath = results.buildDescription.moduleSessionFilePath {
                     #expect(tester.fs.exists(moduleSessionFilePath))
-                }
-                else {
+                } else {
                     Issue.record("No module session validation file path was computed")
                 }
 

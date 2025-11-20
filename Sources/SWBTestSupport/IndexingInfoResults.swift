@@ -81,7 +81,7 @@ package final class IndexingInfoResults {
 }
 
 @available(*, unavailable)
-extension IndexingInfoResults: Sendable { }
+extension IndexingInfoResults: Sendable {}
 
 package final class IndexingInfo: Hashable, CustomStringConvertible {
     private enum KnownKeys: String, CaseIterable {
@@ -182,7 +182,7 @@ package final class IndexingInfo: Hashable, CustomStringConvertible {
 }
 
 @available(*, unavailable)
-extension IndexingInfo: Sendable { }
+extension IndexingInfo: Sendable {}
 
 extension IndexingInfo {
     package func checkSourceFilePath(_ path: Path, sourceLocation: SourceLocation = #_sourceLocation) {
@@ -219,7 +219,6 @@ extension IndexingInfo {
         return consumeCheckableCommandLineKey(.clangPCHCommandArguments)
     }
 }
-
 
 extension IndexingInfo {
     package var clang: any CommandLineCheckable {

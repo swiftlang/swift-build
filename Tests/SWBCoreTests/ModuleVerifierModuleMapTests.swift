@@ -33,22 +33,27 @@ import Testing
         let frameworkPath = tmpDir.join("\(frameworkName).framework")
         let modulemapPath = frameworkPath.join("Versions/A/Modules/module.modulemap")
         try fs.createDirectory(modulemapPath.dirname, recursive: true)
-        try fs.write(modulemapPath, contents: """
-            framework module BadFramework {
-                umbrella "Headers"
-                export *
-                module * { export * }
-            }
-            """)
+        try fs.write(
+            modulemapPath,
+            contents: """
+                framework module BadFramework {
+                    umbrella "Headers"
+                    export *
+                    module * { export * }
+                }
+                """
+        )
 
         let moduleMap = try ModuleVerifierModuleMap(moduleMap: modulemapPath, fs: fs, frameworkName: frameworkName)
 
-        assert(moduleMap: moduleMap,
-               kind: .publicModule,
-               path: modulemapPath,
-               frameworkName: frameworkName,
-               modules: [frameworkName],
-               isInPreferredPath: true)
+        assert(
+            moduleMap: moduleMap,
+            kind: .publicModule,
+            path: modulemapPath,
+            frameworkName: frameworkName,
+            modules: [frameworkName],
+            isInPreferredPath: true
+        )
     }
 
     @Test
@@ -59,22 +64,27 @@ import Testing
         let frameworkPath = tmpDir.join("\(frameworkName).framework")
         let modulemapPath = frameworkPath.join("Versions/A/Modules/module.modulemap")
         try fs.createDirectory(modulemapPath.dirname, recursive: true)
-        try fs.write(modulemapPath, contents: """
-            framework module NewFramework {
-                umbrella "Headers"
-                export *
-                module * { export * }
-            }
-            """)
+        try fs.write(
+            modulemapPath,
+            contents: """
+                framework module NewFramework {
+                    umbrella "Headers"
+                    export *
+                    module * { export * }
+                }
+                """
+        )
 
         let moduleMap = try ModuleVerifierModuleMap(moduleMap: modulemapPath, fs: fs, frameworkName: frameworkName)
 
-        assert(moduleMap: moduleMap,
-               kind: .publicModule,
-               path: modulemapPath,
-               frameworkName: frameworkName,
-               modules: [frameworkName],
-               isInPreferredPath: true)
+        assert(
+            moduleMap: moduleMap,
+            kind: .publicModule,
+            path: modulemapPath,
+            frameworkName: frameworkName,
+            modules: [frameworkName],
+            isInPreferredPath: true
+        )
     }
 
     @Test
@@ -86,38 +96,48 @@ import Testing
         let modulemapPath = frameworkPath.join("Versions/A/Modules/module.modulemap")
         let modulemapPathPrivate = frameworkPath.join("Versions/A/Modules/module.private.modulemap")
         try fs.createDirectory(modulemapPath.dirname, recursive: true)
-        try fs.write(modulemapPath, contents: """
-            framework module PerfectFramework [system] [extern_c] {
-                umbrella header "PerfectFramework.h"
-                export *
-                module * { export * }
-            }
-            """)
-        try fs.write(modulemapPathPrivate, contents: """
-            framework module PerfectFramework_Private [system] [extern_c] {
-                umbrella header "PerfectFramework_Private.h"
-                export *
-                module * { export * }
-            }
-            """)
+        try fs.write(
+            modulemapPath,
+            contents: """
+                framework module PerfectFramework [system] [extern_c] {
+                    umbrella header "PerfectFramework.h"
+                    export *
+                    module * { export * }
+                }
+                """
+        )
+        try fs.write(
+            modulemapPathPrivate,
+            contents: """
+                framework module PerfectFramework_Private [system] [extern_c] {
+                    umbrella header "PerfectFramework_Private.h"
+                    export *
+                    module * { export * }
+                }
+                """
+        )
 
         let publicModuleMap = try ModuleVerifierModuleMap(moduleMap: modulemapPath, fs: fs, frameworkName: frameworkName)
 
-        assert(moduleMap: publicModuleMap,
-               kind: .publicModule,
-               path: modulemapPath,
-               frameworkName: frameworkName,
-               modules: [frameworkName],
-               isInPreferredPath: true)
+        assert(
+            moduleMap: publicModuleMap,
+            kind: .publicModule,
+            path: modulemapPath,
+            frameworkName: frameworkName,
+            modules: [frameworkName],
+            isInPreferredPath: true
+        )
 
         let privateModuleMap = try ModuleVerifierModuleMap(moduleMap: modulemapPathPrivate, fs: fs, frameworkName: frameworkName)
 
-        assert(moduleMap: privateModuleMap,
-               kind: .privateModule,
-               path: modulemapPathPrivate,
-               frameworkName: frameworkName,
-               modules: ["\(frameworkName)_Private"],
-               isInPreferredPath: true)
+        assert(
+            moduleMap: privateModuleMap,
+            kind: .privateModule,
+            path: modulemapPathPrivate,
+            frameworkName: frameworkName,
+            modules: ["\(frameworkName)_Private"],
+            isInPreferredPath: true
+        )
     }
 
     @Test
@@ -129,27 +149,33 @@ import Testing
         let modulemapPath = frameworkPath.join("Versions/A/Modules/module.modulemap")
         let modulemapPathPrivate = frameworkPath.join("Versions/A/Modules/module.private.modulemap")
         try fs.createDirectory(modulemapPath.dirname, recursive: true)
-        try fs.write(modulemapPath, contents: """
-            framework module FrameworkWithNonModularHeaders [system] {
-              umbrella header "FrameworkWithNonModularHeaders.h"
+        try fs.write(
+            modulemapPath,
+            contents: """
+                framework module FrameworkWithNonModularHeaders [system] {
+                  umbrella header "FrameworkWithNonModularHeaders.h"
 
-              exclude header "NonModular.h"
+                  exclude header "NonModular.h"
 
-              export *
-              module * { export * }
-            }
-            """)
-        try fs.write(modulemapPathPrivate, contents: """
-            framework module FrameworkWithNonModularHeaders_Private [system] {
-              umbrella "PrivateHeaders"
+                  export *
+                  module * { export * }
+                }
+                """
+        )
+        try fs.write(
+            modulemapPathPrivate,
+            contents: """
+                framework module FrameworkWithNonModularHeaders_Private [system] {
+                  umbrella "PrivateHeaders"
 
-              exclude header "Excluded.h"
-              private header "Private.h"
-              private  textual   header    "PrivateTextual.h"
+                  exclude header "Excluded.h"
+                  private header "Private.h"
+                  private  textual   header    "PrivateTextual.h"
 
-              module * { export * }
-            }
-            """)
+                  module * { export * }
+                }
+                """
+        )
 
         let moduleMap = try ModuleVerifierModuleMap(moduleMap: modulemapPathPrivate, fs: fs, frameworkName: frameworkName)
 
@@ -170,18 +196,24 @@ import Testing
         let modulemapPath = frameworkPath.join("Versions/A/Modules/module.modulemap")
         let modulemapPathPrivate = frameworkPath.join("Versions/A/Modules/module.private.modulemap")
         try fs.createDirectory(modulemapPath.dirname, recursive: true)
-        try fs.write(modulemapPath, contents: """
-            framework module PrivateOnlyPublicNoContentsPrivateModule [system] {
-            }
-            """)
-        try fs.write(modulemapPathPrivate, contents: """
-            framework module PrivateOnlyPublicNoContentsPrivateModule_Private [system] {
-              umbrella header "PrivateOnlyPublicNoContentsPrivateModule_Private.h"
-              export *
+        try fs.write(
+            modulemapPath,
+            contents: """
+                framework module PrivateOnlyPublicNoContentsPrivateModule [system] {
+                }
+                """
+        )
+        try fs.write(
+            modulemapPathPrivate,
+            contents: """
+                framework module PrivateOnlyPublicNoContentsPrivateModule_Private [system] {
+                  umbrella header "PrivateOnlyPublicNoContentsPrivateModule_Private.h"
+                  export *
 
-              module * { export * }
-            }
-            """)
+                  module * { export * }
+                }
+                """
+        )
 
         let moduleMap = try ModuleVerifierModuleMap(moduleMap: modulemapPath, fs: fs, frameworkName: frameworkName)
         #expect(!moduleMap.modulesHaveContents)

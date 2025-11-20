@@ -14,9 +14,9 @@ import SWBCLibc
 public import SWBLibc
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 public enum Library: Sendable {
@@ -33,54 +33,54 @@ public enum Library: Sendable {
     @_alwaysEmitIntoClient
     public static func open(_ path: Path) throws -> LibraryHandle {
         #if os(Windows)
-        guard let handle = try path.withPlatformString({ p in try p.withCanonicalPathRepresentation({ LoadLibraryW($0) }) }) else {
-            throw LibraryOpenError(message: Win32Error(GetLastError()).description)
-        }
-        return LibraryHandle(rawValue: handle)
+            guard let handle = try path.withPlatformString({ p in try p.withCanonicalPathRepresentation({ LoadLibraryW($0) }) }) else {
+                throw LibraryOpenError(message: Win32Error(GetLastError()).description)
+            }
+            return LibraryHandle(rawValue: handle)
         #else
-        #if canImport(Darwin)
-        let flags = RTLD_LAZY | RTLD_FIRST
-        #else
-        let flags = RTLD_LAZY
-        #endif
-        guard let handle = path.withPlatformString({ (p: UnsafePointer<CChar>) in dlopen(p, flags) }) else {
-            #if os(Android)
-            throw LibraryOpenError(message: String(cString: dlerror()!))
+            #if canImport(Darwin)
+                let flags = RTLD_LAZY | RTLD_FIRST
             #else
-            throw LibraryOpenError(message: String(cString: dlerror()))
+                let flags = RTLD_LAZY
             #endif
-        }
-        return LibraryHandle(rawValue: handle)
+            guard let handle = path.withPlatformString({ (p: UnsafePointer<CChar>) in dlopen(p, flags) }) else {
+                #if os(Android)
+                    throw LibraryOpenError(message: String(cString: dlerror()!))
+                #else
+                    throw LibraryOpenError(message: String(cString: dlerror()))
+                #endif
+            }
+            return LibraryHandle(rawValue: handle)
         #endif
     }
 
     public static func lookup<T>(_ handle: LibraryHandle, _ symbol: String) -> T? {
         #if os(Windows)
-        guard let ptr = GetProcAddress(handle.rawValue, symbol) else { return nil }
+            guard let ptr = GetProcAddress(handle.rawValue, symbol) else { return nil }
         #else
-        guard let ptr = dlsym(handle.rawValue, symbol) else { return nil }
+            guard let ptr = dlsym(handle.rawValue, symbol) else { return nil }
         #endif
         return unsafeBitCast(ptr, to: T.self)
     }
 
     public static func locate<T>(_ pointer: T.Type) throws -> Path {
         #if os(Windows)
-        var handle: HMODULE?
-        guard GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT), unsafeBitCast(pointer, to: LPCWSTR?.self), &handle) else {
-            throw SymbolLookupError(underlyingError: Win32Error(GetLastError()))
-        }
-        return try Path(SWB_GetModuleFileNameW(handle))
+            var handle: HMODULE?
+            guard GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT), unsafeBitCast(pointer, to: LPCWSTR?.self), &handle) else {
+                throw SymbolLookupError(underlyingError: Win32Error(GetLastError()))
+            }
+            return try Path(SWB_GetModuleFileNameW(handle))
         #else
-        var info = Dl_info()
-        #if os(Android)
-        dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer.self), &info)
-        #else
-        dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer?.self), &info)
-        #endif
-        guard let dli_fname = info.dli_fname else {
-            throw SymbolLookupError(underlyingError: nil)
-        }
-        return Path(platformString: UnsafeMutablePointer(mutating: dli_fname))
+            var info = Dl_info()
+            #if os(Android)
+                dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer.self), &info)
+            #else
+                dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer?.self), &info)
+            #endif
+            guard let dli_fname = info.dli_fname else {
+                throw SymbolLookupError(underlyingError: nil)
+            }
+            return Path(platformString: UnsafeMutablePointer(mutating: dli_fname))
         #endif
     }
 }
@@ -118,9 +118,9 @@ public struct SymbolLookupError: Error, CustomStringConvertible, Sendable {
 // Library handles just store an opaque reference to the dlopen/LoadLibrary-returned pointer, and so are Sendable in practice based on how they are used.
 public struct LibraryHandle: @unchecked Sendable {
     #if os(Windows)
-    @usableFromInline typealias PlatformHandle = HMODULE
+        @usableFromInline typealias PlatformHandle = HMODULE
     #else
-    @usableFromInline typealias PlatformHandle = UnsafeMutableRawPointer
+        @usableFromInline typealias PlatformHandle = UnsafeMutableRawPointer
     #endif
 
     fileprivate let rawValue: PlatformHandle

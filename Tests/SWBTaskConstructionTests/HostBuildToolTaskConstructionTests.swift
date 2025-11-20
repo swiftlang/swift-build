@@ -25,10 +25,14 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
     func basics() async throws {
         let testProject = try await TestProject(
             "aProject",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("tool.swift"),
-                TestFile("frame.swift"),
-            ]), buildConfigurations: [
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("tool.swift"),
+                    TestFile("frame.swift"),
+                ]
+            ),
+            buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
@@ -36,27 +40,39 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
-                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                        ])], buildPhases: [
-                            TestSourcesBuildPhase(["tool.swift"])
-                        ]),
-                TestStandardTarget("Framework", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase(["frame.swift"])
-                ], dependencies: [
-                    "HostTool"
-                ]),
+                TestStandardTarget(
+                    "HostTool",
+                    type: .hostBuildTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["tool.swift"])
+                    ]
+                ),
+                TestStandardTarget(
+                    "Framework",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["frame.swift"])
+                    ],
+                    dependencies: [
+                        "HostTool"
+                    ]
+                ),
             ]
         )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
-
 
         await tester.checkBuild(runDestination: .anyMac, targetName: "Framework") { results in
             results.checkNoDiagnostics()
@@ -83,11 +99,15 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
     func hostToolBuildsForHostPlatform() async throws {
         let testProject = try await TestProject(
             "aProject",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("dep.swift"),
-                TestFile("tool.swift"),
-                TestFile("frame.swift"),
-            ]), buildConfigurations: [
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("dep.swift"),
+                    TestFile("tool.swift"),
+                    TestFile("frame.swift"),
+                ]
+            ),
+            buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
@@ -96,41 +116,63 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
-                    ]),
+                    ]
+                )
             ],
             targets: [
-                TestStandardTarget("HostToolDependency", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["dep.swift"])
-                ]),
-                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                        ])], buildPhases: [
-                            TestSourcesBuildPhase(["tool.swift"])
-                        ], dependencies: [
-                            "HostToolDependency"
-                        ]),
-                TestStandardTarget("Framework", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["frame.swift"])
-                ], dependencies: [
-                    "HostTool"
-                ]),
+                TestStandardTarget(
+                    "HostToolDependency",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["dep.swift"])
+                    ]
+                ),
+                TestStandardTarget(
+                    "HostTool",
+                    type: .hostBuildTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["tool.swift"])
+                    ],
+                    dependencies: [
+                        "HostToolDependency"
+                    ]
+                ),
+                TestStandardTarget(
+                    "Framework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["frame.swift"])
+                    ],
+                    dependencies: [
+                        "HostTool"
+                    ]
+                ),
             ]
         )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
@@ -196,13 +238,17 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
     func swiftMacroPluginLoadingFlags() async throws {
         let testProject = try await TestProject(
             "aProject",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("dep.swift"),
-                TestFile("tool.swift"),
-                TestFile("frame.swift"),
-                TestFile("frame2.swift"),
-                TestFile("app.swift"),
-            ]), buildConfigurations: [
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("dep.swift"),
+                    TestFile("tool.swift"),
+                    TestFile("frame.swift"),
+                    TestFile("frame2.swift"),
+                    TestFile("app.swift"),
+                ]
+            ),
+            buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
@@ -211,64 +257,99 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
-                    ]),
+                    ]
+                )
             ],
             targets: [
-                TestStandardTarget("HostToolDependency", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["dep.swift"])
-                ]),
-                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES": "Framework",
-                        ])], buildPhases: [
-                            TestSourcesBuildPhase(["tool.swift"])
-                        ], dependencies: [
-                            "HostToolDependency"
-                        ]),
-                TestStandardTarget("Framework", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["frame.swift"])
-                ], dependencies: [
-                    "HostTool"
-                ]),
-                TestStandardTarget("Framework2", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["frame2.swift"])
-                ]),
-                TestStandardTarget("App", type: .application, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["app.swift"])
-                ], dependencies: [
-                    "Framework", "Framework2"
-                ]),
+                TestStandardTarget(
+                    "HostToolDependency",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["dep.swift"])
+                    ]
+                ),
+                TestStandardTarget(
+                    "HostTool",
+                    type: .hostBuildTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES": "Framework",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["tool.swift"])
+                    ],
+                    dependencies: [
+                        "HostToolDependency"
+                    ]
+                ),
+                TestStandardTarget(
+                    "Framework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["frame.swift"])
+                    ],
+                    dependencies: [
+                        "HostTool"
+                    ]
+                ),
+                TestStandardTarget(
+                    "Framework2",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["frame2.swift"])
+                    ]
+                ),
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["app.swift"])
+                    ],
+                    dependencies: [
+                        "Framework", "Framework2",
+                    ]
+                ),
             ]
         )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
@@ -313,11 +394,15 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
     func swiftMacroBinaryPluginLoadingFlags() async throws {
         let testProject = try await TestProject(
             "aProject",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("frame.swift"),
-                TestFile("frame2.swift"),
-                TestFile("app.swift"),
-            ]), buildConfigurations: [
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("frame.swift"),
+                    TestFile("frame2.swift"),
+                    TestFile("app.swift"),
+                ]
+            ),
+            buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
@@ -326,42 +411,62 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
-                    ]),
+                    ]
+                )
             ],
             targets: [
-                TestStandardTarget("Framework", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                            "SWIFT_LOAD_BINARY_MACROS": "/path/to/macroa#MacroA /path/to/macrob#MacroB1,MacroB2"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["frame.swift"])
-                ]),
-                TestStandardTarget("Framework2", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["frame2.swift"])
-                ]),
-                TestStandardTarget("App", type: .application, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                        ]),
-                ], buildPhases: [
-                    TestSourcesBuildPhase(["app.swift"])
-                ], dependencies: [
-                    "Framework", "Framework2"
-                ]),
+                TestStandardTarget(
+                    "Framework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                                "SWIFT_LOAD_BINARY_MACROS": "/path/to/macroa#MacroA /path/to/macrob#MacroB1,MacroB2",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["frame.swift"])
+                    ]
+                ),
+                TestStandardTarget(
+                    "Framework2",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["frame2.swift"])
+                    ]
+                ),
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["app.swift"])
+                    ],
+                    dependencies: [
+                        "Framework", "Framework2",
+                    ]
+                ),
             ]
         )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
@@ -410,29 +515,41 @@ fileprivate struct HostBuildToolTaskConstructionTests: CoreBasedTests {
     func swiftMacroSwiftSyntaxSearchPaths() async throws {
         let testProject = try await TestProject(
             "aProject",
-            groupTree: TestGroup("Foo", children: [
-                TestFile("tool.swift"),
-            ]), buildConfigurations: [
+            groupTree: TestGroup(
+                "Foo",
+                children: [
+                    TestFile("tool.swift")
+                ]
+            ),
+            buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "SWIFT_VERSION": swiftVersion,
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SWIFT_EXEC": swiftCompilerPath.str
-                    ]),
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                    ]
+                )
             ],
             targets: [
-                TestStandardTarget("HostTool", type: .hostBuildTool, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "SDKROOT": "auto",
-                            "SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES": "Framework",
-                            "SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS": "YES",
-                        ])], buildPhases: [
-                            TestSourcesBuildPhase(["tool.swift"])
-                        ]),
+                TestStandardTarget(
+                    "HostTool",
+                    type: .hostBuildTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES": "Framework",
+                                "SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS": "YES",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["tool.swift"])
+                    ]
+                )
             ]
         )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])

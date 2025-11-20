@@ -25,13 +25,16 @@ package struct BuildOperationExtensionPoint: ExtensionPoint {
 
     package static func additionalEnvironmentVariables(pluginManager: any PluginManager, fromEnvironment: @autoclosure () -> [String: String], parameters: @autoclosure () -> BuildParameters) throws -> [String: String] {
         let (fromEnvironment, parameters) = (fromEnvironment(), parameters())
-        return try pluginManager.extensions(of: Self.self).reduce([:], { environment, ext in
-            try environment.addingContents(of: ext.additionalEnvironmentVariables(fromEnvironment: fromEnvironment, parameters: parameters))
-        })
+        return try pluginManager.extensions(of: Self.self).reduce(
+            [:],
+            { environment, ext in
+                try environment.addingContents(of: ext.additionalEnvironmentVariables(fromEnvironment: fromEnvironment, parameters: parameters))
+            }
+        )
     }
 }
 
 package protocol BuildOperationExtension: Sendable {
     /// Provides a dictionary of additional environment variables
-    func additionalEnvironmentVariables(fromEnvironment: [String:String], parameters: BuildParameters) throws -> [String:String]
+    func additionalEnvironmentVariables(fromEnvironment: [String: String], parameters: BuildParameters) throws -> [String: String]
 }

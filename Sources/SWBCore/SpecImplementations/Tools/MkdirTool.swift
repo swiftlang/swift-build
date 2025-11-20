@@ -12,7 +12,7 @@
 
 import SWBUtil
 
-public final class MkdirToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class MkdirToolSpec: CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.mkdir"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -20,11 +20,14 @@ public final class MkdirToolSpec : CommandLineToolSpec, SpecIdentifierType, @unc
         // We must create a virtual output usable for mutable node ordering.
         let outputs: [any PlannedNode] = [delegate.createNode(output), delegate.createVirtualNode("MkDir \(output.str)")]
         delegate.createTask(
-            type: self, ruleInfo: ["MkDir", output.str],
+            type: self,
+            ruleInfo: ["MkDir", output.str],
             commandLine: ["/bin/mkdir", "-p", output.str],
             environment: EnvironmentBindings(),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
-            inputs: [], outputs: outputs, action: nil,
+            inputs: [],
+            outputs: outputs,
+            action: nil,
             execDescription: resolveExecutionDescription(cbc, delegate),
             preparesForIndexing: cbc.preparesForIndexing,
             enableSandboxing: enableSandboxing,

@@ -35,8 +35,9 @@ fileprivate struct AppleScriptTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("Foo.applescript"),
-                            ]),
+                                TestFile("Foo.applescript")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -46,8 +47,9 @@ fileprivate struct AppleScriptTests: CoreBasedTests {
                                     "INSTALL_PATH": "$(HOME)/Library/Automator",
                                     "OTHER_OSAFLAGS": "-x -t 0 -c 0",
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "WRAPPER_EXTENSION": "action"
-                                ]),
+                                    "WRAPPER_EXTENSION": "action",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -55,20 +57,25 @@ fileprivate struct AppleScriptTests: CoreBasedTests {
                                 type: .bundle,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "Foo.applescript",
-                                    ]),
+                                        "Foo.applescript"
+                                    ])
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
             // Write the Info.plist file.
-            try await tester.fs.writePlist(SRCROOT.join("Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Foo.applescript")) { contents in

@@ -24,8 +24,7 @@ fileprivate struct SignatureCollectionActionTests {
         let fs = PseudoFS()
         try fs.createDirectory(.root)
 
-        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async
-        {
+        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async {
             let action = SignatureCollectionTaskAction()
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: commandLine, workingDirectory: .root, outputs: [], action: action, execDescription: "Signature Collection")
             let executionDelegate = MockExecutionDelegate(fs: fs)
@@ -207,7 +206,7 @@ fileprivate struct SignatureCollectionActionTests {
 
     @Test
     func SHA256HexString() {
-        let bytes: [UInt8] = [ 0xDE, 0xAD, 0xBE, 0xEF ]
+        let bytes: [UInt8] = [0xDE, 0xAD, 0xBE, 0xEF]
         let data = Data(bytes)
         let sha = data.sha256HexString
         #expect("5F78C33274E43FA9DE5659265C1D917E25C03722DCB0B8D27DB8D5FEAA813953" == sha)

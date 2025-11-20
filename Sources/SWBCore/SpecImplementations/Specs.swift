@@ -121,7 +121,7 @@ extension Spec: Hashable {
         hasher.combine(ObjectIdentifier(self))
     }
 
-    public static func ==(lhs: Spec, rhs: Spec) -> Bool {
+    public static func == (lhs: Spec, rhs: Spec) -> Bool {
         return lhs === rhs
     }
 }
@@ -132,7 +132,7 @@ extension Spec: CustomStringConvertible {
     }
 }
 
-public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
+public final class ArchitectureSpec: Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "Architecture"
     }
@@ -225,8 +225,7 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
                 guard lower < upper else { throw StubError.error("expected that \(lower) < \(upper)") }
 
                 return Range(uncheckedBounds: (lower, upper))
-            }
-            catch {
+            } catch {
                 parser.error("\(key): \(error)")
                 return nil
             }
@@ -247,7 +246,7 @@ public final class ArchitectureSpec : Spec, SpecType, @unchecked Sendable {
     }
 }
 
-public final class ProjectOverridesSpec : Spec, SpecType, @unchecked Sendable {
+public final class ProjectOverridesSpec: Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "ProjectOverrides"
     }
@@ -269,7 +268,7 @@ public final class ProjectOverridesSpec : Spec, SpecType, @unchecked Sendable {
     }
 }
 
-public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
+public class FileTypeSpec: Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "FileType"
     }
@@ -368,7 +367,7 @@ public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 }
 
-public final class PackageTypeSpec : Spec, SpecType, @unchecked Sendable {
+public final class PackageTypeSpec: Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "PackageType"
     }
@@ -442,7 +441,7 @@ public final class PackageTypeSpec : Spec, SpecType, @unchecked Sendable {
     ]
 }
 
-public final class PlatformSpec : Spec, SpecType, @unchecked Sendable {
+public final class PlatformSpec: Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "Platform"
     }
@@ -451,7 +450,7 @@ public final class PlatformSpec : Spec, SpecType, @unchecked Sendable {
     }
 }
 
-public final class BuildSettingsSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
+public final class BuildSettingsSpec: PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSettings"
     }
@@ -471,7 +470,7 @@ public final class BuildSettingsExtensionSpec: PropertyDomainSpec, SpecType, @un
     }
 }
 
-public final class BuildSystemSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
+public final class BuildSystemSpec: PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSystem"
     }
@@ -480,7 +479,7 @@ public final class BuildSystemSpec : PropertyDomainSpec, SpecType, @unchecked Se
     }
 }
 
-public final class BuildPhaseSpec : Spec, SpecType, @unchecked Sendable {
+public final class BuildPhaseSpec: Spec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildPhase"
     }

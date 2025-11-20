@@ -28,40 +28,47 @@ import Testing
             vfs.addMapping(path, externalContents: target)
         }
 
-        #expect(try vfs.toVFSOverlay().propertyListItem.asJSONFragment().asString == PropertyList.fromJSONData(ByteString("""
-            {
-              "version": 0,
-              "case-sensitive": "false",
-              "roots": [
-                {
-                  "type": "directory",
-                  "name": "\(Path.root.join("tmp/A/Z").str.escapedForJSON)",
-                  "contents": [
-                    {
-                      "type": "file",
-                      "name": "module.modulemap",
-                      "external-contents": "\(Path.root.join("tmp/module.modulemap").str.escapedForJSON)"
-                    }
-                  ]
-                },
-                {
-                  "type": "directory",
-                  "name": "\(Path.root.join("tmp/A").str.escapedForJSON)",
-                  "contents": [
-                    {
-                      "type": "file",
-                      "name": "Bar.h",
-                      "external-contents": "\(Path.root.join("tmp/Bar.h").str.escapedForJSON)"
-                    },
-                    {
-                      "type": "file",
-                      "name": "Foo.h",
-                      "external-contents": "\(Path.root.join("tmp/Foo.h").str.escapedForJSON)"
-                    }
-                  ]
-                }
-              ]
-            }\n
-            """)).asJSONFragment().asString)
+        #expect(
+            try vfs.toVFSOverlay().propertyListItem.asJSONFragment().asString
+                == PropertyList.fromJSONData(
+                    ByteString(
+                        """
+                        {
+                          "version": 0,
+                          "case-sensitive": "false",
+                          "roots": [
+                            {
+                              "type": "directory",
+                              "name": "\(Path.root.join("tmp/A/Z").str.escapedForJSON)",
+                              "contents": [
+                                {
+                                  "type": "file",
+                                  "name": "module.modulemap",
+                                  "external-contents": "\(Path.root.join("tmp/module.modulemap").str.escapedForJSON)"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "directory",
+                              "name": "\(Path.root.join("tmp/A").str.escapedForJSON)",
+                              "contents": [
+                                {
+                                  "type": "file",
+                                  "name": "Bar.h",
+                                  "external-contents": "\(Path.root.join("tmp/Bar.h").str.escapedForJSON)"
+                                },
+                                {
+                                  "type": "file",
+                                  "name": "Foo.h",
+                                  "external-contents": "\(Path.root.join("tmp/Foo.h").str.escapedForJSON)"
+                                }
+                              ]
+                            }
+                          ]
+                        }\n
+                        """
+                    )
+                ).asJSONFragment().asString
+        )
     }
 }

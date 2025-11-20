@@ -26,42 +26,53 @@ import SWBUtil
             "macApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
                 TestFrameworksBuildPhase(["FwkTarget.framework"]),
-            ])
+            ]
+        )
 
         let iosApp = TestStandardTarget(
             "iosApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
                 TestFrameworksBuildPhase(["FwkTarget.framework"]),
-            ])
+            ]
+        )
 
         let macApp2 = TestStandardTarget(
             "macApp2",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
                 TestFrameworksBuildPhase(["FwkTarget.framework"]),
             ],
             dependencies: [
-                "FwkTarget_mac",
+                "FwkTarget_mac"
             ]
         )
 
@@ -69,16 +80,19 @@ import SWBUtil
             "iosApp2",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
                 TestFrameworksBuildPhase(["FwkTarget.framework"]),
             ],
             dependencies: [
-                "FwkTarget_ios",
+                "FwkTarget_ios"
             ]
         )
 
@@ -86,13 +100,16 @@ import SWBUtil
             "FwkTarget_mac",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "PRODUCT_NAME": "FwkTarget",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "PRODUCT_NAME": "FwkTarget",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
@@ -100,13 +117,16 @@ import SWBUtil
             "FwkTarget_ios",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "FwkTarget",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "FwkTarget",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
@@ -118,30 +138,38 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
+                    ],
                     targets: [
                         macApp, macApp2,
                         iosApp, iosApp2,
                         fwkTarget_mac,
                         fwkTarget_ios,
-                    ])])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
         workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [macApp, macApp2, iosApp, iosApp2, fwkTarget_mac, fwkTarget_ios], workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "FwkTarget_mac-macos", "macApp-macos", "macApp2-macos",
-                "FwkTarget_ios-iphoneos", "iosApp-iphoneos", "FwkTarget_ios-iphonesimulator", "iosApp-iphonesimulator", "iosApp2-iphoneos", "iosApp2-iphonesimulator",
-                "FwkTarget_ios-iosmac"
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "FwkTarget_mac-macos", "macApp-macos", "macApp2-macos",
+                    "FwkTarget_ios-iphoneos", "iosApp-iphoneos", "FwkTarget_ios-iphonesimulator", "iosApp-iphonesimulator", "iosApp2-iphoneos", "iosApp2-iphonesimulator",
+                    "FwkTarget_ios-iosmac",
+                ]
+            )
 
             try results.checkDependencies(of: macApp, are: [.init(fwkTarget_mac)])
             try results.checkDependencies(of: macApp2, are: [.init(fwkTarget_mac)])
@@ -156,7 +184,7 @@ import SWBUtil
                 results.delegate.checkDiagnostics([
                     "FwkTarget_mac rejected as an implicit dependency because its SUPPORTED_PLATFORMS (macosx) does not contain this target's platform (iphoneos). (in target 'iosApp' from project 'aProject')",
                     "FwkTarget_ios rejected as an implicit dependency because its SUPPORTED_PLATFORMS (iphoneos iphonesimulator) does not contain this target's platform (macosx). (in target 'macApp' from project 'aProject')",
-                    "FwkTarget_mac rejected as an implicit dependency because its SUPPORTED_PLATFORMS (macosx) does not contain this target's platform (iphonesimulator). (in target 'iosApp' from project 'aProject')"
+                    "FwkTarget_mac rejected as an implicit dependency because its SUPPORTED_PLATFORMS (macosx) does not contain this target's platform (iphonesimulator). (in target 'iosApp' from project 'aProject')",
                 ])
             } else {
                 results.delegate.checkNoDiagnostics()
@@ -172,28 +200,39 @@ import SWBUtil
             "macApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
-            ])
+                TestSourcesBuildPhase(["main.swift"])
+            ]
+        )
 
         let iosApp = TestStandardTarget(
             "iosApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
-                TestCopyFilesBuildPhase([
-                    "Watchable WatchKit App.app",
-                ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch", onlyForDeployment: false
-                                       ),
+                TestCopyFilesBuildPhase(
+                    [
+                        "Watchable WatchKit App.app"
+                    ],
+                    destinationSubfolder: .builtProductsDir,
+                    destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch",
+                    onlyForDeployment: false
+                ),
             ],
             dependencies: [
                 "macApp",
@@ -205,17 +244,23 @@ import SWBUtil
             "Watchable WatchKit App",
             type: .watchKitApp,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
-                    "SDKROOT": "watchos",
-                    "SKIP_INSTALL": "YES",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
+                        "SDKROOT": "watchos",
+                        "SKIP_INSTALL": "YES",
+                    ]
+                )
             ],
             buildPhases: [
-                TestCopyFilesBuildPhase([
-                    "Watchable WatchKit Extension.appex",
-                ], destinationSubfolder: .plugins, onlyForDeployment: false
-                                       ),
+                TestCopyFilesBuildPhase(
+                    [
+                        "Watchable WatchKit Extension.appex"
+                    ],
+                    destinationSubfolder: .plugins,
+                    onlyForDeployment: false
+                )
             ]
         )
 
@@ -223,18 +268,21 @@ import SWBUtil
             "Watchable WatchKit Extension",
             type: .watchKitExtension,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                    "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
-                    "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                    "SDKROOT": "watchos",
-                    "SKIP_INSTALL": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                        "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
+                        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                        "SDKROOT": "watchos",
+                        "SKIP_INSTALL": "YES",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase([
-                    "main.swift",
-                ]),
+                    "main.swift"
+                ])
             ]
         )
 
@@ -246,29 +294,37 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
+                    ],
                     targets: [
                         macApp,
                         iosApp,
                         watchKitApp,
                         watchKitExt,
-                    ])])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
         workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [macApp, iosApp, watchKitApp, watchKitExt], workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "macApp-macos", "iosApp-iphoneos", "iosApp-iphonesimulator",
-                "Watchable WatchKit Extension-watchos", "Watchable WatchKit App-watchos", "Watchable WatchKit Extension-watchsimulator", "Watchable WatchKit App-watchsimulator",
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "macApp-macos", "iosApp-iphoneos", "iosApp-iphonesimulator",
+                    "Watchable WatchKit Extension-watchos", "Watchable WatchKit App-watchos", "Watchable WatchKit Extension-watchsimulator", "Watchable WatchKit App-watchsimulator",
+                ]
+            )
 
             try results.checkDependencies(of: .init(iosApp, "iphoneos"), are: [])
             try results.checkDependencies(of: .init(iosApp, "iphonesimulator"), are: [])
@@ -277,7 +333,7 @@ import SWBUtil
             if workspaceContext.userPreferences.enableDebugActivityLogs {
                 results.delegate.checkDiagnostics([
                     "Watchable WatchKit App rejected as an implicit dependency because its SUPPORTED_PLATFORMS (watchos watchsimulator) does not contain this target's platform (iphoneos). (in target 'iosApp' from project 'aProject')",
-                    "Watchable WatchKit App rejected as an implicit dependency because its SUPPORTED_PLATFORMS (watchos watchsimulator) does not contain this target's platform (iphonesimulator). (in target 'iosApp' from project 'aProject')"
+                    "Watchable WatchKit App rejected as an implicit dependency because its SUPPORTED_PLATFORMS (watchos watchsimulator) does not contain this target's platform (iphonesimulator). (in target 'iosApp' from project 'aProject')",
                 ])
             } else {
                 results.delegate.checkNoDiagnostics()
@@ -290,18 +346,22 @@ import SWBUtil
         let core = try await getCore()
 
         let iosApp = TestStandardTarget(
-            "iosApp", type: .application,
+            "iosApp",
+            type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: [
                 "hostTool",
-                "watchApp"
+                "watchApp",
             ]
         )
 
@@ -309,37 +369,48 @@ import SWBUtil
             "watchApp",
             type: .watchKitApp,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "watchos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "watchos"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
         let hostToolDep = TestStandardTarget(
-            "hostToolDep", type: .staticLibrary,
+            "hostToolDep",
+            type: .staticLibrary,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: []
         )
 
         let hostTool = TestStandardTarget(
-            "hostTool", type: .hostBuildTool,
+            "hostTool",
+            type: .hostBuildTool,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "auto",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "auto"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: ["hostToolDep"]
         )
@@ -352,28 +423,36 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
+                    ],
                     targets: [
                         iosApp,
                         watchApp,
                         hostTool,
-                        hostToolDep
-                    ])])
+                        hostToolDep,
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         try await tester.checkIndexBuildGraph(targets: [iosApp, watchApp, hostTool, hostToolDep], workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "hostToolDep-macos", "hostTool-macos",
-                "iosApp-iphoneos", "iosApp-iphonesimulator",
-                "watchApp-watchos", "watchApp-watchsimulator",
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "hostToolDep-macos", "hostTool-macos",
+                    "iosApp-iphoneos", "iosApp-iphonesimulator",
+                    "watchApp-watchos", "watchApp-watchsimulator",
+                ]
+            )
 
             try results.checkDependencies(of: .init(iosApp, "iphoneos"), are: [.init(hostTool, "macos")])
             try results.checkDependencies(of: .init(iosApp, "iphonesimulator"), are: [.init(hostTool, "macos")])
@@ -391,45 +470,57 @@ import SWBUtil
         let core = try await getCore()
 
         let commonDep = TestStandardTarget(
-            "commonDep", type: .staticLibrary,
+            "commonDep",
+            type: .staticLibrary,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "auto",
-                    "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: []
         )
 
         let hostTool = TestStandardTarget(
-            "hostTool", type: .hostBuildTool,
+            "hostTool",
+            type: .hostBuildTool,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "auto",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "auto"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: ["commonDep"]
         )
 
         let iosApp = TestStandardTarget(
-            "iosApp", type: .application,
+            "iosApp",
+            type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: [
                 "hostTool",
-                "commonDep"
+                "commonDep",
             ]
         )
 
@@ -441,25 +532,33 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
+                    ],
                     targets: [
                         iosApp,
                         hostTool,
-                        commonDep
-                    ])])
+                        commonDep,
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         try await tester.checkIndexBuildGraph(targets: [iosApp, hostTool, commonDep], workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "commonDep-macos", "hostTool-macos", "commonDep-iphoneos", "iosApp-iphoneos", "commonDep-iphonesimulator", "iosApp-iphonesimulator", "commonDep-iosmac"
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "commonDep-macos", "hostTool-macos", "commonDep-iphoneos", "iosApp-iphoneos", "commonDep-iphonesimulator", "iosApp-iphonesimulator", "commonDep-iosmac",
+                ]
+            )
 
             try results.checkDependencies(of: .init(commonDep, "macos"), are: [])
             try results.checkDependencies(of: .init(commonDep, "iosmac"), are: [])
@@ -489,12 +588,15 @@ import SWBUtil
             "macApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: ["Aggregate"]
         )
@@ -503,12 +605,15 @@ import SWBUtil
             "iosApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ],
             dependencies: ["Aggregate"]
         )
@@ -517,12 +622,15 @@ import SWBUtil
             "macApp2",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
@@ -530,12 +638,15 @@ import SWBUtil
             "iosApp2",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
@@ -547,22 +658,28 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
                                 "SDKROOT": "macosx",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                            ]
+                        )
+                    ],
                     targets: [
                         macApp, macApp2,
                         iosApp, iosApp2,
                         aggrTarget,
-                    ])])
+                    ]
+                )
+            ]
+        )
 
-        let targetsToCheck = [macApp, iosApp, macApp2, iosApp2] // excludes `aggrTarget` from top-level targets.
+        let targetsToCheck = [macApp, iosApp, macApp2, iosApp2]  // excludes `aggrTarget` from top-level targets.
         let checkDependencies = { (results: BuildOperationTester.BuildGraphResult) in
             try results.checkDependencies(of: macApp, are: [.init(aggrTarget, "macos")])
             try results.checkDependencies(of: .init(iosApp, "iphoneos"), are: [.init(aggrTarget, "iphoneos")])
@@ -578,17 +695,19 @@ import SWBUtil
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         try await tester.checkIndexBuildGraph(targets: targetsToCheck, workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "macApp2-macos",
-                "Aggregate-macos",
-                "macApp-macos",
-                "iosApp2-iphoneos",
-                "Aggregate-iphoneos",
-                "iosApp-iphoneos",
-                "iosApp2-iphonesimulator",
-                "Aggregate-iphonesimulator",
-                "iosApp-iphonesimulator",
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "macApp2-macos",
+                    "Aggregate-macos",
+                    "macApp-macos",
+                    "iosApp2-iphoneos",
+                    "Aggregate-iphoneos",
+                    "iosApp-iphoneos",
+                    "iosApp2-iphonesimulator",
+                    "Aggregate-iphonesimulator",
+                    "iosApp-iphonesimulator",
+                ]
+            )
 
             macApp2_macosConfTarget = try results.target(.init(macApp2, "macos"))
             iosApp2_iosConfTarget = try results.target(.init(iosApp2, "iphoneos"))
@@ -598,17 +717,19 @@ import SWBUtil
 
         // Same request but with reversed order of top-level targets. Make sure the graph is same.
         try await tester.checkIndexBuildGraph(targets: targetsToCheck.reversed(), workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "iosApp2-iphoneos",
-                "iosApp2-iphonesimulator",
-                "macApp2-macos",
-                "Aggregate-iphoneos",
-                "iosApp-iphoneos",
-                "Aggregate-iphonesimulator",
-                "iosApp-iphonesimulator",
-                "Aggregate-macos",
-                "macApp-macos",
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "iosApp2-iphoneos",
+                    "iosApp2-iphonesimulator",
+                    "macApp2-macos",
+                    "Aggregate-iphoneos",
+                    "iosApp-iphoneos",
+                    "Aggregate-iphonesimulator",
+                    "iosApp-iphonesimulator",
+                    "Aggregate-macos",
+                    "macApp-macos",
+                ]
+            )
             try checkDependencies(results)
         }
 
@@ -628,94 +749,117 @@ import SWBUtil
             "catalystApp1",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.m"]),
                 TestFrameworksBuildPhase([
-                    "FwkTarget.framework",
+                    "FwkTarget.framework"
                 ]),
-            ])
+            ]
+        )
 
         let catalystAppTarget2 = TestStandardTarget(
             "catalystApp2",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
-                    "SDK_VARIANT[sdk=macosx*]": "iosmac",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+                        "SDK_VARIANT[sdk=macosx*]": "iosmac",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.m"]),
                 TestFrameworksBuildPhase([
-                    "FwkTarget.framework",
+                    "FwkTarget.framework"
                 ]),
-            ])
+            ]
+        )
 
         let catalystAppTarget3 = TestStandardTarget(
             "catalystApp3",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.m"]),
                 TestFrameworksBuildPhase([
-                    "FwkTarget.framework",
+                    "FwkTarget.framework"
                 ]),
-            ])
+            ]
+        )
 
         let osxAppTarget = TestStandardTarget(
             "osxApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.m"]),
                 TestFrameworksBuildPhase([
                     "FwkTarget.framework"
                 ]),
-            ])
+            ]
+        )
 
         let osxAppTarget_iosmac = TestStandardTarget(
             "osxApp_iosmac",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SDK_VARIANT": "iosmac",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SDK_VARIANT": "iosmac",
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.m"]),
                 TestFrameworksBuildPhase([
                     "FwkTarget.framework"
                 ]),
-            ])
+            ]
+        )
 
         let fwkTarget = try await TestStandardTarget(
             "FwkTarget",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                    "SWIFT_VERSION": swiftVersion,
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos",
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
@@ -723,15 +867,18 @@ import SWBUtil
             "FwkTarget_osx",
             type: .framework,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "PRODUCT_NAME": "FwkTarget",
-                    "SWIFT_VERSION": swiftVersion,
-                    "IS_ZIPPERED": "YES",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "PRODUCT_NAME": "FwkTarget",
+                        "SWIFT_VERSION": swiftVersion,
+                        "IS_ZIPPERED": "YES",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.swift"]),
+                TestSourcesBuildPhase(["main.swift"])
             ]
         )
 
@@ -745,26 +892,34 @@ import SWBUtil
                         children: [
                             TestFile("main.swift"),
                             TestFile("main.m"),
-                        ]),
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
+                    ],
                     targets: [
                         catalystAppTarget1, catalystAppTarget2, catalystAppTarget3,
                         osxAppTarget, osxAppTarget_iosmac,
                         fwkTarget, fwkTarget_osx,
-                    ])])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
         workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [catalystAppTarget1, catalystAppTarget2, catalystAppTarget3, osxAppTarget, osxAppTarget_iosmac, fwkTarget, fwkTarget_osx], workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "FwkTarget-iphoneos", "catalystApp1-iphoneos", "FwkTarget-iphonesimulator", "catalystApp1-iphonesimulator", "FwkTarget-iosmac", "catalystApp1-iosmac", "catalystApp2-iphoneos", "catalystApp2-iphonesimulator", "catalystApp2-iosmac", "catalystApp3-iphoneos", "catalystApp3-iphonesimulator", "catalystApp3-iosmac", "FwkTarget_osx-macos", "catalystApp3-macos", "osxApp-macos", "osxApp_iosmac-iosmac", "FwkTarget_osx-iosmac",
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "FwkTarget-iphoneos", "catalystApp1-iphoneos", "FwkTarget-iphonesimulator", "catalystApp1-iphonesimulator", "FwkTarget-iosmac", "catalystApp1-iosmac", "catalystApp2-iphoneos", "catalystApp2-iphonesimulator", "catalystApp2-iosmac", "catalystApp3-iphoneos", "catalystApp3-iphonesimulator", "catalystApp3-iosmac", "FwkTarget_osx-macos", "catalystApp3-macos", "osxApp-macos", "osxApp_iosmac-iosmac", "FwkTarget_osx-iosmac",
+                ]
+            )
 
             try results.checkDependencies(of: .init(catalystAppTarget1, "iphoneos"), are: [.init(fwkTarget, "iphoneos")])
             try results.checkDependencies(of: .init(catalystAppTarget1, "iphonesimulator"), are: [.init(fwkTarget, "iphonesimulator")])
@@ -779,7 +934,7 @@ import SWBUtil
             try results.checkDependencies(of: osxAppTarget, are: [.init(fwkTarget_osx, "macos")])
             try results.checkDependencies(of: osxAppTarget_iosmac, are: [.init(fwkTarget, "iosmac")])
 
-            if workspaceContext.userPreferences.enableDebugActivityLogs  {
+            if workspaceContext.userPreferences.enableDebugActivityLogs {
                 results.delegate.checkDiagnostics([
                     "FwkTarget rejected as an implicit dependency because its SUPPORTED_PLATFORMS (iphoneos iphonesimulator) does not contain this target's platform (macosx). (in target 'catalystApp3' from project 'aProject')",
                     "FwkTarget rejected as an implicit dependency because its SUPPORTED_PLATFORMS (iphoneos iphonesimulator) does not contain this target's platform (macosx). (in target 'osxApp' from project 'aProject')",
@@ -811,40 +966,61 @@ import SWBUtil
     func swiftPackage() async throws {
         let core = try await getCore()
 
-        let packageLib = TestStandardTarget("PackageLib", type: .objectFile, buildConfigurations: [
-            TestBuildConfiguration("Debug")
-        ], buildPhases: [TestSourcesBuildPhase(["test.swift"])])
+        let packageLib = TestStandardTarget(
+            "PackageLib",
+            type: .objectFile,
+            buildConfigurations: [
+                TestBuildConfiguration("Debug")
+            ],
+            buildPhases: [TestSourcesBuildPhase(["test.swift"])]
+        )
 
         let packageLib2 = TestStandardTarget(
-            "PackageLib2", type: .objectFile,
+            "PackageLib2",
+            type: .objectFile,
             buildConfigurations: [TestBuildConfiguration("Debug")],
             buildPhases: [TestSourcesBuildPhase(["test.swift"])],
             dependencies: ["PackageTool"]
         )
 
-        let unreferencedPackageLib = TestStandardTarget("UnreferencedPackageLib", type: .objectFile, buildConfigurations: [
-            TestBuildConfiguration("Debug")
-        ], buildPhases: [TestSourcesBuildPhase(["test.swift"])])
+        let unreferencedPackageLib = TestStandardTarget(
+            "UnreferencedPackageLib",
+            type: .objectFile,
+            buildConfigurations: [
+                TestBuildConfiguration("Debug")
+            ],
+            buildPhases: [TestSourcesBuildPhase(["test.swift"])]
+        )
 
         let packageProduct = TestPackageProductTarget(
             "PackageLibProduct",
             frameworksBuildPhase: TestFrameworksBuildPhase([
-                TestBuildFile(.target("PackageLib"))]),
+                TestBuildFile(.target("PackageLib"))
+            ]),
             buildConfigurations: [
-                TestBuildConfiguration("Debug"),
+                TestBuildConfiguration("Debug")
             ],
             dependencies: ["PackageLib"]
         )
 
-        let packageTool = TestStandardTarget("PackageTool", type: .commandLineTool, buildConfigurations: [
-            TestBuildConfiguration("Debug", buildSettings: [
-                "EXECUTABLE_NAME": "PackageTool",
-                "SUPPORTED_PLATFORMS": "macosx",
-            ])
-        ], buildPhases: [TestSourcesBuildPhase(["test.swift"])])
+        let packageTool = TestStandardTarget(
+            "PackageTool",
+            type: .commandLineTool,
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "EXECUTABLE_NAME": "PackageTool",
+                        "SUPPORTED_PLATFORMS": "macosx",
+                    ]
+                )
+            ],
+            buildPhases: [TestSourcesBuildPhase(["test.swift"])]
+        )
 
         let package = try await TestPackageProject(
-            "aPackage", groupTree: TestGroup("Package", children: [TestFile("test.swift")]),
+            "aPackage",
+            groupTree: TestGroup("Package", children: [TestFile("test.swift")]),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -854,22 +1030,28 @@ import SWBUtil
                         "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SWIFT_VERSION": swiftVersion,
-                    ])],
+                    ]
+                )
+            ],
             targets: [
                 packageProduct,
                 packageLib,
                 packageLib2,
                 packageTool,
                 unreferencedPackageLib,
-            ])
+            ]
+        )
 
         let macAppTarget = TestStandardTarget(
             "macAppTarget",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
@@ -877,15 +1059,19 @@ import SWBUtil
                     TestBuildFile(.target("PackageLibProduct"))
                 ]),
             ],
-            dependencies: ["PackageLibProduct"])
+            dependencies: ["PackageLibProduct"]
+        )
 
         let iosAppTarget = TestStandardTarget(
             "iOSAppTarget",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "iphoneos",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "iphoneos"
+                    ]
+                )
             ],
             buildPhases: [
                 TestSourcesBuildPhase(["main.swift"]),
@@ -893,7 +1079,8 @@ import SWBUtil
                     TestBuildFile(.target("PackageLibProduct"))
                 ]),
             ],
-            dependencies: ["PackageLibProduct"])
+            dependencies: ["PackageLibProduct"]
+        )
 
         let workspace = try await TestWorkspace(
             "Test",
@@ -903,28 +1090,38 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_VERSION": swiftVersion,
-                            ])],
+                            ]
+                        )
+                    ],
                     targets: [
                         macAppTarget,
                         iosAppTarget,
-                    ]), package])
+                    ]
+                ), package,
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         try await tester.checkIndexBuildGraph(targets: [macAppTarget, iosAppTarget], workspaceOperation: true) { results in
-            #expect(results.targets(macAppTarget).map { results.targetNameAndPlatform($0) } == [
-                "macAppTarget-macos",
-            ])
-            #expect(results.targets(iosAppTarget).map {results.targetNameAndPlatform($0) } == [
-                "iOSAppTarget-iphoneos", "iOSAppTarget-iphonesimulator",
-            ])
+            #expect(
+                results.targets(macAppTarget).map { results.targetNameAndPlatform($0) } == [
+                    "macAppTarget-macos"
+                ]
+            )
+            #expect(
+                results.targets(iosAppTarget).map { results.targetNameAndPlatform($0) } == [
+                    "iOSAppTarget-iphoneos", "iOSAppTarget-iphonesimulator",
+                ]
+            )
 
             try results.checkDependencies(of: macAppTarget, are: [.init(packageProduct, "macos")])
             try results.checkDependencies(of: .init(iosAppTarget, "iphoneos"), are: [.init(packageProduct, "iphoneos")])
@@ -933,11 +1130,11 @@ import SWBUtil
         }
 
         try await tester.checkIndexBuildGraph(targets: [packageLib, packageLib2, packageProduct, packageTool, unreferencedPackageLib], activeRunDestination: .macOS, graphTypes: TargetGraphFactory.GraphType.allCases) { results in
-            #expect(results.targets(packageTool).map{ results.targetNameAndPlatform($0) } == ["PackageTool-macos"])
-            #expect(results.targets(packageLib).map{ results.targetNameAndPlatform($0) } == ["PackageLib-macos"])
-            #expect(results.targets(packageLib2).map{ results.targetNameAndPlatform($0) } == ["PackageLib2-macos"])
-            #expect(results.targets(packageProduct).map{ results.targetNameAndPlatform($0) } == ["PackageLibProduct-macos"])
-            #expect(results.targets(unreferencedPackageLib).map{ results.targetNameAndPlatform($0) } == ["UnreferencedPackageLib-macos"])
+            #expect(results.targets(packageTool).map { results.targetNameAndPlatform($0) } == ["PackageTool-macos"])
+            #expect(results.targets(packageLib).map { results.targetNameAndPlatform($0) } == ["PackageLib-macos"])
+            #expect(results.targets(packageLib2).map { results.targetNameAndPlatform($0) } == ["PackageLib2-macos"])
+            #expect(results.targets(packageProduct).map { results.targetNameAndPlatform($0) } == ["PackageLibProduct-macos"])
+            #expect(results.targets(unreferencedPackageLib).map { results.targetNameAndPlatform($0) } == ["UnreferencedPackageLib-macos"])
 
             switch results.graphType {
             case .dependency:
@@ -949,11 +1146,11 @@ import SWBUtil
         }
 
         try await tester.checkIndexBuildGraph(targets: [packageLib, packageLib2, packageProduct, packageTool, unreferencedPackageLib], activeRunDestination: .iOS, graphTypes: TargetGraphFactory.GraphType.allCases) { results in
-            #expect(results.targets(packageTool).map{ results.targetNameAndPlatform($0) } == ["PackageTool-macos"])
-            #expect(results.targets(packageLib).map{ results.targetNameAndPlatform($0) } == ["PackageLib-iphoneos"])
-            #expect(results.targets(packageLib2).map{ results.targetNameAndPlatform($0) } == ["PackageLib2-iphoneos"])
-            #expect(results.targets(packageProduct).map{ results.targetNameAndPlatform($0) } == ["PackageLibProduct-iphoneos"])
-            #expect(results.targets(unreferencedPackageLib).map{ results.targetNameAndPlatform($0) } == ["UnreferencedPackageLib-iphoneos"])
+            #expect(results.targets(packageTool).map { results.targetNameAndPlatform($0) } == ["PackageTool-macos"])
+            #expect(results.targets(packageLib).map { results.targetNameAndPlatform($0) } == ["PackageLib-iphoneos"])
+            #expect(results.targets(packageLib2).map { results.targetNameAndPlatform($0) } == ["PackageLib2-iphoneos"])
+            #expect(results.targets(packageProduct).map { results.targetNameAndPlatform($0) } == ["PackageLibProduct-iphoneos"])
+            #expect(results.targets(unreferencedPackageLib).map { results.targetNameAndPlatform($0) } == ["UnreferencedPackageLib-iphoneos"])
 
             switch results.graphType {
             case .dependency:
@@ -973,14 +1170,18 @@ import SWBUtil
             "iosApp",
             type: .application,
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "macosx",
-                    "SUPPORTED_PLATFORMS": "iphonesimulator iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SUPPORTED_PLATFORMS": "iphonesimulator iphoneos",
+                    ]
+                )
             ],
             buildPhases: [
-                TestSourcesBuildPhase(["main.c"]),
-            ])
+                TestSourcesBuildPhase(["main.c"])
+            ]
+        )
 
         let workspace = TestWorkspace(
             "Test",
@@ -990,23 +1191,31 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.c"),
-                        ]),
+                            TestFile("main.c")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
+                    ],
                     targets: [
-                        iosApp,
-                    ])])
+                        iosApp
+                    ]
+                )
+            ]
+        )
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
         try await tester.checkIndexBuildGraph(targets: [iosApp], workspaceOperation: true) { results in
-            #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
-                "iosApp-iphoneos", "iosApp-iphonesimulator",
-            ])
+            #expect(
+                results.targets().map { results.targetNameAndPlatform($0) } == [
+                    "iosApp-iphoneos", "iosApp-iphonesimulator",
+                ]
+            )
             results.delegate.checkNoDiagnostics()
         }
     }
@@ -1020,14 +1229,18 @@ import SWBUtil
                 name,
                 type: .application,
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": sdkRoot,
-                        "ARCHS": archs,
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": sdkRoot,
+                            "ARCHS": archs,
+                        ]
+                    )
                 ],
                 buildPhases: [
-                    TestSourcesBuildPhase(["main.swift"]),
-                ])
+                    TestSourcesBuildPhase(["main.swift"])
+                ]
+            )
         }
         let macosApp = createTarget(name: "macosApp", sdkRoot: "macosx", archs: "x86_64 arm64")
         let iosApp = createTarget(name: "iosApp", sdkRoot: "iphoneos", archs: "arm64")
@@ -1041,19 +1254,25 @@ import SWBUtil
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("main.swift"),
-                        ]),
+                            TestFile("main.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
+                    ],
                     targets: [
                         macosApp,
                         iosApp,
                         driver,
-                    ])])
+                    ]
+                )
+            ]
+        )
 
         func checkTargetArch(_ arch: String, expected: [String: String], sourceLocation: SourceLocation = #_sourceLocation) async throws {
             let tester = try await BuildOperationTester(core, workspace, simulated: false)
@@ -1067,18 +1286,24 @@ import SWBUtil
             }
         }
 
-        try await checkTargetArch("x86_64", expected: [
-            "macosApp-macos": "x86_64",
-            "iosApp-iphoneos": "arm64",
-            "iosApp-iphonesimulator": "x86_64",
-            "driver-driverkit": "x86_64",
-        ])
-        try await checkTargetArch("arm64", expected: [
-            "macosApp-macos": "arm64",
-            "iosApp-iphoneos": "arm64",
-            "iosApp-iphonesimulator": "arm64",
-            "driver-driverkit": "arm64",
-        ])
+        try await checkTargetArch(
+            "x86_64",
+            expected: [
+                "macosApp-macos": "x86_64",
+                "iosApp-iphoneos": "arm64",
+                "iosApp-iphonesimulator": "x86_64",
+                "driver-driverkit": "x86_64",
+            ]
+        )
+        try await checkTargetArch(
+            "arm64",
+            expected: [
+                "macosApp-macos": "arm64",
+                "iosApp-iphoneos": "arm64",
+                "iosApp-iphonesimulator": "arm64",
+                "driver-driverkit": "arm64",
+            ]
+        )
     }
 }
 

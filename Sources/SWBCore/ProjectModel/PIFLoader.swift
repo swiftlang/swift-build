@@ -117,7 +117,6 @@ struct PIFObjectReference: Hashable {
     return vers
 }
 
-
 /// A top-level object which can be represented independently in the PIF format.
 ///
 /// These objects represent the granularity at which the PIF can be incrementally loaded or replaced.
@@ -271,7 +270,7 @@ public final class PIFLoader {
     }
 
     // Return the ProjectModelItem for the requested GUID.  If one cannot be returned, that's an internal error.
-    func lookupReference(for guid: String ) -> Reference? {
+    func lookupReference(for guid: String) -> Reference? {
         return knownReferences[guid]
     }
 
@@ -295,7 +294,6 @@ public final class PIFLoader {
     }
 }
 
-
 /// An incremental PIF loader.
 ///
 /// This is a PIF loader implementation which keeps track of available objects and dynamically negotiates the minimal set of objects which need to be transferred to load the complete PIF.
@@ -306,18 +304,30 @@ public final class PIFLoader {
 //
 // FIXME: This API doesn't feel right, it seems bogus that both the incremental loader and the regular loader are both maintaining maps of objects keyed by the same thing. The separation currently is between the incremental loader, which maintains a set of objects across multiple load requests and can communicate back to the client (via `LoadingSession`) about what new objects are required, and the bare `PIFLoader` which is only responsible for loading a single, complete graph.
 public final class IncrementalPIFLoader {
-    @_spi(Testing) public static let loadsRequested = Statistic("IncrementalPIFLoader.loadsRequested",
-        "The total number of top-level objects requested.")
-    static let objectsRequested = Statistic("IncrementalPIFLoader.objectsRequested",
-        "The number of PIF objects which were requested.")
-    @_spi(Testing) public static let objectsLoaded = Statistic("IncrementalPIFLoader.objectsLoaded",
-        "The number of PIF objects which were loaded, in any form.")
-    static let objectsCachedInMemory = Statistic("IncrementalPIFLoader.objectsCachedInMemory",
-        "The number of PIF objects which hit the in-memory cache.")
-    static let objectsCachedOnDisk = Statistic("IncrementalPIFLoader.objectsCachedOnDisk",
-        "The number of PIF objects which hit the on-disk cache.")
-    @_spi(Testing) public static let objectsTransferred = Statistic("IncrementalPIFLoader.objectsTransferred",
-        "The number of PIF objects which were transferred.")
+    @_spi(Testing) public static let loadsRequested = Statistic(
+        "IncrementalPIFLoader.loadsRequested",
+        "The total number of top-level objects requested."
+    )
+    static let objectsRequested = Statistic(
+        "IncrementalPIFLoader.objectsRequested",
+        "The number of PIF objects which were requested."
+    )
+    @_spi(Testing) public static let objectsLoaded = Statistic(
+        "IncrementalPIFLoader.objectsLoaded",
+        "The number of PIF objects which were loaded, in any form."
+    )
+    static let objectsCachedInMemory = Statistic(
+        "IncrementalPIFLoader.objectsCachedInMemory",
+        "The number of PIF objects which hit the in-memory cache."
+    )
+    static let objectsCachedOnDisk = Statistic(
+        "IncrementalPIFLoader.objectsCachedOnDisk",
+        "The number of PIF objects which hit the on-disk cache."
+    )
+    @_spi(Testing) public static let objectsTransferred = Statistic(
+        "IncrementalPIFLoader.objectsTransferred",
+        "The number of PIF objects which were transferred."
+    )
 
     /// A session for incrementally loading an individual object.
     ///
@@ -357,7 +367,7 @@ public final class IncrementalPIFLoader {
 
         /// The complete set of missing objects for the unloaded data.
         public var missingObjects: AnySequence<(signature: String, type: PIFObjectType)> {
-            return AnySequence(_missingObjects.map{ (signature: $0.signature, type: $0.type) })
+            return AnySequence(_missingObjects.map { (signature: $0.signature, type: $0.type) })
         }
         var _missingObjects: Set<PIFObjectReference> = []
 
@@ -382,7 +392,7 @@ public final class IncrementalPIFLoader {
 
             // Create the loader for this instance and load the object.
             let loader = PIFLoader(provider: ObjectProviderAdaptor(session: self), userNamespace: incrementalLoader.userNamespace)
-            let result = try MacroNamespace.withExpressionInterningEnabled{ try loader.loadReference(signature: workspaceSignature, type: Workspace.self) }
+            let result = try MacroNamespace.withExpressionInterningEnabled { try loader.loadReference(signature: workspaceSignature, type: Workspace.self) }
 
             // Merge back in all the loaded objects.
             for (key, value) in loader.loadedObjects {

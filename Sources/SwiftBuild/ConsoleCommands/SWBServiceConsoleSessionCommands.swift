@@ -112,13 +112,15 @@ class SWBServiceConsoleDeleteSessionCommand: SWBServiceConsoleCommand {
 }
 
 func registerSessionCommands() {
-    for commandClass in ([
-        SWBServiceConsoleCreateSessionCommand.self,
-        SWBServiceConsoleListSessionsCommand.self,
-        SWBServiceConsoleShowSessionCommand.self,
-        SWBServiceConsoleSelectSessionCommand.self,
-        SWBServiceConsoleDeleteSessionCommand.self,
-    ] as [any SWBServiceConsoleCommand.Type]) {
+    for commandClass
+        in ([
+            SWBServiceConsoleCreateSessionCommand.self,
+            SWBServiceConsoleListSessionsCommand.self,
+            SWBServiceConsoleShowSessionCommand.self,
+            SWBServiceConsoleSelectSessionCommand.self,
+            SWBServiceConsoleDeleteSessionCommand.self,
+        ] as [any SWBServiceConsoleCommand.Type])
+    {
         SWBServiceConsoleCommandRegistry.registerCommandClass(commandClass)
     }
 }

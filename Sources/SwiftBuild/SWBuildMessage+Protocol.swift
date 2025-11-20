@@ -105,7 +105,7 @@ extension Array where Element == SwiftBuildMessage {
                 } else {
                     return .buildOutput(.init(data: dataString))
                 }
-            }()
+            }(),
         ]
     }
 
@@ -124,16 +124,18 @@ extension Array where Element == SwiftBuildMessage {
                 case .global:
                     return .buildDiagnostic(.init(message: message.message))
                 }
-            }()
+            }(),
         ]
     }
 }
 
 fileprivate extension Dictionary where Key == AbsolutePath, Value == AbsolutePath {
     init(_ other: [String: String]) throws {
-        self = try Dictionary(uniqueKeysWithValues: other.map {
-            try (AbsolutePath(validating: $0.key), AbsolutePath(validating: $0.value))
-        })
+        self = try Dictionary(
+            uniqueKeysWithValues: other.map {
+                try (AbsolutePath(validating: $0.key), AbsolutePath(validating: $0.value))
+            }
+        )
     }
 }
 

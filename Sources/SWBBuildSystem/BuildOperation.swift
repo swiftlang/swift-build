@@ -244,7 +244,7 @@ package final class BuildOperation: BuildSystemOperation {
     private var wasAbortRequested = false
 
     /// Optional map of a subset of files to build and their desired output paths
-    private let buildOutputMap: [String:String]?
+    private let buildOutputMap: [String: String]?
 
     /// Optional list of a subset of nodes to build
     private let nodesToBuild: [BuildDescription.BuildNodeToPrepareForIndex]?
@@ -265,7 +265,7 @@ package final class BuildOperation: BuildSystemOperation {
 
     package let cachedBuildSystems: any BuildSystemCache
 
-    package init(_ request: BuildRequest, _ requestContext: BuildRequestContext, _ buildDescription: BuildDescription, environment: [String: String]? = nil, _ delegate: any BuildOperationDelegate, _ clientDelegate: any ClientDelegate, _ cachedBuildSystems: any BuildSystemCache, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, nodesToBuild: [BuildDescription.BuildNodeToPrepareForIndex]? = nil, workspace: SWBCore.Workspace, core: Core, userPreferences: UserPreferences) {
+    package init(_ request: BuildRequest, _ requestContext: BuildRequestContext, _ buildDescription: BuildDescription, environment: [String: String]? = nil, _ delegate: any BuildOperationDelegate, _ clientDelegate: any ClientDelegate, _ cachedBuildSystems: any BuildSystemCache, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String: String]? = nil, nodesToBuild: [BuildDescription.BuildNodeToPrepareForIndex]? = nil, workspace: SWBCore.Workspace, core: Core, userPreferences: UserPreferences) {
         self.uuid = UUID()
         self.request = request
         self.requestContext = requestContext
@@ -290,7 +290,7 @@ package final class BuildOperation: BuildSystemOperation {
         buildOutputDelegate = delegate.buildStarted(self)
 
         // Report the copied path map.
-        delegate.reportPathMap(self, copiedPathMap: buildDescription.copiedPathMap, generatedFilesPathMap: buildOutputMap ?? [String:String]())
+        delegate.reportPathMap(self, copiedPathMap: buildDescription.copiedPathMap, generatedFilesPathMap: buildOutputMap ?? [String: String]())
 
         // Report the diagnostics from task construction.
         //
@@ -335,9 +335,16 @@ package final class BuildOperation: BuildSystemOperation {
                 switch overrides {
                 case let .table(overrides):
                     if !overrides.isEmpty {
-                        buildOutputDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Applying \(infix) build settings"), childDiagnostics: overrides.sorted(by: \.0).map { (key, value) in
-                            Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("\(key)=\(value)"))
-                        }))
+                        buildOutputDelegate.emit(
+                            Diagnostic(
+                                behavior: .note,
+                                location: .unknown,
+                                data: DiagnosticData("Applying \(infix) build settings"),
+                                childDiagnostics: overrides.sorted(by: \.0).map { (key, value) in
+                                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("\(key)=\(value)"))
+                                }
+                            )
+                        )
                     }
                 case let .file(path):
                     buildOutputDelegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Applying \(infix) build settings from path: \(path.str)")))
@@ -354,7 +361,7 @@ package final class BuildOperation: BuildSystemOperation {
 
         // If the build has been cancelled before it really began, we can bail out early
         do {
-            let isCancelled = await queue.sync{ self.wasCancellationRequested }
+            let isCancelled = await queue.sync { self.wasCancellationRequested }
             if !UserDefaults.skipEarlyBuildOperationCancellation && isCancelled {
                 let effectiveStatus = BuildOperationEnded.Status.cancelled
                 delegate.buildComplete(self, status: effectiveStatus, delegate: buildOutputDelegate, metrics: nil)
@@ -408,7 +415,7 @@ package final class BuildOperation: BuildSystemOperation {
             debuggingDataPath = nil
         }
 
-        var buildEnvironment: [String:String] = [:]
+        var buildEnvironment: [String: String] = [:]
 
         if let actualEnvironment = environment {
             buildEnvironment.addContents(of: actualEnvironment)
@@ -542,7 +549,7 @@ package final class BuildOperation: BuildSystemOperation {
                     // Build selected nodes, the build fails if one operation failed.
                     var currResult = true
                     for nodeToPrepare in buildOnlyTheseNodes {
-                        let isCancelled = await queue.sync{ self.wasCancellationRequested }
+                        let isCancelled = await queue.sync { self.wasCancellationRequested }
                         if isCancelled {
                             currResult = false
                             break
@@ -704,14 +711,14 @@ package final class BuildOperation: BuildSystemOperation {
         }
 
         #if canImport(Darwin)
-        do {
-            if let xcbuildDataArchive = getEnvironmentVariable("XCBUILDDATA_ARCHIVE")?.nilIfEmpty.map(Path.init) {
-                let archive = XCBuildDataArchive(filePath: xcbuildDataArchive)
-                try archive.appendBuildDataDirectory(from: buildDescription.dir, uuid: uuid)
+            do {
+                if let xcbuildDataArchive = getEnvironmentVariable("XCBUILDDATA_ARCHIVE")?.nilIfEmpty.map(Path.init) {
+                    let archive = XCBuildDataArchive(filePath: xcbuildDataArchive)
+                    try archive.appendBuildDataDirectory(from: buildDescription.dir, uuid: uuid)
+                }
+            } catch {
+                self.buildOutputDelegate.error("unable to process build ended event via the BuildOperationExtensionPoint: \(error)")
             }
-        } catch {
-            self.buildOutputDelegate.error("unable to process build ended event via the BuildOperationExtensionPoint: \(error)")
-        }
         #endif
 
         if let swiftBuildTraceFilePath = getEnvironmentVariable("SWIFTBUILD_TRACE_FILE")?.nilIfEmpty.map(Path.init) ?? getEnvironmentVariable("XCBUILDDATA_ARCHIVE")?.nilIfEmpty.map(Path.init)?.dirname.join(".SWIFTBUILD_TRACE") {
@@ -722,7 +729,7 @@ package final class BuildOperation: BuildSystemOperation {
                 let path: String
             }
             do {
-                let traceEntry  = SwiftDataTraceEntry(
+                let traceEntry = SwiftDataTraceEntry(
                     buildDescriptionSignature: buildDescription.signature.asString,
                     isTargetParallelizationEnabled: request.useParallelTargets,
                     name: workspace.name,
@@ -743,7 +750,7 @@ package final class BuildOperation: BuildSystemOperation {
         let effectiveStatus: BuildOperationEnded.Status?
         switch (isCancelled, isAborted) {
         case (true, false), (true, true):
-            effectiveStatus = .cancelled // cancelled always wins over aborted
+            effectiveStatus = .cancelled  // cancelled always wins over aborted
         case (false, true):
             effectiveStatus = .failed
         case (false, false):
@@ -755,7 +762,7 @@ package final class BuildOperation: BuildSystemOperation {
     }
 
     func prepareForBuilding() async -> ([String], [String])? {
-        let warnings = [String]()       // Not presently used
+        let warnings = [String]()  // Not presently used
         var errors = [String]()
 
         // Create the module session file if necessary.
@@ -765,11 +772,9 @@ package final class BuildOperation: BuildSystemOperation {
             do {
                 try fs.createDirectory(moduleSessionFilePath.dirname, recursive: true)
                 try fs.write(moduleSessionFilePath, contents: fileContents)
-            }
-            catch let err as SWBUtil.POSIXError {
+            } catch let err as SWBUtil.POSIXError {
                 errors.append("unable to write module session file at '\(moduleSessionFilePath.str)': \(err.description)")
-            }
-            catch {
+            } catch {
                 errors.append("unable to write module session file at '\(moduleSessionFilePath.str)': unknown error")
             }
         }
@@ -814,7 +819,7 @@ package final class BuildOperation: BuildSystemOperation {
         ]
         if let pluginPath = info.options.pluginPath {
             commandLine.append(contentsOf: [
-                "-fcas-plugin-path", pluginPath.str
+                "-fcas-plugin-path", pluginPath.str,
             ])
         }
         let result: Processes.ExecutionResult = try await clientDelegate.executeExternalTool(commandLine: commandLine)
@@ -959,7 +964,7 @@ extension BuildOperation: Hashable {
         hasher.combine(ObjectIdentifier(self))
     }
 
-    package static func ==(lhs: BuildOperation, rhs: BuildOperation) -> Bool {
+    package static func == (lhs: BuildOperation, rhs: BuildOperation) -> Bool {
         return lhs === rhs
     }
 }
@@ -969,9 +974,9 @@ extension BuildOperation: Hashable {
 // these delegates.
 final class CustomTaskSerializerDelegate: ConfiguredTargetSerializerDelegate {
     var currentBuildParametersIndex: Int = 0
-    var buildParametersIndexes = [BuildParameters : Int]()
+    var buildParametersIndexes = [BuildParameters: Int]()
     var currentConfiguredTargetIndex: Int = 0
-    var configuredTargetIndexes = [ConfiguredTarget : Int]()
+    var configuredTargetIndexes = [ConfiguredTarget: Int]()
 }
 
 final class CustomTaskDeserializerDelegate: ConfiguredTargetDeserializerDelegate {
@@ -1062,7 +1067,7 @@ private struct OperatorSystemAdaptorDynamicContext: DynamicTaskExecutionDelegate
         if singleUse {
             if adaptor.operation.request.recordBuildBacktraces, let reason = reason {
                 // Since this is a single use task, record a backtrace frame describing why it was requested
-                adaptor.recordBuildBacktraceFrame(identifier: .task(.taskIdentifier(ByteString(encodingAsUTF8: identifier.rawValue))), previousFrameIdentifier: .task(.taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue))), category: .dynamicTaskRequest, kind: reason.backtraceFrameKind, description: reason.description )
+                adaptor.recordBuildBacktraceFrame(identifier: .task(.taskIdentifier(ByteString(encodingAsUTF8: identifier.rawValue))), previousFrameIdentifier: .task(.taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue))), category: .dynamicTaskRequest, kind: reason.backtraceFrameKind, description: reason.description)
             }
             commandInterface.commandsNeedsSingleUseInput(key: buildKey, inputID: taskID)
         } else {
@@ -1220,9 +1225,9 @@ private class InProcessCommand: SWBLLBuild.ExternalCommand, SWBLLBuild.ExternalD
             task,
             dynamicExecutionDelegate: adaptorInterfaceDelegate,
             executionDelegate:
-            adaptor.operation,
+                adaptor.operation,
             clientDelegate:
-            adaptor.operation.clientDelegate,
+                adaptor.operation.clientDelegate,
             outputDelegate: outputDelegate
         )
 
@@ -1283,9 +1288,7 @@ private class BuildValueValidatingInProcessCommand: InProcessCommand, ProducesCu
     }
 }
 
-
-
-private final class InProcessTool:  SWBLLBuild.Tool {
+private final class InProcessTool: SWBLLBuild.Tool {
     let actionType: TaskAction.Type
     let description: BuildDescription
     let adaptor: OperationSystemAdaptor
@@ -1325,12 +1328,14 @@ private final class InProcessTool:  SWBLLBuild.Tool {
         )
 
         guard let dynamicTask = try? DynamicTask(from: deserializer),
-            let spec = DynamicTaskSpecRegistry.spec(for: dynamicTask.toolIdentifier) else {
+            let spec = DynamicTaskSpecRegistry.spec(for: dynamicTask.toolIdentifier)
+        else {
             return nil
         }
 
         guard let executableTask = try? spec.buildExecutableTask(dynamicTask: dynamicTask, context: adaptor.dynamicOperationContext),
-              let taskAction = try? spec.buildTaskAction(dynamicTaskKey: dynamicTask.taskKey, context: adaptor.dynamicOperationContext) else {
+            let taskAction = try? spec.buildTaskAction(dynamicTaskKey: dynamicTask.taskKey, context: adaptor.dynamicOperationContext)
+        else {
             return nil
         }
 
@@ -1539,7 +1544,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     func cleanupCompilationCache() {
         let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
         if settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_KEEP_CAS_DIRECTORY) {
-            return // Keep the cache directory.
+            return  // Keep the cache directory.
         }
 
         let cachePath = Path(settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_CAS_PATH))
@@ -1566,7 +1571,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     func cleanupGlobalModuleCache() {
         let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
         if settings.globalScope.evaluate(BuiltinMacros.KEEP_GLOBAL_MODULE_CACHE_DIRECTORY) {
-            return // Keep the cache directory.
+            return  // Keep the cache directory.
         }
 
         let cachePath = settings.globalScope.evaluate(BuiltinMacros.MODULE_CACHE_DIR)
@@ -1698,7 +1703,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         // Get the task for this command.
         //
         // FIXME: Find a better way to maintain command associations.
-         if let registeredTask = description.taskStore.task(for: identifier) {
+        if let registeredTask = description.taskStore.task(for: identifier) {
             return registeredTask
         } else if let dynamicTask = dynamicTask(for: identifier) {
             return dynamicTask
@@ -2032,9 +2037,10 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         } else {
             let inputsString = inputDescriptions.joined(separator: ", ")
             let allInputsAreFiles = inputs.map { ($0.kind == .customTask, $0.key) }.filter { $0 == false && $1.hasPrefix("<") }.isEmpty
-            let adviceString = inputDescriptions.count > 1
-            ? "Did you forget to declare these \(allInputsAreFiles ? "file" : "node")s as outputs of any script phases or custom build rules which produce them?"
-            : "Did you forget to declare this \(allInputsAreFiles ? "file" : "node") as an output of a script phase or custom build rule which produces it?"
+            let adviceString =
+                inputDescriptions.count > 1
+                ? "Did you forget to declare these \(allInputsAreFiles ? "file" : "node")s as outputs of any script phases or custom build rules which produce them?"
+                : "Did you forget to declare this \(allInputsAreFiles ? "file" : "node") as an output of a script phase or custom build rule which produces it?"
             message = "Build input\(allInputsAreFiles ? " file" : "")\(inputDescriptions.count > 1 ? "s" : "") cannot be found: \(inputsString). \(adviceString)"
         }
         // This error happens before the command has started, so we do this here in order to have a command output delegate.
@@ -2091,7 +2097,8 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
 
         let cmdInfos: [CommandInfo] = commands.compactMap { command in
             guard let task = lookupTask(TaskIdentifier(command: command)),
-                  let target = task.forTarget else { return nil }
+                let target = task.forTarget
+            else { return nil }
             return CommandInfo(command: command, task: task, target: target)
         }
 
@@ -2101,9 +2108,11 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
 
         // Make sure we're stable between runs and then pick the "best" target
-        guard let selectedTarget = cmdInfos.map(\.target).sorted().one(by: {
-            self.operation.requestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: true, runDestination: buildRequest.parameters.activeRunDestination)
-        }) else {
+        guard
+            let selectedTarget = cmdInfos.map(\.target).sorted().one(by: {
+                self.operation.requestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: true, runDestination: buildRequest.parameters.activeRunDestination)
+            })
+        else {
             // This shouldn't actually be possible - `one` returns `nil` only
             // the initial array is empty, which it isn't.
             return nil
@@ -2114,10 +2123,12 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }).richFormattedRuleInfo(workspace: workspace)
 
         self.buildOutputDelegate.emit(
-            Diagnostic(behavior: .warning,
-                       location: .unknown,
-                       data: DiagnosticData("Multiple commands produce '\(output.key)', picked with target '\(selectedTarget.guid)'"),
-                       childDiagnostics: childDiagnostics)
+            Diagnostic(
+                behavior: .warning,
+                location: .unknown,
+                data: DiagnosticData("Multiple commands produce '\(output.key)', picked with target '\(selectedTarget.guid)'"),
+                childDiagnostics: childDiagnostics
+            )
         )
 
         return cmdInfos.first(where: { $0.target === selectedTarget })?.command
@@ -2203,12 +2214,12 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         case let buildKey as BuildKey.CustomTask:
             return .task(BuildOperationTaskSignature.taskIdentifier(ByteString(encodingAsUTF8: buildKey.name)))
         case is BuildKey.DirectoryContents,
-             is BuildKey.FilteredDirectoryContents,
-             is BuildKey.DirectoryTreeSignature,
-             is BuildKey.DirectoryTreeStructureSignature,
-             is BuildKey.Node,
-             is BuildKey.Target,
-             is BuildKey.Stat:
+            is BuildKey.FilteredDirectoryContents,
+            is BuildKey.DirectoryTreeSignature,
+            is BuildKey.DirectoryTreeStructureSignature,
+            is BuildKey.Node,
+            is BuildKey.Target,
+            is BuildKey.Stat:
             return .genericBuildKey(buildKey.description)
         default:
             return nil
@@ -2455,7 +2466,7 @@ extension OperationSystemAdaptor: SubtaskProgressReporter {
     }
 }
 
-private func ==<K, V>(lhs: [K: V]?, rhs: [K: V]?) -> Bool {
+private func == <K, V>(lhs: [K: V]?, rhs: [K: V]?) -> Bool {
     switch (lhs, rhs) {
     case (let lhs?, let rhs?):
         return lhs == rhs

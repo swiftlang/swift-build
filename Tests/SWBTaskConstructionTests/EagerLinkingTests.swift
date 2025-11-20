@@ -24,43 +24,68 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     private var objcTestProject: TestProject {
         return TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-                TestFile("C.m"),
-                TestFile("D.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "EAGER_LINKING": "YES",
-                    "EAGER_LINKING_REQUIRE": "YES",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
+                    TestFile("C.m"),
+                    TestFile("D.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "EAGER_LINKING": "YES",
+                        "EAGER_LINKING_REQUIRE": "YES",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("A.m")
-                    ])
-                ], dependencies: ["B", "C"]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("B.m")
-                    ])
-                ]),
-                TestStandardTarget("C", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("C.m")
-                    ])
-                ], dependencies: ["D"]),
-                TestStandardTarget("D", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("D.m")
-                    ])
-                ])
-            ])
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("A.m")
+                        ])
+                    ],
+                    dependencies: ["B", "C"]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("B.m")
+                        ])
+                    ]
+                ),
+                TestStandardTarget(
+                    "C",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("C.m")
+                        ])
+                    ],
+                    dependencies: ["D"]
+                ),
+                TestStandardTarget(
+                    "D",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("D.m")
+                        ])
+                    ]
+                ),
+            ]
+        )
     }
 
     private var swiftTestProject: TestProject {
@@ -68,48 +93,72 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
             let tapiToolPath = try await self.tapiToolPath
             return try await TestProject(
                 "aProject",
-                groupTree: TestGroup("Sources", path: "Sources", children: [
-                    TestFile("A.swift"),
-                    TestFile("B.swift"),
-                    TestFile("C.swift"),
-                    TestFile("D.swift"),
-                ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                        "EAGER_LINKING": "YES",
-                        "EAGER_LINKING_REQUIRE": "YES",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": swiftVersion,
-                        "TAPI_EXEC": tapiToolPath.str,
+                groupTree: TestGroup(
+                    "Sources",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.swift"),
+                        TestFile("B.swift"),
+                        TestFile("C.swift"),
+                        TestFile("D.swift"),
                     ]
-                )],
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                            "EAGER_LINKING": "YES",
+                            "EAGER_LINKING_REQUIRE": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": swiftVersion,
+                            "TAPI_EXEC": tapiToolPath.str,
+                        ]
+                    )
+                ],
                 targets: [
-                    TestStandardTarget("A", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("A.swift")
-                        ])
-                    ], dependencies: ["B", "C"]),
-                    TestStandardTarget("B", type: .framework,
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            TestBuildFile("B.swift")
-                                        ])
-                                       ]),
-                    TestStandardTarget("C", type: .framework, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("C.swift")
-                        ])
-                    ], dependencies: ["D"]),
-                    TestStandardTarget("D", type: .dynamicLibrary, buildPhases: [
-                        TestSourcesBuildPhase([
-                            TestBuildFile("D.swift")
-                        ])
-                    ])
-                ])
+                    TestStandardTarget(
+                        "A",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("A.swift")
+                            ])
+                        ],
+                        dependencies: ["B", "C"]
+                    ),
+                    TestStandardTarget(
+                        "B",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("B.swift")
+                            ])
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "C",
+                        type: .framework,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("C.swift")
+                            ])
+                        ],
+                        dependencies: ["D"]
+                    ),
+                    TestStandardTarget(
+                        "D",
+                        type: .dynamicLibrary,
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("D.swift")
+                            ])
+                        ]
+                    ),
+                ]
+            )
         }
     }
 
@@ -184,48 +233,75 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     func objCTaskDependenciesEagerLinkingEnabledForAllButOneTarget() async throws {
         let project = TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.m"),
-                TestFile("B.m"),
-                TestFile("C.m"),
-                TestFile("D.m"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "EAGER_LINKING": "YES",
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.m"),
+                    TestFile("B.m"),
+                    TestFile("C.m"),
+                    TestFile("D.m"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "EAGER_LINKING": "YES",
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("A.m")
-                    ])
-                ], dependencies: ["B", "C"]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("B.m")
-                    ])
-                ]),
-                TestStandardTarget("C", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "EAGER_LINKING": "NO",
-                        ]
-                    )], buildPhases: [
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("A.m")
+                        ])
+                    ],
+                    dependencies: ["B", "C"]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("B.m")
+                        ])
+                    ]
+                ),
+                TestStandardTarget(
+                    "C",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "EAGER_LINKING": "NO"
+                            ]
+                        )
+                    ],
+                    buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("C.m")
                         ])
-                    ], dependencies: ["D"]),
-                TestStandardTarget("D", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("D.m")
-                    ])
-                ])
-            ])
+                    ],
+                    dependencies: ["D"]
+                ),
+                TestStandardTarget(
+                    "D",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("D.m")
+                        ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), project)
         try await tester.checkBuild(runDestination: .macOS) { results in
             let compileATask = try #require(results.getTask(.matchTargetName("A"), .matchRuleItem("CompileC")))
@@ -299,62 +375,76 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.swift"),
                     TestFile("App.swift"),
-                    TestFile("Fwk.docc")
-                ]),
+                    TestFile("Fwk.docc"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "LIBTOOL": libtoolPath.str,
-                    "DOCC_EXEC": doccToolPath.str,
-                    "DYLIB_CURRENT_VERSION": "2.0",
-                    "DYLIB_COMPATIBILITY_VERSION": "1.0",
-                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                    "EAGER_LINKING": "YES",
-                    "DEFINES_MODULE": "YES",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "LIBTOOL": libtoolPath.str,
+                        "DOCC_EXEC": doccToolPath.str,
+                        "DYLIB_CURRENT_VERSION": "2.0",
+                        "DYLIB_COMPATIBILITY_VERSION": "1.0",
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "EAGER_LINKING": "YES",
+                        "DEFINES_MODULE": "YES",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "DocumentedFwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift", "Fwk.docc"])
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "FwkLinkingStaticLib",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"]),
-                        TestFrameworksBuildPhase([TestBuildFile(.target("StaticLib"))])
-                    ], dependencies: ["StaticLib"]),
+                        TestFrameworksBuildPhase([TestBuildFile(.target("StaticLib"))]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
                 TestStandardTarget(
                     "StaticLib",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
+                    ]
+                ),
 
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase(["App.swift"]),
-                        TestFrameworksBuildPhase([TestBuildFile(.target("Fwk"))])
-                    ], dependencies: ["Fwk"])
-            ])
+                        TestFrameworksBuildPhase([TestBuildFile(.target("Fwk"))]),
+                    ],
+                    dependencies: ["Fwk"]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, targetName: "Fwk") { results in
@@ -541,54 +631,81 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
     func swiftTaskDependenciesEagerLinkingEnabledForAllButOneTarget() async throws {
         let testProject = try await TestProject(
             "aProject",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                TestFile("A.swift"),
-                TestFile("B.swift"),
-                TestFile("C.swift"),
-                TestFile("D.swift"),
-            ]),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                    "EAGER_LINKING": "YES",
-                    "EAGER_LINKING_REQUIRE": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    TestFile("A.swift"),
+                    TestFile("B.swift"),
+                    TestFile("C.swift"),
+                    TestFile("D.swift"),
                 ]
-            )],
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "EAGER_LINKING": "YES",
+                        "EAGER_LINKING_REQUIRE": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
-                TestStandardTarget("A", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("A.swift")
-                    ])
-                ], dependencies: ["B", "C"]),
-                TestStandardTarget("B", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("B.swift")
-                    ])
-                ]),
-                TestStandardTarget("C", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "EAGER_LINKING": "NO",
-                            "EAGER_LINKING_REQUIRE": "NO",
-                        ]
-                    )], buildPhases: [
+                TestStandardTarget(
+                    "A",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("A.swift")
+                        ])
+                    ],
+                    dependencies: ["B", "C"]
+                ),
+                TestStandardTarget(
+                    "B",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("B.swift")
+                        ])
+                    ]
+                ),
+                TestStandardTarget(
+                    "C",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "EAGER_LINKING": "NO",
+                                "EAGER_LINKING_REQUIRE": "NO",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("C.swift")
                         ])
-                    ], dependencies: ["D"]),
-                TestStandardTarget("D", type: .framework, buildPhases: [
-                    TestSourcesBuildPhase([
-                        TestBuildFile("D.swift")
-                    ])
-                ])
-            ])
+                    ],
+                    dependencies: ["D"]
+                ),
+                TestStandardTarget(
+                    "D",
+                    type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("D.swift")
+                        ])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         try await tester.checkBuild(runDestination: .macOS) { results in

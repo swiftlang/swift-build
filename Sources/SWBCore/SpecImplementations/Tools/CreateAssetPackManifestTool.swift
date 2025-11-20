@@ -13,7 +13,7 @@
 import SWBUtil
 public import SWBMacro
 
-public final class CreateAssetPackManifestToolSpec : CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
+public final class CreateAssetPackManifestToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.odr.create-asset-pack-manifest"
 
     public class func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
@@ -41,10 +41,13 @@ public final class CreateAssetPackManifestToolSpec : CommandLineToolSpec, SpecIm
             BuiltinMacros.OutputPath.name: assetPackManifestPath.str,
         ]
 
-        let inputs: [any PlannedNode] = assetPacks.flatMap { assetPack -> [any PlannedNode] in
-            [delegate.createDirectoryTreeNode(assetPack.path),
-             delegate.createNode(assetPack.path.join("Info.plist"))]
-        } + orderingInputs
+        let inputs: [any PlannedNode] =
+            assetPacks.flatMap { assetPack -> [any PlannedNode] in
+                [
+                    delegate.createDirectoryTreeNode(assetPack.path),
+                    delegate.createNode(assetPack.path.join("Info.plist")),
+                ]
+            } + orderingInputs
         let outputPath = assetPackManifestPath
         let outputs = [delegate.createNode(outputPath)]
         let commandLine = assetPacks.map { $0.path.str }.sorted()

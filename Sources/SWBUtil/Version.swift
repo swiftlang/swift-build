@@ -64,8 +64,7 @@ public struct Version: CustomStringConvertible, Sendable {
         if let max = maximumNumberOfComponents {
             if components.count > max { throw StubError.error("There are too many components: '\(s)', maximumNumberOfComponents: \(max)") }
             self.init(Version.normalized(components, max))
-        }
-        else {
+        } else {
             self.init(components)
         }
     }
@@ -139,34 +138,33 @@ extension Version: Comparable {
 
         if lhs.rawValue.count == rhs.rawValue.count {
             return (lhs.rawValue, rhs.rawValue)
-        }
-        else {
+        } else {
             let n = max(lhs.rawValue.count, rhs.rawValue.count)
             return (Version.normalized(lhs.rawValue, n), normalized(rhs.rawValue, n))
         }
     }
 
-    public static func ==(lhs: Version, rhs: Version) -> Bool {
+    public static func == (lhs: Version, rhs: Version) -> Bool {
         let (l, r) = Version.comparableValue(lhs: lhs, rhs: rhs)
         return l == r
     }
 
-    public static func <(lhs: Version, rhs: Version) -> Bool {
+    public static func < (lhs: Version, rhs: Version) -> Bool {
         let (l, r) = Version.comparableValue(lhs: lhs, rhs: rhs)
         return l.lexicographicallyPrecedes(r)
     }
 
-    public static func <=(lhs: Version, rhs: Version) -> Bool {
+    public static func <= (lhs: Version, rhs: Version) -> Bool {
         let (l, r) = Version.comparableValue(lhs: lhs, rhs: rhs)
         return l.lexicographicallyPrecedes(r) || l == r
     }
 
-    public static func >(lhs: Version, rhs: Version) -> Bool {
+    public static func > (lhs: Version, rhs: Version) -> Bool {
         let (l, r) = Version.comparableValue(lhs: lhs, rhs: rhs)
         return r.lexicographicallyPrecedes(l)
     }
 
-    public static func >=(lhs: Version, rhs: Version) -> Bool {
+    public static func >= (lhs: Version, rhs: Version) -> Bool {
         let (l, r) = Version.comparableValue(lhs: lhs, rhs: rhs)
         return r.lexicographicallyPrecedes(l) || l == r
     }
@@ -360,52 +358,52 @@ public struct FuzzyVersion: Hashable, CustomStringConvertible, Sendable {
         return rawValue.enumerated().map { i, v in fuzzyComponents[i] ? "*" : String(v) }.joined(separator: ".")
     }
 
-    public static func ==(fuzzy: FuzzyVersion, normal: Version) -> Bool {
+    public static func == (fuzzy: FuzzyVersion, normal: Version) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return f == n
     }
 
-    public static func ==(normal: Version, fuzzy: FuzzyVersion) -> Bool {
+    public static func == (normal: Version, fuzzy: FuzzyVersion) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return n == f
     }
 
-    public static func <(fuzzy: FuzzyVersion, normal: Version) -> Bool {
+    public static func < (fuzzy: FuzzyVersion, normal: Version) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return f.lexicographicallyPrecedes(n)
     }
 
-    public static func <(normal: Version, fuzzy: FuzzyVersion) -> Bool {
+    public static func < (normal: Version, fuzzy: FuzzyVersion) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return n.lexicographicallyPrecedes(f)
     }
 
-    public static func <=(fuzzy: FuzzyVersion, normal: Version) -> Bool {
+    public static func <= (fuzzy: FuzzyVersion, normal: Version) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return f.lexicographicallyPrecedes(n) || f == n
     }
 
-    public static func <=(normal: Version, fuzzy: FuzzyVersion) -> Bool {
+    public static func <= (normal: Version, fuzzy: FuzzyVersion) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return n.lexicographicallyPrecedes(f) || n == f
     }
 
-    public static func >(fuzzy: FuzzyVersion, normal: Version) -> Bool {
+    public static func > (fuzzy: FuzzyVersion, normal: Version) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return n.lexicographicallyPrecedes(f)
     }
 
-    public static func >(normal: Version, fuzzy: FuzzyVersion) -> Bool {
+    public static func > (normal: Version, fuzzy: FuzzyVersion) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return f.lexicographicallyPrecedes(n)
     }
 
-    public static func >=(fuzzy: FuzzyVersion, normal: Version) -> Bool {
+    public static func >= (fuzzy: FuzzyVersion, normal: Version) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return n.lexicographicallyPrecedes(f) || f == n
     }
 
-    public static func >=(normal: Version, fuzzy: FuzzyVersion) -> Bool {
+    public static func >= (normal: Version, fuzzy: FuzzyVersion) -> Bool {
         let (f, n) = comparableValue(fuzzy: fuzzy, normal: normal)
         return f.lexicographicallyPrecedes(n) || n == f
     }
@@ -436,17 +434,17 @@ extension ProcessInfo {
     /// - note: This is still in terms of *product* version, for example "10.15", NOT a Darwin version like "19.0.0" as returned by `uname -r`.
     public var operatingSystemKernelVersion: Version {
         #if canImport(Darwin)
-        let kern_osproductversion = "kern.osproductversion"
-        var len: Int = 0
-        if sysctlbyname(kern_osproductversion, nil, &len, nil, 0) == 0 {
-            var p = [CChar](repeating: 0, count: len)
-            if sysctlbyname(kern_osproductversion, &p, &len, nil, 0) == 0 {
-                do {
-                    return try Version(String(cString: p))
-                } catch {
+            let kern_osproductversion = "kern.osproductversion"
+            var len: Int = 0
+            if sysctlbyname(kern_osproductversion, nil, &len, nil, 0) == 0 {
+                var p = [CChar](repeating: 0, count: len)
+                if sysctlbyname(kern_osproductversion, &p, &len, nil, 0) == 0 {
+                    do {
+                        return try Version(String(cString: p))
+                    } catch {
+                    }
                 }
             }
-        }
         #endif
         return Version()
     }
@@ -479,23 +477,23 @@ extension ProcessInfo {
 
     func systemVersion() throws -> SystemVersion {
         #if !canImport(Darwin)
-        return SystemVersion(
-            productName: ProcessInfo.processInfo.operatingSystemVersionString,
-            productBuildVersion: .init(major: 1, train: "A", build: 1)
-        )
+            return SystemVersion(
+                productName: ProcessInfo.processInfo.operatingSystemVersionString,
+                productBuildVersion: .init(major: 1, train: "A", build: 1)
+            )
         #else
-        let url = systemVersionPlistURL
-        let filePath = try url.filePath
-        guard FileManager.default.isReadableFile(atPath: filePath.str) else {
-            throw StubError.error("No system version plist at \(filePath.str)")
-        }
-        let version: SystemVersion
-        do {
-            version = try PropertyListDecoder().decode(SystemVersion.self, from: Data(contentsOf: url))
-        } catch {
-            throw StubError.error("Failed to decode contents of '\(filePath.str)': \(error.localizedDescription)")
-        }
-        return version
+            let url = systemVersionPlistURL
+            let filePath = try url.filePath
+            guard FileManager.default.isReadableFile(atPath: filePath.str) else {
+                throw StubError.error("No system version plist at \(filePath.str)")
+            }
+            let version: SystemVersion
+            do {
+                version = try PropertyListDecoder().decode(SystemVersion.self, from: Data(contentsOf: url))
+            } catch {
+                throw StubError.error("Failed to decode contents of '\(filePath.str)': \(error.localizedDescription)")
+            }
+            return version
         #endif
     }
 }

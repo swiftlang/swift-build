@@ -147,7 +147,7 @@ public struct Headermap: Sendable {
 
         self.numEntries = Int(header.numEntries)
         let numBuckets = Int(header.numBuckets)
-        self.buckets = bytes.withUnsafeBufferPointer{
+        self.buckets = bytes.withUnsafeBufferPointer {
             let bucketsStart = $0.baseAddress! + MemoryLayout<Header>.size
             return bucketsStart.withMemoryRebound(to: Bucket.self, capacity: numBuckets) {
                 return [Bucket](UnsafeBufferPointer(start: $0, count: numBuckets))
@@ -170,7 +170,7 @@ public struct Headermap: Sendable {
         // Validate each of the buckets.
         let stringTableSize = Int32(stringTable.count)
         for bucket in self.buckets {
-            guard bucket.keyIndex  < stringTableSize && bucket.prefixIndex  < stringTableSize && bucket.suffixIndex  < stringTableSize else {
+            guard bucket.keyIndex < stringTableSize && bucket.prefixIndex < stringTableSize && bucket.suffixIndex < stringTableSize else {
                 throw Error.invalidHeadermap("invalid header (invalid bucket index)")
             }
         }
@@ -190,7 +190,7 @@ public struct Headermap: Sendable {
         // Insert the new entry bucket.
         let key = [UInt8](key.str.utf8)
         let keyIndex = getStringIndex(key)
-        let (dirname,basename) = value.split()
+        let (dirname, basename) = value.split()
         let prefixIndex: Int32, suffixIndex: Int32
         if dirname.isEmpty {
             prefixIndex = 0
@@ -199,7 +199,7 @@ public struct Headermap: Sendable {
             prefixIndex = getStringIndex([UInt8](dirname.str.utf8) + [Path.pathSeparatorUTF8])
             suffixIndex = getStringIndex([UInt8](basename.utf8))
         }
-        insertItem(key[0 ..< key.endIndex], keyIndex: keyIndex, prefixIndex: prefixIndex, suffixIndex: suffixIndex, replace: replace)
+        insertItem(key[0..<key.endIndex], keyIndex: keyIndex, prefixIndex: prefixIndex, suffixIndex: suffixIndex, replace: replace)
     }
 
     /// Return the serialized little-endian headermap representation.
@@ -241,9 +241,9 @@ public struct Headermap: Sendable {
         precondition(index < stringTable.count)
 
         // Find the end index.
-        for i in index ..< stringTable.count {
+        for i in index..<stringTable.count {
             if stringTable[i] == 0 {
-                return stringTable[index ..< i]
+                return stringTable[index..<i]
             }
         }
 
@@ -284,7 +284,7 @@ public struct Headermap: Sendable {
     private mutating func insertItem(_ key: ArraySlice<UInt8>, keyIndex: Int32, prefixIndex: Int32, suffixIndex: Int32, replace: Bool = true) {
         assert(buckets.count.isPowerOfTwo())
         let hash = Headermap.hashBytes(key)
-        for i in 0 ..< buckets.count {
+        for i in 0..<buckets.count {
             let index = (hash + i) & (buckets.count - 1)
 
             // If we found a free bucket or one with the same key, insert.
@@ -313,7 +313,7 @@ public struct Headermap: Sendable {
         }
 
         // Otherwise, compare without case sensitivity.
-        for offset in 0 ..< stringTable.count {
+        for offset in 0..<stringTable.count {
             let lhsChar = tolower(Int32(stringTable[Int(lhs) + offset]))
             let rhsChar = tolower(Int32(stringTable[Int(rhs) + offset]))
             if lhsChar != rhsChar {

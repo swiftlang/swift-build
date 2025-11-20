@@ -214,8 +214,7 @@ fileprivate struct PathTests {
         #expect(Path("/foo").isAncestorOrEqual(of: Path("/foo/bar")))
 
         // Array<Path>.ancestors
-        #expect([Path("/path/to/input/one"), Path("/path/to/input/two"), Path("/path/to/input/two/subfolder")].ancestors ==
-                Set([Path("/"), Path("/path"), Path("/path/to"), Path("/path/to/input"), Path("/path/to/input/two")]))
+        #expect([Path("/path/to/input/one"), Path("/path/to/input/two"), Path("/path/to/input/two/subfolder")].ancestors == Set([Path("/"), Path("/path"), Path("/path/to"), Path("/path/to/input"), Path("/path/to/input/two")]))
         #expect([Path("/")].ancestors == [])
         #expect([Path("/path"), Path("/secondPath")].ancestors == [Path("/")])
         let emptyList: [Path] = []
@@ -294,12 +293,12 @@ fileprivate struct PathTests {
         #expect(!Path("/foo/bar/baz").ends(with: "/baz"))
         #expect(Path("foo/bar/baz").ends(with: "bar/baz"))
         #expect(!Path("foo/bar/baz").ends(with: "/bar/baz"))
-        #expect(!Path("foo/bar/baz").ends(with: "/baz"))            // A relative path can't end with an absolute path
+        #expect(!Path("foo/bar/baz").ends(with: "/baz"))  // A relative path can't end with an absolute path
         #expect(Path("foo/bar/baz").ends(with: "foo/bar/baz"))
         #expect(!Path("foo/bar/baz").ends(with: "/foo/bar/baz"))
         #expect(!Path("foo/bar/baz").ends(with: "foo/bar"))
         #expect(!Path("foo/bar/baz").ends(with: "quux"))
-        #expect(Path("foo/bar/baz").ends(with: "baz/"))             // The trailing slash is removed
+        #expect(Path("foo/bar/baz").ends(with: "baz/"))  // The trailing slash is removed
         #expect(!Path("foo/bar/baz").ends(with: "bar/"))
     }
 
@@ -394,7 +393,7 @@ fileprivate struct PathTestsPlatformSpecific {
     }
     @Test(.requireHostOS(.windows))
     func conformantPathsWindows() {
-        let reservedCharacterString = "<>:|*?" + String((00...31).map({Character(UnicodeScalar($0))}))
+        let reservedCharacterString = "<>:|*?" + String((00...31).map({ Character(UnicodeScalar($0)) }))
         var conformantRoots = ["C:\\", "Z:\\", "\\\\server\\", "\\\\?\\Volume{123456789}\\"]
         // Windows path separators
         conformantRoots.forEach { root in

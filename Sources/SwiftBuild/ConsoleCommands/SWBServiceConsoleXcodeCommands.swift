@@ -61,13 +61,15 @@ class SWBServiceConsoleDescribeBuildSettingsCommand: SWBServiceConsoleCommand {
 }
 
 func registerXcodeCommands() {
-    for commandClass in ([
-        SWBServiceConsoleShowPlatformsCommand.self,
-        SWBServiceConsoleShowSDKsCommand.self,
-        SWBServiceConsoleShowSpecsCommand.self,
-        SWBServiceConsoleShowToolchainsCommand.self,
-        SWBServiceConsoleDescribeBuildSettingsCommand.self
-    ] as [any SWBServiceConsoleCommand.Type]) {
+    for commandClass
+        in ([
+            SWBServiceConsoleShowPlatformsCommand.self,
+            SWBServiceConsoleShowSDKsCommand.self,
+            SWBServiceConsoleShowSpecsCommand.self,
+            SWBServiceConsoleShowToolchainsCommand.self,
+            SWBServiceConsoleDescribeBuildSettingsCommand.self,
+        ] as [any SWBServiceConsoleCommand.Type])
+    {
         SWBServiceConsoleCommandRegistry.registerCommandClass(commandClass)
     }
 }

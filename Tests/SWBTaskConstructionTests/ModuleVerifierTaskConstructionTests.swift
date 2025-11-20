@@ -36,29 +36,33 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     TestFile("Orange.h"),
                     TestFile("Orange.defs"),
                     TestFile("main.m"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ARCHS": archs.joined(separator: " "),
-                            "DEFINES_MODULE": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "MODULE_VERIFIER_KIND": "builtin",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS": "x86_64-apple-macos14.0-macabi x86_64-apple-macos14.0-macabi arm64e-apple-macos14.0-macabi",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11 rust-1.71",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++ rust",
-                            "MODULE_VERIFIER_VERBOSE": "YES",
-                            "MODULE_VERIFIER_LSV": "YES",
-                            "MODULES_VERIFIER_EXEC": "/alternate/modules-verifier",
-                            "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CC": clangCompilerPath.str,
-                            "CLANG_USE_RESPONSE_FILE": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": archs.joined(separator: " "),
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": "builtin",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS": "x86_64-apple-macos14.0-macabi x86_64-apple-macos14.0-macabi arm64e-apple-macos14.0-macabi",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11 rust-1.71",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++ rust",
+                                "MODULE_VERIFIER_VERBOSE": "YES",
+                                "MODULE_VERIFIER_LSV": "YES",
+                                "MODULES_VERIFIER_EXEC": "/alternate/modules-verifier",
+                                "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CC": clangCompilerPath.str,
+                                "CLANG_USE_RESPONSE_FILE": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -66,10 +70,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("Orange.defs", headerVisibility: .public),
                         ]),
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .anyMac) { results in
             results.checkError("No standard in \"gnu11\" is valid for language objective-c++")
@@ -95,30 +101,34 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     TestFile("Orange.h"),
                     TestFile("Orange.defs"),
                     TestFile("main.m"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ARCHS": archs.joined(separator: " "),
-                            "DEFINES_MODULE": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "MODULE_VERIFIER_KIND": "builtin",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11 gnu17 gnu++20",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++",
-                            "MODULE_VERIFIER_VERBOSE": "YES",
-                            "MODULE_VERIFIER_LSV": "YES",
-                            "MODULES_VERIFIER_EXEC": "/alternate/modules-verifier",
-                            "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CC": clangCompilerPath.str,
-                            "OTHER_CFLAGS": "-DTARGET_FLAG",
-                            "FRAMEWORK_SEARCH_PATHS": "/TARGET_PATH",
-                            "CLANG_USE_RESPONSE_FILE": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": archs.joined(separator: " "),
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": "builtin",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11 gnu17 gnu++20",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++",
+                                "MODULE_VERIFIER_VERBOSE": "YES",
+                                "MODULE_VERIFIER_LSV": "YES",
+                                "MODULES_VERIFIER_EXEC": "/alternate/modules-verifier",
+                                "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CC": clangCompilerPath.str,
+                                "OTHER_CFLAGS": "-DTARGET_FLAG",
+                                "FRAMEWORK_SEARCH_PATHS": "/TARGET_PATH",
+                                "CLANG_USE_RESPONSE_FILE": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -126,10 +136,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("Orange.defs", headerVisibility: .public),
                         ]),
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -137,9 +149,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
 
         let fs = PseudoFS()
         try fs.createDirectory(xcconfig.dirname, recursive: true)
-        try fs.write(xcconfig, contents: """
-            FRAMEWORK_SEARCH_PATHS = /XCCONFIG_PATH
-            """)
+        try fs.write(
+            xcconfig,
+            contents: """
+                FRAMEWORK_SEARCH_PATHS = /XCCONFIG_PATH
+                """
+        )
 
         // A regular build will just build the correct architecture.
         await tester.checkBuild(BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-DCLI_FLAG"], environmentConfigOverridesPath: xcconfig), runDestination: .macOS, fs: fs) { results in
@@ -147,7 +162,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
 
             results.checkTarget(targetName) { target in
-                results.checkTasks(.matchRuleType("VerifyModuleC")) {tasks in
+                results.checkTasks(.matchRuleType("VerifyModuleC")) { tasks in
                     #expect(tasks.count == 6)
                     var ruleInfos: Set<[String]> = []
                     for task in tasks {
@@ -187,7 +202,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             ])
                         } else {
                             task.checkCommandLineMatches([
-                                .or("-std=gnu11", "-std=gnu17"),
+                                .or("-std=gnu11", "-std=gnu17")
                             ])
                         }
                         guard task.ruleInfo.count > 7 else { continue }
@@ -200,14 +215,16 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
 
                     }
 
-                    #expect(ruleInfos == [
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu11", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu11", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu17", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c++", "gnu++20", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                    ])
+                    #expect(
+                        ruleInfos == [
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu11", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu11", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu17", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c++", "gnu++20", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                        ]
+                    )
                 }
                 // Check that we have a modules verifier task.
                 results.checkTasks(.matchTarget(target), .matchRuleType("GenerateVerifyModuleInput")) { tasks in
@@ -247,7 +264,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         #expect(!task.alwaysExecuteTask)
                         task.checkInputs(contain: [
                             .name("module.modulemap"),
-                            .name("Orange.h")
+                            .name("Orange.h"),
                         ])
                         task.checkNoInputs(contain: [
                             .name("Orange.defs")
@@ -263,27 +280,29 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
 
             results.checkTarget(targetName) { target in
-                results.checkTasks(.matchRuleType("VerifyModuleC")) {tasks in
+                results.checkTasks(.matchRuleType("VerifyModuleC")) { tasks in
                     #expect(tasks.count == 12)
                     var ruleInfos: Set<[String]> = []
                     for task in tasks {
                         ruleInfos.insert(task.ruleInfo)
                     }
 
-                    #expect(ruleInfos == [
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu11", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu11", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu11",  "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu17",  "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c++", "gnu++20",  "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu11",  "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu17",  "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c++", "gnu++20",  "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                    ])
+                    #expect(
+                        ruleInfos == [
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu11", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu11", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu11", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c", "gnu17", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "arm64", "objective-c++", "gnu++20", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu11", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c", "gnu17", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", "x86_64", "objective-c++", "gnu++20", "lsv", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                        ]
+                    )
                 }
                 results.checkTasks(.matchTarget(target), .matchRuleType("GenerateVerifyModuleInput")) { tasks in
                     var languages: Set<String> = []
@@ -303,21 +322,25 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
         let clangCompilerPath = try await self.clangCompilerPath
         try await withTemporaryDirectory { tmpDir in
             let sdkPath = tmpDir.join("MySDK.sdk")
-            try await writeSDK(name: sdkPath.basename, parentDir: sdkPath.dirname, settings: [
-                "CanonicalName": "com.apple.my_sdk.1.0",
-                "IsBaseSDK": true,
-                "DefaultProperties": [
-                    "PLATFORM_NAME": "macosx",
-                ],
-                "CustomProperties": [
-                    "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)$(SYSTEM_PREFIX)$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks"
-                ],
-                "SupportedTargets": [
-                    "default": [
-                        "LLVMTargetTripleVendor": "apple",
-                    ]
+            try await writeSDK(
+                name: sdkPath.basename,
+                parentDir: sdkPath.dirname,
+                settings: [
+                    "CanonicalName": "com.apple.my_sdk.1.0",
+                    "IsBaseSDK": true,
+                    "DefaultProperties": [
+                        "PLATFORM_NAME": "macosx"
+                    ],
+                    "CustomProperties": [
+                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)$(SYSTEM_PREFIX)$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks"
+                    ],
+                    "SupportedTargets": [
+                        "default": [
+                            "LLVMTargetTripleVendor": "apple"
+                        ]
+                    ],
                 ]
-            ])
+            )
 
             let targetName = "Orange"
             let testProject = TestProject(
@@ -329,23 +352,27 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         TestFile("Orange.h"),
                         TestFile("Orange.defs"),
                         TestFile("main.m"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": "x86_64",
-                                "DEFINES_MODULE": "YES",
-                                "ENABLE_MODULE_VERIFIER": "YES",
-                                "MODULE_VERIFIER_KIND": "builtin",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": sdkPath.str,
-                                "CC": clangCompilerPath.str,
-                                "CLANG_USE_RESPONSE_FILE": "NO",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": "x86_64",
+                                    "DEFINES_MODULE": "YES",
+                                    "ENABLE_MODULE_VERIFIER": "YES",
+                                    "MODULE_VERIFIER_KIND": "builtin",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": sdkPath.str,
+                                    "CC": clangCompilerPath.str,
+                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([
@@ -353,10 +380,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                 TestBuildFile("Orange.defs", headerVisibility: .public),
                             ]),
                             TestSourcesBuildPhase([
-                                "main.m",
+                                "main.m"
                             ]),
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             // A regular build will just build the correct architecture.
@@ -388,28 +417,28 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             ],
             "SupportedTargets": [
                 "macos": [
-                    "LLVMTargetTripleVendor": "apple",
+                    "LLVMTargetTripleVendor": "apple"
                 ],
                 "iosmac": [
-                    "LLVMTargetTripleVendor": "apple",
-                ]
+                    "LLVMTargetTripleVendor": "apple"
+                ],
             ],
             "Variants": .plArray([
                 .plDict([
                     "Name": "iosmac",
                     "BuildSettings": [
                         "LLVM_TARGET_TRIPLE_OS_VERSION": "ios17.0",
-                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)$(IOS_UNZIPPERED_TWIN_PREFIX_PATH)/System/Library/PrivateFrameworks"
-                    ]
+                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)$(IOS_UNZIPPERED_TWIN_PREFIX_PATH)/System/Library/PrivateFrameworks",
+                    ],
                 ]),
                 .plDict([
                     "Name": "macos",
                     "BuildSettings": [
                         "LLVM_TARGET_TRIPLE_OS_VERSION": "macos14.0",
                         "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)/System/Library/PrivateFrameworks",
-                    ]
-                ])
-            ])
+                    ],
+                ]),
+            ]),
         ]
         try await withTemporaryDirectory { tmpDir in
             let sdkPath = tmpDir.join("MySDK.sdk")
@@ -426,24 +455,28 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         TestFile("Orange.h"),
                         TestFile("Orange.defs"),
                         TestFile("main.m"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": "x86_64",
-                                "DEFINES_MODULE": "YES",
-                                "ENABLE_MODULE_VERIFIER": "YES",
-                                "MODULE_VERIFIER_KIND": "builtin",
-                                "MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS": "x86_64-apple-ios17.0-macabi",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": sdkPath.str,
-                                "CC": clangCompilerPath.str,
-                                "CLANG_USE_RESPONSE_FILE": "NO",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": "x86_64",
+                                    "DEFINES_MODULE": "YES",
+                                    "ENABLE_MODULE_VERIFIER": "YES",
+                                    "MODULE_VERIFIER_KIND": "builtin",
+                                    "MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS": "x86_64-apple-ios17.0-macabi",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": sdkPath.str,
+                                    "CC": clangCompilerPath.str,
+                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([
@@ -451,10 +484,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                 TestBuildFile("Orange.defs", headerVisibility: .public),
                             ]),
                             TestSourcesBuildPhase([
-                                "main.m",
+                                "main.m"
                             ]),
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             // A regular build will just build the correct architecture.
@@ -503,11 +538,11 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             ],
             "SupportedTargets": [
                 "macos": [
-                    "LLVMTargetTripleVendor": "apple",
+                    "LLVMTargetTripleVendor": "apple"
                 ],
                 "iosmac": [
-                    "LLVMTargetTripleVendor": "apple",
-                ]
+                    "LLVMTargetTripleVendor": "apple"
+                ],
             ],
             "Variants": .plArray([
                 .plDict([
@@ -515,17 +550,17 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     "BuildSettings": [
                         "LLVM_TARGET_TRIPLE_OS_VERSION": "ios17.0",
                         "LLVM_TARGET_TRIPLE_SUFFIX": "-macabi",
-                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)$(IOS_UNZIPPERED_TWIN_PREFIX_PATH)/System/Library/PrivateFrameworks"
-                    ]
+                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)$(IOS_UNZIPPERED_TWIN_PREFIX_PATH)/System/Library/PrivateFrameworks",
+                    ],
                 ]),
                 .plDict([
                     "Name": "macos",
                     "BuildSettings": [
                         "LLVM_TARGET_TRIPLE_OS_VERSION": "macos14.0",
                         "SYSTEM_FRAMEWORK_SEARCH_PATHS": "$(inherited) $(SDKROOT)/System/Library/PrivateFrameworks",
-                    ]
-                ])
-            ])
+                    ],
+                ]),
+            ]),
         ]
         try await withTemporaryDirectory { tmpDir in
             let sdkPath = tmpDir.join("MySDK.sdk")
@@ -542,25 +577,29 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                         TestFile("Orange.h"),
                         TestFile("Orange.defs"),
                         TestFile("main.m"),
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": "x86_64",
-                                "DEFINES_MODULE": "YES",
-                                "ENABLE_MODULE_VERIFIER": "YES",
-                                "MODULE_VERIFIER_KIND": "builtin",
-                                "MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS": "",
-                                "SDK_VARIANT": "iosmac",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": sdkPath.str,
-                                "CC": clangCompilerPath.str,
-                                "CLANG_USE_RESPONSE_FILE": "NO",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": "x86_64",
+                                    "DEFINES_MODULE": "YES",
+                                    "ENABLE_MODULE_VERIFIER": "YES",
+                                    "MODULE_VERIFIER_KIND": "builtin",
+                                    "MODULE_VERIFIER_TARGET_TRIPLE_VARIANTS": "",
+                                    "SDK_VARIANT": "iosmac",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": sdkPath.str,
+                                    "CC": clangCompilerPath.str,
+                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([
@@ -568,10 +607,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                                 TestBuildFile("Orange.defs", headerVisibility: .public),
                             ]),
                             TestSourcesBuildPhase([
-                                "main.m",
+                                "main.m"
                             ]),
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             // A regular build will just build the correct architecture.
@@ -607,23 +648,27 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     TestFile("Orange.h"),
                     TestFile("Orange.defs"),
                     TestFile("main.m"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ARCHS": archs.joined(separator: " "),
-                            "DEFINES_MODULE": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "MODULE_VERIFIER_KIND": "builtin",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CC": clangCompilerPath.str,
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": archs.joined(separator: " "),
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": "builtin",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CC": clangCompilerPath.str,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -631,10 +676,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("Orange.defs", headerVisibility: .public),
                         ]),
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -644,16 +691,18 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
 
             results.checkTarget(targetName) { target in
-                results.checkTasks(.matchRuleType("VerifyModuleC")) {tasks in
+                results.checkTasks(.matchRuleType("VerifyModuleC")) { tasks in
                     var ruleInfos: Set<[String]> = []
                     for task in tasks {
                         ruleInfos.insert(task.ruleInfo)
                     }
 
-                    #expect(ruleInfos == [
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                        ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
-                    ])
+                    #expect(
+                        ruleInfos == [
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c", "gnu17", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                            ["VerifyModuleC", "\(SRCROOT)/build/Debug/Orange.framework", "", "", arch, "objective-c++", "gnu++20", "", "com.apple.compilers.llvm.clang.1_0.verify_module"],
+                        ]
+                    )
                 }
             }
         }
@@ -665,65 +714,70 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
             let blockListFilePath = tmpDirPath.join("clang-builtin-module-verify.json")
             let targetName = "Orange"
             let testProject =
-            TestProject(
-                "aProject",
-                sourceRoot: tmpDirPath.join("Test"),
-                groupTree: TestGroup(
-                    "Group",
-                    path: "Sources",
-                    children: [
-                        TestFile("Orange.h"),
-                        TestFile("Orange.defs"),
-                        TestFile("main.m"),
-                    ]),
-                targets: [
-                    TestStandardTarget(
-                        targetName,
-                        type: .framework,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS": "arm64",
-                                "DEFINES_MODULE": "YES",
-                                "ENABLE_MODULE_VERIFIER": "YES",
-                                "MODULE_VERIFIER_KIND": "builtin",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
-                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
-                                "MODULE_VERIFIER_VERBOSE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "BLOCKLISTS_PATH": tmpDirPath.str,
-                            ]),
-                        ],
-                        buildPhases: [
-                            TestHeadersBuildPhase([
-                                TestBuildFile("Orange.h", headerVisibility: .public)
-                            ]),
-                            TestSourcesBuildPhase([
-                                "main.m",
-                            ]),
-                    ]),
-                ])
+                TestProject(
+                    "aProject",
+                    sourceRoot: tmpDirPath.join("Test"),
+                    groupTree: TestGroup(
+                        "Group",
+                        path: "Sources",
+                        children: [
+                            TestFile("Orange.h"),
+                            TestFile("Orange.defs"),
+                            TestFile("main.m"),
+                        ]
+                    ),
+                    targets: [
+                        TestStandardTarget(
+                            targetName,
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "ARCHS": "arm64",
+                                        "DEFINES_MODULE": "YES",
+                                        "ENABLE_MODULE_VERIFIER": "YES",
+                                        "MODULE_VERIFIER_KIND": "builtin",
+                                        "GENERATE_INFOPLIST_FILE": "YES",
+                                        "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11",
+                                        "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c",
+                                        "MODULE_VERIFIER_VERBOSE": "YES",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "BLOCKLISTS_PATH": tmpDirPath.str,
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestHeadersBuildPhase([
+                                    TestBuildFile("Orange.h", headerVisibility: .public)
+                                ]),
+                                TestSourcesBuildPhase([
+                                    "main.m"
+                                ]),
+                            ]
+                        )
+                    ]
+                )
 
-                let core = try await getCore()
-                let tester = try await BuildOperationTester(core, testProject, simulated: false)
-                let SRCROOT = tester.workspace.projects[0].sourceRoot
-                for inputFile in ["Sources/Orange.h", "Sources/Orange.defs", "Sources/main.m"] {
-                    try await tester.fs.writeFileContents(SRCROOT.join(inputFile)) { stream in
-                        stream <<< ""
-                    }
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            let SRCROOT = tester.workspace.projects[0].sourceRoot
+            for inputFile in ["Sources/Orange.h", "Sources/Orange.defs", "Sources/main.m"] {
+                try await tester.fs.writeFileContents(SRCROOT.join(inputFile)) { stream in
+                    stream <<< ""
                 }
-                try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                        """
-                        { "KnownFailures": ["aProject"]}
-                        """
-                }
-                /// Verify that while the project has enabled `MODULE_VERIFIER_KIND=builtin` the external module verifier is invoked because the project is on the blocklist.
-                try await tester.checkBuild(runDestination: .macOS) { results in
+            }
+            try await tester.fs.writeFileContents(blockListFilePath) { file in
+                file <<< """
+                    { "KnownFailures": ["aProject"]}
+                    """
+            }
+            /// Verify that while the project has enabled `MODULE_VERIFIER_KIND=builtin` the external module verifier is invoked because the project is on the blocklist.
+            try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("VerifyModule")) { task in
-                        task.checkRuleInfo(["VerifyModule", "\(SRCROOT.str)/build/Debug/Orange.framework"])
-                        task.checkCommandLineMatches([.suffix("modules-verifier"), "\(SRCROOT.str)/build/Debug/Orange.framework", .anySequence, "--clang", .suffix("clang"), .anySequence])
+                    task.checkRuleInfo(["VerifyModule", "\(SRCROOT.str)/build/Debug/Orange.framework"])
+                    task.checkCommandLineMatches([.suffix("modules-verifier"), "\(SRCROOT.str)/build/Debug/Orange.framework", .anySequence, "--clang", .suffix("clang"), .anySequence])
                 }
                 results.checkNoErrors()
             }
@@ -743,26 +797,30 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     TestFile("Orange.h"),
                     TestFile("Orange.defs"),
                     TestFile("main.m"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ARCHS": archs.joined(separator: " "),
-                            "DEFINES_MODULE": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "MODULE_VERIFIER_KIND": "external",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11 gnu17 gnu++20",
-                            "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++",
-                            "MODULE_VERIFIER_VERBOSE": "YES",
-                            "MODULE_VERIFIER_LSV": "YES",
-                            "MODULES_VERIFIER_EXEC": "/alternate/modules-verifier",
-                            "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": archs.joined(separator: " "),
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": "external",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS": "gnu11 gnu17 gnu++20",
+                                "MODULE_VERIFIER_SUPPORTED_LANGUAGES": "objective-c objective-c++",
+                                "MODULE_VERIFIER_VERBOSE": "YES",
+                                "MODULE_VERIFIER_LSV": "YES",
+                                "MODULES_VERIFIER_EXEC": "/alternate/modules-verifier",
+                                "OTHER_MODULE_VERIFIER_FLAGS": "-- -I$(BUILT_PRODUCTS_DIR)/usr/include",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -770,10 +828,12 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("Orange.defs", headerVisibility: .public),
                         ]),
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -821,7 +881,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     #expect(!task.alwaysExecuteTask)
                     task.checkInputs(contain: [
                         .name("module.modulemap"),
-                        .name("Orange.h")
+                        .name("Orange.h"),
                     ])
                     task.checkNoInputs(contain: [
                         .name("Orange.defs")
@@ -838,21 +898,22 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("VerifyModule")) { task in
                     task.checkRuleInfo(["VerifyModule", "\(SRCROOT)/build/Debug/Orange.framework"])
 
-                    let expectedCommandLine = [
-                        "/alternate/modules-verifier",
-                        "\(SRCROOT)/build/Debug/Orange.framework",
-                        "--clang", "clang",
-                        "--diagnostic-filename-map", "\(SRCROOT)/build/aProject.build/Debug/Orange.build/Orange-diagnostic-filename-map.json",
-                        "--sdk", core.loadSDK(.macOS).path.str,
-                        "--intermediates-directory", "\(SRCROOT)/build/aProject.build/Debug/Orange.build/VerifyModule"
-                    ]
-                    + archs.flatMap { ["--target", "\($0)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)"] } + [
-                        "--language", "objective-c", "--language", "objective-c++",
-                        "--standard", "gnu11", "--standard", "gnu17", "--standard", "gnu++20",
-                        "--verbose",
-                        "--enable-local-submodule-visibility",
-                        "--", "-I\(SRCROOT)/build/Debug/usr/include",
-                    ]
+                    let expectedCommandLine =
+                        [
+                            "/alternate/modules-verifier",
+                            "\(SRCROOT)/build/Debug/Orange.framework",
+                            "--clang", "clang",
+                            "--diagnostic-filename-map", "\(SRCROOT)/build/aProject.build/Debug/Orange.build/Orange-diagnostic-filename-map.json",
+                            "--sdk", core.loadSDK(.macOS).path.str,
+                            "--intermediates-directory", "\(SRCROOT)/build/aProject.build/Debug/Orange.build/VerifyModule",
+                        ]
+                        + archs.flatMap { ["--target", "\($0)-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)"] } + [
+                            "--language", "objective-c", "--language", "objective-c++",
+                            "--standard", "gnu11", "--standard", "gnu17", "--standard", "gnu++20",
+                            "--verbose",
+                            "--enable-local-submodule-visibility",
+                            "--", "-I\(SRCROOT)/build/Debug/usr/include",
+                        ]
                     task.checkCommandLine(expectedCommandLine)
                 }
             }
@@ -863,36 +924,45 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
     func excludedFilesBuiltin() async throws {
         let clangCompilerPath = try await self.clangCompilerPath
         let targetName = "Orange"
-        let testProject = TestProject("aProject",
-                                      groupTree: TestGroup(targetName, path: targetName,
-                                                           children: [
-                                                            TestFile("Orange.h"),
-                                                            TestFile("Excluded.h"),
-                                                            TestFile("iOS.h")
-                                                           ]),
-                                      targets: [
-                                        TestStandardTarget(targetName,
-                                                           type: .framework,
-                                                           buildConfigurations: [
-                                                            TestBuildConfiguration("Debug",
-                                                                                   buildSettings: [
-                                                                                    "DEFINES_MODULE": "YES",
-                                                                                    "ENABLE_MODULE_VERIFIER": "YES",
-                                                                                    "MODULE_VERIFIER_KIND": "builtin",
-                                                                                    "EXCLUDED_SOURCE_FILE_NAMES": "Excluded.h",
-                                                                                    "GENERATE_INFOPLIST_FILE": "YES",
-                                                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                    "CC": clangCompilerPath.str,
-                                                                                   ]),
-                                                           ],
-                                                           buildPhases: [
-                                                            TestHeadersBuildPhase([
-                                                                TestBuildFile("Orange.h", headerVisibility: .public),
-                                                                TestBuildFile("Excluded.h", headerVisibility: .public),
-                                                                TestBuildFile("iOS.h", headerVisibility: .public, platformFilters: PlatformFilter.iOSFilters),
-                                                            ]),
-                                                           ]),
-                                      ])
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                targetName,
+                path: targetName,
+                children: [
+                    TestFile("Orange.h"),
+                    TestFile("Excluded.h"),
+                    TestFile("iOS.h"),
+                ]
+            ),
+            targets: [
+                TestStandardTarget(
+                    targetName,
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": "builtin",
+                                "EXCLUDED_SOURCE_FILE_NAMES": "Excluded.h",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CC": clangCompilerPath.str,
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Orange.h", headerVisibility: .public),
+                            TestBuildFile("Excluded.h", headerVisibility: .public),
+                            TestBuildFile("iOS.h", headerVisibility: .public, platformFilters: PlatformFilter.iOSFilters),
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
@@ -901,7 +971,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateVerifyModuleInput")) { task in
                     task.checkInputs(contain: [
-                        .name("Orange.h"),
+                        .name("Orange.h")
                     ])
                     task.checkNoInputs(contain: [
                         .name("Excluded.h"),
@@ -922,35 +992,44 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func excludedFilesExternal() async throws {
         let targetName = "Orange"
-        let testProject = TestProject("aProject",
-                                      groupTree: TestGroup(targetName, path: targetName,
-                                                           children: [
-                                                            TestFile("Orange.h"),
-                                                            TestFile("Excluded.h"),
-                                                            TestFile("iOS.h")
-                                                           ]),
-                                      targets: [
-                                        TestStandardTarget(targetName,
-                                                           type: .framework,
-                                                           buildConfigurations: [
-                                                            TestBuildConfiguration("Debug",
-                                                                                   buildSettings: [
-                                                                                    "DEFINES_MODULE": "YES",
-                                                                                    "ENABLE_MODULE_VERIFIER": "YES",
-                                                                                    "MODULE_VERIFIER_KIND": "external",
-                                                                                    "EXCLUDED_SOURCE_FILE_NAMES": "Excluded.h",
-                                                                                    "GENERATE_INFOPLIST_FILE": "YES",
-                                                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                   ]),
-                                                           ],
-                                                           buildPhases: [
-                                                            TestHeadersBuildPhase([
-                                                                TestBuildFile("Orange.h", headerVisibility: .public),
-                                                                TestBuildFile("Excluded.h", headerVisibility: .public),
-                                                                TestBuildFile("iOS.h", headerVisibility: .public, platformFilters: PlatformFilter.iOSFilters),
-                                                            ]),
-                                                           ]),
-                                      ])
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                targetName,
+                path: targetName,
+                children: [
+                    TestFile("Orange.h"),
+                    TestFile("Excluded.h"),
+                    TestFile("iOS.h"),
+                ]
+            ),
+            targets: [
+                TestStandardTarget(
+                    targetName,
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": "external",
+                                "EXCLUDED_SOURCE_FILE_NAMES": "Excluded.h",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Orange.h", headerVisibility: .public),
+                            TestBuildFile("Excluded.h", headerVisibility: .public),
+                            TestBuildFile("iOS.h", headerVisibility: .public, platformFilters: PlatformFilter.iOSFilters),
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .macOS, targetName: targetName) { results in
@@ -959,7 +1038,7 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTarget(target), .matchRuleType("VerifyModule")) { task in
                     task.checkInputs(contain: [
-                        .name("Orange.h"),
+                        .name("Orange.h")
                     ])
                     task.checkNoInputs(contain: [
                         .name("Excluded.h"),
@@ -972,12 +1051,13 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
 }
 
 fileprivate final class TestIntentsCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-    override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+    override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         let commandName = commandLine.first.map(Path.init)?.basename
         switch commandName {
         case "intentbuilderc":
             if let input = commandLine.elementAfterElements(["-input"]).map(Path.init)?.basenameWithoutSuffix,
-               let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init) {
+                let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init)
+            {
                 let classPrefix = commandLine.elementAfterElements(["-classPrefix"]) ?? ""
                 let language = commandLine.elementAfterElements(["-language"]) ?? "Objective-C"
                 switch language {
@@ -1015,24 +1095,30 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
             groupTree: TestGroup(
                 targetName,
                 children: [
-                    TestFile("Orange.modulemap"),
-                ]),
+                    TestFile("Orange.modulemap")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "MODULE_VERIFIER_KIND": verifierKind,
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "MODULEMAP_FILE": "Orange.modulemap",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CC": clangCompilerPath.str,
-                        ]),
-                    ]),
-            ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": verifierKind,
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "MODULEMAP_FILE": "Orange.modulemap",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CC": clangCompilerPath.str,
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let sourceRoot = tester.workspace.projects[0].sourceRoot
 
@@ -1048,7 +1134,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
 
                 #expect((task?.alwaysExecuteTask ?? false) == false)
                 task?.checkInputs(contain: [
-                    .name("module.modulemap"),
+                    .name("module.modulemap")
                 ])
             }
         }
@@ -1065,17 +1151,21 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     TestFile("A.m"),
                     TestFile("B.h"),
                     TestFile("B.m"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "DEFINES_MODULE": "YES",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "EAGER_COMPILATION_REQUIRE": "YES",
-                    "ENABLE_MODULE_VERIFIER": "YES",
-                    "MODULE_VERIFIER_KIND": verifierKind,
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CC": clangCompilerPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "EAGER_COMPILATION_REQUIRE": "YES",
+                        "ENABLE_MODULE_VERIFIER": "YES",
+                        "MODULE_VERIFIER_KIND": verifierKind,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CC": clangCompilerPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -1083,27 +1173,30 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("A.h", headerVisibility: .public),
+                            TestBuildFile("A.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "A.m",
+                            "A.m"
                         ]),
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "B",
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("B.h", headerVisibility: .public),
+                            TestBuildFile("B.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "B.m",
+                            "B.m"
                         ]),
                     ],
                     dependencies: [
-                        "A",
-                    ]),
-            ])
+                        "A"
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1118,18 +1211,26 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
             }
 
             // no dependency on own compile tasks
-            noDependency(from: [.matchTargetName("A"), .matchRuleType(verifierRuleName)],
-                         to: .compileC("A", fileName: "A.m"))
-            noDependency(from: [.matchTargetName("B"), .matchRuleType(verifierRuleName)],
-                         to: .compileC("B", fileName: "B.m"))
+            noDependency(
+                from: [.matchTargetName("A"), .matchRuleType(verifierRuleName)],
+                to: .compileC("A", fileName: "A.m")
+            )
+            noDependency(
+                from: [.matchTargetName("B"), .matchRuleType(verifierRuleName)],
+                to: .compileC("B", fileName: "B.m")
+            )
 
             // no dependency on compile tasks from downstream target
-            noDependency(from: [.matchTargetName("B"), .matchRuleType(verifierRuleName)],
-                         to: .compileC("A", fileName: "A.m"))
+            noDependency(
+                from: [.matchTargetName("B"), .matchRuleType(verifierRuleName)],
+                to: .compileC("A", fileName: "A.m")
+            )
 
             // no dependency of copying header to entry of target
-            noDependency(from: [.matchTargetName("A"), .matchRuleType("CpHeader")],
-                         to: [.matchTargetName("A"), .matchRuleItemPattern(.suffix("-entry"))])
+            noDependency(
+                from: [.matchTargetName("A"), .matchRuleType("CpHeader")],
+                to: [.matchTargetName("A"), .matchRuleItemPattern(.suffix("-entry"))]
+            )
         }
     }
 
@@ -1143,32 +1244,38 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                 children: [
                     TestFile("Orange.h"),
                     TestFile("main.m"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "MODULE_VERIFIER_KIND": verifierKind,
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                            "TAPI_EXEC": tapiToolPath.str,
-                            "CC": clangCompilerPath.str,
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": verifierKind,
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                                "TAPI_EXEC": tapiToolPath.str,
+                                "CC": clangCompilerPath.str,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("Orange.h", headerVisibility: .public),
+                            TestBuildFile("Orange.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for action in BuildAction.allCases.filter({ !$0.buildComponents.contains("build") }) {
@@ -1195,18 +1302,21 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     TestFile("AAA.m"),
                     TestFile("BBB.h"),
                     TestFile("BBB.m"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                        "EAGER_COMPILATION_REQUIRE": "YES",
-                                        "ENABLE_MODULE_VERIFIER": "YES",
-                                        "MODULE_VERIFIER_KIND": verifierKind,
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "CC": clangCompilerPath.str,
-                                       ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES",
+                        "EAGER_COMPILATION_REQUIRE": "YES",
+                        "ENABLE_MODULE_VERIFIER": "YES",
+                        "MODULE_VERIFIER_KIND": verifierKind,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CC": clangCompilerPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -1214,27 +1324,30 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("AAA.h", headerVisibility: .public),
+                            TestBuildFile("AAA.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "AAA.m",
+                            "AAA.m"
                         ]),
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "BBB",
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("BBB.h", headerVisibility: .public),
+                            TestBuildFile("BBB.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "BBB.m",
+                            "BBB.m"
                         ]),
                     ],
                     dependencies: [
-                        "AAA",
-                    ]),
-            ])
+                        "AAA"
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1300,7 +1413,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
     }
 
     func _copyFiles() async throws {
-        let targetName  = "Framework"
+        let targetName = "Framework"
         let clangCompilerPath = try await self.clangCompilerPath
         let testProject = TestProject(
             "Project",
@@ -1318,20 +1431,24 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     TestFile("BuiltProductsHeader.h"),
                     TestFile("module.private.modulemap"),
                     TestFile("ResourceFile.txt"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "DEFINES_MODULE": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "MODULE_VERIFIER_KIND": verifierKind,
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CC": clangCompilerPath.str,
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "DEFINES_MODULE": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "MODULE_VERIFIER_KIND": verifierKind,
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CC": clangCompilerPath.str,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -1340,49 +1457,89 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
 
                         // Copying to Headers should run the verifier, but only the header file
                         // should be an input file to the module verifier.
-                        TestCopyFilesBuildPhase([
-                            "Framework.defs",
-                            "PublicHeader.h",
-                        ], destinationSubfolder: .wrapper, destinationSubpath: "Versions/A/Headers", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Framework.defs",
+                                "PublicHeader.h",
+                            ],
+                            destinationSubfolder: .wrapper,
+                            destinationSubpath: "Versions/A/Headers",
+                            onlyForDeployment: false
+                        ),
 
                         // Subfolders count too.
-                        TestCopyFilesBuildPhase([
-                            "PrivateSubHeaderOne.h",
-                        ], destinationSubfolder: .wrapper, destinationSubpath: "Versions/A/PrivateHeaders/SubFolder", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "PrivateSubHeaderOne.h"
+                            ],
+                            destinationSubfolder: .wrapper,
+                            destinationSubpath: "Versions/A/PrivateHeaders/SubFolder",
+                            onlyForDeployment: false
+                        ),
 
                         // Using the symlinks should work too.
-                        TestCopyFilesBuildPhase([
-                            "PrivateSubHeaderTwo.h",
-                        ], destinationSubfolder: .wrapper, destinationSubpath: "Versions/Current/PrivateHeaders/SubFolder", onlyForDeployment: false),
-                        TestCopyFilesBuildPhase([
-                            "PrivateSubHeaderThree.h",
-                        ], destinationSubfolder: .wrapper, destinationSubpath: "PrivateHeaders/SubFolder", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "PrivateSubHeaderTwo.h"
+                            ],
+                            destinationSubfolder: .wrapper,
+                            destinationSubpath: "Versions/Current/PrivateHeaders/SubFolder",
+                            onlyForDeployment: false
+                        ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "PrivateSubHeaderThree.h"
+                            ],
+                            destinationSubfolder: .wrapper,
+                            destinationSubpath: "PrivateHeaders/SubFolder",
+                            onlyForDeployment: false
+                        ),
 
                         // A deployment-only phase should only affect deployment builds.
-                        TestCopyFilesBuildPhase([
-                            "DeploymentOnlyHeader.h",
-                        ], destinationSubfolder: .wrapper, destinationSubpath: "Versions/A/Headers"),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "DeploymentOnlyHeader.h"
+                            ],
+                            destinationSubfolder: .wrapper,
+                            destinationSubpath: "Versions/A/Headers"
+                        ),
 
                         // Built products should work for both deployment and non-deployment builds.
-                        TestCopyFilesBuildPhase([
-                            "BuiltProductsHeader.h",
-                        ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(PUBLIC_HEADERS_FOLDER_PATH)", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "BuiltProductsHeader.h"
+                            ],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(PUBLIC_HEADERS_FOLDER_PATH)",
+                            onlyForDeployment: false
+                        ),
 
                         // Module maps should run the verifier.
-                        TestCopyFilesBuildPhase([
-                            "module.private.modulemap",
-                        ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(MODULES_FOLDER_PATH)", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "module.private.modulemap"
+                            ],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(MODULES_FOLDER_PATH)",
+                            onlyForDeployment: false
+                        ),
 
                         TestSourcesBuildPhase([
-                            "Framework.m",
+                            "Framework.m"
                         ]),
 
                         // Resources and other destinations shouldn't run the verifier.
-                        TestCopyFilesBuildPhase([
-                            "ResourceFile.txt",
-                        ], destinationSubfolder: .resources, onlyForDeployment: false),
-                    ]),
-            ])
+                        TestCopyFilesBuildPhase(
+                            [
+                                "ResourceFile.txt"
+                            ],
+                            destinationSubfolder: .resources,
+                            onlyForDeployment: false
+                        ),
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1437,7 +1594,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                         .name("DeploymentOnlyHeader.h"),
                         // The built products header should still show up, even though the built products
                         // directory is a different one from the target build directory in deployment mode.
-                            .name("BuiltProductsHeader.h"),
+                        .name("BuiltProductsHeader.h"),
                     ])
                 }
             }
@@ -1455,24 +1612,28 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     TestFile("OutputFiles.m"),
                     TestFile("NoOutputFiles.h"),
                     TestFile("NoOutputFiles.m"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "DEFINES_MODULE": "YES",
-                    // The module verification tasks use TaskOrderingOptions.compilation, and
-                    // shell script tasks use .compilationRequirement by default. That means
-                    // that module verification waits for all shell scripts, regardless of
-                    // their output files. EAGER_COMPILATION_ALLOW_SCRIPTS changes shell scripts
-                    // to .compilation, allowing the module verification tasks to be ordered
-                    // independent of them. Make sure that module verification still waits for
-                    // the relevant shell scripts in that environment.
-                    "EAGER_COMPILATION_ALLOW_SCRIPTS": "YES",
-                    "ENABLE_MODULE_VERIFIER": "YES",
-                    "MODULE_VERIFIER_KIND": verifierKind,
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CC": clangCompilerPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES",
+                        // The module verification tasks use TaskOrderingOptions.compilation, and
+                        // shell script tasks use .compilationRequirement by default. That means
+                        // that module verification waits for all shell scripts, regardless of
+                        // their output files. EAGER_COMPILATION_ALLOW_SCRIPTS changes shell scripts
+                        // to .compilation, allowing the module verification tasks to be ordered
+                        // independent of them. Make sure that module verification still waits for
+                        // the relevant shell scripts in that environment.
+                        "EAGER_COMPILATION_ALLOW_SCRIPTS": "YES",
+                        "ENABLE_MODULE_VERIFIER": "YES",
+                        "MODULE_VERIFIER_KIND": verifierKind,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CC": clangCompilerPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -1490,37 +1651,44 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                             outputs: [
                                 "$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/PublicHeader.h",
                                 "$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/PublicHeader.defs",
-                            ]),
+                            ]
+                        ),
                         // Subfolders count too. Even if the script always runs, the module
                         // verifier should still only run if the output file changes.
                         TestShellScriptBuildPhase(
                             name: "OutputToPrivateHeadersSubFolder",
                             originalObjectID: "OutputToPrivateHeadersSubFolder",
                             outputs: [
-                                "$(TARGET_BUILD_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)/SubFolder/PrivateSubHeaderOne.h",
-                            ], alwaysOutOfDate: true),
+                                "$(TARGET_BUILD_DIR)/$(PRIVATE_HEADERS_FOLDER_PATH)/SubFolder/PrivateSubHeaderOne.h"
+                            ],
+                            alwaysOutOfDate: true
+                        ),
 
                         // Using the symlinks and file lists should work too.
                         TestShellScriptBuildPhase(
                             name: "OutputToPrivateHeadersSymlink",
                             originalObjectID: "OutputToPrivateHeadersSymlink",
                             outputFileLists: [
-                                "$(PROJECT_DIR)/OutputToPrivateHeadersSymlink.xcfilelist",
-                            ]),
+                                "$(PROJECT_DIR)/OutputToPrivateHeadersSymlink.xcfilelist"
+                            ]
+                        ),
                         TestShellScriptBuildPhase(
                             name: "OutputToCurrentSymlink",
                             originalObjectID: "OutputToCurrentSymlink",
                             outputFileLists: [
-                                "$(SRCROOT)/OutputToCurrentSymlink.xcfilelist",
-                            ]),
+                                "$(SRCROOT)/OutputToCurrentSymlink.xcfilelist"
+                            ]
+                        ),
 
                         // A deployment-only phase should only affect deployment builds.
                         TestShellScriptBuildPhase(
                             name: "DeploymentOnly",
                             originalObjectID: "DeploymentOnly",
                             outputs: [
-                                "$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/DeploymentOnlyHeader.h",
-                            ], onlyForDeployment: true),
+                                "$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/DeploymentOnlyHeader.h"
+                            ],
+                            onlyForDeployment: true
+                        ),
 
                         // Built products should work for both deployment and non-deployment builds.
                         // As long as any output file affects the module, the phase should run the
@@ -1531,18 +1699,20 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                             outputs: [
                                 "$(BUILT_PRODUCTS_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/BuiltProductsHeader.h",
                                 "$(BUILT_PRODUCTS_DIR)/SharedHeader.h",
-                            ]),
+                            ]
+                        ),
 
                         // Module maps should run the verifier.
                         TestShellScriptBuildPhase(
                             name: "ModuleMap",
                             originalObjectID: "ModuleMap",
                             outputs: [
-                                "$(TARGET_BUILD_DIR)/$(MODULES_FOLDER_PATH)/module.private.modulemap",
-                            ]),
+                                "$(TARGET_BUILD_DIR)/$(MODULES_FOLDER_PATH)/module.private.modulemap"
+                            ]
+                        ),
 
                         TestSourcesBuildPhase([
-                            "OutputFiles.m",
+                            "OutputFiles.m"
                         ]),
 
                         // Resources and other destinations shouldn't run the verifier.
@@ -1550,9 +1720,11 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                             name: "Resources",
                             originalObjectID: "Resources",
                             outputs: [
-                                "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ResourceFile.txt",
-                            ]),
-                    ]),
+                                "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ResourceFile.txt"
+                            ]
+                        ),
+                    ]
+                ),
                 TestStandardTarget(
                     "NoOutputFiles",
                     type: .framework,
@@ -1572,11 +1744,12 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                             name: "OutputToHeaders",
                             originalObjectID: "OutputToHeaders",
                             outputs: [
-                                "$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/PublicHeader.h",
-                            ]),
+                                "$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/PublicHeader.h"
+                            ]
+                        ),
 
                         TestSourcesBuildPhase([
-                            "NoOutputFiles.m",
+                            "NoOutputFiles.m"
                         ]),
 
                         // Resources and other destinations shouldn't block the verifier.
@@ -1584,10 +1757,13 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                             name: "Resources",
                             originalObjectID: "Resources",
                             outputs: [
-                                "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ResourceFile.txt",
-                            ]),
-                    ]),
-            ])
+                                "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ResourceFile.txt"
+                            ]
+                        ),
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let sourceRoot = tester.workspace.projects[0].sourceRoot
@@ -1654,7 +1830,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                         .name("DeploymentOnlyHeader.h"),
                         // The built products header should still show up, even though the built products
                         // directory is a different one from the target build directory in deployment mode.
-                            .name("BuiltProductsHeader.h"),
+                        .name("BuiltProductsHeader.h"),
                     ])
                 }
             }
@@ -1678,7 +1854,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                         .name("PublicHeader.h"),
                     ])
                     task.checkNoInputs(contain: [
-                        .name("ResourceFile.txt"),
+                        .name("ResourceFile.txt")
                     ])
                 }
             }
@@ -1694,18 +1870,22 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                 children: [
                     TestFile("ObjCAndSwift.h"),
                     TestFile("SwiftSource.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "DEFINES_MODULE": "YES",
-                    "ENABLE_MODULE_VERIFIER": "YES",
-                    "MODULE_VERIFIER_KIND": verifierKind,
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "5.0",
-                    "CC": clangCompilerPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES",
+                        "ENABLE_MODULE_VERIFIER": "YES",
+                        "MODULE_VERIFIER_KIND": verifierKind,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "5.0",
+                        "CC": clangCompilerPath.str,
+                    ]
+                )
             ],
             targets: [
                 // Don't run the module verifier if the Objective-C compatibility header isn't generated.
@@ -1713,57 +1893,71 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     "NoObjCCompatibilityHeader",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_OBJC_INTERFACE_HEADER_NAME": ""
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
-                        ]),
-                    ]),
+                            "SwiftSource.swift"
+                        ])
+                    ]
+                ),
                 // Don't run the module verifier if the Objective-C compatibility header isn't installed.
                 TestStandardTarget(
                     "ObjCCompatibilityHeaderNotInstalled",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
-                        ]),
-                    ]),
+                            "SwiftSource.swift"
+                        ])
+                    ]
+                ),
                 // Run the module verifier if the Objective-C compatibility header is the only header in the framework.
                 TestStandardTarget(
                     "SwiftOnly",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
-                        ]),
-                    ]),
+                            "SwiftSource.swift"
+                        ])
+                    ]
+                ),
                 // Run the module verifier if there are normal headers installed, but the Objective-C
                 // compatibility header shouldn't block verification if it isn't installed.
                 TestStandardTarget(
                     "ObjCAndSwift",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("ObjCAndSwift.h", headerVisibility: .public),
+                            TestBuildFile("ObjCAndSwift.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
-                            "SwiftSource.swift",
+                            "SwiftSource.swift"
                         ]),
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1790,10 +1984,10 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     // as inputs so that it will run again if any of them change.
                     #expect(!task.alwaysExecuteTask)
                     task.checkInputs(contain: [
-                        .name("SwiftOnly-Swift.h"),
+                        .name("SwiftOnly-Swift.h")
                     ])
                     task.checkNoInputs(contain: [
-                        .name("SwiftSource.swift"),
+                        .name("SwiftSource.swift")
                     ])
                 }
             }
@@ -1810,7 +2004,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
 
                     #expect(!task.alwaysExecuteTask)
                     task.checkInputs(contain: [
-                        .name("ObjCAndSwift.h"),
+                        .name("ObjCAndSwift.h")
                     ])
                     task.checkNoInputs(contain: [
                         .name("SwiftSource.swift"),
@@ -1832,30 +2026,46 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     TestFile("PublicSource.iig"),
                     TestFile("PrivateSource.iig"),
                     TestFile("ProjectSource.iig"),
-                    TestVariantGroup("PublicIntents.intentdefinition", children: [
-                        TestFile("Base.lproj/PublicIntents.intentdefinition", regionVariantName: "Base"),
-                    ]),
-                    TestVariantGroup("PrivateIntents.intentdefinition", children: [
-                        TestFile("Base.lproj/PrivateIntents.intentdefinition", regionVariantName: "Base"),
-                    ]),
-                    TestVariantGroup("ProjectIntents.intentdefinition", children: [
-                        TestFile("Base.lproj/ProjectIntents.intentdefinition", regionVariantName: "Base"),
-                    ]),
-                    TestVariantGroup("NoCodegenIntents.intentdefinition", children: [
-                        TestFile("Base.lproj/NoCodegenIntents.intentdefinition", regionVariantName: "Base"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "PublicIntents.intentdefinition",
+                        children: [
+                            TestFile("Base.lproj/PublicIntents.intentdefinition", regionVariantName: "Base")
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "PrivateIntents.intentdefinition",
+                        children: [
+                            TestFile("Base.lproj/PrivateIntents.intentdefinition", regionVariantName: "Base")
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "ProjectIntents.intentdefinition",
+                        children: [
+                            TestFile("Base.lproj/ProjectIntents.intentdefinition", regionVariantName: "Base")
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "NoCodegenIntents.intentdefinition",
+                        children: [
+                            TestFile("Base.lproj/NoCodegenIntents.intentdefinition", regionVariantName: "Base")
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "DEFINES_MODULE": "YES",
-                    "ENABLE_MODULE_VERIFIER": "YES",
-                    "MODULE_VERIFIER_KIND": verifierKind,
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "INTENTS_CODEGEN_LANGUAGE": "Objective-C",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "IIG_EXEC": iigPath.str,
-                    "CC": clangCompilerPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "DEFINES_MODULE": "YES",
+                        "ENABLE_MODULE_VERIFIER": "YES",
+                        "MODULE_VERIFIER_KIND": verifierKind,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "INTENTS_CODEGEN_LANGUAGE": "Objective-C",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "IIG_EXEC": iigPath.str,
+                        "CC": clangCompilerPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -1863,7 +2073,7 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                     type: .framework,
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("Framework.h", headerVisibility: .public),
+                            TestBuildFile("Framework.h", headerVisibility: .public)
                         ]),
                         TestSourcesBuildPhase([
                             TestBuildFile("PublicSource.iig", headerVisibility: .public),
@@ -1875,8 +2085,10 @@ extension ClangModuleVerifierTaskConstructionTestsProtocol {
                             TestBuildFile("NoCodegenIntents.intentdefinition", intentsCodegenVisibility: .noCodegen),
                             TestBuildFile("Framework.m"),
                         ]),
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str

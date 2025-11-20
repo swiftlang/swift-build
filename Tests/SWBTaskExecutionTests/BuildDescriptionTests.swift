@@ -72,33 +72,47 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", children: [TestFile("a.c"), TestFile("b.c"), TestFile("d.c"), TestFile("e.c")]),
+                            "Sources",
+                            children: [TestFile("a.c"), TestFile("b.c"), TestFile("d.c"), TestFile("e.c")]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
-                                buildSettings: ["INFOPLIST_FILE": "Info.plist"])],
+                                buildSettings: ["INFOPLIST_FILE": "Info.plist"]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Foo", type: .framework,
+                                "Foo",
+                                type: .framework,
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug",
-                                        buildSettings: ["OBJROOT": "/a", "SYMROOT": "/a", "DSTROOT": "/a"])],
-                                buildPhases: [
-                                    TestSourcesBuildPhase(["a.c", "b.c"]),
-                                ]),
-                            TestStandardTarget(
-                                "Bar", type: .framework,
-                                buildConfigurations: [
-                                    TestBuildConfiguration(
-                                        "Debug",
-                                        buildSettings: ["OBJROOT": "/b", "SYMROOT": "/b", "DSTROOT": "/b"])],
-                                buildPhases: [
-                                    TestSourcesBuildPhase(["d.c", "e.c"]),
+                                        buildSettings: ["OBJROOT": "/a", "SYMROOT": "/a", "DSTROOT": "/a"]
+                                    )
                                 ],
-                                dependencies: [TestTargetDependency("Foo")]),
-                        ])
-                ])
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["a.c", "b.c"])
+                                ]
+                            ),
+                            TestStandardTarget(
+                                "Bar",
+                                type: .framework,
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: ["OBJROOT": "/b", "SYMROOT": "/b", "DSTROOT": "/b"]
+                                    )
+                                ],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["d.c", "e.c"])
+                                ],
+                                dependencies: [TestTargetDependency("Foo")]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let workspace1 = try testWorkspace.load(core)
 
             let taskActionRegistry = try await TaskActionRegistry(pluginManager: core.pluginManager)
@@ -113,7 +127,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             }()
 
             // We do several iterations to increase probability of hitting issues.
-            for _ in 0 ..< 10 {
+            for _ in 0..<10 {
                 let workspace2 = try await testWorkspace.load(getCore())
                 let fs2 = PseudoFS()
                 let (description2, _) = try await buildDescription(for: workspace2, activeRunDestination: .macOS, fs: fs2)
@@ -149,14 +163,18 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "SomeFiles",
                             children: [
-                                TestFile("Foo.cpp"),
-                            ]),
+                                TestFile("Foo.cpp")
+                            ]
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "INFOPLIST_FILE": "Info.plist",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ONLY_ACTIVE_ARCH": "YES",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ONLY_ACTIVE_ARCH": "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             TestAggregateTarget(
@@ -167,29 +185,46 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                             TestStandardTarget(
                                 "App1",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                                    "PRODUCT_NAME": "App",
-                                ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_NAME": "App"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [TestSourcesBuildPhase(["Foo.cpp"])]
                             ),
                             TestStandardTarget(
                                 "App2",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                                    "PRODUCT_NAME": "App",
-                                ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_NAME": "App"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [TestSourcesBuildPhase(["Foo.cpp"])]
                             ),
                             TestStandardTarget(
                                 "App3",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                                    "PRODUCT_NAME": "App",
-                                ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "PRODUCT_NAME": "App"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [TestSourcesBuildPhase(["Foo.cpp"])]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let workspace1 = try await testWorkspace.load(getCore())
 
@@ -202,20 +237,23 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 
             #expect(interestingDiagnostics.count == 2)
 
+            #expect(
+                interestingDiagnostics[safe: 0] == """
+                    Multiple commands produce \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
+                    Target \'App1\' (project \'aProject\') has create directory command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
+                    Target \'App2\' (project \'aProject\') has create directory command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
+                    Target \'App3\' (project \'aProject\') has create directory command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
+                    """
+            )
 
-            #expect(interestingDiagnostics[safe: 0] == """
-    Multiple commands produce \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
-    Target \'App1\' (project \'aProject\') has create directory command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
-    Target \'App2\' (project \'aProject\') has create directory command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
-    Target \'App3\' (project \'aProject\') has create directory command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A\'
-    """)
-
-            #expect(interestingDiagnostics[safe: 1] == """
-    Multiple commands produce \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
-    Target \'App1\' (project \'aProject\') has link command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
-    Target \'App2\' (project \'aProject\') has link command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
-    Target \'App3\' (project \'aProject\') has link command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
-    """)
+            #expect(
+                interestingDiagnostics[safe: 1] == """
+                    Multiple commands produce \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
+                    Target \'App1\' (project \'aProject\') has link command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
+                    Target \'App2\' (project \'aProject\') has link command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
+                    Target \'App3\' (project \'aProject\') has link command with output \'\(tmpDirPath.str)/aProject/build/Debug/App.framework/Versions/A/App\'
+                    """
+            )
         }
     }
 
@@ -261,7 +299,8 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                         dependencies: ["PackageLibProduct"]
                     ),
                     TestStandardTarget(
-                        "TestApp2", type: .dynamicLibrary,
+                        "TestApp2",
+                        type: .dynamicLibrary,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -269,13 +308,15 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                     "CODE_SIGN_IDENTITY": "foo",
                                     "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                                ])
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["File.c"]),
                             TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))]),
                         ],
-                        dependencies: ["PackageLibProduct"]),
+                        dependencies: ["PackageLibProduct"]
+                    ),
                     TestPackageProductTarget(
                         "PackageLibProduct",
                         frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))]),
@@ -288,12 +329,14 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                                     "SDKROOT": "auto",
                                     "SDK_VARIANT": "auto",
                                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                ])
+                                ]
+                            )
                         ],
                         dependencies: ["PackageLib"]
                     ),
                     TestStandardTarget(
-                        "PackageLibProduct-dynamic", type: .framework,
+                        "PackageLibProduct-dynamic",
+                        type: .framework,
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -301,7 +344,8 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                                     "SDKROOT": "auto",
                                     "SDK_VARIANT": "auto",
                                     "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                ])
+                                ]
+                            )
                         ],
                         buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))])],
                         dependencies: ["PackageLib"]
@@ -313,8 +357,8 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
             let tester = try await TaskConstructionTester(getCore(), project)
             let fs1 = PseudoFS()
             let (results, _) =
-            try await buildDescription(for: tester.workspace, activeRunDestination: .macOS, overrides: ["PACKAGE_BUILD_DYNAMICALLY": "YES"], fs: fs1)
-            as (BuildDescriptionDiagnosticResults, WorkspaceContext)
+                try await buildDescription(for: tester.workspace, activeRunDestination: .macOS, overrides: ["PACKAGE_BUILD_DYNAMICALLY": "YES"], fs: fs1)
+                as (BuildDescriptionDiagnosticResults, WorkspaceContext)
             let interestingDiagnostics = results.errors.filter({ message -> Bool in
                 message.hasPrefix("Multiple commands produce")
             }).sorted()
@@ -335,7 +379,9 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                         TestProject(
                             "aProject",
                             groupTree: TestGroup(
-                                "Sources", children: [TestFile("a.c"), TestFile("b.c")]),
+                                "Sources",
+                                children: [TestFile("a.c"), TestFile("b.c")]
+                            ),
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -343,15 +389,22 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                                         "USE_HEADERMAP": "NO",
                                         "ALWAYS_SEARCH_USER_PATHS": "NO",
                                         "USER_HEADER_SEARCH_PATHS": Path.root.join("User/**").strWithPosixSlashes,
-                                        "CLANG_USE_RESPONSE_FILE": "NO"])],
+                                        "CLANG_USE_RESPONSE_FILE": "NO",
+                                    ]
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
-                                    "Tool", type: .commandLineTool,
+                                    "Tool",
+                                    type: .commandLineTool,
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["a.c", "b.c"]),
-                                    ]),
-                            ])
-                    ])
+                                        TestSourcesBuildPhase(["a.c", "b.c"])
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                )
                 let workspace = try await testWorkspace.load(getCore())
 
                 // Use a shared manager.
@@ -364,7 +417,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     #expect(info.source == expectedSource)
 
                     let description = info.buildDescription
-                    let compileTasks = description.tasks.filter{ $0.ruleInfo[0] == "CompileC" }
+                    let compileTasks = description.tasks.filter { $0.ruleInfo[0] == "CompileC" }
                     guard compileTasks.count > 0 else {
                         Issue.record("unexpected build description")
                         return
@@ -373,7 +426,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     let task = compileTasks[0]
                     let iQuoteArgs = task.commandLine.enumerated().filter { (i, arg) in
                         (task.commandLine[safe: i - 1]?.asString ?? "") == "-iquote"
-                    }.map{ $0.1.asString }
+                    }.map { $0.1.asString }
                     #expect(iQuoteArgs == expected)
 
                     // We should only see one cached result.
@@ -408,23 +461,32 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("SomeFile.txt"),
-                        TestFile("Info.plist")
-                    ]),
+                        TestFile("Info.plist"),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        "BUILD_VARIANTS": "normal extra"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                            "BUILD_VARIANTS": "normal extra",
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("NoSources",
-                                       type: .bundle,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestResourcesBuildPhase(["SomeFile.txt"])])])
+                    TestStandardTarget(
+                        "NoSources",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestResourcesBuildPhase(["SomeFile.txt"])
+                        ]
+                    )
+                ]
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
@@ -443,26 +505,35 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     children: [
                         TestFile("File.c"),
                         TestFile("SomeFile.txt"),
-                        TestFile("Info.plist")
-                    ]),
+                        TestFile("Info.plist"),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        "BUILD_VARIANTS": "normal extra",
-                        "ARCHS": "foo",
-                        "VALID_ARCHS": "bar"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                            "BUILD_VARIANTS": "normal extra",
+                            "ARCHS": "foo",
+                            "VALID_ARCHS": "bar",
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("NoArchs",
-                                       type: .bundle,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase([]),
-                                        TestResourcesBuildPhase(["SomeFile.txt"])])])
+                    TestStandardTarget(
+                        "NoArchs",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase([]),
+                            TestResourcesBuildPhase(["SomeFile.txt"]),
+                        ]
+                    )
+                ]
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
@@ -481,26 +552,35 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     children: [
                         TestFile("File.c"),
                         TestFile("SomeFile.txt"),
-                        TestFile("Info.plist")
-                    ]),
+                        TestFile("Info.plist"),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        "BUILD_VARIANTS": "normal extra",
-                        "ARCHS": "foo",
-                        "VALID_ARCHS": "bar"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                            "BUILD_VARIANTS": "normal extra",
+                            "ARCHS": "foo",
+                            "VALID_ARCHS": "bar",
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("NoArchs",
-                                       type: .bundle,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase(["File.c"]),
-                                        TestResourcesBuildPhase(["SomeFile.txt"])])])
+                    TestStandardTarget(
+                        "NoArchs",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File.c"]),
+                            TestResourcesBuildPhase(["SomeFile.txt"]),
+                        ]
+                    )
+                ]
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
@@ -517,27 +597,36 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     children: [
                         TestFile("File.c"),
                         TestFile("SomeFile.txt"),
-                        TestFile("Info.plist")
-                    ]),
+                        TestFile("Info.plist"),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        "BUILD_VARIANTS": "normal extra",
-                        "ARCHS": "foo",
-                        "VALID_ARCHS": "bar",
-                        "ONLY_ACTIVE_ARCH": "YES"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                            "BUILD_VARIANTS": "normal extra",
+                            "ARCHS": "foo",
+                            "VALID_ARCHS": "bar",
+                            "ONLY_ACTIVE_ARCH": "YES",
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("NoArchs",
-                                       type: .bundle,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase(["File.c"]),
-                                        TestResourcesBuildPhase(["SomeFile.txt"])])])
+                    TestStandardTarget(
+                        "NoArchs",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File.c"]),
+                            TestResourcesBuildPhase(["SomeFile.txt"]),
+                        ]
+                    )
+                ]
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
@@ -554,28 +643,37 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     children: [
                         TestFile("File.c"),
                         TestFile("SomeFile.txt"),
-                        TestFile("Info.plist")
-                    ]),
+                        TestFile("Info.plist"),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "arch": "foo",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        "BUILD_VARIANTS": "normal extra",
-                        "ARCHS": "foo",
-                        "VALID_ARCHS": "bar",
-                        "ONLY_ACTIVE_ARCH": "YES"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "arch": "foo",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                            "BUILD_VARIANTS": "normal extra",
+                            "ARCHS": "foo",
+                            "VALID_ARCHS": "bar",
+                            "ONLY_ACTIVE_ARCH": "YES",
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("NoArchs",
-                                       type: .bundle,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase(["File.c"]),
-                                        TestResourcesBuildPhase(["SomeFile.txt"])])])
+                    TestStandardTarget(
+                        "NoArchs",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File.c"]),
+                            TestResourcesBuildPhase(["SomeFile.txt"]),
+                        ]
+                    )
+                ]
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
@@ -592,26 +690,35 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     children: [
                         TestFile("File.c"),
                         TestFile("SomeFile.txt"),
-                        TestFile("Info.plist")
-                    ]),
+                        TestFile("Info.plist"),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        "BUILD_VARIANTS": "normal extra",
-                        "ARCHS": "foo",
-                        "VALID_ARCHS": " "
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                            "BUILD_VARIANTS": "normal extra",
+                            "ARCHS": "foo",
+                            "VALID_ARCHS": " ",
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("NoArchs",
-                                       type: .bundle,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase(["File.c"]),
-                                        TestResourcesBuildPhase(["SomeFile.txt"])])])
+                    TestStandardTarget(
+                        "NoArchs",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File.c"]),
+                            TestResourcesBuildPhase(["SomeFile.txt"]),
+                        ]
+                    )
+                ]
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
@@ -628,26 +735,35 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
                     children: [
                         TestFile("File.c"),
                         TestFile("SomeFile.txt"),
-                        TestFile("Info.plist")
-                    ]),
+                        TestFile("Info.plist"),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "INFOPLIST_FILE": "Info.plist",
-                        "CODE_SIGN_IDENTITY": "Apple Development",
-                        "BUILD_VARIANTS": "normal extra",
-                        "ARCHS": " ",
-                        "VALID_ARCHS": "bar"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "INFOPLIST_FILE": "Info.plist",
+                            "CODE_SIGN_IDENTITY": "Apple Development",
+                            "BUILD_VARIANTS": "normal extra",
+                            "ARCHS": " ",
+                            "VALID_ARCHS": "bar",
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("NoArchs",
-                                       type: .bundle,
-                                       buildConfigurations: [TestBuildConfiguration("Debug")],
-                                       buildPhases: [
-                                        TestSourcesBuildPhase(["File.c"]),
-                                        TestResourcesBuildPhase(["SomeFile.txt"])])])
+                    TestStandardTarget(
+                        "NoArchs",
+                        type: .bundle,
+                        buildConfigurations: [TestBuildConfiguration("Debug")],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["File.c"]),
+                            TestResourcesBuildPhase(["SomeFile.txt"]),
+                        ]
+                    )
+                ]
+            )
             let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
             let workspace = try await testWorkspace.load(getCore())
 
@@ -746,7 +862,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 
             let diagnostics: [ConfiguredTarget?: [Diagnostic]] = [
                 nil: [
-                    Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Test")),
+                    Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Test"))
                 ]
             ]
             guard let description = try await BuildDescription.construct(workspace: testWorkspace, tasks: [], path: Path.root.join("tmp"), signature: ByteString([]), diagnostics: diagnostics, fs: PseudoFS())?.buildDescription else {
@@ -810,7 +926,7 @@ fileprivate struct BuildDescriptionTests: CoreBasedTests {
 }
 
 private extension BuildDescription {
-    static func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand? = nil, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]) async throws -> BuildDescriptionDiagnosticResults? {
+    static func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand? = nil, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget: [Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]) async throws -> BuildDescriptionDiagnosticResults? {
         let buildDescription = try await construct(workspace: workspace, tasks: tasks, path: path, signature: signature, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: false), diagnostics: diagnostics, indexingInfo: indexingInfo, fs: fs, bypassActualTasks: bypassActualTasks, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: MockTestBuildDescriptionConstructionDelegate(), targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: .defaultForTesting)
         return buildDescription.map { BuildDescriptionDiagnosticResults(buildDescription: $0, workspace: workspace) } ?? nil
     }

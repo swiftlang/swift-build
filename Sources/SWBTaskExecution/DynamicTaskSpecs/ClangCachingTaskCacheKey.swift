@@ -24,7 +24,7 @@ public struct ClangCachingTaskCacheKey: Serializable, CustomDebugStringConvertib
         self.cacheKey = cacheKey
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(3) {
             serializer.serialize(libclangPath)
             serializer.serialize(casOptions)

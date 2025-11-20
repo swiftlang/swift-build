@@ -87,7 +87,7 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
         let baseCommandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
 
         // commandline from template is not usable...create our own for create-schema
-        var commandLine: [String] = [baseCommandLine[0]] // get executable from template
+        var commandLine: [String] = [baseCommandLine[0]]  // get executable from template
         commandLine.append("create-schema")
         commandLine.append("--output-schema")
         commandLine.append(outputFile)
@@ -100,16 +100,18 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
         let inputs = [targetWithDependenciesPath] + moduleSwiftFilesPaths + dependencySwiftFilesPaths
 
         let ruleInfo = ["RealityAssetsSchemaGen", outputFile]
-        delegate.createTask(type: self,
-                            ruleInfo: ruleInfo,
-                            commandLine: commandLine,
-                            environment: environmentBindings(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: inputs,
-                            outputs: [outputPath],
-                            execDescription: "Generate Reality Asset USD schema",
-                            preparesForIndexing: true,
-                            enableSandboxing: true)
+        delegate.createTask(
+            type: self,
+            ruleInfo: ruleInfo,
+            commandLine: commandLine,
+            environment: environmentBindings(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: inputs,
+            outputs: [outputPath],
+            execDescription: "Generate Reality Asset USD schema",
+            preparesForIndexing: true,
+            enableSandboxing: true
+        )
     }
 
     private func constructRealityAssetCompilerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -193,26 +195,27 @@ package final class RealityAssetsCompilerSpec: GenericCompilerSpec, SpecIdentifi
             cachingEnabled = false
         }
 
-
         let ruleInfo = ["RealityAssetsCompile", cbc.output.str]
-        delegate.createTask(type: self,
-                            dependencyData: nil,
-                            payload: nil,
-                            ruleInfo: ruleInfo,
-                            additionalSignatureData: "",
-                            commandLine: commandLine,
-                            additionalOutput: [],
-                            environment: environmentBindings(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: inputs,
-                            outputs: outputs,
-                            mustPrecede: [],
-                            action: action,
-                            execDescription: "Compile Reality Asset \(rkAssetsPath.basename)",
-                            preparesForIndexing: true,
-                            enableSandboxing: !cachingEnabled,
-                            llbuildControlDisabled: false,
-                            additionalTaskOrderingOptions: [])
+        delegate.createTask(
+            type: self,
+            dependencyData: nil,
+            payload: nil,
+            ruleInfo: ruleInfo,
+            additionalSignatureData: "",
+            commandLine: commandLine,
+            additionalOutput: [],
+            environment: environmentBindings(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: inputs,
+            outputs: outputs,
+            mustPrecede: [],
+            action: action,
+            execDescription: "Compile Reality Asset \(rkAssetsPath.basename)",
+            preparesForIndexing: true,
+            enableSandboxing: !cachingEnabled,
+            llbuildControlDisabled: false,
+            additionalTaskOrderingOptions: []
+        )
     }
 
     public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, moduleWithDependencies: ModuleWithDependencies) async {

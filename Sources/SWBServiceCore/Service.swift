@@ -15,9 +15,9 @@ public import SWBProtocol
 public import SWBUtil
 
 #if canImport(System)
-public import System
+    public import System
 #else
-public import SystemPackage
+    public import SystemPackage
 #endif
 
 /// A generic named message handler.

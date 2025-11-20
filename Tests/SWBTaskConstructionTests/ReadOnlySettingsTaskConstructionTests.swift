@@ -30,7 +30,8 @@ fileprivate struct ReadOnlySettingsTaskConstructionTests: CoreBasedTests {
                     children: [
                         TestFile("ClassOne.cpp"),
                         TestFile("Info.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -39,24 +40,25 @@ fileprivate struct ReadOnlySettingsTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "macosx",
                             "PRODUCT_SPECIFIC_LDFLAGS": productSpecificLdFlagsSetting,
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "AppTarget",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "Info.plist"]),
+                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "Info.plist"])
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "ClassOne.cpp",
+                                "ClassOne.cpp"
                             ]),
-                            TestFrameworksBuildPhase([
-                            ]),
+                            TestFrameworksBuildPhase([]),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             return testProject
         }
         let core = try await getCore()

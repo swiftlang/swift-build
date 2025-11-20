@@ -17,7 +17,7 @@ public import SWBLibc
 @_exported public import llbuild
 
 #if !LLBUILD_FRAMEWORK
-@_exported public import llbuildSwift
+    @_exported public import llbuildSwift
 #endif
 
 // Filesystem adaptors for SWBLLBuild.FileSystem.
@@ -36,15 +36,15 @@ extension SWBUtil.FileInfo: SWBLLBuild.FileInfo {
         statBuf.st_mode = numericCast(self.permissions)
         statBuf.st_size = numericCast(self.size)
         #if canImport(Darwin)
-        statBuf.st_mtimespec.tv_sec = numericCast(self.modificationTimestamp)
-        statBuf.st_mtimespec.tv_nsec = self.modificationNanoseconds
+            statBuf.st_mtimespec.tv_sec = numericCast(self.modificationTimestamp)
+            statBuf.st_mtimespec.tv_nsec = self.modificationNanoseconds
         #elseif os(Windows)
-        statBuf.st_mtime = self.modificationTimestamp
+            statBuf.st_mtime = self.modificationTimestamp
         #elseif canImport(Glibc) || canImport(Musl) || canImport(Android)
-        statBuf.st_mtim.tv_sec = numericCast(self.modificationTimestamp)
-        statBuf.st_mtim.tv_nsec = self.modificationNanoseconds
+            statBuf.st_mtim.tv_sec = numericCast(self.modificationTimestamp)
+            statBuf.st_mtim.tv_nsec = self.modificationNanoseconds
         #else
-        #error("Not implemented for this platform")
+            #error("Not implemented for this platform")
         #endif
         return statBuf
     }
@@ -132,9 +132,9 @@ public enum BuildValueKind: UInt32 {
 extension llbuild_pid_t {
     public static var invalid: Self {
         #if os(Windows)
-        INVALID_HANDLE_VALUE
+            INVALID_HANDLE_VALUE
         #else
-        -1
+            -1
         #endif
     }
 }
@@ -142,9 +142,9 @@ extension llbuild_pid_t {
 extension llbuild_pid_t {
     public var pid: pid_t {
         #if os(Windows)
-        return Int32(GetProcessId(self))
+            return Int32(GetProcessId(self))
         #else
-        return self
+            return self
         #endif
     }
 }

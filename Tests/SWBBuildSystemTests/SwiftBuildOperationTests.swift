@@ -37,7 +37,8 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                 TestFile("App.swift"),
                                 TestFile("API.swift"),
                                 TestFile("Bridging.h"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -50,22 +51,26 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                     "SWIFT_PRECOMPILE_BRIDGING_HEADER[arch=armv7k]": "NO",
                                     "SDKROOT": "watchos",
                                     "SWIFT_VERSION": "5.0",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
                                 "Application",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "SWIFT_OBJC_BRIDGING_HEADER": "Bridging.h",
-                                    ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "SWIFT_OBJC_BRIDGING_HEADER": "Bridging.h"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "App.m",
                                         "App.swift",
-                                    ]),
+                                    ])
                                 ],
                                 dependencies: ["Framework"]
                             ),
@@ -74,12 +79,14 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "API.swift",
-                                    ]),
+                                        "API.swift"
+                                    ])
                                 ]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/Bridging.h")) {
@@ -210,7 +217,8 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("main.swift"),
                                 TestFile("API.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -219,7 +227,8 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
                                     "SWIFT_VERSION": "5.0",
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -227,8 +236,8 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                 type: .commandLineTool,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "main.swift",
-                                    ]),
+                                        "main.swift"
+                                    ])
                                 ],
                                 dependencies: ["Framework"]
                             ),
@@ -237,12 +246,14 @@ fileprivate struct SwiftBuildOperationTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "API.swift",
-                                    ]),
+                                        "API.swift"
+                                    ])
                                 ]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/API.swift")) {

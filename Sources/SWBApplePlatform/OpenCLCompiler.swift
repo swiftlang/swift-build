@@ -14,7 +14,7 @@ import SWBUtil
 import SWBMacro
 import SWBCore
 
-final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder, @unchecked Sendable {
+final class OpenCLCompilerSpec: CompilerSpec, SpecIdentifierType, GCCCompatibleCompilerCommandLineBuilder, @unchecked Sendable {
     static let identifier = "com.apple.compilers.opencl"
 
     private let openCLOutputs: [MacroStringExpression]?
@@ -51,7 +51,7 @@ final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let openclc = scope.evaluate(BuiltinMacros.OPENCLC)
         let compilerVersionFlag = "-cl-std=" + scope.evaluate(BuiltinMacros.OPENCL_COMPILER_VERSION)
 
-        let preprocessorDefinitionsFlags = scope.evaluate(BuiltinMacros.OPENCL_PREPROCESSOR_DEFINITIONS).map{ "-D" + $0 }
+        let preprocessorDefinitionsFlags = scope.evaluate(BuiltinMacros.OPENCL_PREPROCESSOR_DEFINITIONS).map { "-D" + $0 }
         let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, scope, usesModules: scope.evaluate(BuiltinMacros.CLANG_ENABLE_MODULES))
         let headerSearchPathFlags = headerSearchPaths.searchPathArguments(for: self, scope: scope)
         let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, scope)
@@ -71,7 +71,7 @@ final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
             var commandLine = [await resolveExecutablePath(cbc, Path(openclc), delegate: delegate).str]
             commandLine += ["-x", "cl", compilerVersionFlag]
-            optimizationLevelFlag.map{ commandLine.append($0) }
+            optimizationLevelFlag.map { commandLine.append($0) }
             commandLine += preprocessorDefinitionsFlags
             commandLine += headerSearchPathFlags
             commandLine += frameworkSearchPathFlags
@@ -113,7 +113,6 @@ final class OpenCLCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 commandLine.append("-cl-denorms-are-zero")
             }
             commandLine.append(scope.evaluate(BuiltinMacros.OPENCL_AUTO_VECTORIZE_ENABLE) ? "-cl-auto-vectorize-enable" : "-cl-auto-vectorize-disable")
-
 
             let bundleIdentifier = scope.evaluate(BuiltinMacros.PRODUCT_BUNDLE_IDENTIFIER)
             if !bundleIdentifier.isEmpty {

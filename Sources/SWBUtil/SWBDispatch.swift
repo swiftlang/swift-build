@@ -18,9 +18,9 @@ public import SWBLibc
 public import Foundation
 
 #if canImport(System)
-public import System
+    public import System
 #else
-public import SystemPackage
+    public import SystemPackage
 #endif
 
 /// Represents a `dispatch_fd_t` which is a POSIX file descriptor on Unix-like platforms, or a HANDLE on Windows.
@@ -28,25 +28,25 @@ public import SystemPackage
 /// It performs non-owning conversions from FileDescriptors and FileHandles, but not the reverse. The raw fd/HANDLE value is inaccessible to callers and privately forwarded to relevant Dispatch APIs.
 public struct DispatchFD: Sendable {
     #if os(Windows)
-    fileprivate let rawValue: Int
+        fileprivate let rawValue: Int
     #else
-    fileprivate let rawValue: Int32
+        fileprivate let rawValue: Int32
     #endif
 
     public init(fileDescriptor: FileDescriptor) {
         #if os(Windows)
-        rawValue = _get_osfhandle(fileDescriptor.rawValue)
+            rawValue = _get_osfhandle(fileDescriptor.rawValue)
         #else
-        rawValue = fileDescriptor.rawValue
+            rawValue = fileDescriptor.rawValue
         #endif
     }
 
     init(fileHandle: FileHandle) {
         #if os(Windows)
-        // This may look unsafe, but is how swift-corelibs-dispatch works. Basically, dispatch_fd_t directly represents either a POSIX file descriptor OR a Windows HANDLE pointer address, meaning that the fileDescriptor parameter of various Dispatch APIs is actually NOT a file descriptor on Windows but rather a HANDLE. This means that the handle should NOT be converted using _open_osfhandle, and the return value of this function should ONLY be passed to Dispatch functions where the fileDescriptor parameter is masquerading as a HANDLE in this manner. Use with extreme caution.
-        rawValue = .init(bitPattern: fileHandle._handle)
+            // This may look unsafe, but is how swift-corelibs-dispatch works. Basically, dispatch_fd_t directly represents either a POSIX file descriptor OR a Windows HANDLE pointer address, meaning that the fileDescriptor parameter of various Dispatch APIs is actually NOT a file descriptor on Windows but rather a HANDLE. This means that the handle should NOT be converted using _open_osfhandle, and the return value of this function should ONLY be passed to Dispatch functions where the fileDescriptor parameter is masquerading as a HANDLE in this manner. Use with extreme caution.
+            rawValue = .init(bitPattern: fileHandle._handle)
         #else
-        rawValue = fileHandle.fileDescriptor
+            rawValue = fileHandle.fileDescriptor
         #endif
     }
 }
@@ -183,15 +183,25 @@ public final class SWBDispatchIO: Sendable {
     }
 
     public func read(offset: off_t, length: Int, queue: SWBQueue, ioHandler: @escaping (Bool, SWBDispatchData?, Int32) -> Void) {
-        io.read(offset: offset, length: length, queue: queue.queue, ioHandler: { done, data, error in
-            ioHandler(done, data.map { SWBDispatchData($0) }, error)
-        })
+        io.read(
+            offset: offset,
+            length: length,
+            queue: queue.queue,
+            ioHandler: { done, data, error in
+                ioHandler(done, data.map { SWBDispatchData($0) }, error)
+            }
+        )
     }
 
     public func write(offset: off_t, data: SWBDispatchData, queue: SWBQueue, ioHandler: @escaping (Bool, SWBDispatchData?, Int32) -> Void) {
-        io.write(offset: offset, data: data.dispatchData, queue: queue.queue, ioHandler: { done, data, error in
-            ioHandler(done, data.map { SWBDispatchData($0) }, error)
-        })
+        io.write(
+            offset: offset,
+            data: data.dispatchData,
+            queue: queue.queue,
+            ioHandler: { done, data, error in
+                ioHandler(done, data.map { SWBDispatchData($0) }, error)
+            }
+        )
     }
 
     public func write(offset: off_t, data: SWBDispatchData, queue: SWBQueue) async throws {
@@ -342,7 +352,7 @@ fileprivate extension SWBQueue.DispatchWorkItemFlags {
 fileprivate func assertNoConcurrency<T>(_ block: () throws -> T) rethrows -> T {
     try withUnsafeCurrentTask { task in
         #if false
-        assert(task == nil, "Attempted to perform blocking operation on the Swift Concurrency thread pool")
+            assert(task == nil, "Attempted to perform blocking operation on the Swift Concurrency thread pool")
         #endif
         return try block()
     }

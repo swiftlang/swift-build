@@ -19,7 +19,6 @@ import SWBMacro
 
 // MARK: Creating a BuildDependencyInfo from a BuildRequest
 
-
 extension BuildDependencyInfo {
 
     package init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, operation: BuildDependencyInfoOperation) async throws {
@@ -59,8 +58,7 @@ extension BuildDependencyInfo {
             // I'm not sure how we'd actually encounter this, unless somehow target specialization went awry or we encounter some unforeseen scenario.
             if seenTargets.contains(target.target) {
                 errors.append("Found multiple identical targets named '\(target.target.targetName)' in project '\(target.target.projectName ?? "nil")' for platform '\(target.target.platformName ?? "nil")")
-            }
-            else {
+            } else {
                 seenTargets.insert(target.target)
             }
         }
@@ -113,8 +111,7 @@ extension BuildDependencyInfo {
                 let resolvedBuildFile: (reference: Reference, absolutePath: Path, fileType: FileTypeSpec)
                 do {
                     resolvedBuildFile = try buildFileResolver.resolveBuildFileReference(buildFile)
-                }
-                catch {
+                } catch {
                     // FIXME: Figure out how to report an issue in as an error in the data structures.
                     continue
                 }
@@ -132,14 +129,11 @@ extension BuildDependencyInfo {
                 if resolvedBuildFile.fileType.conformsTo(identifier: "wrapper.framework") {
                     // TODO: static frameworks?
                     await inputs.addInput(TargetDependencyInfo.Input(inputType: .framework, name: .name(filename), linkType: .searchPath, libraryType: .dynamic))
-                }
-                else if resolvedBuildFile.fileType.conformsTo(identifier: "compiled.mach-o.dylib") {
+                } else if resolvedBuildFile.fileType.conformsTo(identifier: "compiled.mach-o.dylib") {
                     await inputs.addInput(TargetDependencyInfo.Input(inputType: .library, name: .name(filename), linkType: .searchPath, libraryType: .dynamic))
-                }
-                else if resolvedBuildFile.fileType.conformsTo(identifier: "sourcecode.text-based-dylib-definition") {
+                } else if resolvedBuildFile.fileType.conformsTo(identifier: "sourcecode.text-based-dylib-definition") {
                     await inputs.addInput(TargetDependencyInfo.Input(inputType: .library, name: .name(filename), linkType: .searchPath, libraryType: .dynamic))
-                }
-                else if resolvedBuildFile.fileType.conformsTo(identifier: "archive.ar") {
+                } else if resolvedBuildFile.fileType.conformsTo(identifier: "archive.ar") {
                     await inputs.addInput(TargetDependencyInfo.Input(inputType: .library, name: .name(filename), linkType: .searchPath, libraryType: .static))
                 }
                 // FIXME: Handle wrapper.xcframework
@@ -192,7 +186,7 @@ extension BuildDependencyInfo {
 
 /// Special `CoreClientDelegate`-conforming struct because our use of `GlobalProductPlan` here should never be running external tools.
 fileprivate struct UnsupportedCoreClientDelegate: CoreClientDelegate {
-    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         throw StubError.error("Running external tools is not supported when computing build dependency target info.")
     }
 }
@@ -215,7 +209,7 @@ fileprivate final class BuildDependencyInfoGlobalProductPlanDelegate: GlobalProd
 
     let cancelled = false
 
-    func updateProgress(statusMessage: String, showInLog: Bool) { }
+    func updateProgress(statusMessage: String, showInLog: Bool) {}
 
     // CoreClientTargetDiagnosticProducingDelegate conformance
 
@@ -237,11 +231,11 @@ fileprivate final class BuildDependencyInfoGlobalProductPlanDelegate: GlobalProd
         .init(rawValue: -1)
     }
 
-    func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) { }
+    func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) {}
 
-    func emit(data: [UInt8], for activity: SWBCore.ActivityID, signature: SWBUtil.ByteString) { }
+    func emit(data: [UInt8], for activity: SWBCore.ActivityID, signature: SWBUtil.ByteString) {}
 
-    func emit(diagnostic: SWBUtil.Diagnostic, for activity: SWBCore.ActivityID, signature: SWBUtil.ByteString) { }
+    func emit(diagnostic: SWBUtil.Diagnostic, for activity: SWBCore.ActivityID, signature: SWBUtil.ByteString) {}
 
     let hadErrors = false
 

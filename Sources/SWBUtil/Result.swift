@@ -16,7 +16,7 @@ private enum ResultType: Int, Serializable {
 }
 
 extension Result: Serializable where Success: Serializable, Failure: Serializable {
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(2) {
             switch self {
             case let .success(value):

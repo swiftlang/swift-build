@@ -42,7 +42,8 @@ import Foundation
                     TestFile("libBar.a"),
                     TestFile("libBaz.a"),
                     TestFile("libQux.tbd"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -56,19 +57,26 @@ import Foundation
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
                     "AggregateTarget",
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                            buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
-                        TestCopyFilesBuildPhase([
-                            "Copied.txt",
-                        ], destinationSubfolder: .absolute, destinationSubpath: "/tmp/OtherFiles"),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Copied.txt"
+                            ],
+                            destinationSubfolder: .absolute,
+                            destinationSubpath: "/tmp/OtherFiles"
+                        )
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -76,17 +84,19 @@ import Foundation
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                            buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "AppClass.swift",
+                            "AppClass.swift"
                         ]),
                         TestFrameworksBuildPhase([
                             "FwkTarget.framework",
                             "AppKit.framework",
-                        ])
+                        ]),
                     ],
                     dependencies: ["FrameworkTarget"]
                 ),
@@ -94,59 +104,66 @@ import Foundation
                     "FwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                            buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "FwkClass.swift",
+                            "FwkClass.swift"
                         ]),
                         TestFrameworksBuildPhase([
                             "Foundation.framework",
                             "libFoo.dylib",
                             "libDylibTarget.dylib",
                             "libStaticLibTarget.a",
-                        ])
+                        ]),
                     ]
                 ),
                 TestStandardTarget(
                     "DylibTarget",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
+                        TestBuildConfiguration(
+                            "Config",
                             buildSettings: [
-                                "EXECUTABLE_PREFIX": "lib",
-                            ]),
+                                "EXECUTABLE_PREFIX": "lib"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "DylibClass.swift",
+                            "DylibClass.swift"
                         ]),
                         TestFrameworksBuildPhase([
                             "Foundation.framework",
                             "libBar.a",
                             "libQux.tbd",
-                        ])
+                        ]),
                     ]
                 ),
                 TestStandardTarget(
                     "StaticLibTarget",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                            buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "StaticLibClass.swift",
+                            "StaticLibClass.swift"
                         ]),
                         TestFrameworksBuildPhase([
                             "Foundation.framework",
                             "libBaz.a",
-                        ])
+                        ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try BuildDependencyInfoTester(core, testProject)
         let workspace = tester.workspace
@@ -156,13 +173,17 @@ import Foundation
         let CONFIGURATION = "Config"
         let buildType = "Release"
         let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-        let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+        let parameters = BuildParameters(
+            configuration: CONFIGURATION,
+            activeRunDestination: runDestination,
+            overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
                 "DEPLOYMENT_POSTPROCESSING": "YES",
                 "DEPLOYMENT_LOCATION": "YES",
-            ])
+            ]
+        )
         let targets = workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: targets, dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
         try await tester.checkBuildDependencyInfo(buildRequest: buildRequest) { results in
@@ -264,7 +285,8 @@ import Foundation
                     // Sources
                     TestFile("AppClass.swift"),
                     TestFile("Copied.txt"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -278,24 +300,31 @@ import Foundation
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
                     "AggregateTarget",
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
+                        TestBuildConfiguration(
+                            "Config",
                             buildSettings: [
                                 "OTHER_LDFLAGS": [
                                     "-framework Foo",
                                     "-lBar",
                                 ].joined(separator: " ")
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestCopyFilesBuildPhase([
-                            "Copied.txt",
-                        ], destinationSubfolder: .absolute, destinationSubpath: "/tmp/OtherFiles"),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Copied.txt"
+                            ],
+                            destinationSubfolder: .absolute,
+                            destinationSubpath: "/tmp/OtherFiles"
+                        )
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -303,7 +332,8 @@ import Foundation
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
+                        TestBuildConfiguration(
+                            "Config",
                             buildSettings: [
                                 "OTHER_LDFLAGS": [
                                     // Test framework linkages.
@@ -336,17 +366,19 @@ import Foundation
 
                                     // TODO: we should support positional arguments as well but that requires a complete understanding of all possible linker args, will come back to this
                                 ].joined(separator: " ")
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "AppClass.swift",
-                        ]),
+                            "AppClass.swift"
+                        ])
                         // No frameworks build phase because we should capture info from OTHER_LDFLAGS even if there isn't one.
                     ],
                     dependencies: []
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try BuildDependencyInfoTester(core, testProject)
         let workspace = tester.workspace
@@ -356,13 +388,17 @@ import Foundation
         let CONFIGURATION = "Config"
         let buildType = "Release"
         let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-        let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+        let parameters = BuildParameters(
+            configuration: CONFIGURATION,
+            activeRunDestination: runDestination,
+            overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
                 "DEPLOYMENT_POSTPROCESSING": "YES",
                 "DEPLOYMENT_LOCATION": "YES",
-            ])
+            ]
+        )
         let targets = workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: targets, dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
         try await tester.checkBuildDependencyInfo(buildRequest: buildRequest) { results in
@@ -455,7 +491,8 @@ import Foundation
 
                     // Linked libraries
                     TestFile("Cocoa.framework"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -469,32 +506,36 @@ import Foundation
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
+                        TestBuildConfiguration(
+                            "Config",
                             buildSettings: [
                                 "OTHER_LDFLAGS": [
                                     "-framework Foo",
                                     "-lBar",
                                 ].joined(separator: " ")
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "AppClass.swift",
+                            "AppClass.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "Cocoa.framework",
-                        ])
+                            "Cocoa.framework"
+                        ]),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try BuildDependencyInfoTester(core, testProject)
         let workspace = tester.workspace
@@ -504,13 +545,17 @@ import Foundation
         let CONFIGURATION = "Config"
         let buildType = "Release"
         let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-        let parameters = BuildParameters(configuration: CONFIGURATION, activeRunDestination: runDestination, overrides: [
+        let parameters = BuildParameters(
+            configuration: CONFIGURATION,
+            activeRunDestination: runDestination,
+            overrides: [
                 "SYMROOT": SYMROOT,
                 "OBJROOT": OBJROOT,
                 "DSTROOT": DSTROOT,
                 "DEPLOYMENT_POSTPROCESSING": "YES",
                 "DEPLOYMENT_LOCATION": "YES",
-            ])
+            ]
+        )
         let targets = workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: targets, dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
         try await tester.checkBuildDependencyInfo(buildRequest: buildRequest) { origResults in
@@ -546,9 +591,9 @@ import Foundation
             let data = try encoder.encode(origResults.info)
 
             // Useful for debugging.
-//            if let prettyPrintedString = String(data:data, encoding: String.Encoding.utf8) {
-//                print("\(prettyPrintedString)")
-//            }
+            //            if let prettyPrintedString = String(data:data, encoding: String.Encoding.utf8) {
+            //                print("\(prettyPrintedString)")
+            //            }
             // TODO: Check that the JSON we produce is correct.  We don't do this yet so we can iterate on the format rapidly.
 
             // Round-trip the data back to a BuildDependencyInfo object and check it.
@@ -561,9 +606,7 @@ import Foundation
 
 }
 
-
 // MARK: - Testing infrastructure
-
 
 fileprivate final class BuildDependencyInfoTester {
     class Results {
@@ -591,8 +634,7 @@ fileprivate final class BuildDependencyInfoTester {
                 uncheckedTargets.removeValue(forKey: target)
                 // We pass the Target back here to save on boilerplate in the tests' checker blocks, but if we add more stuff to TargetDependencyInfo in the future we may want to pass that instead, unless we end up adding more infrastructure to this class like we have for the inputs and outputs.
                 check(target)
-            }
-            else if matchedTargets.isEmpty {
+            } else if matchedTargets.isEmpty {
                 Issue.record(Comment(rawValue: "unable to find target with name '\(targetName)'" + (projectName != nil ? " in project '\(projectName!)" : "")), sourceLocation: sourceLocation)
             } else {
                 Issue.record(Comment(rawValue: "found multiple targets with name '\(targetName)'" + (projectName != nil ? " in project '\(projectName!)" : "") + ": \(matchedTargets.map({ $0.0 }))"), sourceLocation: sourceLocation)
@@ -613,8 +655,7 @@ fileprivate final class BuildDependencyInfoTester {
                 inputs.remove(input)
                 uncheckedInputsByTarget[target] = inputs
                 check(input)
-            }
-            else if matchedInputs.isEmpty {
+            } else if matchedInputs.isEmpty {
                 Issue.record(Comment("unable to find input named '\(name.stringForm)' for target '\(target.targetName)', among inputs: \(inputs)"), sourceLocation: sourceLocation)
             } else {
                 Issue.record(Comment("found multiple inputs named '\(name.stringForm)' for target '\(target.targetName)': \(matchedInputs)"), sourceLocation: sourceLocation)
@@ -636,8 +677,7 @@ fileprivate final class BuildDependencyInfoTester {
             if let outputPath = matchedOutputPaths.only {
                 outputPaths.remove(outputPath)
                 uncheckedOutputPathsByTarget[target] = outputPaths
-            }
-            else if matchedOutputPaths.isEmpty {
+            } else if matchedOutputPaths.isEmpty {
                 Issue.record(Comment("unable to find output path '\(path)' for target '\(target.targetName)'"), sourceLocation: sourceLocation)
             } else {
                 Issue.record(Comment("found multiple output path '\(path)' for target '\(target.targetName)'"), sourceLocation: sourceLocation)

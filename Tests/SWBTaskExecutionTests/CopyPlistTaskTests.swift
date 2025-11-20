@@ -177,7 +177,7 @@ fileprivate struct CopyPlistTaskTests {
             let input = Path.root.join("settings.plist")
             let output = Path.root.join("dst").join("settings.plist")
             let executionDelegate = MockExecutionDelegate()
-            let inputContents = ByteString(encodingAsUTF8: "{ \"key\" a= \"value\"; ")      // Missing closing curly brace
+            let inputContents = ByteString(encodingAsUTF8: "{ \"key\" a= \"value\"; ")  // Missing closing curly brace
             try executionDelegate.fs.createDirectory(output.dirname)
             try executionDelegate.fs.write(input, contents: inputContents)
             let action = CopyPlistTaskAction()
@@ -202,7 +202,7 @@ fileprivate struct CopyPlistTaskTests {
             let input = Path.root.join("settings.plist")
             let output = Path.root.join("dst").join("settings.plist")
             let executionDelegate = MockExecutionDelegate()
-            let inputContents = ByteString(encodingAsUTF8: "{ \"key\" = \"value\"; ")      // Missing closing curly brace
+            let inputContents = ByteString(encodingAsUTF8: "{ \"key\" = \"value\"; ")  // Missing closing curly brace
             try executionDelegate.fs.createDirectory(output.dirname)
             try executionDelegate.fs.write(input, contents: inputContents)
             let action = CopyPlistTaskAction()

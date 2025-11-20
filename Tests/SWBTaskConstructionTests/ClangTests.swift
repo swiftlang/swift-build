@@ -37,7 +37,8 @@ fileprivate struct ClangTests: CoreBasedTests {
                     children: [
                         TestFile("ClassOne.cpp"),
                         TestFile("Info.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -45,25 +46,26 @@ fileprivate struct ClangTests: CoreBasedTests {
                             "CODE_SIGN_IDENTITY": "-",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CLANG_CXX_LIBRARY": cppLibrarySetting,
-                            "CLANG_USE_RESPONSE_FILE": "NO"
-                        ]),
+                            "CLANG_USE_RESPONSE_FILE": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "CommandLineToolTarget",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "Info.plist"]),
+                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "Info.plist"])
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "ClassOne.cpp",
+                                "ClassOne.cpp"
                             ]),
-                            TestFrameworksBuildPhase([
-                            ]),
+                            TestFrameworksBuildPhase([]),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             return testProject
         }
         let core = try await getCore()
@@ -145,12 +147,13 @@ fileprivate struct ClangTests: CoreBasedTests {
     @Test(.skipHostOS(.windows, "clang-cache is not available on Windows"), .skipHostOS(.linux, "test is incompatible with linux fallback system toolchain mechanism"), .requireSDKs(.host))
     func clangCacheEnableLauncher() async throws {
         let runDestination: RunDestinationInfo = .host
-        let clangCachePath: String = switch runDestination {
-        case .macOS:
-            "Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-cache"
-        default:
-            "usr/bin/clang-cache"
-        }
+        let clangCachePath: String =
+            switch runDestination {
+            case .macOS:
+                "Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-cache"
+            default:
+                "usr/bin/clang-cache"
+            }
         let mockClangPath: String = "/mytoolchain/bin/clang"
 
         func getTestProject(_ extraSettings: [String: String] = [:]) -> TestProject {
@@ -159,30 +162,33 @@ fileprivate struct ClangTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("test.c"),
-                    ]),
+                        TestFile("test.c")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "CLANG_CACHE_ENABLE_LAUNCHER": "YES",
-                        ].addingContents(of: extraSettings)),
+                        ].addingContents(of: extraSettings)
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "ToolTarget",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "test.c",
-                            ]),
+                                "test.c"
+                            ])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             return testProject
         }
         let core = try await getCore()
@@ -196,7 +202,7 @@ fileprivate struct ClangTests: CoreBasedTests {
                 super.init()
             }
 
-            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                 if commandLine.first == mockClangPath {
                     return .result(status: .exit(0), stdout: Data(), stderr: Data())
                 }
@@ -217,7 +223,7 @@ fileprivate struct ClangTests: CoreBasedTests {
             let fs = PseudoFS()
             try await fs.writeFileContents(Path(mockClangPath)) { $0 <<< "binary" }
             try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
-            let tester = try TaskConstructionTester(core, getTestProject(["CC" : Path(mockClangPath).str]))
+            let tester = try TaskConstructionTester(core, getTestProject(["CC": Path(mockClangPath).str]))
 
             await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(mockClangPath)) { results in
                 results.checkError(.contains("'clang-cache' was not found next to compiler"))
@@ -226,7 +232,7 @@ fileprivate struct ClangTests: CoreBasedTests {
         do {
             let fs = PseudoFS()
             try await fs.writeFileContents(clangCompilerPath) { $0 <<< "binary" }
-            let tester = try TaskConstructionTester(core, getTestProject(["CLANG_CACHE_FALLBACK_IF_UNAVAILABLE" : "YES"]))
+            let tester = try TaskConstructionTester(core, getTestProject(["CLANG_CACHE_FALLBACK_IF_UNAVAILABLE": "YES"]))
 
             await tester.checkBuild(runDestination: .host, fs: fs) { results in
                 results.checkTarget("ToolTarget") { target -> Void in
@@ -242,10 +248,13 @@ fileprivate struct ClangTests: CoreBasedTests {
             let fs = PseudoFS()
             try await fs.writeFileContents(Path(mockClangPath)) { $0 <<< "binary" }
             try await fs.writeFileContents(core.developerPath.path.join(clangCachePath)) { $0 <<< "binary" }
-            let tester = try TaskConstructionTester(core, getTestProject([
-                "CC" : Path(mockClangPath).str,
-                "CLANG_CACHE_FALLBACK_IF_UNAVAILABLE" : "YES",
-            ]))
+            let tester = try TaskConstructionTester(
+                core,
+                getTestProject([
+                    "CC": Path(mockClangPath).str,
+                    "CLANG_CACHE_FALLBACK_IF_UNAVAILABLE": "YES",
+                ])
+            )
 
             await tester.checkBuild(runDestination: .host, fs: fs, clientDelegate: ClientDelegate(mockClangPath)) { results in
                 results.checkTarget("ToolTarget") { target -> Void in
@@ -291,8 +300,9 @@ fileprivate struct ClangTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("test.c"),
-                ]),
+                    TestFile("test.c")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -300,22 +310,24 @@ fileprivate struct ClangTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "LIBTOOL": libtoolPath.str,
-                    ])
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Library",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "test.c",
-                        ]),
+                            "test.c"
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(runDestination: .host) { results in
@@ -331,7 +343,6 @@ fileprivate struct ClangTests: CoreBasedTests {
         }
     }
 
-
     @Test(.requireSDKs(.host))
     func indexOptions() async throws {
         try await withTemporaryDirectory { tmpDir in
@@ -342,7 +353,8 @@ fileprivate struct ClangTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("File1.c")
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Test",
@@ -357,13 +369,14 @@ fileprivate struct ClangTests: CoreBasedTests {
                                     "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                     "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
                                 ]
-                            ),
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["File1.c"]),
+                            TestSourcesBuildPhase(["File1.c"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -399,7 +412,8 @@ fileprivate struct ClangTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("File1.c")
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Test",
@@ -413,15 +427,16 @@ fileprivate struct ClangTests: CoreBasedTests {
                                     "INDEX_STORE_COMPRESS": "YES",
                                     "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                     "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
-                                    "OTHER_CFLAGS": "-DCLANG_INDEX_STORE_ENABLE=$(CLANG_INDEX_STORE_ENABLE) -DCOMPILER_INDEX_STORE_ENABLE=$(COMPILER_INDEX_STORE_ENABLE)"
+                                    "OTHER_CFLAGS": "-DCLANG_INDEX_STORE_ENABLE=$(CLANG_INDEX_STORE_ENABLE) -DCOMPILER_INDEX_STORE_ENABLE=$(COMPILER_INDEX_STORE_ENABLE)",
                                 ]
-                            ),
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["File1.c"]),
+                            TestSourcesBuildPhase(["File1.c"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)

@@ -80,8 +80,7 @@ public final class ScopedKeepAliveCache<Key: Hashable & Sendable, Value: Sendabl
             return try store.getOrInsert(key) {
                 try baseCache.getOrInsert(key, body)
             }
-        }
-        else {
+        } else {
             return try baseCache.getOrInsert(key, body)
         }
     }

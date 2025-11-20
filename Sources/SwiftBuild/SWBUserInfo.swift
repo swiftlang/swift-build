@@ -27,7 +27,8 @@ public struct SWBUserInfo: Sendable {
             gid: processInfo.effectiveGroupID,
             homeDirectory: Path.homeDirectory.str,
             processEnvironment: processInfo.cleanEnvironment,
-            buildSystemEnvironment: processInfo.cleanEnvironment)
+            buildSystemEnvironment: processInfo.cleanEnvironment
+        )
     }()
 
     public let userName: String

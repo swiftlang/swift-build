@@ -24,7 +24,7 @@ import SWBMacro
     func basicRuleLookup() async throws {
         let core = try await getCore()
         // Create a set of rules.  We’ll use a couple of helper functions for creating the rules.
-        var rules = Array<(any BuildRuleCondition,any BuildRuleAction)>()
+        var rules = Array<(any BuildRuleCondition, any BuildRuleAction)>()
         func MakeNamePatternConditionTaskActionRule(_ namePattern: String, _ compilerSpecIdent: String) throws -> (any BuildRuleCondition, any BuildRuleAction) {
             return (BuildRuleFileNameCondition(namePatterns: [core.specRegistry.internalMacroNamespace.parseString(namePattern)]), BuildRuleTaskAction(toolSpec: try core.specRegistry.getSpec(compilerSpecIdent) as CommandLineToolSpec))
         }
@@ -110,15 +110,20 @@ import SWBMacro
             let result = ruleSet.match(textFile, scope)
 
             // Check that there is a single diagnostic and that it matches the expected one.
-            #expect(result.diagnostics == [
-                .init(behavior: enableDebugActivityLogs ? .warning : .note, message: [
-                    "Multiple rules matching input \'\(textFilePath.str)\':",
-                    "Custom Rule 1",
-                    "Custom Rule 2",
-                    "",
-                    "Applying first matching rule \'Custom Rule 1\'",
-                ].joined(separator: "\n"))
-            ])
+            #expect(
+                result.diagnostics == [
+                    .init(
+                        behavior: enableDebugActivityLogs ? .warning : .note,
+                        message: [
+                            "Multiple rules matching input \'\(textFilePath.str)\':",
+                            "Custom Rule 1",
+                            "Custom Rule 2",
+                            "",
+                            "Applying first matching rule \'Custom Rule 1\'",
+                        ].joined(separator: "\n")
+                    )
+                ]
+            )
         }
 
         try testDiagnostic(enableDebugActivityLogs: true)

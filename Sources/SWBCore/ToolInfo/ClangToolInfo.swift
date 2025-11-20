@@ -14,9 +14,9 @@ public import SWBMacro
 public import SWBUtil
 import Foundation
 
-public struct ClangBlocklists : Sendable {
+public struct ClangBlocklists: Sendable {
 
-    public struct CachingBlocklistInfo : ProjectFailuresBlockList, Codable, Sendable {
+    public struct CachingBlocklistInfo: ProjectFailuresBlockList, Codable, Sendable {
         /// A blocklist of project names that do not support the `CLANG_ENABLE_COMPILE_CACHE` build setting.
         let KnownFailures: [String]
 
@@ -27,7 +27,7 @@ public struct ClangBlocklists : Sendable {
 
     var caching: CachingBlocklistInfo? = nil
 
-    public struct BuiltinModuleVerifierInfo : ProjectFailuresBlockList, Codable, Sendable {
+    public struct BuiltinModuleVerifierInfo: ProjectFailuresBlockList, Codable, Sendable {
         /// A blocklist of project names that do not support the `MODULE_VERIFIER_KIND=builtin` build setting.
         let KnownFailures: [String]
         enum CodingKeys: String, CodingKey {
@@ -100,7 +100,7 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
 
     public func isCachingBlocked(_ scope: MacroEvaluationScope) -> Bool {
         return blocklists.isBlocked(scope, info: blocklists.caching)
-     }
+    }
 
     public func isBuiltinModuleVerifyBlocked(_ scope: MacroEvaluationScope) -> Bool {
         return blocklists.isBlocked(scope, info: blocklists.builtinModuleVerify)
@@ -140,78 +140,82 @@ public func discoveredClangToolInfo(
     commandLine.append("-c")
     commandLine.append(Path.null.str)
 
-    return try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine, { executionResult in
-        let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+    return try await producer.discoveredCommandLineToolSpecInfo(
+        delegate,
+        nil,
+        commandLine,
+        { executionResult in
+            let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
 
-        var clangVersion: Version? = nil
-        var llvmVersion: Version? = nil
-        var isAppleClang = false
+            var clangVersion: Version? = nil
+            var llvmVersion: Version? = nil
+            var isAppleClang = false
 
-        for line in outputString.components(separatedBy: "\n") {
-            if line.hasPrefix("#define ") {
-                // Parse out the macro name and value.
-                let macroAssignment = line.withoutPrefix("#define ")
-                guard !macroAssignment.isEmpty else { continue }
+            for line in outputString.components(separatedBy: "\n") {
+                if line.hasPrefix("#define ") {
+                    // Parse out the macro name and value.
+                    let macroAssignment = line.withoutPrefix("#define ")
+                    guard !macroAssignment.isEmpty else { continue }
 
-                let (macroName, macroValue) = macroAssignment.split(" ")
-                guard !macroValue.isEmpty else { continue }
+                    let (macroName, macroValue) = macroAssignment.split(" ")
+                    guard !macroValue.isEmpty else { continue }
 
-                // If the #define is __clang_version__, then we try to extract the LLVM and clang versions.  The value of this macro will look something like one of the following (including the quote characters):
-                // "8.1.0 (clang-802.1.38)"
-                // "12.0.0 (clang-1200.0.22.5) [ptrauth objc isa mode: sign-and-strip]"
-                if macroName == "__clang_version__" {
-                    if let match: RegEx.MatchResult = clangVersionRe.firstMatch(in: macroValue) {
-                        llvmVersion = match["llvm"].map { try? Version($0) } ?? nil
-                        clangVersion = match["clang"].map { try? Version($0) } ?? nil
-                    } else if let match = try? swiftOSSToolchainClangVersionRe.regex.firstMatch(in: macroValue) {
-                        llvmVersion = try? Version(String(match.llvm))
+                    // If the #define is __clang_version__, then we try to extract the LLVM and clang versions.  The value of this macro will look something like one of the following (including the quote characters):
+                    // "8.1.0 (clang-802.1.38)"
+                    // "12.0.0 (clang-1200.0.22.5) [ptrauth objc isa mode: sign-and-strip]"
+                    if macroName == "__clang_version__" {
+                        if let match: RegEx.MatchResult = clangVersionRe.firstMatch(in: macroValue) {
+                            llvmVersion = match["llvm"].map { try? Version($0) } ?? nil
+                            clangVersion = match["clang"].map { try? Version($0) } ?? nil
+                        } else if let match = try? swiftOSSToolchainClangVersionRe.regex.firstMatch(in: macroValue) {
+                            llvmVersion = try? Version(String(match.llvm))
+                        }
+                    }
+
+                    if macroName == "__apple_build_version__" {
+                        isAppleClang = true
                     }
                 }
+            }
 
-                if macroName == "__apple_build_version__" {
-                    isAppleClang = true
+            func getFeatures(at toolPath: Path) -> ToolFeatures<DiscoveredClangToolSpecInfo.FeatureFlag> {
+                let featuresPath = toolPath.dirname.dirname.join("share").join("clang").join("features.json")
+                do {
+                    return try ToolFeatures(path: featuresPath, fs: localFS)
+                } catch {
+                    // Clang was missing its own 'features.json' for a while (see rdar://72387110). Use the presence of the Swift 'features.json' for the features that were supported when it was added.
+                    // Note that clang's is still missing on Windows: https://github.com/swiftlang/swift-installer-scripts/issues/337
+                    let swiftFeaturesPath = toolPath.dirname.dirname.join("share").join("swift").join("features.json")
+                    if localFS.exists(swiftFeaturesPath) {
+                        return .init([.allowPcmWithCompilerErrors, .vfsDirectoryRemap, .indexUnitOutputPath])
+                    }
+                    return .init([])
                 }
             }
-        }
 
-        func getFeatures(at toolPath: Path) -> ToolFeatures<DiscoveredClangToolSpecInfo.FeatureFlag> {
-            let featuresPath = toolPath.dirname.dirname.join("share").join("clang").join("features.json")
-            do {
-                return try ToolFeatures(path: featuresPath, fs: localFS)
-            } catch {
-                // Clang was missing its own 'features.json' for a while (see rdar://72387110). Use the presence of the Swift 'features.json' for the features that were supported when it was added.
-                // Note that clang's is still missing on Windows: https://github.com/swiftlang/swift-installer-scripts/issues/337
-                let swiftFeaturesPath = toolPath.dirname.dirname.join("share").join("swift").join("features.json")
-                if localFS.exists(swiftFeaturesPath) {
-                    return .init([ .allowPcmWithCompilerErrors, .vfsDirectoryRemap, .indexUnitOutputPath])
-                }
-                return .init([])
+            let blocklistPaths = CompilerSpec.findToolchainBlocklists(producer, directoryOverride: blocklistsPathOverride)
+
+            func getBlocklist<T: Codable>(type: T.Type, toolchainFilename: String, delegate: any TargetDiagnosticProducingDelegate) -> T? {
+                return CompilerSpec.getBlocklist(
+                    type: type,
+                    toolchainFilename: toolchainFilename,
+                    blocklistPaths: blocklistPaths,
+                    fs: localFS,
+                    delegate: delegate
+                )
             }
-        }
+            var blocklists = ClangBlocklists()
+            blocklists.caching = getBlocklist(type: ClangBlocklists.CachingBlocklistInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate)
+            blocklists.builtinModuleVerify = getBlocklist(type: ClangBlocklists.BuiltinModuleVerifierInfo.self, toolchainFilename: "clang-builtin-module-verify.json", delegate: delegate)
 
-        let blocklistPaths = CompilerSpec.findToolchainBlocklists(producer, directoryOverride: blocklistsPathOverride)
-
-        func getBlocklist<T: Codable>(type: T.Type, toolchainFilename: String, delegate: any TargetDiagnosticProducingDelegate) -> T? {
-            return CompilerSpec.getBlocklist(
-                type: type,
-                toolchainFilename: toolchainFilename,
-                blocklistPaths: blocklistPaths,
-                fs: localFS,
-                delegate: delegate
+            return DiscoveredClangToolSpecInfo(
+                toolPath: toolPath,
+                clangVersion: clangVersion,
+                llvmVersion: llvmVersion,
+                isAppleClang: isAppleClang,
+                blocklists: blocklists,
+                toolFeatures: getFeatures(at: toolPath)
             )
         }
-        var blocklists = ClangBlocklists()
-        blocklists.caching = getBlocklist(type: ClangBlocklists.CachingBlocklistInfo.self, toolchainFilename: "clang-caching.json", delegate: delegate)
-        blocklists.builtinModuleVerify = getBlocklist(type: ClangBlocklists.BuiltinModuleVerifierInfo.self, toolchainFilename: "clang-builtin-module-verify.json", delegate: delegate)
-
-
-        return DiscoveredClangToolSpecInfo(
-            toolPath: toolPath,
-            clangVersion: clangVersion,
-            llvmVersion: llvmVersion,
-            isAppleClang: isAppleClang,
-            blocklists: blocklists,
-            toolFeatures: getFeatures(at: toolPath)
-        )
-    })
+    )
 }

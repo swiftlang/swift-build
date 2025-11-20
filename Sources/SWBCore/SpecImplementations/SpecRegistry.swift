@@ -217,20 +217,25 @@ public final class SpecProxy {
         if let basedOnProxy = self.basedOnProxy {
             basedOnSpec = basedOnProxy.load(registry)
             if basedOnSpec == nil {
-                let loadingErrorDiagnostic = Diagnostic(behavior: .error, location: .path(self.path), data: DiagnosticData("unable to load \(specifierString) due to errors loading base spec"), childDiagnostics: {
-                    if case let .error(diagnostics) = basedOnProxy.loadedSpec {
-                        return diagnostics
-                    } else {
-                        return []
-                    }
-                }())
+                let loadingErrorDiagnostic = Diagnostic(
+                    behavior: .error,
+                    location: .path(self.path),
+                    data: DiagnosticData("unable to load \(specifierString) due to errors loading base spec"),
+                    childDiagnostics: {
+                        if case let .error(diagnostics) = basedOnProxy.loadedSpec {
+                            return diagnostics
+                        } else {
+                            return []
+                        }
+                    }()
+                )
                 loadedSpec = .error(diagnostics: [loadingErrorDiagnostic])
                 registry.emit(loadingErrorDiagnostic)
                 return nil
             }
         }
 
-        final class Delegate : SpecParserDelegate {
+        final class Delegate: SpecParserDelegate {
             let specRegistry: SpecRegistry
             let proxy: SpecProxy
             var internalMacroNamespace: MacroNamespace {
@@ -310,7 +315,7 @@ extension SpecProxy: CustomStringConvertible {
 }
 
 // Private ordering of SpecProxy objects.
-private func <(lhs: SpecProxy, rhs: SpecProxy) -> Bool {
+private func < (lhs: SpecProxy, rhs: SpecProxy) -> Bool {
     // Every (identifier, domain) pair should be unique, so this should define a total ordering.
     return (lhs.identifier < rhs.identifier) || (lhs.identifier == rhs.identifier && lhs.domain < rhs.domain)
 }
@@ -417,9 +422,17 @@ public final class SpecRegistry: Sendable {
             }
         }
 
-        self.inputFileGroupingStrategyFactories = await pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self).reduce([:], { $0.merging($1.groupingStrategies(), uniquingKeysWith: { _, _ in
-            preconditionFailure("attempt to register duplicate input file grouping strategy")
-        }) })
+        self.inputFileGroupingStrategyFactories = await pluginManager.extensions(of: InputFileGroupingStrategyExtensionPoint.self).reduce(
+            [:],
+            {
+                $0.merging(
+                    $1.groupingStrategies(),
+                    uniquingKeysWith: { _, _ in
+                        preconditionFailure("attempt to register duplicate input file grouping strategy")
+                    }
+                )
+            }
+        )
 
         // Register all the specs concurrently.
         await withTaskGroup(of: [SpecProxy].self, returning: Void.self) { group in
@@ -575,13 +588,13 @@ public final class SpecRegistry: Sendable {
 
         guard case .plString(let className) = classItem else {
             error(path, "invalid 'Class' field")
-            return (success:false, nil)
+            return (success: false, nil)
         }
 
         // Look up the spec class.
         guard let classType = specClassesByClassName[className] else {
             error(path, "unknown spec 'Class': '\(className)'")
-            return (success:false, nil)
+            return (success: false, nil)
         }
 
         return (success: true, classType)
@@ -867,7 +880,7 @@ public final class SpecRegistry: Sendable {
     private let proxyCache = Cache<ProxyCacheKey, [SpecProxy]>()
 
     /// Get all specs in the registry of the given spec type `T` in the given `domain`.
-    public func findSpecs<T: Spec>(_ type: T.Type, domain: String = "", includeInherited: Bool = true) -> [T] where T : SpecType {
+    public func findSpecs<T: Spec>(_ type: T.Type, domain: String = "", includeInherited: Bool = true) -> [T] where T: SpecType {
         var result = Array<T>()
         for proxy in findProxiesInSubregistry(T.self, domain: domain, includeInherited: includeInherited) {
             if let spec = proxy.load(self) {
@@ -907,9 +920,10 @@ public final class SpecRegistry: Sendable {
     @discardableResult @_spi(Testing) public func validateSpecDomainInversion(reportError: ((String) -> (Void))? = nil) -> Bool {
         // See the hacks in registerSpec(), and rdar://problem/22361888.
 
-        let reportError = reportError ?? { error in
-            print(error)
-        }
+        let reportError =
+            reportError ?? { error in
+                print(error)
+            }
 
         // Find places where a proxy illegally depends on a spec overridden in a subdomain.
         //
@@ -936,7 +950,7 @@ public final class SpecRegistry: Sendable {
                 guard let basedOn = proxy.basedOn else { continue }
 
                 // If the proxy's basedOn reference has a domain specifier, we require it to resolve to a fixed proxy.
-                let (_,rhs) = basedOn.split(":")
+                let (_, rhs) = basedOn.split(":")
                 if !rhs.isEmpty {
                     continue
                 }
@@ -1041,9 +1055,10 @@ extension SpecRegistry {
         case let productRef as ProductReference:
             // For a product reference, we look up its producing target's PackageTypeSpec, and return the file type the package type defines.
             if let standardTargetRef = productRef.target as? StandardTarget,
-                   let productType = getSpec(standardTargetRef.productTypeIdentifier, domain: domain) as? ProductTypeSpec,
-                   let packageType = getSpec(productType.defaultPackageTypeIdentifier, domain: domain) as? PackageTypeSpec,
-                   let fileTypeIdent = packageType.productReferenceFileTypeIdentifier {
+                let productType = getSpec(standardTargetRef.productTypeIdentifier, domain: domain) as? ProductTypeSpec,
+                let packageType = getSpec(productType.defaultPackageTypeIdentifier, domain: domain) as? PackageTypeSpec,
+                let fileTypeIdent = packageType.productReferenceFileTypeIdentifier
+            {
                 return lookupFileType(identifier: fileTypeIdent, domain: domain)
             }
             return nil
@@ -1089,7 +1104,7 @@ extension SpecLookupContext {
     }
 
     /// Get all specs in the registry of the given spec type `T` in the given `domain`.
-    func findSpecs<T: Spec>(_ type: T.Type, includeInherited: Bool = true) -> [T] where T : SpecType {
+    func findSpecs<T: Spec>(_ type: T.Type, includeInherited: Bool = true) -> [T] where T: SpecType {
         return specRegistry.findSpecs(type, domain: domain, includeInherited: includeInherited)
     }
 

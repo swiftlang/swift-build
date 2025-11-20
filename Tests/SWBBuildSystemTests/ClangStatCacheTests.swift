@@ -31,32 +31,39 @@ fileprivate struct ClangStatCacheTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                            ])],
+                                TestFile("file.m")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.m"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.m")) { stream in
-                stream <<<
-                """
-                @import Foundation;
-                int foo() {}
-                """
+                stream <<< """
+                    @import Foundation;
+                    int foo() {}
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -85,32 +92,39 @@ fileprivate struct ClangStatCacheTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                            ])],
+                                TestFile("file.swift")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.swift"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.swift"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
-                stream <<<
-                """
-                import Foundation;
-                func foo() {}
-                """
+                stream <<< """
+                    import Foundation;
+                    func foo() {}
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -141,49 +155,57 @@ fileprivate struct ClangStatCacheTests: CoreBasedTests {
                             children: [
                                 TestFile("file.swift"),
                                 TestFile("file2.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                                "CODE_SIGNING_ALLOWED": "NO",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT":"iphoneos"])],
+                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.swift"]),
-                                ], dependencies: ["Tool"]),
+                                    TestSourcesBuildPhase(["file.swift"])
+                                ],
+                                dependencies: ["Tool"]
+                            ),
                             TestStandardTarget(
                                 "Tool",
                                 type: .commandLineTool,
-                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT":"macosx"])],
+                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file2.swift"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file2.swift"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
-                stream <<<
-                """
-                import Foundation;
-                func foo() {}
-                """
+                stream <<< """
+                    import Foundation;
+                    func foo() {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.swift")) { stream in
-                stream <<<
-                """
-                import Foundation;
-                @main struct Entry {
-                    static func main() {}
-                }
-                """
+                stream <<< """
+                    import Foundation;
+                    @main struct Entry {
+                        static func main() {}
+                    }
+                    """
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
@@ -209,4 +231,3 @@ fileprivate struct ClangStatCacheTests: CoreBasedTests {
         }
     }
 }
-

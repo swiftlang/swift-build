@@ -130,7 +130,7 @@ public final class UNIXShellCommandCodec: CommandSequenceEncodable, Sendable {
                             if $0 == "\n" {
                                 return "'\n'"
                             } else if isSpecialShellCharacter(ch: $0) {
-                               return "\\\($0)"
+                                return "\\\($0)"
                             } else {
                                 return "\($0)"
                             }
@@ -289,7 +289,7 @@ public final class WindowsProcessArgumentsCodec: CommandSequenceEncodable, Senda
     public func encode(_ sequence: [String]) -> String {
         return sequence.lazy
             .map { arg in
-                if !arg.contains(where: {" \t\n\"".contains($0)}) {
+                if !arg.contains(where: { " \t\n\"".contains($0) }) {
                     return arg
                 }
 

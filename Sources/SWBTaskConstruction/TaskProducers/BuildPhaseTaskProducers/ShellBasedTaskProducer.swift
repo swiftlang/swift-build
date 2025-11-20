@@ -16,7 +16,7 @@ import SWBMacro
 import Foundation
 
 protocol ShellBasedTaskProducer {
-    func handleFileLists(_ tasks: inout [any PlannedTask], _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ environment: inout [String: String] , _ scope: MacroEvaluationScope, _ inputFileLists: [any PlannedNode], _ outputFileLists: [any PlannedNode], lookup: @escaping ((MacroDeclaration) -> MacroExpression?)) async
+    func handleFileLists(_ tasks: inout [any PlannedTask], _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ environment: inout [String: String], _ scope: MacroEvaluationScope, _ inputFileLists: [any PlannedNode], _ outputFileLists: [any PlannedNode], lookup: @escaping ((MacroDeclaration) -> MacroExpression?)) async
 
     func pathForResolvedFileList(_ scope: MacroEvaluationScope, prefix: String, fileList: Path) -> Path
 
@@ -30,7 +30,8 @@ protocol ShellBasedTaskProducer {
 extension ShellBasedTaskProducer where Self: StandardTaskProducer {
     func parseXCFileList<T>(_ path: Path, scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil, transform: (Path) -> T = { $0 }) throws -> [T] {
         let contents = try readFileContents(path).asString
-        return contents
+        return
+            contents
             .split(separator: "\n")
             .compactMap { line in
                 let line = line.trimmingCharacters(in: .whitespaces)
@@ -50,8 +51,7 @@ extension ShellBasedTaskProducer where Self: StandardTaskProducer {
             return try parseXCFileList(path, scope: scope, lookup: lookup) { path -> (any PlannedNode) in
                 if isInputList && (SWBFeatureFlag.treatScriptInputsAsDirectoryNodes.value || scope.evaluate(BuiltinMacros.USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES)) {
                     return context.createDirectoryTreeNode(context.makeAbsolute(path).normalize(), excluding: [])
-                }
-                else {
+                } else {
                     return context.createNode(context.makeAbsolute(path).normalize())
                 }
             }
@@ -62,7 +62,7 @@ extension ShellBasedTaskProducer where Self: StandardTaskProducer {
         }
     }
 
-    func handleFileLists(_ tasks: inout [any PlannedTask], _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ environment: inout [String: String] , _ scope: MacroEvaluationScope, _ inputFileLists: [any PlannedNode], _ outputFileLists: [any PlannedNode], lookup: @escaping ((MacroDeclaration) -> MacroExpression?) = { _ in nil }) async {
+    func handleFileLists(_ tasks: inout [any PlannedTask], _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ environment: inout [String: String], _ scope: MacroEvaluationScope, _ inputFileLists: [any PlannedNode], _ outputFileLists: [any PlannedNode], lookup: @escaping ((MacroDeclaration) -> MacroExpression?) = { _ in nil }) async {
         // The set of both the input and the output file lists need to be tracked as inputs to the script as they are required to exist before the task can actually run.
         inputs += inputFileLists
         inputs += outputFileLists

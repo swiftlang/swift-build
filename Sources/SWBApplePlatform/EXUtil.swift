@@ -27,14 +27,13 @@ final class ExtensionPointExtractorSpec: GenericCommandLineToolSpec, SpecIdentif
         let isAppProductType = productType?.conformsTo(identifier: "com.apple.product-type.application") ?? false
         let extensionPointExtractorEnabled = scope.evaluate(BuiltinMacros.EX_ENABLE_EXTENSION_POINT_GENERATION)
 
-        let result = (
-            isBuild
-            && isNormalVariant
-            && extensionPointExtractorEnabled
-            && !indexEnableBuildArena
-            && isAppProductType
-            && isApplePlatform
-        )
+        let result =
+            (isBuild
+                && isNormalVariant
+                && extensionPointExtractorEnabled
+                && !indexEnableBuildArena
+                && isAppProductType
+                && isApplePlatform)
         return result
     }
 
@@ -55,16 +54,18 @@ final class ExtensionPointExtractorSpec: GenericCommandLineToolSpec, SpecIdentif
 
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
 
-        delegate.createTask(type: self,
-                            ruleInfo: defaultRuleInfo(cbc, delegate),
-                            commandLine: commandLine,
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: inputs,
-                            outputs: outputs,
-                            action: nil,
-                            execDescription: resolveExecutionDescription(cbc, delegate),
-                            enableSandboxing: enableSandboxing)
+        delegate.createTask(
+            type: self,
+            ruleInfo: defaultRuleInfo(cbc, delegate),
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: inputs,
+            outputs: outputs,
+            action: nil,
+            execDescription: resolveExecutionDescription(cbc, delegate),
+            enableSandboxing: enableSandboxing
+        )
     }
 }
 
@@ -79,12 +80,13 @@ final class AppExtensionPlistGeneratorSpec: GenericCommandLineToolSpec, SpecIden
         let isAppExtensionProductType = productType?.conformsTo(identifier: "com.apple.product-type.extensionkit-extension") ?? false
         let extensionPointAttributesGenerationEnabled = !scope.evaluate(BuiltinMacros.EX_DISABLE_APPEXTENSION_ATTRIBUTES_GENERATION)
 
-        let result = ( isBuild
-                       && isNormalVariant
-                       && extensionPointAttributesGenerationEnabled
-                       && !indexEnableBuildArena
-                       && (isAppExtensionProductType)
-                       && isApplePlatform )
+        let result =
+            (isBuild
+                && isNormalVariant
+                && extensionPointAttributesGenerationEnabled
+                && !indexEnableBuildArena
+                && (isAppExtensionProductType)
+                && isApplePlatform)
 
         return result
     }
@@ -106,19 +108,19 @@ final class AppExtensionPlistGeneratorSpec: GenericCommandLineToolSpec, SpecIden
         let outputPath = cbc.output
         outputs.append(delegate.createNode(outputPath))
 
-
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
 
-        delegate.createTask(type: self,
-                            ruleInfo: defaultRuleInfo(cbc, delegate),
-                            commandLine: commandLine,
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: inputs,
-                            outputs: outputs,
-                            action: nil,
-                            execDescription: resolveExecutionDescription(cbc, delegate),
-                            enableSandboxing: enableSandboxing
+        delegate.createTask(
+            type: self,
+            ruleInfo: defaultRuleInfo(cbc, delegate),
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: inputs,
+            outputs: outputs,
+            action: nil,
+            execDescription: resolveExecutionDescription(cbc, delegate),
+            enableSandboxing: enableSandboxing
         )
     }
 }

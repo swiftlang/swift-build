@@ -29,20 +29,25 @@ fileprivate struct DocumentationBuildTests: CoreBasedTests {
                 "docProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("test.docc"),
                         TestFile("test.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "auto",
-                        "SWIFT_VERSION": "5.0",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "auto",
+                            "SWIFT_VERSION": "5.0",
+                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -56,23 +61,27 @@ fileprivate struct DocumentationBuildTests: CoreBasedTests {
                                 "test.docc",
                                 "test.swift",
                             ])
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
 
             let SRCROOT = tmpDir.str
 
             try fs.write(Path(SRCROOT).join("test.swift"), contents: "")
             try fs.createDirectory(Path(SRCROOT).join("test.docc"))
-            try fs.write(Path(SRCROOT).join("test.docc").join("test.md"), contents:
-                """
-                # Article
+            try fs.write(
+                Path(SRCROOT).join("test.docc").join("test.md"),
+                contents:
+                    """
+                    # Article
 
-                A top-level article in a documentation catalog without any symbols
+                    A top-level article in a documentation catalog without any symbols
 
-                @Metadata {
-                  @TechnologyRoot
-                }
-                """
+                    @Metadata {
+                      @TechnologyRoot
+                    }
+                    """
             )
 
             try await withTester(testProject, fs: fs) { tester in

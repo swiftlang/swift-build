@@ -32,26 +32,30 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
                         TestFile("main.swift"),
                         TestFile("Assets.xcassets"),
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                        "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                        "SDK_STAT_CACHE_ENABLE": "NO",
-                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                        "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
-                        "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                            "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                            "SDK_STAT_CACHE_ENABLE": "NO",
+                            "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
+                            "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -59,13 +63,13 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("main.swift"),
+                                TestBuildFile("main.swift")
                             ]),
                             TestResourcesBuildPhase([
-                                TestBuildFile("Assets.xcassets"),
-                            ])
+                                TestBuildFile("Assets.xcassets")
+                            ]),
                         ]
-                    ),
+                    )
                 ]
             )
 
@@ -83,31 +87,34 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             let previewInfoInput = TaskGeneratePreviewInfoInput.thunkInfo(sourceFile: srcRoot.join("Sources/main.swift"), thunkVariantSuffix: "selection")
 
             // Concrete iOS simulator destination with overrides for an iPhone 14 Pro
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
-                "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
-                "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
-                "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
-                "ENABLE_SDK_IMPORTS": "NO",
-                "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
-                "TARGET_DEVICE_MODEL": "iPhone15,2",
-                "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
-                "TARGET_DEVICE_PLATFORM_NAME": "iphonesimulator",
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
+                    "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
+                    "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
+                    "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
+                    "ENABLE_SDK_IMPORTS": "NO",
+                    "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
+                    "TARGET_DEVICE_MODEL": "iPhone15,2",
+                    "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
+                    "TARGET_DEVICE_PLATFORM_NAME": "iphonesimulator",
 
-                // And XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
+                    // And XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES",
 
-                // Check that no warnings are produced from this setting.
-                "LD_WARN_UNUSED_DYLIBS": "YES",
+                    // Check that no warnings are produced from this setting.
+                    "LD_WARN_UNUSED_DYLIBS": "YES",
 
-                // Skip objc runtime linking otherwise we get warning for the debug dylib about not
-                // using libobjc symbols.
-                "LINK_OBJC_RUNTIME": "NO",
+                    // Skip objc runtime linking otherwise we get warning for the debug dylib about not
+                    // using libobjc symbols.
+                    "LINK_OBJC_RUNTIME": "NO",
 
-                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGN_IDENTITY": "-",
-            ])
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                ]
+            )
 
             let provisioningInputs = ["AppTarget": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict(["foo": "bar"]))]
 
@@ -163,7 +170,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__ents_der", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget.app-Simulated.xcent.der",
                             "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget.debug.dylib",
                             "-Xlinker", "-no_adhoc_codesign",
-                            "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget"
+                            "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app/AppTarget",
                         ]
                     )
                 }
@@ -202,7 +209,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 // Remove the flag
                                 compileCommandLine.remove(at: idx)
                             }
-                            if ["-fcolor-diagnostics", "-fno-color-diagnostics"].contains(compileCommandLine[idx+1]) && compileCommandLine[idx] == "-Xcc" {
+                            if ["-fcolor-diagnostics", "-fno-color-diagnostics"].contains(compileCommandLine[idx + 1]) && compileCommandLine[idx] == "-Xcc" {
                                 compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
                             }
@@ -300,9 +307,11 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         #expect(targetPreviewInfo.context.sdkVariant == "iphonesimulator")
 
                         #expect(targetPreviewInfo.targetDependencyInfo?.productModuleName == "AppTarget")
-                        #expect(targetPreviewInfo.targetDependencyInfo?.objectFileInputMap == [
-                            "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o": Set(["\(srcRoot.str)/Sources/main.swift"])
-                            ])
+                        #expect(
+                            targetPreviewInfo.targetDependencyInfo?.objectFileInputMap == [
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o": Set(["\(srcRoot.str)/Sources/main.swift"])
+                            ]
+                        )
                         var linkerCommandLine = targetPreviewInfo.targetDependencyInfo?.linkCommandLine ?? []
                         for idx in linkerCommandLine.indices.reversed() {
                             if linkerCommandLine[idx].hasSuffix("linker-args.resp") {
@@ -394,7 +403,8 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
                         TestFile("main.swift"),
                         TestFile("File1.swift"),
@@ -404,18 +414,21 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                        "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                        "SDK_STAT_CACHE_ENABLE": "NO",
-                        "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                            "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                            "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                            "SDK_STAT_CACHE_ENABLE": "NO",
+                            "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -429,10 +442,10 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 TestBuildFile("File3.swift"),
                             ]),
                             TestResourcesBuildPhase([
-                                TestBuildFile("Assets.xcassets"),
-                            ])
+                                TestBuildFile("Assets.xcassets")
+                            ]),
                         ]
-                    ),
+                    )
                 ]
             )
 
@@ -453,23 +466,26 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             let previewInfoInput = TaskGeneratePreviewInfoInput.thunkInfo(sourceFile: srcRoot.join("Sources/File1.swift"), thunkVariantSuffix: "selection")
 
             // Concrete iOS simulator destination with overrides for an iPhone 14 Pro
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
-                "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
-                "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
-                "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
-                "ENABLE_SDK_IMPORTS": "NO",
-                "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
-                "TARGET_DEVICE_MODEL": "iPhone15,2",
-                "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
-                "TARGET_DEVICE_PLATFORM_NAME": "iphonesimulator",
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
+                    "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
+                    "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
+                    "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
+                    "ENABLE_SDK_IMPORTS": "NO",
+                    "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
+                    "TARGET_DEVICE_MODEL": "iPhone15,2",
+                    "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
+                    "TARGET_DEVICE_PLATFORM_NAME": "iphonesimulator",
 
-                // And XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
-                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGN_IDENTITY": "-",
-            ])
+                    // And XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES",
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                ]
+            )
 
             let provisioningInputs = ["AppTarget": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict(["foo": "bar"]))]
 
@@ -504,7 +520,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 // Remove the flag
                                 compileCommandLine.remove(at: idx)
                             }
-                            if ["-fcolor-diagnostics", "-fno-color-diagnostics"].contains(compileCommandLine[idx+1]) && compileCommandLine[idx] == "-Xcc" {
+                            if ["-fcolor-diagnostics", "-fno-color-diagnostics"].contains(compileCommandLine[idx + 1]) && compileCommandLine[idx] == "-Xcc" {
                                 compileCommandLine.remove(at: idx)
                                 compileCommandLine.remove(at: idx)
                             }
@@ -605,12 +621,14 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         #expect(targetPreviewInfo.context.sdkVariant == "iphonesimulator")
 
                         #expect(targetPreviewInfo.targetDependencyInfo?.productModuleName == "AppTarget")
-                        #expect(targetPreviewInfo.targetDependencyInfo?.objectFileInputMap == [
-                            "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o": Set(["\(srcRoot.str)/Sources/main.swift"]),
-                            "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File1.o": Set(["\(srcRoot.str)/Sources/File1.swift"]),
-                            "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File2.o": Set(["\(srcRoot.str)/Sources/File2.swift"]),
-                            "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File3.o": Set(["\(srcRoot.str)/Sources/File3.swift"]),
-                        ])
+                        #expect(
+                            targetPreviewInfo.targetDependencyInfo?.objectFileInputMap == [
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o": Set(["\(srcRoot.str)/Sources/main.swift"]),
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File1.o": Set(["\(srcRoot.str)/Sources/File1.swift"]),
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File2.o": Set(["\(srcRoot.str)/Sources/File2.swift"]),
+                                "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/File3.o": Set(["\(srcRoot.str)/Sources/File3.swift"]),
+                            ]
+                        )
                         var linkerCommandLine = targetPreviewInfo.targetDependencyInfo?.linkCommandLine ?? []
                         for idx in linkerCommandLine.indices.reversed() {
                             if linkerCommandLine[idx].hasSuffix("linker-args.resp") {
@@ -634,19 +652,23 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
-                        TestFile("main.swift"),
+                        TestFile("main.swift")
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -654,10 +676,10 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("main.swift"),
-                            ]),
+                                TestBuildFile("main.swift")
+                            ])
                         ]
-                    ),
+                    )
                 ]
             )
 
@@ -667,10 +689,13 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             try tester.fs.createDirectory(srcRoot.join("Sources"), recursive: true)
             try tester.fs.write(srcRoot.join("Sources/main.swift"), contents: "")
 
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                // And XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
-            ])
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // And XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES"
+                ]
+            )
 
             try await tester.checkBuild(parameters: buildParameters, runDestination: .anyiOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
                 results.checkNoDiagnostics()
@@ -708,19 +733,23 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
-                        TestFile("main.swift"),
+                        TestFile("main.swift")
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -728,10 +757,10 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                         type: .applicationExtension,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("main.swift"),
-                            ]),
+                                TestBuildFile("main.swift")
+                            ])
                         ]
-                    ),
+                    )
                 ]
             )
 
@@ -741,10 +770,13 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             try tester.fs.createDirectory(srcRoot.join("Sources"), recursive: true)
             try tester.fs.write(srcRoot.join("Sources/main.swift"), contents: "")
 
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                // And XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
-            ])
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // And XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES"
+                ]
+            )
 
             try await tester.checkBuild(parameters: buildParameters, runDestination: .iOSSimulator, buildCommand: .build(style: .buildOnly, skipDependencies: false)) { results in
                 results.checkNoDiagnostics()
@@ -782,7 +814,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__debug_instlnm", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-DebugDylibInstallName-normal-\(results.runDestinationTargetArchitecture).txt",
                             "-Xlinker", "-filelist", "-Xlinker", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppExTarget.build/AppExTarget-ExecutorLinkFileList-normal-x86_64.txt",
                             "\(srcRoot.str)/build/Debug-iphonesimulator/AppExTarget.appex/AppExTarget.debug.dylib",
-                            "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppExTarget.appex/AppExTarget"
+                            "-o", "\(srcRoot.str)/build/Debug-iphonesimulator/AppExTarget.appex/AppExTarget",
                         ]
                     )
                 }
@@ -809,7 +841,8 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                     guid: "ProjectNameGUID",
                     sourceRoot: srcRoot,
                     groupTree: TestGroup(
-                        "Sources", path: "Sources",
+                        "Sources",
+                        path: "Sources",
                         children: [
                             TestFile("main.swift"),
                             TestFile("FrameworkTarget.h"),
@@ -818,33 +851,37 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             TestFile("ObjC.m"),
                             TestFile("Info.plist"),
                             TestFile("Entitlements.plist"),
-                        ]),
+                        ]
+                    ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "MACOSX_DEPLOYMENT_TARGET": "13.0",
-                            "ARCHS": archs.joined(separator: " "),
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CODE_SIGN_IDENTITY": "",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "INFOPLIST_FILE": "Sources/Info.plist",
-                            "SWIFT_VERSION": swiftVersion,
-                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                            "ENABLE_PREVIEWS": "YES",
-                            "CLANG_ENABLE_MODULES": "YES",
-                            "SDK_STAT_CACHE_ENABLE": "NO",
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "MACOSX_DEPLOYMENT_TARGET": "13.0",
+                                "ARCHS": archs.joined(separator: " "),
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CODE_SIGN_IDENTITY": "",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "INFOPLIST_FILE": "Sources/Info.plist",
+                                "SWIFT_VERSION": swiftVersion,
+                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                "ENABLE_PREVIEWS": "YES",
+                                "CLANG_ENABLE_MODULES": "YES",
+                                "SDK_STAT_CACHE_ENABLE": "NO",
 
-                            "SWIFT_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": explicitModules ? "YES" : "NO",
 
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                            "DYLIB_INSTALL_NAME_BASE": "@rpath",
-                        ]),
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                                "DYLIB_INSTALL_NAME_BASE": "@rpath",
+                            ]
+                        )
                     ],
                     targets: [
                         TestAggregateTarget(
                             "Umbrella",
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug"),
+                                TestBuildConfiguration("Debug")
                             ],
                             dependencies: [
                                 "AppTargetBundleLoader",
@@ -859,25 +896,32 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                             "AppTargetBundleLoader",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [
-                                    "SWIFT_OBJC_BRIDGING_HEADER": "Sources/BridgingHeader.h",
-                                ]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SWIFT_OBJC_BRIDGING_HEADER": "Sources/BridgingHeader.h"
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase([
                                     TestBuildFile("main.swift"),
                                     TestBuildFile("ObjC.m"),
-                                ]),
-                            ]),
+                                ])
+                            ]
+                        ),
 
                         // Standard framework
                         TestStandardTarget(
                             "FrameworkTarget",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings:[
-                                    "DEFINES_MODULE": "YES",
-                                ]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "DEFINES_MODULE": "YES"
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestHeadersBuildPhase([
@@ -888,27 +932,33 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                     TestBuildFile("main.swift"),
                                     TestBuildFile("ObjC.m"),
                                 ]),
-                            ]),
+                            ]
+                        ),
 
                         // Should not be able to generate previews
                         TestStandardTarget(
                             "StaticTarget",
                             type: .staticLibrary,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [
-                                    "SWIFT_OBJC_BRIDGING_HEADER": "Sources/BridgingHeader.h",
-                                ]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SWIFT_OBJC_BRIDGING_HEADER": "Sources/BridgingHeader.h"
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestHeadersBuildPhase([
-                                    TestBuildFile("ObjC.h", headerVisibility: .public),
+                                    TestBuildFile("ObjC.h", headerVisibility: .public)
                                 ]),
                                 TestSourcesBuildPhase([
                                     TestBuildFile("main.swift"),
                                     TestBuildFile("ObjC.m"),
                                 ]),
-                            ]),
-                    ])
+                            ]
+                        ),
+                    ]
+                )
                 let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
                 try await tester.fs.writePlist(srcRoot.join("Sources/Info.plist"), .plDict([:]))
@@ -1012,49 +1062,67 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDirPath in
             let srcRoot = tmpDirPath.join("srcroot")
 
-            let testProject = try await TestPackageProject("aPackage", sourceRoot: srcRoot,
-                                                           groupTree: TestGroup(
-                                                            "Sources", path: "Sources",
-                                                            children: [
-                                                                TestFile("main.swift"),
-                                                            ]),
-                                                           buildConfigurations: [
-                                                            TestBuildConfiguration("Debug", buildSettings: [
-                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                            ])
-                                                           ],
-                                                           targets: [
-                                                            TestPackageProductTarget(
-                                                                "PackageLibProduct",
-                                                                frameworksBuildPhase: TestFrameworksBuildPhase([
-                                                                    TestBuildFile(.target("PackageLib"))]),
-                                                                buildConfigurations: [
-                                                                    // Targets need to opt-in to specialization.
-                                                                    TestBuildConfiguration("Debug", buildSettings: [
-                                                                        "SDKROOT": "auto",
-                                                                        "SDK_VARIANT": "auto",
-                                                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                                                        "SWIFT_VERSION": swiftVersion,
-                                                                        "ENABLE_PREVIEWS": "YES",
-                                                                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                                                                    ]),
-                                                                ],
-                                                                dependencies: ["PackageLib"]
-                                                            ),
-                                                            TestStandardTarget("PackageLib", type: .objectFile,
-                                                                               buildConfigurations: [
-                                                                                // Targets need to opt-in to specialization.
-                                                                                TestBuildConfiguration("Debug", buildSettings: [
-                                                                                    "SDKROOT": "auto",
-                                                                                    "SDK_VARIANT": "auto",
-                                                                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                                                                                    "SWIFT_VERSION": swiftVersion,
-                                                                                    "ENABLE_PREVIEWS": "YES",
-                                                                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                                                                                ]),
-                                                                               ],
-                                                                               buildPhases: [TestSourcesBuildPhase([TestBuildFile("main.swift")])]),
-                                                           ])
+            let testProject = try await TestPackageProject(
+                "aPackage",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "Sources",
+                    path: "Sources",
+                    children: [
+                        TestFile("main.swift")
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ]
+                    )
+                ],
+                targets: [
+                    TestPackageProductTarget(
+                        "PackageLibProduct",
+                        frameworksBuildPhase: TestFrameworksBuildPhase([
+                            TestBuildFile(.target("PackageLib"))
+                        ]),
+                        buildConfigurations: [
+                            // Targets need to opt-in to specialization.
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": "auto",
+                                    "SDK_VARIANT": "auto",
+                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "ENABLE_PREVIEWS": "YES",
+                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                ]
+                            )
+                        ],
+                        dependencies: ["PackageLib"]
+                    ),
+                    TestStandardTarget(
+                        "PackageLib",
+                        type: .objectFile,
+                        buildConfigurations: [
+                            // Targets need to opt-in to specialization.
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": "auto",
+                                    "SDK_VARIANT": "auto",
+                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "ENABLE_PREVIEWS": "YES",
+                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                ]
+                            )
+                        ],
+                        buildPhases: [TestSourcesBuildPhase([TestBuildFile("main.swift")])]
+                    ),
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
             try await tester.fs.writeFileContents(srcRoot.join("Sources/main.swift")) { stream in
@@ -1096,17 +1164,21 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
         let sdkPath = core.sdkRegistry.lookup("iphoneos")!.path
         let targetName = target.target.name
 
-        let installAPIArgs = targetName == "FrameworkTarget" ? [
-            "-emit-tbd",
-            "-emit-tbd-path", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/Swift-API.tbd",
-            "-Xfrontend", "-tbd-install_name", "-Xfrontend", "@rpath/FrameworkTarget.framework/FrameworkTarget"
-        ] : []
+        let installAPIArgs =
+            targetName == "FrameworkTarget"
+            ? [
+                "-emit-tbd",
+                "-emit-tbd-path", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/Swift-API.tbd",
+                "-Xfrontend", "-tbd-install_name", "-Xfrontend", "@rpath/FrameworkTarget.framework/FrameworkTarget",
+            ] : []
 
-        let moduleOverlayArgs = expectUnextendedModuleOverlay ? [
-            "-Xcc",
-            "-ivfsoverlay",
-            "-Xcc",
-            "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/unextended-module-overlay.yaml",
+        let moduleOverlayArgs =
+            expectUnextendedModuleOverlay
+            ? [
+                "-Xcc",
+                "-ivfsoverlay",
+                "-Xcc",
+                "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/unextended-module-overlay.yaml",
             ] : []
 
         // Ignore irrelevant paths which change often
@@ -1117,43 +1189,50 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             }
         }
 
-        XCTAssertEqualSequences(compileCommandLine, [[
-            "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
-            "-enforce-exclusivity=checked",
-            "-enable-experimental-feature", "DebugDescriptionMacro",
-            "-sdk", sdkPath.str,
-            "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
-            "-Xfrontend", "-serialize-debugging-options",
-            "-swift-version", try await swiftVersion,
-            "-I", "\(srcRoot.str)/build/Debug-iphoneos",
-            "-F", "\(srcRoot.str)/build/Debug-iphoneos",
-            ], installAPIArgs, [
-            "-c",
-            "-j\(ProcessInfo.processInfo.activeProcessorCount)",
-            "-no-color-diagnostics",
-            "-serialize-diagnostics",
-            "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/swift-overrides.hmap",
-            "-Xcc", "-iquote", "-Xcc", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-generated-files.hmap",
-            "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-own-target-headers.hmap",
-            "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-all-non-framework-target-headers.hmap",
-            "-Xcc", "-ivfsoverlay", "-Xcc", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/ProjectName-ProjectNameGUID-VFS-iphoneos/all-product-headers.yaml",
-            "-Xcc", "-iquote", "-Xcc", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-project-headers.hmap",
-            "-Xcc", "-I\(srcRoot.str)/build/Debug-iphoneos/include",
-            "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/DerivedSources-normal/\(arch)",
-            "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/DerivedSources/\(arch)",
-            "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/DerivedSources",
-            ], moduleOverlayArgs, [
-            "-working-directory", "\(srcRoot.str)",
-            "-experimental-emit-module-separately",
-            "-disable-cmo",
-            "-disable-bridging-pch",
-            "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.swift",
-            "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
-            "-module-name", "\(targetName)_PreviewReplacement_main_selection",
-            "-parse-as-library",
-            "-Onone",
-            "-Xfrontend", "-disable-modules-validate-system-headers",
-        ]].reduce([], +))
+        XCTAssertEqualSequences(
+            compileCommandLine,
+            [
+                [
+                    "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+                    "-enforce-exclusivity=checked",
+                    "-enable-experimental-feature", "DebugDescriptionMacro",
+                    "-sdk", sdkPath.str,
+                    "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
+                    "-Xfrontend", "-serialize-debugging-options",
+                    "-swift-version", try await swiftVersion,
+                    "-I", "\(srcRoot.str)/build/Debug-iphoneos",
+                    "-F", "\(srcRoot.str)/build/Debug-iphoneos",
+                ], installAPIArgs,
+                [
+                    "-c",
+                    "-j\(ProcessInfo.processInfo.activeProcessorCount)",
+                    "-no-color-diagnostics",
+                    "-serialize-diagnostics",
+                    "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/swift-overrides.hmap",
+                    "-Xcc", "-iquote", "-Xcc", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-generated-files.hmap",
+                    "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-own-target-headers.hmap",
+                    "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-all-non-framework-target-headers.hmap",
+                    "-Xcc", "-ivfsoverlay", "-Xcc", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/ProjectName-ProjectNameGUID-VFS-iphoneos/all-product-headers.yaml",
+                    "-Xcc", "-iquote", "-Xcc", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-project-headers.hmap",
+                    "-Xcc", "-I\(srcRoot.str)/build/Debug-iphoneos/include",
+                    "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/DerivedSources-normal/\(arch)",
+                    "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/DerivedSources/\(arch)",
+                    "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/DerivedSources",
+                ], moduleOverlayArgs,
+                [
+                    "-working-directory", "\(srcRoot.str)",
+                    "-experimental-emit-module-separately",
+                    "-disable-cmo",
+                    "-disable-bridging-pch",
+                    "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.swift",
+                    "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
+                    "-module-name", "\(targetName)_PreviewReplacement_main_selection",
+                    "-parse-as-library",
+                    "-Onone",
+                    "-Xfrontend", "-disable-modules-validate-system-headers",
+                ],
+            ].reduce([], +)
+        )
 
         let linkStyleArgs: [String]
         switch linkStyle {
@@ -1171,23 +1250,29 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             }
         }
 
-        XCTAssertEqualSequences(linkerCommandLine, [[
-            "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
-            "-Xlinker", "-reproducible",
-            "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
-            "-isysroot", sdkPath.str,
-            "-Os",
-            "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
-            "-L\(srcRoot.str)/build/Debug-iphoneos",
-            "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
-            "-F\(srcRoot.str)/build/Debug-iphoneos",
-            "-fobjc-link-runtime",
-            "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos",
-            "-L/usr/lib/swift",
-        ], linkStyleArgs, [
-                "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
-                "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.dylib",
-            ]].reduce([], +))
+        XCTAssertEqualSequences(
+            linkerCommandLine,
+            [
+                [
+                    "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+                    "-Xlinker", "-reproducible",
+                    "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",
+                    "-isysroot", sdkPath.str,
+                    "-Os",
+                    "-L\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
+                    "-L\(srcRoot.str)/build/Debug-iphoneos",
+                    "-F\(srcRoot.str)/build/EagerLinkingTBDs/Debug-iphoneos",
+                    "-F\(srcRoot.str)/build/Debug-iphoneos",
+                    "-fobjc-link-runtime",
+                    "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos",
+                    "-L/usr/lib/swift",
+                ], linkStyleArgs,
+                [
+                    "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.o",
+                    "-o", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/Objects-normal/\(arch)/main.selection.preview-thunk.dylib",
+                ],
+            ].reduce([], +)
+        )
     }
 
     /// Check that actually executing the command-lines we produced for previews will work for the scenarios we enumerated

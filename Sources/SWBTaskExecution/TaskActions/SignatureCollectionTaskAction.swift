@@ -39,13 +39,13 @@ public final class SignatureCollectionTaskAction: TaskAction {
 
         let input: Path
         let output: Path
-        let additionalInfo: [String:String]
+        let additionalInfo: [String: String]
         let skipValidation: Bool
 
         init?(_ commandLine: AnySequence<String>, _ outputDelegate: any TaskOutputDelegate) {
             var inputArg: String? = nil
             var outputArg: String? = nil
-            var additionalInfo: [String:String] = [:]
+            var additionalInfo: [String: String] = [:]
             var skipSignatureValidation: Bool = false
 
             var hadErrors: Bool = false
@@ -139,8 +139,7 @@ public final class SignatureCollectionTaskAction: TaskAction {
             let base = options.output.dirname
             try executionDelegate.fs.createDirectory(base, recursive: true)
             try executionDelegate.fs.write(options.output, contents: ByteString(data))
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("signature-collection failed: \(error.localizedDescription)")
             return .failed
         }

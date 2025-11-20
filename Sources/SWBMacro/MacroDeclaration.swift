@@ -33,7 +33,7 @@ public class MacroDeclaration: Hashable, CustomStringConvertible, Encodable, @un
     }
 
     /// Tests for quality based on the identities of the two macro declarations.
-    public static func ==(lhs: MacroDeclaration, rhs: MacroDeclaration) -> Bool {
+    public static func == (lhs: MacroDeclaration, rhs: MacroDeclaration) -> Bool {
         return lhs === rhs
     }
 

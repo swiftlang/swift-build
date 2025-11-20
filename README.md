@@ -64,6 +64,13 @@ code of conduct defined by the Contributor Covenant. This document is used
 across many open source communities, and we think it articulates our values
 well. For more, see the [Code of Conduct](https://swift.org/code-of-conduct/).
 
+Once the repository is clone, configure your local repository so blame ignores some commits:
+
+```
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+
 License
 -------
 See https://swift.org/LICENSE.txt for license information.

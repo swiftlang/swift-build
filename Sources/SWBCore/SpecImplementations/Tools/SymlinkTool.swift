@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class SymlinkToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class SymlinkToolSpec: CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.symlink"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -42,10 +42,14 @@ public final class SymlinkToolSpec : CommandLineToolSpec, SpecIdentifierType, @u
 
         let commandLine = ["/bin/ln", "-sfh", toPath, outputPath.str]
         delegate.createTask(
-            type: self, ruleInfo: ["SymLink", outputPath.str, toPath],
-            commandLine: commandLine, environment: environmentFromSpec(cbc, delegate),
+            type: self,
+            ruleInfo: ["SymLink", outputPath.str, toPath],
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
-            inputs: [], outputs: [ outputPath ], action: nil,
+            inputs: [],
+            outputs: [outputPath],
+            action: nil,
             execDescription: resolveExecutionDescription(cbc, delegate),
             preparesForIndexing: cbc.preparesForIndexing,
             enableSandboxing: enableSandboxing,

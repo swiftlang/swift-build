@@ -32,33 +32,40 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "ARCHS": archs.joined(separator: " "),
-                            "VALID_ARCHS": "$(inherited) x86_64h",
-                            "ENABLE_PREVIEWS": "YES",
-                            "INFOPLIST_FILE": "Sources/Info.plist",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "ARCHS": archs.joined(separator: " "),
+                                "VALID_ARCHS": "$(inherited) x86_64h",
+                                "ENABLE_PREVIEWS": "YES",
+                                "INFOPLIST_FILE": "Sources/Info.plist",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File1.swift"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("File1.swift")
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .anyMac) { results in
@@ -97,45 +104,52 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("Info.plist"),
                     TestFile("Entitlements.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                            "SWIFT_VERSION": swiftVersion,
-                            "ARCHS": archsJoined,
-                            "VALID_ARCHS": "$(inherited) x86_64h",
-                            "ENABLE_XOJIT_PREVIEWS": "YES",
-                            "ENABLE_DEBUG_DYLIB": "YES",
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                "SWIFT_VERSION": swiftVersion,
+                                "ARCHS": archsJoined,
+                                "VALID_ARCHS": "$(inherited) x86_64h",
+                                "ENABLE_XOJIT_PREVIEWS": "YES",
+                                "ENABLE_DEBUG_DYLIB": "YES",
 
-                            // Added this while the macOS platform is disabled to force building it with the dylib.
-                            // Remove with: rdar://122644133 (Re-enable macOS preview dylib mode)
-                            "ENABLE_DEBUG_DYLIB_OVERRIDE": "YES",
+                                // Added this while the macOS platform is disabled to force building it with the dylib.
+                                // Remove with: rdar://122644133 (Re-enable macOS preview dylib mode)
+                                "ENABLE_DEBUG_DYLIB_OVERRIDE": "YES",
 
-                            "DEFINES_MODULE": "NO",
-                            "INFOPLIST_FILE": "Sources/Info.plist",
-                            "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
-                            "CODE_SIGN_IDENTITY": "-",
-                            "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                            "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                            "LD_RUNPATH_SEARCH_PATHS": "@executable_path/../Frameworks2",
-                        ]),
+                                "DEFINES_MODULE": "NO",
+                                "INFOPLIST_FILE": "Sources/Info.plist",
+                                "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
+                                "CODE_SIGN_IDENTITY": "-",
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                                "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                                "LD_RUNPATH_SEARCH_PATHS": "@executable_path/../Frameworks2",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File1.swift"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("File1.swift")
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try TaskConstructionTester(core, testProject)
 
         // The localFS is used because we need a value for the swiftlang version in order for
@@ -258,7 +272,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                             .equal("-filelist"),
                             .equal("-Xlinker"),
                             .suffix("ExecutorLinkFileList-normal-\(arch).txt"),
-                            .anySequence
+                            .anySequence,
                         ]
                     )
 
@@ -308,34 +322,41 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("File.swift"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "ENABLE_PREVIEWS": "NO",
-                            "ENABLE_XOJIT_PREVIEWS": "YES",
-                            "ENABLE_DEBUG_DYLIB": "YES",
-                            "INFOPLIST_FILE": "Sources/Info.plist",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "ENABLE_PREVIEWS": "NO",
+                                "ENABLE_XOJIT_PREVIEWS": "YES",
+                                "ENABLE_DEBUG_DYLIB": "YES",
+                                "INFOPLIST_FILE": "Sources/Info.plist",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File.swift"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("File.swift")
+                        ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -347,7 +368,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
 
             results.checkTask(.matchRuleType("Ld"), .matchRuleItem("/tmp/Test/ProjectName/build/Debug-iphonesimulator/TargetName.app/TargetName.debug.dylib")) { task in
                 task.checkCommandLineNoMatch([
-                    .equal("/tmp/Test/ProjectName/build/ProjectName.build/Debug-iphonesimulator/TargetName.build/TargetName.app-Simulated.xcent"),
+                    .equal("/tmp/Test/ProjectName/build/ProjectName.build/Debug-iphonesimulator/TargetName.build/TargetName.app-Simulated.xcent")
                 ])
             }
 
@@ -369,14 +390,16 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("Info.plist"),
                     TestFile("Entitlements.plist"),
                     TestFile("TestOne.swift"),
                     TestFile("UnitTestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "UnitTestTarget",
@@ -397,11 +420,11 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
                             ]
-                        ),
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
+                            "TestOne.swift"
                         ])
                     ],
                     dependencies: ["TargetName"]
@@ -430,12 +453,12 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
                             ]
-                        ),
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File1.swift"),
-                        ]),
+                            TestBuildFile("File1.swift")
+                        ])
                     ]
                 ),
             ]
@@ -474,14 +497,16 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("Info.plist"),
                     TestFile("Entitlements.plist"),
                     TestFile("TestOne.swift"),
                     TestFile("UnitTestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "UnitTestTarget",
@@ -502,11 +527,11 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
                             ]
-                        ),
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
+                            "TestOne.swift"
                         ])
                     ],
                     dependencies: ["TargetName"]
@@ -535,12 +560,12 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
                             ]
-                        ),
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File1.swift"),
-                        ]),
+                            TestBuildFile("File1.swift")
+                        ])
                     ]
                 ),
             ]
@@ -574,13 +599,15 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("Info.plist"),
                     TestFile("Entitlements.plist"),
                     TestFile("ClientName-Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
@@ -607,14 +634,14 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
                             ]
-                        ),
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File1.swift"),
-                        ]),
+                            TestBuildFile("File1.swift")
+                        ])
                     ]
-                ),
+                )
             ]
         )
         let tester = try TaskConstructionTester(core, testProject)
@@ -645,13 +672,15 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("File1.swift"),
                     TestFile("Info.plist"),
                     TestFile("Entitlements.plist"),
                     TestFile("ClientName-Info.plist"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
@@ -678,14 +707,14 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                                 "CODE_SIGN_ENTITLEMENTS": "Sources/Entitlements.plist",
                                 "CODE_SIGN_IDENTITY": "-",
                             ]
-                        ),
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File1.swift"),
-                        ]),
+                            TestBuildFile("File1.swift")
+                        ])
                     ]
-                ),
+                )
             ]
         )
         let tester = try TaskConstructionTester(core, testProject)
@@ -748,25 +777,29 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
                         TestFile("main.swift"),
                         TestFile("Assets.xcassets"),
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ASSETCATALOG_EXEC": actoolPath.str,
-                        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                        "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "YES",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ASSETCATALOG_EXEC": actoolPath.str,
+                            "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                            "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "YES",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -774,13 +807,13 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("main.swift"),
+                                TestBuildFile("main.swift")
                             ]),
                             TestResourcesBuildPhase([
-                                TestBuildFile("Assets.xcassets"),
-                            ])
+                                TestBuildFile("Assets.xcassets")
+                            ]),
                         ]
-                    ),
+                    )
                 ]
             )
 
@@ -788,26 +821,29 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
             let tester = try TaskConstructionTester(core, testProject)
 
             // Concrete iOS simulator destination with overrides for an iPhone 14 Pro
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
-                "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
-                "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
-                "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
-                "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
-                "TARGET_DEVICE_MODEL": "iPhone15,2",
-                "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
-                "TARGET_DEVICE_PLATFORM_NAME": "iphonesimulator",
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "ASSETCATALOG_FILTER_FOR_DEVICE_MODEL": "iPhone15,2",
+                    "ASSETCATALOG_FILTER_FOR_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
+                    "ASSETCATALOG_FILTER_FOR_THINNING_DEVICE_CONFIGURATION": "iPhone15,2",
+                    "BUILD_ACTIVE_RESOURCES_ONLY": "YES",
+                    "TARGET_DEVICE_IDENTIFIER": "DB9FA063-8DA7-41C1-835E-EC616E6AF448",
+                    "TARGET_DEVICE_MODEL": "iPhone15,2",
+                    "TARGET_DEVICE_OS_VERSION": core.loadSDK(.iOSSimulator).defaultDeploymentTarget,
+                    "TARGET_DEVICE_PLATFORM_NAME": "iphonesimulator",
 
-                // And XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
+                    // And XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES",
 
-                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGN_IDENTITY": "-",
-            ])
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                ]
+            )
 
             final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                     if commandLine.first.map(Path.init)?.basename == "actool", commandLine.dropFirst().first != "--version" {
                         return .result(status: .exit(0), stdout: Data("{}".utf8), stderr: Data())
                     }
@@ -832,12 +868,12 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         .path("\(srcRoot.str)/Sources/Assets.xcassets"),
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--begin-compiling"))),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
                     task.checkOutputs([
                         .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/DerivedSources/GeneratedAssetSymbols.swift"),
                         .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/DerivedSources/GeneratedAssetSymbols.h"),
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/DerivedSources/GeneratedAssetSymbols-Index.plist")
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/DerivedSources/GeneratedAssetSymbols-Index.plist"),
                     ])
                     task.checkRuleInfo(["GenerateAssetSymbols", "\(srcRoot.str)/Sources/Assets.xcassets"])
                     task.checkCommandLine([actoolPath.str, "\(srcRoot.str)/Sources/Assets.xcassets", "--compile", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app", "--output-format", "human-readable-text", "--notices", "--warnings", "--export-dependency-info", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_dependencies", "--output-partial-info-plist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_generated_info.plist", "--app-icon", "AppIcon", "--compress-pngs", "--enable-on-demand-resources", "YES", "--development-region", "English", "--target-device", "iphone", "--minimum-deployment-target", core.loadSDK(.iOSSimulator).defaultDeploymentTarget, "--platform", "iphonesimulator", "--bundle-identifier", "com.test.ProjectName", "--generate-swift-asset-symbol-extensions", "NO", "--generate-swift-asset-symbols", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/DerivedSources/GeneratedAssetSymbols.swift", "--generate-objc-asset-symbols", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/DerivedSources/GeneratedAssetSymbols.h", "--generate-asset-symbol-index", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/DerivedSources/GeneratedAssetSymbols-Index.plist"])
@@ -846,16 +882,16 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("CompileAssetCatalogVariant"), .matchRuleItem("thinned")) { task in
                     task.checkInputs([
                         .path("\(srcRoot.str)/Sources/Assets.xcassets"),
-                        .name("MkDir \(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"), // path node
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"), // path node
+                        .name("MkDir \(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"),  // path node
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"),  // path node
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--begin-compiling"))),
                         .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
                     task.checkOutputs([
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"), // directory tree node,
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"),  // directory tree node,
                         .any,
-                        .any
+                        .any,
                     ])
                     task.checkRuleInfo(["CompileAssetCatalogVariant", "thinned", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app", "\(srcRoot.str)/Sources/Assets.xcassets"])
                     task.checkCommandLine([actoolPath.str, "\(srcRoot.str)/Sources/Assets.xcassets", "--compile", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned", "--output-format", "human-readable-text", "--notices", "--warnings", "--export-dependency-info", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_dependencies_thinned", "--output-partial-info-plist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_generated_info.plist_thinned", "--app-icon", "AppIcon", "--compress-pngs", "--enable-on-demand-resources", "YES", "--filter-for-thinning-device-configuration", "iPhone15,2", "--filter-for-device-os-version", core.loadSDK(.iOSSimulator).defaultDeploymentTarget, "--development-region", "English", "--target-device", "iphone", "--minimum-deployment-target", core.loadSDK(.iOSSimulator).defaultDeploymentTarget, "--platform", "iphonesimulator"])
@@ -865,15 +901,15 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                     task.checkInputs([
                         .path("\(srcRoot.str)/Sources/Assets.xcassets"),
                         .name("MkDir \(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned"),
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned"), // path node
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned"),  // path node
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--begin-compiling"))),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
                     task.checkOutputs([
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned"), // directory tree node
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned"),  // directory tree node
                         .any,
-                        .any
+                        .any,
                     ])
                     task.checkRuleInfo(["CompileAssetCatalogVariant", "unthinned", "\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app", "\(srcRoot.str)/Sources/Assets.xcassets"])
                     task.checkCommandLine([actoolPath.str, "\(srcRoot.str)/Sources/Assets.xcassets", "--compile", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned", "--output-format", "human-readable-text", "--notices", "--warnings", "--export-dependency-info", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_dependencies_unthinned", "--output-partial-info-plist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_generated_info.plist_unthinned", "--app-icon", "AppIcon", "--compress-pngs", "--enable-on-demand-resources", "YES", "--development-region", "English", "--target-device", "iphone", "--minimum-deployment-target", core.loadSDK(.iOSSimulator).defaultDeploymentTarget, "--platform", "iphonesimulator"])
@@ -884,12 +920,12 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         .path("\(srcRoot.str)/Sources/Assets.xcassets"),
                         .name("MkDir \(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app"),
                         .path("\(srcRoot.str)/build/Debug-iphonesimulator/AppTarget.app"),
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"), // directory tree node
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned"), // directory tree node
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/thinned"),  // directory tree node
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_output/unthinned"),  // directory tree node
                         .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_signature"),
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--begin-compiling"))),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
                     task.checkOutputs([
                         .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/assetcatalog_generated_info.plist"),
@@ -908,10 +944,10 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         .namePattern(.and(.prefix("target-AppTarget-T-AppTarget-"), .suffix("--begin-linking"))),
                     ])
                     task.checkOutputs([
-                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt"),
+                        .path("\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/AppTarget.build/AppTarget-ExecutorLinkFileList-normal-x86_64.txt")
                     ])
                     task.checkRuleInfo([
-                        "ConstructStubExecutorLinkFileList", .suffix("AppTarget-ExecutorLinkFileList-normal-x86_64.txt")
+                        "ConstructStubExecutorLinkFileList", .suffix("AppTarget-ExecutorLinkFileList-normal-x86_64.txt"),
                     ])
                     task.checkCommandLineMatches(
                         [
@@ -940,22 +976,26 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
-                        TestFile("main.swift"),
+                        TestFile("main.swift")
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -963,28 +1003,31 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         type: .commandLineTool,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("main.swift"),
-                            ]),
+                                TestBuildFile("main.swift")
+                            ])
                         ]
-                    ),
+                    )
                 ]
             )
 
             let core = try await self.getCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                // XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
-                "ENABLE_DEBUG_DYLIB": "YES",
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES",
+                    "ENABLE_DEBUG_DYLIB": "YES",
 
-                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGN_IDENTITY": "-",
-            ])
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                ]
+            )
 
             final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                     if commandLine.first.map(Path.init)?.basename == "actool", commandLine.dropFirst().first != "--version" {
                         return .result(status: .exit(0), stdout: Data("{}".utf8), stderr: Data())
                     }
@@ -1029,27 +1072,31 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
-                        TestFile("main.swift"),
+                        TestFile("main.swift")
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "LD_ENVIRONMENT": "DYLD_X_PATH=/foo",
-                        "OTHER_LDFLAGS": """
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "LD_ENVIRONMENT": "DYLD_X_PATH=/foo",
+                            "OTHER_LDFLAGS": """
                             -Wl,-dyld_env,NOT=allowed_here -Xlinker -dyld_env -Xlinker NOR=this \
                             -Wl,-no_exported_symbols -Xlinker -no_exported_symbols
                             """,
-                        "LD_EXPORT_SYMBOLS": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                    ])
+                            "LD_EXPORT_SYMBOLS": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1057,28 +1104,31 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         type: .commandLineTool,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("main.swift"),
-                            ]),
+                                TestBuildFile("main.swift")
+                            ])
                         ]
-                    ),
+                    )
                 ]
             )
 
             let core = try await self.getCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                // XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
-                "ENABLE_DEBUG_DYLIB": "YES",
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES",
+                    "ENABLE_DEBUG_DYLIB": "YES",
 
-                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGN_IDENTITY": "-",
-            ])
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                ]
+            )
 
             final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                     if commandLine.first.map(Path.init)?.basename == "actool", commandLine.dropFirst().first != "--version" {
                         return .result(status: .exit(0), stdout: Data("{}".utf8), stderr: Data())
                     }
@@ -1141,22 +1191,26 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 "ProjectName",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
-                        TestFile("main.swift"),
+                        TestFile("main.swift")
                     ]
                 ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
-                        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @loader_path/Frameworks/Foo @loader_path/Frameworks/Foo @loader_path/Frameworks/Foo",
-                        "SDKROOT": "iphoneos",
-                        "SWIFT_EXEC": swiftCompilerPath.str,
-                        "SWIFT_VERSION": "5.0",
-                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "PRODUCT_BUNDLE_IDENTIFIER": "com.test.ProjectName",
+                            "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @loader_path/Frameworks/Foo @loader_path/Frameworks/Foo @loader_path/Frameworks/Foo",
+                            "SDKROOT": "iphoneos",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.0",
+                            "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1164,28 +1218,31 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                         type: .commandLineTool,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("main.swift"),
-                            ]),
+                                TestBuildFile("main.swift")
+                            ])
                         ]
-                    ),
+                    )
                 ]
             )
 
             let core = try await self.getCore()
             let tester = try TaskConstructionTester(core, testProject)
 
-            let buildParameters = BuildParameters(configuration: "Debug", overrides: [
-                // XOJIT previews enabled, which should be passed when the workspace setting is on
-                "ENABLE_XOJIT_PREVIEWS": "YES",
-                "ENABLE_DEBUG_DYLIB": "YES",
+            let buildParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    // XOJIT previews enabled, which should be passed when the workspace setting is on
+                    "ENABLE_XOJIT_PREVIEWS": "YES",
+                    "ENABLE_DEBUG_DYLIB": "YES",
 
-                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGNING_ALLOWED": "YES",
-                "CODE_SIGN_IDENTITY": "-",
-            ])
+                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGNING_ALLOWED": "YES",
+                    "CODE_SIGN_IDENTITY": "-",
+                ]
+            )
 
             final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+                override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                     if commandLine.first.map(Path.init)?.basename == "actool", commandLine.dropFirst().first != "--version" {
                         return .result(status: .exit(0), stdout: Data("{}".utf8), stderr: Data())
                     }

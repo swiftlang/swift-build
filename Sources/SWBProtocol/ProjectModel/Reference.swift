@@ -13,7 +13,7 @@
 public import SWBUtil
 
 public class Reference: PolymorphicSerializable, @unchecked Sendable {
-    public static let implementations: [SerializableTypeCode : any PolymorphicSerializable.Type] = [
+    public static let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type] = [
         0: FileReference.self,
         1: VersionGroup.self,
         2: VariantGroup.self,
@@ -74,13 +74,13 @@ public struct FileTextEncoding: Hashable, CustomStringConvertible, Sendable {
         self.rawValue = rawValue
     }
 
-    public static let utf8 = FileTextEncoding("utf-8") // 4
-    public static let utf16 = FileTextEncoding("utf-16") // 10
-    public static let utf16be = FileTextEncoding("utf-16be") // 0x90000100
-    public static let utf16le = FileTextEncoding("utf-16le") // 0x94000100
-    public static let utf32 = FileTextEncoding("utf-32") // 0x8c000100
-    public static let utf32be = FileTextEncoding("utf-32be") // 0x98000100
-    public static let utf32le = FileTextEncoding("utf-32le") // 0x9c000100
+    public static let utf8 = FileTextEncoding("utf-8")  // 4
+    public static let utf16 = FileTextEncoding("utf-16")  // 10
+    public static let utf16be = FileTextEncoding("utf-16be")  // 0x90000100
+    public static let utf16le = FileTextEncoding("utf-16le")  // 0x94000100
+    public static let utf32 = FileTextEncoding("utf-32")  // 0x8c000100
+    public static let utf32be = FileTextEncoding("utf-32be")  // 0x98000100
+    public static let utf32le = FileTextEncoding("utf-32le")  // 0x9c000100
 
     public var description: String {
         return rawValue

@@ -58,11 +58,11 @@ open class BuildService: Service, @unchecked Sendable {
     /// The cache of core objects.
     ///
     /// We make this a heavy cache in debug mode, so that it can be explicitly cleared (via `clearAllCaches`), which helps considerably with memory leak debugging.
-#if DEBUG
-    private let sharedCoreCache = HeavyCache<CoreCacheKey, (Core?, [Diagnostic])>()
-#else
-    private let sharedCoreCache = Cache<CoreCacheKey, (Core?, [Diagnostic])>()
-#endif
+    #if DEBUG
+        private let sharedCoreCache = HeavyCache<CoreCacheKey, (Core?, [Diagnostic])>()
+    #else
+        private let sharedCoreCache = Cache<CoreCacheKey, (Core?, [Diagnostic])>()
+    #endif
 
     /// Async lock to guard access to `sharedCoreCache`, since its `getOrInsert` method can't be given an async closure.
     private var sharedCoreCacheLock = ActorLock()
@@ -111,8 +111,7 @@ open class BuildService: Service, @unchecked Sendable {
                         }
                     }
                 }
-            }
-            catch {
+            } catch {
                 // Couldn't get the contents of the frameworks directory - not sure whether this should be an error or if there are development workflows we want to support where it might be missing.
             }
         }
@@ -129,11 +128,9 @@ open class BuildService: Service, @unchecked Sendable {
                 if latestModDate.map({ latestModDate in modDate > latestModDate }) ?? true {
                     latestModDate = modDate
                 }
-            }
-            catch let error as NSError {
+            } catch let error as NSError {
                 throw StubError.error("Couldn't get timestamp of SWBBuildService.bundle contents: \(error.localizedDescription)")
-            }
-            catch {
+            } catch {
                 throw StubError.error("Couldn't get timestamp of SWBBuildService.bundle contents: \(error)")
             }
         }

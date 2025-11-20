@@ -160,7 +160,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
     }
 
     private final class CleanExecutableTask: ExecutableTask {
-        init(commandLine: [String], workingDirectory: Path, environment: [String:String], configuredTarget: ConfiguredTarget, type: any TaskTypeDescription) {
+        init(commandLine: [String], workingDirectory: Path, environment: [String: String], configuredTarget: ConfiguredTarget, type: any TaskTypeDescription) {
             self.commandLine = commandLine.map { .literal(ByteString(encodingAsUTF8: $0)) }
             self.workingDirectory = workingDirectory
             self.environment = EnvironmentBindings(environment)
@@ -242,7 +242,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         if let reason = error.localizedFailureReason {
             description += " (\(reason))"
         }
-        return NSError(domain: "org.swift.swift-build", code: 0, userInfo: [ NSLocalizedDescriptionKey: "\(message): \(description)" ])
+        return NSError(domain: "org.swift.swift-build", code: 0, userInfo: [NSLocalizedDescriptionKey: "\(message): \(description)"])
     }
 
     private func cleanBuildFolders(buildFolders: Set<Path>, buildOutputDelegate: any BuildOutputDelegate) {
@@ -283,9 +283,16 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
                 } else {
                     message += "."
                 }
-                buildOutputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData(message), childDiagnostics: [
-                    Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("To mark this directory as deletable by the build system, run `\(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fs.commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to: buildFolderPath)))` when it is created."))
-                ]))
+                buildOutputDelegate.emit(
+                    Diagnostic(
+                        behavior: .error,
+                        location: .unknown,
+                        data: DiagnosticData(message),
+                        childDiagnostics: [
+                            Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("To mark this directory as deletable by the build system, run `\(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, encodingBehavior: .fullCommandLine).encode(fs.commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to: buildFolderPath)))` when it is created."))
+                        ]
+                    )
+                )
             }
         }
     }

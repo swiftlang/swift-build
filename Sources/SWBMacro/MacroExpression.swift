@@ -13,7 +13,7 @@
 public import SWBUtil
 
 /// A macro value expression is a parsed representation of a string that might contain macro references.  Parsed macro expressions are immutable, and depend only on the contents of the input string.  Macro names are currently bound after parsing, so macro expressions are in fact independent of the namespace that was used to parse them.  There is no public API on MacroExpression to evaluate it in a MacroEvaluationScope — instead, use the `evaluate()` method on MacroEvaluationScope.
-public class MacroExpression : PolymorphicSerializable, CustomStringConvertible, @unchecked Sendable {
+public class MacroExpression: PolymorphicSerializable, CustomStringConvertible, @unchecked Sendable {
 
     /// String representation from which the expression was instantiated.
     public let stringRep: String
@@ -64,23 +64,23 @@ public class MacroExpression : PolymorphicSerializable, CustomStringConvertible,
     public static let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type] = [
         0: MacroExpression.self,
         1: MacroStringExpression.self,
-        2: MacroStringListExpression.self
-        ]
+        2: MacroStringListExpression.self,
+    ]
 }
 
 extension MacroExpression: Equatable {
-    public static func ==(lhs: MacroExpression, rhs: MacroExpression) -> Bool {
+    public static func == (lhs: MacroExpression, rhs: MacroExpression) -> Bool {
         // Two MacroExpressions are the same if they are of the same type and have the same string representation.
         return type(of: lhs) == type(of: rhs) && lhs.stringRep == rhs.stringRep
     }
 }
 
 /// Represents a macro expression that can be evaluated as a string.
-public final class MacroStringExpression : MacroExpression, Encodable, @unchecked Sendable {
+public final class MacroStringExpression: MacroExpression, Encodable, @unchecked Sendable {
 }
 
 /// Represents a macro expression that can be evaluated as a string list.
-public final class MacroStringListExpression : MacroExpression, Encodable, @unchecked Sendable {
+public final class MacroStringListExpression: MacroExpression, Encodable, @unchecked Sendable {
 }
 
 /// Support static storage of parsed string expressions.

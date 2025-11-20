@@ -159,13 +159,15 @@ public import Foundation
                 self.arch = try container.decode(String.self, forKey: .arch)
                 self.triple = try container.decode(String.self, forKey: .triple)
                 self.llvm_triple = try container.decode(LLVMTriple.self, forKey: .llvm_triple)
-                self.min_os_version = try container.decodeIfPresent(Int.self, forKey: .min_os_version) ?? {
-                    if ndkVersion < Version(27) {
-                        return 21 // min_os_version wasn't present prior to NDKr27, fill it in with 21, which is the appropriate value
-                    } else {
-                        throw DecodingError.valueNotFound(Int.self, .init(codingPath: container.codingPath, debugDescription: "No value associated with key \(CodingKeys.min_os_version) (\"\(CodingKeys.min_os_version.rawValue)\")."))
-                    }
-                }()
+                self.min_os_version =
+                    try container.decodeIfPresent(Int.self, forKey: .min_os_version)
+                    ?? {
+                        if ndkVersion < Version(27) {
+                            return 21  // min_os_version wasn't present prior to NDKr27, fill it in with 21, which is the appropriate value
+                        } else {
+                            throw DecodingError.valueNotFound(Int.self, .init(codingPath: container.codingPath, debugDescription: "No value associated with key \(CodingKeys.min_os_version) (\"\(CodingKeys.min_os_version.rawValue)\")."))
+                        }
+                    }()
             }
         }
 
@@ -189,7 +191,7 @@ public import Foundation
                 // Also works on non-x86 archs via binfmt support and qemu (or Rosetta on Apple-hosted VMs).
                 "linux-x86_64"
             default:
-                nil // unsupported host
+                nil  // unsupported host
             }
         }
 

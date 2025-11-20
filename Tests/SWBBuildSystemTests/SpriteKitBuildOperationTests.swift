@@ -28,27 +28,33 @@ fileprivate struct SpriteKitBuildOperationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("assets.atlas"),
-                    ]),
+                        TestFile("assets.atlas")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
-                    TestStandardTarget("App",
-                                       type: .application,
-                                       buildPhases: [
-                        TestResourcesBuildPhase([
-                            TestBuildFile("assets.atlas"),
-                        ]),
-                    ]),
-                ])
+                    TestStandardTarget(
+                        "App",
+                        type: .application,
+                        buildPhases: [
+                            TestResourcesBuildPhase([
+                                TestBuildFile("assets.atlas")
+                            ])
+                        ]
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str

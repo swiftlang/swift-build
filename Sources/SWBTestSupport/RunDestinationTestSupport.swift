@@ -119,16 +119,16 @@ extension _RunDestinationInfo {
     /// A run destination targeting macOS, using the public SDK.
     package static var macOS: Self {
         #if os(macOS)
-        switch Architecture.host.stringValue {
-        case "arm64":
-            return macOSAppleSilicon
-        case "x86_64":
-            return macOSIntel
-        default:
-            preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
-        }
+            switch Architecture.host.stringValue {
+            case "arm64":
+                return macOSAppleSilicon
+            case "x86_64":
+                return macOSIntel
+            default:
+                preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
+            }
         #else
-        return macOSIntel
+            return macOSIntel
         #endif
     }
 
@@ -150,17 +150,17 @@ extension _RunDestinationInfo {
     /// A run destination targeting macOS (Mac Catalyst), using the public SDK.
     package static var macCatalyst: Self {
         #if os(macOS)
-        switch Architecture.host.stringValue {
-        case "arm64":
-            // FIXME: <rdar://78361860> Use results.runDestinationTargetArchitecture in our tests where appropriate so that this works
-            fallthrough // return macCatalystAppleSilicon
-        case "x86_64":
-            return macCatalystIntel
-        default:
-            preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
-        }
+            switch Architecture.host.stringValue {
+            case "arm64":
+                // FIXME: <rdar://78361860> Use results.runDestinationTargetArchitecture in our tests where appropriate so that this works
+                fallthrough  // return macCatalystAppleSilicon
+            case "x86_64":
+                return macCatalystIntel
+            default:
+                preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
+            }
         #else
-        return macCatalystIntel
+            return macCatalystIntel
         #endif
     }
 
@@ -222,17 +222,17 @@ extension _RunDestinationInfo {
     /// A run destination targeting DriverKit, using the public SDK.
     package static var driverKit: Self {
         #if os(macOS)
-        switch Architecture.host.stringValue {
-        case "arm64":
-            // FIXME: <rdar://78361860> Use results.runDestinationTargetArchitecture in our tests where appropriate so that this works
-            fallthrough // return driverKitAppleSilicon
-        case "x86_64":
-            return driverKitIntel
-        default:
-            preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
-        }
+            switch Architecture.host.stringValue {
+            case "arm64":
+                // FIXME: <rdar://78361860> Use results.runDestinationTargetArchitecture in our tests where appropriate so that this works
+                fallthrough  // return driverKitAppleSilicon
+            case "x86_64":
+                return driverKitIntel
+            default:
+                preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
+            }
         #else
-        return driverKitIntel
+            return driverKitIntel
         #endif
     }
 
@@ -248,7 +248,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting Windows generic device, using the public SDK.
     package static var windows: Self {
-        guard let arch = Architecture.hostStringValue  else {
+        guard let arch = Architecture.hostStringValue else {
             preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
         }
         return .init(platform: "windows", sdk: "windows", sdkVariant: "windows", targetArchitecture: arch, supportedArchitectures: ["x86_64, aarch64"], disableOnlyActiveArch: false)
@@ -256,7 +256,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting Linux generic device, using the public SDK.
     package static var linux: Self {
-        guard let arch = Architecture.hostStringValue  else {
+        guard let arch = Architecture.hostStringValue else {
             preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
         }
         return .init(platform: "linux", sdk: "linux", sdkVariant: "linux", targetArchitecture: arch, supportedArchitectures: ["x86_64", "aarch64"], disableOnlyActiveArch: false)
@@ -264,7 +264,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting FreeBSD generic device, using the public SDK.
     package static var freebsd: Self {
-        guard let arch = Architecture.hostStringValue  else {
+        guard let arch = Architecture.hostStringValue else {
             preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
         }
         return .init(platform: "freebsd", sdk: "freebsd", sdkVariant: "freebsd", targetArchitecture: arch, supportedArchitectures: ["x86_64", "aarch64"], disableOnlyActiveArch: false)
@@ -272,7 +272,7 @@ extension _RunDestinationInfo {
 
     /// A run destination targeting OpenBSD generic device, using the public SDK.
     package static var openbsd: Self {
-        guard let arch = Architecture.hostStringValue  else {
+        guard let arch = Architecture.hostStringValue else {
             preconditionFailure("Unknown architecture \(Architecture.host.stringValue ?? "<nil>")")
         }
         return .init(platform: "openbsd", sdk: "openbsd", sdkVariant: "openbsd", targetArchitecture: arch, supportedArchitectures: ["x86_64", "aarch64"], disableOnlyActiveArch: false)
@@ -361,7 +361,7 @@ extension _RunDestinationInfo {
         case "linux":
             return "linux-gnu"
         default:
-            return platform // watchOS, DriverKit
+            return platform  // watchOS, DriverKit
         }
     }
 

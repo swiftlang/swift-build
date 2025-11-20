@@ -66,10 +66,12 @@ extension ModuleVerifierTargetSet {
     }
 
     public static func combinations(languages: [ModuleVerifierLanguage], targets: [String], targetVariants: [String], standards: [ModuleVerifierLanguage.Standard]) -> [ModuleVerifierTargetSet] {
-        return ModuleVerifierTargetSet.combinations(languages: languages,
-                                      targets: ModuleVerifierTarget.targets(from: targets),
-                                      targetVariants: ModuleVerifierTarget.targets(from: targetVariants),
-                                      standards: standards)
+        return ModuleVerifierTargetSet.combinations(
+            languages: languages,
+            targets: ModuleVerifierTarget.targets(from: targets),
+            targetVariants: ModuleVerifierTarget.targets(from: targetVariants),
+            standards: standards
+        )
     }
 
     private static func combinations(languages: [ModuleVerifierLanguage], targets: [ModuleVerifierTarget], targetVariants: [ModuleVerifierTarget], standards: [ModuleVerifierLanguage.Standard]) -> [ModuleVerifierTargetSet] {
@@ -109,8 +111,10 @@ extension ModuleVerifierTargetSet {
 
 extension ModuleVerifierTargetSet {
     public static func verifyTargets(targets: [String], targetVariants: [String]) -> [Diagnostic] {
-        return ModuleVerifierTargetSet.verifyTargets(targets: ModuleVerifierTarget.targets(from: targets),
-                                        targetVariants: ModuleVerifierTarget.targets(from: targetVariants))
+        return ModuleVerifierTargetSet.verifyTargets(
+            targets: ModuleVerifierTarget.targets(from: targets),
+            targetVariants: ModuleVerifierTarget.targets(from: targetVariants)
+        )
     }
 
     static func verifyTargets(targets: [ModuleVerifierTarget], targetVariants: [ModuleVerifierTarget]) -> [Diagnostic] {
@@ -149,8 +153,10 @@ extension ModuleVerifierTargetSet {
         return diagnostics
     }
 
-    private static func verifyMatchingTargetForVariant(partitionedTargets: [String: [ModuleVerifierTarget]],
-                                        partitionedTargetVariants: [String: [ModuleVerifierTarget]]) -> [Diagnostic] {
+    private static func verifyMatchingTargetForVariant(
+        partitionedTargets: [String: [ModuleVerifierTarget]],
+        partitionedTargetVariants: [String: [ModuleVerifierTarget]]
+    ) -> [Diagnostic] {
         var diagnostics: [Diagnostic] = []
 
         for (architecture, targetVariants) in partitionedTargetVariants {

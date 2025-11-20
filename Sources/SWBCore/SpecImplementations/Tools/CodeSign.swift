@@ -14,7 +14,7 @@ public import SWBUtil
 public import SWBMacro
 import Foundation
 
-public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class CodesignToolSpec: CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.build-tools.codesign"
 
     public override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {
@@ -46,7 +46,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         // Don't code sign unless we have a valid expanded identity.
         let expandedCodeSignIdentity = cbc.scope.evaluate(BuiltinMacros.EXPANDED_CODE_SIGN_IDENTITY)
         if expandedCodeSignIdentity.isEmpty {
-            if cbc.scope.evaluate(BuiltinMacros.CODE_SIGNING_ALLOWED)  &&  cbc.scope.evaluate(BuiltinMacros.CODE_SIGNING_REQUIRED) {
+            if cbc.scope.evaluate(BuiltinMacros.CODE_SIGNING_ALLOWED) && cbc.scope.evaluate(BuiltinMacros.CODE_SIGNING_REQUIRED) {
                 let productTypeString = { () -> String in
                     guard let productType = cbc.producer.productType else { return "" }
                     return " for product type '\(productType.name)"
@@ -86,14 +86,13 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         var addTimestampNoneFlag = !cbc.scope.evaluate(BuiltinMacros.DEPLOYMENT_POSTPROCESSING)
         var illegalFlags = [String]()
         for flag in cbc.scope.evaluate(BuiltinMacros.OTHER_CODE_SIGN_FLAGS) {
-            if flag.hasPrefix("-d")  ||  flag == "--display"  ||  flag == "-h" {
+            if flag.hasPrefix("-d") || flag == "--display" || flag == "-h" {
                 illegalFlags.append(flag)
-            }
-            else {
+            } else {
                 commandLine.append(flag)
             }
 
-            if flag.hasPrefix("-r")  ||  flag.hasPrefix("--requirements") {
+            if flag.hasPrefix("-r") || flag.hasPrefix("--requirements") {
                 generateDesignatedRequirements = false
             }
 
@@ -202,7 +201,8 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         var environment: [String: String] = environmentFromSpec(cbc, delegate).bindingsDictionary
         environment.merge(
             CodesignToolSpec.computeCodeSigningEnvironment(cbc, codesignAllocate: environment[BuiltinMacros.CODESIGN_ALLOCATE.name]),
-            uniquingKeysWith: { (_, second) in second })
+            uniquingKeysWith: { (_, second) in second }
+        )
 
         // Normally, the additional inputs shouldn't be applied on a resign-task for the target as doing so can create a cycle between the Copy Files Phase and Run Script Phase. However, due to the way that app hosted tests work (e.g. misuse the copy phase to inject content into the app bundle), we need to provide a provision to track that in order to properly-resign the app bundle (cf: testIncrementalCodesignForCopyFileChangesWithAppHostedTests).
         // NOTE: This does mean that the users can actually introduce a cycle if they have a script phase that also injects content into the app bundle related to the test bundle that is getting copied in. However, this should be an obscure usage.
@@ -213,7 +213,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
 
         // FIXME: We currently track the product to sign as an input, but this doesn't seem right given that the tool won't actually look at that?
         // NOTE: The use of `createDirectoryTreeNode()` is done as it may very well be the case that the input is a bundle (e.g. .xctest, .framework, .appex, etc...). This is safe to use on files as well.
-        var inputs: [any PlannedNode] = [delegate.createNode(productToSign), delegate.createNode(outputPath)] + extraInputs.map{ delegate.createDirectoryTreeNode($0, excluding: []) } + cbc.commandOrderingInputs
+        var inputs: [any PlannedNode] = [delegate.createNode(productToSign), delegate.createNode(outputPath)] + extraInputs.map { delegate.createDirectoryTreeNode($0, excluding: []) } + cbc.commandOrderingInputs
 
         // Detect whether or not we are signing a bundle, so that we can properly report the inputs and outputs. This is important for our mutable node handling being able to connect the tasks properly.
         var outputs: [any PlannedNode]
@@ -242,8 +242,7 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
                     // For non-framework bundles we need to include Contents/MacOS when not using shallow bundles.
                     if !shallow {
                         binaryPath = outputPath.join("Contents/MacOS").join(bundleName)
-                    }
-                    else {
+                    } else {
                         binaryPath = outputPath.join(bundleName)
                     }
                 }
@@ -284,16 +283,16 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         // First, look for a -i or --identifier codesign parameter.
         if let identifierIdx = commandLine.firstIndex(of: "-i") ?? commandLine.firstIndex(of: "--identifier") {
             // If we found find a -i or --identifier parameter, use it as the identifier.
-            if identifierIdx+1 < commandLine.count {
-                identifier = commandLine[identifierIdx+1]
+            if identifierIdx + 1 < commandLine.count {
+                identifier = commandLine[identifierIdx + 1]
             }
         }
 
         // If there are no periods in the identifier, look for a --prefix codesign parameter and if found, prepend it to the identifier.
         if identifier.contains(".") {
             if let prefixIdx = commandLine.firstIndex(of: "--prefix") {
-                if prefixIdx+1 < commandLine.count {
-                    let prefix = commandLine[prefixIdx+1]
+                if prefixIdx + 1 < commandLine.count {
+                    let prefix = commandLine[prefixIdx + 1]
                     identifier = prefix + identifier
                 }
             }
@@ -316,7 +315,6 @@ public final class CodesignToolSpec : CommandLineToolSpec, SpecIdentifierType, @
         }
         return cbc.scope.evaluate(cbc.scope.namespace.parseString(unevaluatedDesignatedRequirements), lookup: lookup)
     }
-
 
     /// Computes the environment for invoking the code signing tool.
     ///

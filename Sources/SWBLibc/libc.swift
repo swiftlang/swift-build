@@ -11,19 +11,19 @@
 //===----------------------------------------------------------------------===//
 
 #if canImport(Darwin)
-@_exported import Darwin.C
+    @_exported import Darwin.C
 #elseif os(Windows)
-@_exported import ucrt
-@_exported import CRT
-@_exported import WinSDK
+    @_exported import ucrt
+    @_exported import CRT
+    @_exported import WinSDK
 #elseif canImport(Glibc)
-@_exported import Glibc
+    @_exported import Glibc
 #elseif canImport(Musl)
-@_exported import Musl
+    @_exported import Musl
 #elseif canImport(Android)
-@_exported import Android
+    @_exported import Android
 #else
-#error("Missing libc or equivalent")
+    #error("Missing libc or equivalent")
 #endif
 @_exported import SWBCLibc
 

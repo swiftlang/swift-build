@@ -26,37 +26,52 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestVariantGroup("foo.xib", children: [
-                        TestFile("Base.lproj/foo.xib", regionVariantName: "Base"),
-                        TestFile("en.lproj/foo.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/foo.strings", regionVariantName: "de"),
-                    ]),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
-                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                    ]),
-                    TestVariantGroup("Main.storyboard", children: [
-                        TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
-                        TestFile("en.lproj/Main.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/Main.strings", regionVariantName: "de"),
-                        TestFile("ja.lproj/Main.strings", regionVariantName: "ja"),
-                    ]),
-                    TestVariantGroup("Intents.intentdefinition", children: [
-                        TestFile("Base.lproj/Intents.intentdefinition", regionVariantName: "Base"),
-                        TestFile("de.lproj/Intents.strings", regionVariantName: "de"),
-                        TestFile("ja.lproj/Intents.strings", regionVariantName: "ja"),
-                    ])
-                ]),
+                    TestVariantGroup(
+                        "foo.xib",
+                        children: [
+                            TestFile("Base.lproj/foo.xib", regionVariantName: "Base"),
+                            TestFile("en.lproj/foo.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/foo.strings", regionVariantName: "de"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "Main.storyboard",
+                        children: [
+                            TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
+                            TestFile("en.lproj/Main.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/Main.strings", regionVariantName: "de"),
+                            TestFile("ja.lproj/Main.strings", regionVariantName: "ja"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "Intents.intentdefinition",
+                        children: [
+                            TestFile("Base.lproj/Intents.intentdefinition", regionVariantName: "Base"),
+                            TestFile("de.lproj/Intents.strings", regionVariantName: "de"),
+                            TestFile("ja.lproj/Intents.strings", regionVariantName: "ja"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "IBC_EXEC": ibtoolPath.str,
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -66,14 +81,16 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         TestResourcesBuildPhase([
                             "foo.xib",
                             "Localizable.strings",
-                            "Main.storyboard"
+                            "Main.storyboard",
                         ]),
                         TestSourcesBuildPhase([
                             // Intent definition files appear in the "Compile Sources" phase
                             "Intents.intentdefinition"
                         ]),
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .macOS) { results in
@@ -156,19 +173,22 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Foo.png"),
                     TestFile("com.apple.Foo.plist"),
-                    TestFile("AFolderIncorrectlyNamed.lproj/Path/To/Something/NotLocalizable.plist")
-                ]),
+                    TestFile("AFolderIncorrectlyNamed.lproj/Path/To/Something/NotLocalizable.plist"),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "DONT_GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -176,18 +196,26 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     type: .application,
                     buildPhases: [
                         TestResourcesBuildPhase([
-                            "Foo.png",
+                            "Foo.png"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "com.apple.Foo.plist",
-                        ], destinationSubfolder: .resources, onlyForDeployment: false
-                                               ),
-                        TestCopyFilesBuildPhase([
-                            "AFolderIncorrectlyNamed.lproj/Path/To/Something/NotLocalizable.plist",
-                        ], destinationSubfolder: .resources, onlyForDeployment: false
-                                               ),
-                    ])
-            ])
+                        TestCopyFilesBuildPhase(
+                            [
+                                "com.apple.Foo.plist"
+                            ],
+                            destinationSubfolder: .resources,
+                            onlyForDeployment: false
+                        ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "AFolderIncorrectlyNamed.lproj/Path/To/Something/NotLocalizable.plist"
+                            ],
+                            destinationSubfolder: .resources,
+                            onlyForDeployment: false
+                        ),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .macOS) { results in
@@ -214,7 +242,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     // iOS app files
                     TestFile("iosApp/main.m"),
@@ -229,43 +258,54 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     // watchOS extension files
                     TestFile("watchosExtension/Controller.m"),
                     TestFile("watchosExtension/Info.plist"),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("watchOSExtension/en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("watchOSExtension/zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
-                        TestFile("watchOSExtension/fr.lproj/Localizable.strings", regionVariantName: "fr"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("watchOSExtension/en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("watchOSExtension/zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                            TestFile("watchOSExtension/fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Release",
                     buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Watchable",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "Sources/iosApp/Info.plist",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
-                                                "SDKROOT": "iphoneos"
-                                               ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "Sources/iosApp/Info.plist",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
+                                "SDKROOT": "iphoneos",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
                         TestResourcesBuildPhase([
                             "Main.storyboard",
                             "iosApp/Assets.xcassets",
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "Watchable WatchKit App.app",
-                        ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch", onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Watchable WatchKit App.app"
+                            ],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch",
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: ["Watchable WatchKit App"]
                 ),
@@ -273,21 +313,26 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     "Watchable WatchKit App",
                     type: .watchKitApp,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
-                                                "SDKROOT": "watchos",
-                                                "SKIP_INSTALL": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
+                                "SDKROOT": "watchos",
+                                "SKIP_INSTALL": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
-                            "Interface.storyboard",
+                            "Interface.storyboard"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "Watchable WatchKit Extension.appex",
-                        ], destinationSubfolder: .plugins, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Watchable WatchKit Extension.appex"
+                            ],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: ["Watchable WatchKit Extension"]
                 ),
@@ -295,18 +340,20 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     "Watchable WatchKit Extension",
                     type: .watchKitExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                                                "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                                                "SDKROOT": "watchos",
-                                                "SKIP_INSTALL": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                "SDKROOT": "watchos",
+                                "SKIP_INSTALL": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Controller.m",
+                            "Controller.m"
                         ]),
                         TestResourcesBuildPhase([
                             "Interface.storyboard",
@@ -314,7 +361,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["DSTROOT": "/tmp/Root"]), runDestination: .macOS) { results in
@@ -403,7 +451,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     // iOS app files
                     TestFile("iosApp/main.m"),
@@ -414,39 +463,46 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     // bundle files
                     TestFile("myBundle/Controller.m"),
                     TestFile("myBundle/Info.plist"),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("myBundle/en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("myBundle/zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
-                        TestFile("myBundle/fr.lproj/Localizable.strings", regionVariantName: "fr"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("myBundle/en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("myBundle/zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                            TestFile("myBundle/fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Release",
                     buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Bundlable",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "Sources/iosApp/Info.plist",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
-                                                "SDKROOT": "iphoneos"
-                                               ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "Sources/iosApp/Info.plist",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
+                                "SDKROOT": "iphoneos",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
                         TestResourcesBuildPhase([
                             "Main.storyboard",
                             "iosApp/Assets.xcassets",
-                            "MyBundle.bundle"
+                            "MyBundle.bundle",
                         ]),
                     ],
                     dependencies: ["MyBundle"]
@@ -455,24 +511,27 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     "MyBundle",
                     type: .bundle,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "Sources/myBundle/Info.plist",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                                                "SDKROOT": "iphoneos",
-                                                "SKIP_INSTALL": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "Sources/myBundle/Info.plist",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                "SDKROOT": "iphoneos",
+                                "SKIP_INSTALL": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Controller.m",
+                            "Controller.m"
                         ]),
                         TestResourcesBuildPhase([
-                            "Localizable.strings",
+                            "Localizable.strings"
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["DSTROOT": "/tmp/Root"]), runDestination: .iOS) { results in
@@ -553,35 +612,45 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("CoreFoo.framework"),
-                        TestVariantGroup("Localizable.strings", children: [
-                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                            TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
-                        ]),
-                    ]),
+                        TestVariantGroup(
+                            "Localizable.strings",
+                            children: [
+                                TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                                TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                                TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                            ]
+                        ),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT" : "iphoneos",
-                        ]),
+                            "SDKROOT": "iphoneos",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "App",
                         type: .application,
                         buildPhases: [
-                            TestCopyFilesBuildPhase([
-                                "CoreFoo.framework",
-                            ], destinationSubfolder: .frameworks, onlyForDeployment: false
-                                                   ),
+                            TestCopyFilesBuildPhase(
+                                [
+                                    "CoreFoo.framework"
+                                ],
+                                destinationSubfolder: .frameworks,
+                                onlyForDeployment: false
+                            )
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let fs = PseudoFS()
             var languageLprojPathPairs: [(String, Path)] = []
@@ -663,31 +732,38 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("MyFolder"),
                         TestFile("MyPackage.myPackage"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "INSTALLLOC_DIRECTORY_CONTENTS": "YES"
-                        ]),
+                            "INSTALLLOC_DIRECTORY_CONTENTS": "YES",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "App",
                         type: .application,
                         buildPhases: [
-                            TestResourcesBuildPhase([
-                                "MyFolder",
-                                "MyPackage.myPackage"
-                            ], onlyForDeployment: false)
+                            TestResourcesBuildPhase(
+                                [
+                                    "MyFolder",
+                                    "MyPackage.myPackage",
+                                ],
+                                onlyForDeployment: false
+                            )
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let fs = PseudoFS()
             var languageComponentPathGroupings: [(lang: String, component: String, path: Path)] = []
@@ -775,31 +851,40 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("MyFolder"),
                         TestFile("MyPackage.myPackage"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "INSTALLLOC_DIRECTORY_CONTENTS": "YES"
-                        ]),
+                            "INSTALLLOC_DIRECTORY_CONTENTS": "YES",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "App",
                         type: .application,
                         buildPhases: [
-                            TestCopyFilesBuildPhase([
-                                "MyFolder",
-                                "MyPackage.myPackage"
-                            ], destinationSubfolder: .absolute, destinationSubpath: "/tmp/CustomPath", onlyForDeployment: false)
+                            TestCopyFilesBuildPhase(
+                                [
+                                    "MyFolder",
+                                    "MyPackage.myPackage",
+                                ],
+                                destinationSubfolder: .absolute,
+                                destinationSubpath: "/tmp/CustomPath",
+                                onlyForDeployment: false
+                            )
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let fs = PseudoFS()
             var languageComponentPathGroupings: [(lang: String, component: String, path: Path)] = []
@@ -883,34 +968,44 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("CoreFoo.framework"),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT" : "iphoneos",
-                    ]),
+                        "SDKROOT": "iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildPhases: [
-                        TestCopyFilesBuildPhase([
-                            "CoreFoo.framework",
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "CoreFoo.framework"
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        )
                     ]
                 )
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .iOS) { results in
@@ -932,32 +1027,44 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                        TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                            TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                        ]
+                    )
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT" : "iphoneos",
-                    ]),
+                        "SDKROOT": "iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildPhases: [
-                        TestCopyFilesBuildPhase([
-                            "Localizable.strings",
-                        ], destinationSubfolder: .resources, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Localizable.strings"
+                            ],
+                            destinationSubfolder: .resources,
+                            onlyForDeployment: false
+                        )
                     ]
                 )
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // When installing Japanese, we should only get Japanese content.
@@ -1019,48 +1126,62 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                        TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                            TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                        ]
+                    )
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT" : "iphoneos",
-                    ]),
+                        "SDKROOT": "iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildPhases: [
-                        TestCopyFilesBuildPhase([
-                            "CoreFoo.framework",
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "CoreFoo.framework"
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        )
                     ],
                     dependencies: ["CoreFoo"]
                 ),
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "Localizable.strings"
-                        ]),
+                        ])
                     ]
-                )
-            ])
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .iOS) { results in
@@ -1130,70 +1251,89 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
 
     @Test(.requireSDKs(.iOS))
     func installLocForAppAndEmbeddedProductsInWorkspace() async throws {
-        let testWorkspace = TestWorkspace("aWorkspace", projects: [
-            TestProject(
-                "aProject",
-                groupTree: TestGroup(
-                    "Frameworks",
-                    children: [
-                        TestFile("CoreFoo.framework", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT" : "iphoneos",
-                        ]),
-                ],
-                targets: [
-                    TestStandardTarget(
-                        "App",
-                        type: .application,
-                        buildPhases: [
-                            TestCopyFilesBuildPhase([
-                                "CoreFoo.framework",
-                            ], destinationSubfolder: .frameworks, onlyForDeployment: false
-                                                   ),
+        let testWorkspace = TestWorkspace(
+            "aWorkspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "Frameworks",
+                        children: [
+                            TestFile("CoreFoo.framework", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR"))
                         ]
-                    )
-                ]),
-            TestProject(
-                "bProject",
-                groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
-                    children: [
-                        TestVariantGroup("Localizable.strings", children: [
-                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                            TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
-                        ]),
-                    ]),
-                buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT" : "iphoneos",
-                        ]),
-                ],
-                targets: [
-                    TestStandardTarget(
-                        "CoreFoo", type: .framework,
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "SKIP_INSTALL": "YES",
-                            ]),
-                        ],
-                        buildPhases: [
-                            TestResourcesBuildPhase([
-                                "Localizable.strings"
-                            ]),
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "iphoneos",
+                            ]
+                        )
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "App",
+                            type: .application,
+                            buildPhases: [
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "CoreFoo.framework"
+                                    ],
+                                    destinationSubfolder: .frameworks,
+                                    onlyForDeployment: false
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                TestProject(
+                    "bProject",
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        path: "Sources",
+                        children: [
+                            TestVariantGroup(
+                                "Localizable.strings",
+                                children: [
+                                    TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                                    TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                                    TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                                ]
+                            )
                         ]
-                    )
-                ]
-            )
-        ])
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "iphoneos",
+                            ]
+                        )
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "CoreFoo",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SKIP_INSTALL": "YES"
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestResourcesBuildPhase([
+                                    "Localizable.strings"
+                                ])
+                            ]
+                        )
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 
         let buildParameters = BuildParameters(action: .installLoc, configuration: "Debug")
@@ -1283,16 +1423,19 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("Settings.bundle")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1301,9 +1444,11 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 "Settings.bundle"
-                            ]),
-                        ])
-                ])
+                            ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let fs = PseudoFS()
             var languageLprojPathPairs: [(String, Path)] = []
@@ -1385,25 +1530,30 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("Settings.bundle")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "App",
                         type: .application,
                         buildPhases: [
-                            TestCopyFilesBuildPhase(["Settings.bundle"], destinationSubfolder: .resources, onlyForDeployment: false),
-                        ])
-                ])
+                            TestCopyFilesBuildPhase(["Settings.bundle"], destinationSubfolder: .resources, onlyForDeployment: false)
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let fs = PseudoFS()
             var languageLprojPathPairs: [(String, Path)] = []
@@ -1485,16 +1635,19 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: srcRoot,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("ReleaseSettings.bundle")
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
                         buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                            "PRODUCT_NAME": "$(TARGET_NAME)"
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -1503,9 +1656,11 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 "ReleaseSettings.bundle"
-                            ]),
-                        ])
-                ])
+                            ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let fs = PseudoFS()
             let path = srcRoot.join("Sources/ReleaseSettings.bundle/en.lproj", preserveRoot: true, normalize: true)
@@ -1582,7 +1737,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         TestShellScriptBuildPhase(name: "", shellPath: "/bin/bash", originalObjectID: "abc", contents: "env | sort", onlyForDeployment: false, emitEnvironment: true, alwaysOutOfDate: true)
                     ]
                 )
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .macOS) { results in
@@ -1620,32 +1776,40 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                        TestFile("it.lproj/Localizable.strings", regionVariantName: "it"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                            TestFile("it.lproj/Localizable.strings", regionVariantName: "it"),
+                        ]
+                    )
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)"
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "FrameworkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release"),
+                        TestBuildConfiguration("Release")
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "Localizable.strings"
-                        ]),
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // For localization builds, we expect all the necessary directories and localizable files to be created.
@@ -1710,46 +1874,59 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("MyFramework.h"),
                     TestFile("PublicHeader.h"),
                     TestFile("PrivateHeader.h"),
                     TestFile("SourceFile.m"),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                        TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
-                    ]),
-                ]),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                            TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT" : "iphoneos",
-                    ]),
+                        "SDKROOT": "iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildPhases: [
-                        TestCopyFilesBuildPhase([
-                            "CoreFoo.framework",
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "CoreFoo.framework"
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        )
                     ],
                     dependencies: ["CoreFoo"]
                 ),
                 TestStandardTarget(
-                    "CoreFoo", type: .framework,
+                    "CoreFoo",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "ENABLE_MODULE_VERIFIER": "YES",
-                            "DEFINES_MODULE": "YES"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "ENABLE_MODULE_VERIFIER": "YES",
+                                "DEFINES_MODULE": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -1761,8 +1938,9 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                             "Localizable.strings"
                         ]),
                     ]
-                )
-            ])
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .iOS) { results in
@@ -1847,7 +2025,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     // Test target sources
                     TestFile("TestOne.swift"),
                     TestFile("TestTwo.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1856,16 +2035,20 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": "5.0",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "UnitTestTarget",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist"]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -1873,8 +2056,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                             "TestTwo.swift",
                         ]),
                         TestFrameworksBuildPhase([
-                            "FrameworkTarget.framework",
-                        ])
+                            "FrameworkTarget.framework"
+                        ]),
                     ],
                     dependencies: ["FrameworkTarget"]
                 ),
@@ -1882,18 +2065,18 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     "FrameworkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "FrameworkTarget-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "FrameworkTarget-Info.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "ClassOne.swift",
                             "ClassTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1940,25 +2123,30 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     TestFile("SwiftyJSON.swift"),
                     TestFile("app.swift"),
                     TestFile("appex.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": "4.2",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "USE_HEADERMAP": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "MACOSX_DEPLOYMENT_TARGET": "10.15",
-                    "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
-                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": "4.2",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "USE_HEADERMAP": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "MACOSX_DEPLOYMENT_TARGET": "10.15",
+                        "IPHONEOS_DEPLOYMENT_TARGET": "13.0",
+                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "app", type: .application,
+                    "app",
+                    type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase(["app.swift"]),
                         TestFrameworksBuildPhase([
@@ -1968,10 +2156,12 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                     dependencies: [
                         "appex",
                         "SwiftyJSON",
-                    ]),
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "appex", type: .applicationExtension,
+                    "appex",
+                    type: .applicationExtension,
                     buildPhases: [
                         TestSourcesBuildPhase(["appex.swift"]),
                         TestFrameworksBuildPhase([
@@ -1979,27 +2169,35 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         ]),
                     ],
                     dependencies: [
-                        "SwiftyJSON",
-                    ]),
+                        "SwiftyJSON"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "SwiftyJSON", type: .objectFile,
+                    "SwiftyJSON",
+                    type: .objectFile,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
-                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "FOO",
-                        ]))
+                        TestBuildConfiguration(
+                            "Debug",
+                            impartedBuildProperties: TestImpartedBuildProperties(buildSettings: [
+                                "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "FOO"
+                            ])
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SwiftyJSON.swift"]),
+                        TestSourcesBuildPhase(["SwiftyJSON.swift"])
                     ],
                     dependencies: [
-                        "FOO",
-                    ]),
+                        "FOO"
+                    ]
+                ),
 
                 TestStandardTarget(
-                    "FOO", type: .bundle
+                    "FOO",
+                    type: .bundle
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS) { results in
@@ -2022,24 +2220,35 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestVariantGroup("AppShortcuts.strings", children: [
-                        TestFile("en.lproj/AppShortcuts.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/AppShortcuts.strings", regionVariantName: "de"),
-                        TestFile("ja.lproj/AppShortcuts.strings", regionVariantName: "ja"),
-                    ]),
-                    TestVariantGroup("Localizable.strings", children: [
-                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
-                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                    ]),
-                    TestVariantGroup("InfoPlist.strings", children: [
-                        TestFile("en.lproj/InfoPlist.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/InfoPlist.strings", regionVariantName: "de"),
-                        TestFile("ja.lproj/InfoPlist.strings", regionVariantName: "ja"),
-                    ])
-                ]),
+                    TestVariantGroup(
+                        "AppShortcuts.strings",
+                        children: [
+                            TestFile("en.lproj/AppShortcuts.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/AppShortcuts.strings", regionVariantName: "de"),
+                            TestFile("ja.lproj/AppShortcuts.strings", regionVariantName: "ja"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "Localizable.strings",
+                        children: [
+                            TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                            TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                        ]
+                    ),
+                    TestVariantGroup(
+                        "InfoPlist.strings",
+                        children: [
+                            TestFile("en.lproj/InfoPlist.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/InfoPlist.strings", regionVariantName: "de"),
+                            TestFile("ja.lproj/InfoPlist.strings", regionVariantName: "ja"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2049,7 +2258,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_BUNDLE_IDENTIFIER": "com.foo.bar",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "iphoneos",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -2059,10 +2269,12 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         TestResourcesBuildPhase([
                             "AppShortcuts.strings",
                             "Localizable.strings",
-                            "InfoPlist.strings"
-                        ]),
-                    ])
-            ])
+                            "InfoPlist.strings",
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: nil) { results in
             // Ignore all Gate tasks.
@@ -2085,32 +2297,36 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/ja.lproj/InfoPlist.strings", "/tmp/Test/aProject/Sources/ja.lproj/InfoPlist.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/de.lproj/InfoPlist.strings", "/tmp/Test/aProject/Sources/de.lproj/InfoPlist.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
-                    task.checkCommandLineContains(["appshortcutstringsprocessor",
-                                                   "--source-file",
-                                                   "/tmp/Test/aProject/Sources/en.lproj/AppShortcuts.strings",
-                                                   "--input-data-path",
-                                                   "path_to_metadata_appintents"])
+                    task.checkCommandLineContains([
+                        "appshortcutstringsprocessor",
+                        "--source-file",
+                        "/tmp/Test/aProject/Sources/en.lproj/AppShortcuts.strings",
+                        "--input-data-path",
+                        "path_to_metadata_appintents",
+                    ])
                 }
                 results.checkTask(.matchRuleType("AppIntentsSSUTraining")) { task in
                     let executableName = task.commandLine.first
                     if let executableName,
-                       executableName == "appintentsnltrainingprocessor" {
-                        task.checkCommandLine([executableName.asString,
-                                               "--infoplist-path",
-                                               "/tmp/Test/aProject/Sources/en.lproj/InfoPlist.strings",
-                                               "--temp-dir-path",
-                                               "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu",
-                                               "--bundle-id",
-                                               "com.foo.bar",
-                                               "--product-path",
-                                               "/tmp/aProject.dst/Applications/App.app",
-                                               "--extracted-metadata-path",
-                                               "path_to_metadata_appintents",
-                                               "--deployment-postprocessing",
-                                               "--metadata-file-list",
-                                               "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/App.DependencyMetadataFileList",
-                                               "--archive-ssu-assets"
-                                              ])
+                        executableName == "appintentsnltrainingprocessor"
+                    {
+                        task.checkCommandLine([
+                            executableName.asString,
+                            "--infoplist-path",
+                            "/tmp/Test/aProject/Sources/en.lproj/InfoPlist.strings",
+                            "--temp-dir-path",
+                            "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu",
+                            "--bundle-id",
+                            "com.foo.bar",
+                            "--product-path",
+                            "/tmp/aProject.dst/Applications/App.app",
+                            "--extracted-metadata-path",
+                            "path_to_metadata_appintents",
+                            "--deployment-postprocessing",
+                            "--metadata-file-list",
+                            "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/App.DependencyMetadataFileList",
+                            "--archive-ssu-assets",
+                        ])
                     }
 
                     task.checkInputs([
@@ -2120,11 +2336,11 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("App.DependencyMetadataFileList")),
                         .namePattern(.and(.prefix("target-"), .suffix("-ModuleVerifierTaskProducer"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-fused-phase0-copy-bundle-resources"))),
-                        .namePattern(.and(.prefix("target-"), .suffix("-entry")))
+                        .namePattern(.and(.prefix("target-"), .suffix("-entry"))),
                     ])
 
                     task.checkOutputs([
-                        .path("/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu/root.ssu.yaml"),
+                        .path("/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu/root.ssu.yaml")
                     ])
 
                     results.checkNoDiagnostics()
@@ -2152,21 +2368,25 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/de.lproj/AppShortcuts.strings", "/tmp/Test/aProject/Sources/de.lproj/AppShortcuts.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/de.lproj/InfoPlist.strings", "/tmp/Test/aProject/Sources/de.lproj/InfoPlist.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
-                    task.checkCommandLineContains(["appshortcutstringsprocessor",
-                                                   "--source-file",
-                                                   "/tmp/Test/aProject/Sources/en.lproj/AppShortcuts.strings",
-                                                   "--input-data-path",
-                                                   "path_to_metadata_appintents"])
+                    task.checkCommandLineContains([
+                        "appshortcutstringsprocessor",
+                        "--source-file",
+                        "/tmp/Test/aProject/Sources/en.lproj/AppShortcuts.strings",
+                        "--input-data-path",
+                        "path_to_metadata_appintents",
+                    ])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("AppIntentsSSUTraining")) { task in
-                    task.checkCommandLineContains(["appintentsnltrainingprocessor",
-                                                   "--infoplist-path",
-                                                   "/tmp/Test/aProject/Sources/en.lproj/InfoPlist.strings",
-                                                   "--temp-dir-path",
-                                                   "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu",
-                                                   "--extracted-metadata-path",
-                                                   "path_to_metadata_appintents",
-                                                   "--archive-ssu-assets"])
+                    task.checkCommandLineContains([
+                        "appintentsnltrainingprocessor",
+                        "--infoplist-path",
+                        "/tmp/Test/aProject/Sources/en.lproj/InfoPlist.strings",
+                        "--temp-dir-path",
+                        "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu",
+                        "--extracted-metadata-path",
+                        "path_to_metadata_appintents",
+                        "--archive-ssu-assets",
+                    ])
                 }
             }
             results.checkNoTask()
@@ -2190,21 +2410,25 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/App.DependencyMetadataFileList"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/App.DependencyStaticMetadataFileList"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("ValidateAppShortcutStringsMetadata")) { task in
-                    task.checkCommandLineContains(["appshortcutstringsprocessor",
-                                                   "--source-file",
-                                                   "/tmp/Test/aProject/Sources/en.lproj/AppShortcuts.strings",
-                                                   "--input-data-path",
-                                                   "path_to_metadata_appintents"])
+                    task.checkCommandLineContains([
+                        "appshortcutstringsprocessor",
+                        "--source-file",
+                        "/tmp/Test/aProject/Sources/en.lproj/AppShortcuts.strings",
+                        "--input-data-path",
+                        "path_to_metadata_appintents",
+                    ])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("AppIntentsSSUTraining")) { task in
-                    task.checkCommandLineContains(["appintentsnltrainingprocessor",
-                                                   "--infoplist-path",
-                                                   "/tmp/Test/aProject/Sources/en.lproj/InfoPlist.strings",
-                                                   "--temp-dir-path",
-                                                   "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu",
-                                                   "--extracted-metadata-path",
-                                                   "path_to_metadata_appintents",
-                                                   "--archive-ssu-assets"])
+                    task.checkCommandLineContains([
+                        "appintentsnltrainingprocessor",
+                        "--infoplist-path",
+                        "/tmp/Test/aProject/Sources/en.lproj/InfoPlist.strings",
+                        "--temp-dir-path",
+                        "/tmp/Test/aProject/build/aProject.build/Debug-iphoneos/App.build/ssu",
+                        "--extracted-metadata-path",
+                        "path_to_metadata_appintents",
+                        "--archive-ssu-assets",
+                    ])
                 }
             }
             results.checkNoTask()

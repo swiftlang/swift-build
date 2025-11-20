@@ -36,9 +36,10 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
         commandLine += ["-r", "-arch", arch]
 
         if let buildPlatform = cbc.producer.sdk?.targetBuildVersionPlatform(sdkVariant: cbc.producer.sdkVariant),
-           let deploymentTargetMacro = cbc.producer.platform?.deploymentTargetMacro,
-           let minDeploymentTarget = cbc.scope.evaluate(deploymentTargetMacro).nilIfEmpty,
-           let sdkVersion = cbc.producer.sdk?.version {
+            let deploymentTargetMacro = cbc.producer.platform?.deploymentTargetMacro,
+            let minDeploymentTarget = cbc.scope.evaluate(deploymentTargetMacro).nilIfEmpty,
+            let sdkVersion = cbc.producer.sdk?.version
+        {
             commandLine += ["-platform_version", "\(buildPlatform.rawValue)", minDeploymentTarget, sdkVersion.canonicalDeploymentTargetForm.description]
         }
 

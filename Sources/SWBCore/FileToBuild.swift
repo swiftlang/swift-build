@@ -15,7 +15,7 @@ public import SWBProtocol
 public import SWBMacro
 
 /// Represents a file to be passed as input to some part of the build machinery.  May be a source file originally sent down with the PIF, or might be a temporary file.  Once a build rule action has been determined, it is assigned to the FileToBuild so it doesn’t have to be looked up again.  Note that the term “file” here is used in the loosest sense — the path can refer to any file system entity.
-public struct FileToBuild : Hashable, Sendable {
+public struct FileToBuild: Hashable, Sendable {
     /// Absolute path of the referenced file.
     public let absolutePath: Path
 
@@ -100,7 +100,7 @@ public struct FileToBuild : Hashable, Sendable {
         hasher.combine(headerVisibility)
     }
 
-    public static func ==(lhs: FileToBuild, rhs: FileToBuild) -> Bool {
+    public static func == (lhs: FileToBuild, rhs: FileToBuild) -> Bool {
         // QUESTION: Does the header visibility really make two files of the same type and the same path different? <rdar://problem/29980516> [Swift Build] Should FileToBuild.== be considering the headerVisibility property?
         return lhs.absolutePath == rhs.absolutePath && lhs.fileType === rhs.fileType && lhs.headerVisibility == rhs.headerVisibility
     }
@@ -112,7 +112,7 @@ public struct FileToBuild : Hashable, Sendable {
 }
 
 /// Represents a group of one or more files to be processed by a single build task.  Once added to a group, a file cannot be removed from it.
-public final class FileToBuildGroup : Hashable, Equatable, CustomStringConvertible {
+public final class FileToBuildGroup: Hashable, Equatable, CustomStringConvertible {
     /// The identifier for this group.
     public let identifier: String?
 
@@ -132,12 +132,11 @@ public final class FileToBuildGroup : Hashable, Equatable, CustomStringConvertib
         hasher.combine(files)
     }
 
-    public static func ==(lhs: FileToBuildGroup, rhs: FileToBuildGroup) -> Bool {
+    public static func == (lhs: FileToBuildGroup, rhs: FileToBuildGroup) -> Bool {
         return lhs.files == rhs.files
     }
 
-    public var description: String
-    {
+    public var description: String {
         // Since only the files are relevant for equality, that's all we emit here.
         let filesDescription = files.map({ $0.descriptionForGroup }).joined(separator: ", ")
         return "<\(type(of: self)):[\(filesDescription)]>"
@@ -148,8 +147,8 @@ public protocol RegionVariable {
     var regionVariantName: String? { get }
 }
 
-extension Path: RegionVariable { }
-extension FileToBuild: RegionVariable { }
+extension Path: RegionVariable {}
+extension FileToBuild: RegionVariable {}
 
 extension FileToBuildGroup: RegionVariable {
     /// Returns the region variant name for a group of files.

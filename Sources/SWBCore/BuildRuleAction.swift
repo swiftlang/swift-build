@@ -13,7 +13,6 @@
 import SWBUtil
 public import SWBMacro
 
-
 /// Encapsulates a type of action for a build rule.  Concrete types of actions involve the ability to invoke a build tool or to run a custom shell script.
 public protocol BuildRuleAction: AnyObject, CustomStringConvertible, Sendable {
     var inputFileGroupingStrategies: [any InputFileGroupingStrategy] { get }
@@ -42,7 +41,6 @@ public protocol BuildRuleAction: AnyObject, CustomStringConvertible, Sendable {
     /// The name of the build rule.
     var name: String { get }
 }
-
 
 /// A build rule action that creates a build task to invoke a build tool.
 public final class BuildRuleTaskAction: BuildRuleAction {
@@ -88,7 +86,6 @@ public final class BuildRuleTaskAction: BuildRuleAction {
         return "<\(type(of: self)):\(toolSpec.identifier)>"
     }
 }
-
 
 /// A build rule action that creates a build task to run a script.
 public final class BuildRuleScriptAction: BuildRuleAction {

@@ -96,9 +96,10 @@ public struct DeviceFamilies: Hashable, Sendable {
     public init(families: [DeviceFamily]) throws {
         self.list = families
 
-        self.explicitTargetDeviceName = list.count == 1
-        ? list.filter { $0.identifier == nil }.only?.name
-        : nil
+        self.explicitTargetDeviceName =
+            list.count == 1
+            ? list.filter { $0.identifier == nil }.only?.name
+            : nil
 
         let familiesWithNumericIdentifiers = families.compactMap { family -> (Int, DeviceFamily)? in
             guard let identifier = family.identifier else {
@@ -131,7 +132,7 @@ public struct DeviceFamilies: Hashable, Sendable {
 
     /// Convenience property which returns the target device identifiers as strings
     public var targetDeviceIdentifierStrings: Set<String> {
-        return Set<String>(list.compactMap({$0.identifier?.toString()}))
+        return Set<String>(list.compactMap({ $0.identifier?.toString() }))
     }
 }
 

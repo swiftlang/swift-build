@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBCore
 
-public final class StringCatalogCompilerOutputParser : GenericOutputParser {
+public final class StringCatalogCompilerOutputParser: GenericOutputParser {
     // In String Catalogs, the only unique identifier we really have for an "object" is the string key itself, and that could be a really long piece of text.
     // Thus, xcstringstool outputs its diagnostics like this:
     // /Users/mattseaman/Developer/RocketShip/RocketShip/Localizable.xcstrings: error: Referencing undefined substitution 'arg3' (en: Next meeting at %lld %lld)

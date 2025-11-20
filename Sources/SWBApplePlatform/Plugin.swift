@@ -46,9 +46,11 @@ struct TaskProducersExtension: TaskProducerExtension {
     }
 
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] {
-        [StubBinaryTaskProducerFactory(),
-         AppExtensionInfoPlistGeneratorTaskProducerFactory(),
-         ExtensionPointExtractorTaskProducerFactory()]
+        [
+            StubBinaryTaskProducerFactory(),
+            AppExtensionInfoPlistGeneratorTaskProducerFactory(),
+            ExtensionPointExtractorTaskProducerFactory(),
+        ]
     }
 
     var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] {
@@ -99,7 +101,7 @@ struct StubBinaryTaskProducerFactory: TaskProducerFactory, GlobalTaskProducerFac
     }
 }
 
-struct AppIntentsMetadataTaskProducerFactory : TaskProducerFactory {
+struct AppIntentsMetadataTaskProducerFactory: TaskProducerFactory {
     var name: String {
         "AppIntentsMetadataTaskProducer"
     }
@@ -154,7 +156,7 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
         findResourceBundle(nameWhenInstalledInToolchain: "SwiftBuild_SWBApplePlatform", resourceSearchPaths: resourceSearchPaths, defaultBundle: Bundle.module)
     }
 
-    func specificationDomains() -> [String : [String]] {
+    func specificationDomains() -> [String: [String]] {
         var mappings = [
             "macosx": ["darwin"],
             "driverkit": ["darwin"],
@@ -246,29 +248,29 @@ struct ApplePlatformInfoExtension: PlatformInfoExtension {
 }
 
 struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
-    func addSDKSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK]) throws -> [String : String] {
+    func addSDKSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK]) throws -> [String: String] {
         guard variant?.llvmTargetTripleVendor == "apple" else {
             return [:]
         }
 
         return [
-            "PER_ARCH_MODULE_FILE_DIR": "$(PER_ARCH_OBJECT_FILE_DIR)",
+            "PER_ARCH_MODULE_FILE_DIR": "$(PER_ARCH_OBJECT_FILE_DIR)"
         ]
     }
 
-    func addBuiltinDefaults(fromEnvironment environment: [String : String], parameters: BuildParameters) throws -> [String : String] {
+    func addBuiltinDefaults(fromEnvironment environment: [String: String], parameters: BuildParameters) throws -> [String: String] {
         let appIntentsProtocols = "AppIntent EntityQuery AppEntity TransientEntity AppEnum AppShortcutProviding AppShortcutsProvider AnyResolverProviding AppIntentsPackage DynamicOptionsProvider _IntentValueRepresentable _AssistantIntentsProvider _GenerativeFunctionExtractable IntentValueQuery Resolver"
         let extensionKitProtocols = "AppExtension ExtensionPointDefining"
         let constValueProtocols = [appIntentsProtocols, extensionKitProtocols].joined(separator: " ")
-        return ["SWIFT_EMIT_CONST_VALUE_PROTOCOLS" : constValueProtocols]
+        return ["SWIFT_EMIT_CONST_VALUE_PROTOCOLS": constValueProtocols]
     }
-    func addOverrides(fromEnvironment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
-    func addProductTypeDefaults(productType: ProductTypeSpec) -> [String : String] { [:] }
-    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext, environment: [String: String]) throws -> [String : String] { [:] }
-    func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String : String] { [:] }
+    func addOverrides(fromEnvironment: [String: String], parameters: BuildParameters) throws -> [String: String] { [:] }
+    func addProductTypeDefaults(productType: ProductTypeSpec) -> [String: String] { [:] }
+    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext, environment: [String: String]) throws -> [String: String] { [:] }
+    func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String: String] { [:] }
     func xcconfigOverrideData(fromParameters: BuildParameters) -> ByteString { ByteString() }
     func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: SWBCore.Project?) -> [String] { [] }
     func shouldSkipPopulatingValidArchs(platform: SWBCore.Platform, sdk: SDK?) -> Bool { false }
     func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool { false }
-    func overridingBuildSettings(_: MacroEvaluationScope, platform: SWBCore.Platform?, productType: ProductTypeSpec) -> [String : String] { [:] }
+    func overridingBuildSettings(_: MacroEvaluationScope, platform: SWBCore.Platform?, productType: ProductTypeSpec) -> [String: String] { [:] }
 }

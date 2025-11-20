@@ -28,9 +28,11 @@ fileprivate struct InstrumentsPackageBuildOperationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
-                        TestFile("PackageDefinition.instrpkg"),
-                    ]),
+                    "Sources",
+                    children: [
+                        TestFile("PackageDefinition.instrpkg")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -40,33 +42,38 @@ fileprivate struct InstrumentsPackageBuildOperationTests: CoreBasedTests {
                             "INSTALL_OWNER": "",
                             "INSTALL_GROUP": "staff",
                         ]
-                    )],
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "Measure",
                         type: .instrumentsPackage,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["PackageDefinition.instrpkg"]),
+                            TestSourcesBuildPhase(["PackageDefinition.instrpkg"])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot
 
-            try tester.fs.write(SRCROOT.join("PackageDefinition.instrpkg"), contents:
-                """
-                <?xml version="1.0" encoding="UTF-8" ?>
-                <package>
-                    <id>com.foo.bar</id>
-                    <title>Foo</title>
-                    <owner>
-                        <name>Foo</name>
-                    </owner>
-                </package>
-                """)
+            try tester.fs.write(
+                SRCROOT.join("PackageDefinition.instrpkg"),
+                contents:
+                    """
+                    <?xml version="1.0" encoding="UTF-8" ?>
+                    <package>
+                        <id>com.foo.bar</id>
+                        <title>Foo</title>
+                        <owner>
+                            <name>Foo</name>
+                        </owner>
+                    </package>
+                    """
+            )
 
             try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
                 // Check that there are no warnings or errors.  If the Instruments package processing tool doesn't declare a virtual output then the post-processing tasks will not be able to be ordered with respect to it.
@@ -75,7 +82,7 @@ fileprivate struct InstrumentsPackageBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("BuildInstrumentsPackage")) { task in
                     task.checkCommandLineMatches([
                         .equal("--emit-dependency-info"),
-                        .suffix("instruments-package-builder.dependencies")
+                        .suffix("instruments-package-builder.dependencies"),
                     ])
                 }
 

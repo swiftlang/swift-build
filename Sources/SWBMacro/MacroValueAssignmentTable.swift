@@ -76,7 +76,6 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
     }
 
-
     /// Adds a mapping from `macro` to `value`, inserting it ahead of any already existing assignment for the same macro.  Unless the value refers to the lower-precedence expression (using `$(inherited)` notation), any existing assignments are shadowed but not removed.
     package mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, locationRef: InternedMacroValueAssignmentLocation? = nil) {
         assert(namespace.lookupMacroDeclaration(macro.name) === macro)
@@ -182,14 +181,12 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                     // Assignment is conditioned on the specified parameter; we need to evaluate it in order to decide what to do.
                     if effectiveConditionValue.evaluate(condition) == true {
                         // Condition evaluates to true, so we push an assignment with a condition set that excludes the condition.
-                        let filteredConditions = conditions.conditions.filter{ $0.parameter != parameter }
+                        let filteredConditions = conditions.conditions.filter { $0.parameter != parameter }
                         table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), locationRef: assignment._location)
-                    }
-                    else {
+                    } else {
                         // Condition evaluates to false, so we elide the assignment.
                     }
-                }
-                else {
+                } else {
                     // Assignment isn't conditioned on the specified parameter, so we just push it as-is.
                     table.push(macro, assignment.expression, conditions: assignment.conditions, locationRef: assignment._location)
                 }
@@ -245,14 +242,14 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             case .path: serializer.serialize(4)
             case .pathList: serializer.serialize(5)
             }
-            serializer.endAggregate()   // MacroDeclaration key
+            serializer.endAggregate()  // MacroDeclaration key
             // Serialize the MacroValueAssignment.
             serializer.serialize(asgn)
-            serializer.endAggregate()   // key-value pair
+            serializer.endAggregate()  // key-value pair
         }
-        serializer.endAggregate()       // valueAssignments
+        serializer.endAggregate()  // valueAssignments
 
-        serializer.endAggregate()       // the whole table
+        serializer.endAggregate()  // the whole table
     }
 
     public init(from deserializer: any Deserializer) throws {
@@ -289,8 +286,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 }
                 guard aDecl.type == type else { throw DeserializerError.incorrectType("Mismatched type for MacroDeclaration \(name): expected '\(type)', found '\(aDecl.type)' from code '\(typeCode)'.") }
                 decl = aDecl
-            }
-            else {
+            } else {
                 // Declare the declaration using the type we deserialized.
                 switch typeCode {
                 case 0: decl = delegate.namespace.lookupOrDeclareMacro(BooleanMacroDeclaration.self, name)
@@ -452,7 +448,7 @@ package struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
         self.endColumn = endColumn
     }
 
-    public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+    public func serialize<T>(to serializer: T) where T: SWBUtil.Serializer {
         serializer.beginAggregate(5)
         serializer.serialize(pathRef)
         serializer.serialize(startLine)
@@ -487,10 +483,9 @@ private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssign
     }
 
     if let srcNext = srcAsgn.next {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn), locationRef: srcAsgn._location)
-    }
-    else {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn, locationRef: srcAsgn._location)
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions: srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn), locationRef: srcAsgn._location)
+    } else {
+        return MacroValueAssignment(expression: srcAsgn.expression, conditions: srcAsgn.conditions, next: dstAsgn, locationRef: srcAsgn._location)
     }
 }
 

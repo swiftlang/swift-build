@@ -16,7 +16,7 @@ import SWBUtil
 
 /// A sequence of `count` random UInt8 numbers drawn from `range`.  [Note: it would be preferable to make this struct generic over all types of integers, but I haven’t found a way to do so that lets it compile. Perhaps declaring a new protocol and then making Integers adopt it would work?].
 fileprivate struct RandomUInt8Sequence: Sequence {
-    struct RandomUInt8Generator : IteratorProtocol {
+    struct RandomUInt8Generator: IteratorProtocol {
         var range: CountableClosedRange<UInt8>
         var count: Int
         mutating func next() -> UInt8? {

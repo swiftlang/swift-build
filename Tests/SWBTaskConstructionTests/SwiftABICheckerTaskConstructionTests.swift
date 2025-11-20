@@ -27,34 +27,42 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64 arm64e",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
-                    "SWIFT_VERSION": swiftVersion,
-                    "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
-                    "SYSTEM_FRAMEWORK_SEARCH_PATHS": "/Target/System/Framework/Search/Path/A",
-                    "SWIFT_INCLUDE_PATHS": "/Target/Import/Search/Path/A",
-                    "SWIFT_SYSTEM_INCLUDE_PATHS": "/Target/System/Import/Search/Path/A",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64 arm64e",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
+                        "SWIFT_VERSION": swiftVersion,
+                        "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
+                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "/Target/System/Framework/Search/Path/A",
+                        "SWIFT_INCLUDE_PATHS": "/Target/Import/Search/Path/A",
+                        "SWIFT_SYSTEM_INCLUDE_PATHS": "/Target/System/Import/Search/Path/A",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         // Check the `Debug` build.
@@ -85,33 +93,41 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64 arm64e",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
-                    "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": "/tmp/user_given_generated_baseline",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
-                    "SYSTEM_FRAMEWORK_SEARCH_PATHS": "/Target/System/Framework/Search/Path/A",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64 arm64e",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
+                        "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": "/tmp/user_given_generated_baseline",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
+                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "/Target/System/Framework/Search/Path/A",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         // Check the `Debug` build.
@@ -144,30 +160,38 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
-                    "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": "/tmp/user_given_generated_baseline",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
+                        "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": "/tmp/user_given_generated_baseline",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug", overrides: ["SWIFT_API_DIGESTER_MODE": "abi"]), runDestination: .anyiOSDevice) { results in
@@ -197,33 +221,41 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64e",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
-                    "SWIFT_ABI_CHECKER_BASELINE_DIR": "/tmp/mybaseline",
-                    "SWIFT_ABI_CHECKER_EXCEPTIONS_FILE": "/tmp/allow.txt",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64e",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                        "SWIFT_ABI_CHECKER_BASELINE_DIR": "/tmp/mybaseline",
+                        "SWIFT_ABI_CHECKER_EXCEPTIONS_FILE": "/tmp/allow.txt",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -262,7 +294,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                     "-breakage-allowlist-path",
                     "/tmp/allow.txt",
                     "-I",
-                    "/TEST/build/Debug-iphoneos"
+                    "/TEST/build/Debug-iphoneos",
                 ])
             }
             results.checkNoTask(.matchRuleType("SwiftDriver"))
@@ -275,33 +307,41 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64e",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
-                    "SWIFT_ABI_CHECKER_BASELINE_DIR": "/tmp/mybaseline",
-                    "SWIFT_ABI_CHECKER_EXCEPTIONS_FILE": "/tmp/allow.txt",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64e",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "FRAMEWORK_SEARCH_PATHS": "/Target/Framework/Search/Path/A",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                        "SWIFT_ABI_CHECKER_BASELINE_DIR": "/tmp/mybaseline",
+                        "SWIFT_ABI_CHECKER_EXCEPTIONS_FILE": "/tmp/allow.txt",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -333,31 +373,39 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64 arm64e",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
-                    "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64 arm64e",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_CHECKER_TOOL": "YES",
+                        "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Check the `Debug` build.
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS) { results in
@@ -365,8 +413,8 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             // Check CheckSwiftABI is always after GenerateSwiftABIBaseline
             results.checkTasks(.matchRuleType("CheckSwiftABI")) { tasks in
                 for task in tasks {
-                    let variant = task.ruleInfo[1] // "normal"
-                    let arch = task.ruleInfo[2] // "arm64" or "arm64e"
+                    let variant = task.ruleInfo[1]  // "normal"
+                    let arch = task.ruleInfo[2]  // "arm64" or "arm64e"
                     results.checkTaskFollows(task, .matchRule(["GenerateSwiftABIBaseline", variant, arch]))
                 }
             }
@@ -381,31 +429,39 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
-                    "SWIFT_ABI_CHECKER_BASELINE_DIR": tmp.str,
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                        "SWIFT_ABI_CHECKER_BASELINE_DIR": tmp.str,
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Check the `Debug` build.
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS, fs: fs) { results in
@@ -423,31 +479,39 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift"),
-                ]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64 arm64e",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
-                    "SWIFT_ABI_CHECKER_BASELINE_DIR": tmp.str,
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64 arm64e",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RUN_SWIFT_ABI_CHECKER_TOOL_DRIVER": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                        "SWIFT_ABI_CHECKER_BASELINE_DIR": tmp.str,
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Check the `Debug` build.
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .iOS, fs: fs) { results in
@@ -455,10 +519,11 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             results.checkTasks(.matchRuleType("SwiftDriver Compilation")) { tasks in
                 #expect(tasks.count > 0)
                 for task in tasks {
-                    task.checkCommandLineContains([swiftCompilerPath.str,
-                                                   "-digester-mode", "abi",
-                                                   "-compare-to-baseline-path"
-                                                  ])
+                    task.checkCommandLineContains([
+                        swiftCompilerPath.str,
+                        "-digester-mode", "abi",
+                        "-compare-to-baseline-path",
+                    ])
                 }
             }
         }

@@ -55,7 +55,7 @@ import SWBUtil
         let diamond: [Int: [Int]] = [
             1: [3, 2],
             2: [4],
-            3: [4]
+            3: [4],
         ]
         #expect([2, 3, 4] == SWBUtilTests.transitiveClosure(1, diamond))
         #expect([4] == SWBUtilTests.transitiveClosure([3, 2], diamond))
@@ -71,7 +71,7 @@ import SWBUtil
         let diamond: [Int: [Int]] = [
             1: [3, 2],
             2: [4],
-            3: [4]
+            3: [4],
         ]
         let dupes = SWBUtil.transitiveClosure([4, 3, 2, 1], successors: { diamond[$0] ?? [] }).1
         #expect([4] == dupes)
@@ -80,19 +80,23 @@ import SWBUtil
 }
 
 private func minimumDistance<T>(
-    from source: T, to destination: T, in graph: [T: [T]]
+    from source: T,
+    to destination: T,
+    in graph: [T: [T]]
 ) -> Int? {
     return minimumDistance(from: source, to: destination, successors: { graph[$0] ?? [] })
 }
 
 private func shortestPath<T>(
-    from source: T, to destination: T, in graph: [T: [T]]
+    from source: T,
+    to destination: T,
+    in graph: [T: [T]]
 ) -> [T]? {
     return shortestPath(from: source, to: destination, successors: { graph[$0] ?? [] })
 }
 
 private func transitiveClosure(_ nodes: [Int], _ successors: [Int: [Int]]) -> [Int] {
-    return transitiveClosure(nodes, successors: { successors[$0] ?? [] }).0.map{$0}.sorted()
+    return transitiveClosure(nodes, successors: { successors[$0] ?? [] }).0.map { $0 }.sorted()
 }
 private func transitiveClosure(_ node: Int, _ successors: [Int: [Int]]) -> [Int] {
     return transitiveClosure([node], successors)

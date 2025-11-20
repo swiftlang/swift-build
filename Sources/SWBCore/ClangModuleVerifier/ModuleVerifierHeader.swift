@@ -19,7 +19,7 @@ enum HeaderKind: String {
 }
 
 @_spi(Testing)
-public struct ModuleVerifierHeader : Hashable {
+public struct ModuleVerifierHeader: Hashable {
     @_spi(Testing) public var file: Path
     @_spi(Testing) public var unresolvedFile: Path
     @_spi(Testing) public var framework: String
@@ -50,7 +50,7 @@ public struct ModuleVerifierHeader : Hashable {
         var subFolder: [String] = []
         while true {
             let component = tail.basename
-            if component.isEmpty || component == "Headers"  || component == "PrivateHeaders" {
+            if component.isEmpty || component == "Headers" || component == "PrivateHeaders" {
                 break
             }
             tail = tail.dirname
@@ -60,7 +60,7 @@ public struct ModuleVerifierHeader : Hashable {
     }
 }
 
-extension ModuleVerifierHeader : Comparable {
+extension ModuleVerifierHeader: Comparable {
     @_spi(Testing)
     public static func < (lhs: ModuleVerifierHeader, rhs: ModuleVerifierHeader) -> Bool {
         lhs.include(language: .c) < rhs.include(language: .c)

@@ -25,24 +25,24 @@ struct GenerateWindowsInstallerComponentGroups: CommandPlugin {
                 continue
             }
             librariesComponent += #"""
-                  <Component>
-                    <File Source="$(ToolchainRoot)\usr\bin\\#(sourceModule.name).dll" />
-                  </Component>
+                      <Component>
+                        <File Source="$(ToolchainRoot)\usr\bin\\#(sourceModule.name).dll" />
+                      </Component>
 
-            """#
+                """#
 
             let resources = sourceModule.sourceFiles.filter { resource in resource.type == .resource && ["xcspec", "xcbuildrules"].contains(resource.url.pathExtension) }
             if !resources.isEmpty {
                 groupRefs += #"      <ComponentGroupRef Id="\#(sourceModule.name)Resources" />\#n"#
                 directories += #"                  <Directory Id="_usr_share_pm_\#(sourceModule.name)" Name="SwiftBuild_\#(sourceModule.name).resources" />\#n"#
                 resourcesComponents += #"    <ComponentGroup Id="\#(sourceModule.name)Resources" Directory="_usr_share_pm_\#(sourceModule.name)">\#n"#
-                for resource in resources  {
+                for resource in resources {
                     resourcesComponents += #"""
-                      <Component>
-                        <File Source="$(ToolchainRoot)\usr\share\pm\SwiftBuild_\#(sourceModule.name).resources\\#(resource.url.lastPathComponent)" />
-                      </Component>
+                              <Component>
+                                <File Source="$(ToolchainRoot)\usr\share\pm\SwiftBuild_\#(sourceModule.name).resources\\#(resource.url.lastPathComponent)" />
+                              </Component>
 
-                """#
+                        """#
                 }
                 resourcesComponents += "    </ComponentGroup>\n"
             }

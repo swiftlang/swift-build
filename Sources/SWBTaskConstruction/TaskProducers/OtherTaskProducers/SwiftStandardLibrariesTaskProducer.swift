@@ -19,8 +19,7 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
         return [.immediate, .unsignedProductRequirement]
     }
 
-    func generateTasks() async -> [any PlannedTask]
-    {
+    func generateTasks() async -> [any PlannedTask] {
         var tasks = [any PlannedTask]()
         let scope = context.settings.globalScope
 
@@ -41,13 +40,11 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
         let buildingAnySwiftSourceFiles = (context.configuredTarget?.target as? BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(context.workspaceContext.workspace, context, scope, context.filePathResolver) ?? false
 
         // Determine whether we want to embed swift libraries.
-        var shouldEmbedSwiftLibraries = (buildingAnySwiftSourceFiles  &&  productType.supportsEmbeddingSwiftStandardLibraries(producer: context))
+        var shouldEmbedSwiftLibraries = (buildingAnySwiftSourceFiles && productType.supportsEmbeddingSwiftStandardLibraries(producer: context))
         // If ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES then we will override our earlier reasoning if the product is a wrapper.
-        if !shouldEmbedSwiftLibraries  &&  scope.evaluate(BuiltinMacros.ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES)
-        {
+        if !shouldEmbedSwiftLibraries && scope.evaluate(BuiltinMacros.ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES) {
             // If the product is not a wrapper, then we emit a warning that we won't run the tool, and return.
-            guard productType.isWrapper else
-            {
+            guard productType.isWrapper else {
                 context.warning("Not running swift-stdlib-tool: ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES is enabled, but the product type '\(productType.identifier)' is not a wrapper type.")
                 return []
             }
@@ -55,8 +52,7 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
         }
 
         // Run the swift-stdlib-tool if we've determined that we should do so.
-        if shouldEmbedSwiftLibraries
-        {
+        if shouldEmbedSwiftLibraries {
             // Cache fo evaluated build settings we'll need multiple times.
             let targetBuildDir = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
 
@@ -71,22 +67,22 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
                 BuiltinMacros.SYSTEM_EXTENSIONS_FOLDER_PATH,
                 BuiltinMacros.EXTENSIONS_FOLDER_PATH,
             ]
-            foldersToScan.append(contentsOf: embeddedContentDirectoryMacros.compactMap { macro in
-                guard let subpath = scope.evaluate(macro).nilIfEmpty else {
-                    return nil
+            foldersToScan.append(
+                contentsOf: embeddedContentDirectoryMacros.compactMap { macro in
+                    guard let subpath = scope.evaluate(macro).nilIfEmpty else {
+                        return nil
+                    }
+                    return targetBuildDir.join(subpath).str
                 }
-                return targetBuildDir.join(subpath).str
-            })
+            )
 
             // Add explicit paths to any linked frameworks, even if they are not copied in to the product.
             //
             // This allows EMBEDDED_CONTENT_CONTAINS_SWIFT to be used for things like Objective-C unit test bundles which are testing Swift frameworks.
-            if let frameworksBuildPhase = (context.configuredTarget!.target as? BuildPhaseTarget)?.frameworksBuildPhase
-            {
+            if let frameworksBuildPhase = (context.configuredTarget!.target as? BuildPhaseTarget)?.frameworksBuildPhase {
                 for buildFile in frameworksBuildPhase.buildFiles where currentPlatformFilter.matches(buildFile.platformFilters) {
                     guard let (_, refPath, fileType) = try? context.resolveBuildFileReference(buildFile) else { continue }
-                    if refPath.isAbsolute  &&  fileType.conformsTo(context.getSpec("wrapper.framework") as! FileTypeSpec)
-                    {
+                    if refPath.isAbsolute && fileType.conformsTo(context.getSpec("wrapper.framework") as! FileTypeSpec) {
                         foldersToScan.append(refPath.str)
                     }
                 }
@@ -107,8 +103,8 @@ final class SwiftStandardLibrariesTaskProducer: PhasedTaskProducer, TaskProducer
             let supportsSpanNatively = context.platform?.supportsSwiftSpanNatively(scope, forceNextMajorVersion: false, considerTargetDeviceOSVersion: true)
             let backDeploySwiftSpan = supportsSpanNatively != nil && supportsSpanNatively != true
 
-            let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [ input ])
-            let foldersToScanExpr: MacroStringListExpression? = foldersToScan.count > 0 ? scope.namespace.parseLiteralStringList(foldersToScan): nil
+            let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [input])
+            let foldersToScanExpr: MacroStringListExpression? = foldersToScan.count > 0 ? scope.namespace.parseLiteralStringList(foldersToScan) : nil
             await appendGeneratedTasks(&tasks) { delegate in
                 await context.swiftStdlibToolSpec.constructSwiftStdLibraryToolTask(cbc, delegate, foldersToScan: foldersToScanExpr, filterForSwiftOS: filterForSwiftOS, backDeploySwiftConcurrency: backDeploySwiftConcurrency, backDeploySwiftSpan: backDeploySwiftSpan)
             }

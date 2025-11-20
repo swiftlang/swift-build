@@ -61,17 +61,19 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             }
 
             let commandLine = task.commandLineAsStrings.split(separator: "--", maxSplits: 1, omittingEmptySubsequences: false)[1]
-            let success = dependencyGraph.planBuild(key: driverPayload.uniqueID,
-                                                    outputDelegate: outputDelegate,
-                                                    compilerLocation: driverPayload.compilerLocation,
-                                                    target: target,
-                                                    args: Array(commandLine),
-                                                    workingDirectory: task.workingDirectory,
-                                                    tempDirPath: driverPayload.tempDirPath,
-                                                    explicitModulesTempDirPath: driverPayload.explicitModulesTempDirPath,
-                                                    environment: environment,
-                                                    eagerCompilationEnabled: driverPayload.eagerCompilationEnabled,
-                                                    casOptions: driverPayload.casOptions)
+            let success = dependencyGraph.planBuild(
+                key: driverPayload.uniqueID,
+                outputDelegate: outputDelegate,
+                compilerLocation: driverPayload.compilerLocation,
+                target: target,
+                args: Array(commandLine),
+                workingDirectory: task.workingDirectory,
+                tempDirPath: driverPayload.tempDirPath,
+                explicitModulesTempDirPath: driverPayload.explicitModulesTempDirPath,
+                environment: environment,
+                eagerCompilationEnabled: driverPayload.eagerCompilationEnabled,
+                casOptions: driverPayload.casOptions
+            )
 
             guard success else { return .failed }
         }
@@ -97,7 +99,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             }
 
             if driverPayload.explicitModulesEnabled,
-               let dependencyValidationPayload = payload.dependencyValidationPayload
+                let dependencyValidationPayload = payload.dependencyValidationPayload
             {
                 let payload: DependencyValidationInfo.Payload
                 if let imports = try await dependencyGraph.mainModuleImportModuleDependencies(for: driverPayload.uniqueID) {
@@ -115,8 +117,7 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                         JSONEncoder(outputFormatting: .sortedKeys).encode(validationInfo)
                     )
                 )
-            }
-            else {
+            } else {
                 outputDelegate.incrementTaskCounter(.moduleDependenciesNotValidatedTasks)
             }
 

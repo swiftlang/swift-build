@@ -26,7 +26,8 @@ fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     // We have a mix of resources which just get copied, vs. get processed.
                     TestFile("A.dat"),
@@ -34,7 +35,8 @@ fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {
                     TestFile("de.lproj/C.png", regionVariantName: "de"),
                     TestFile("Assets.xcassets"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -48,7 +50,8 @@ fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "-",
                         "ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS": "foo",
                         "ON_DEMAND_RESOURCES_PREFETCH_ORDER": "baz",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -60,14 +63,16 @@ fileprivate struct OnDemandResourcesTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("B.png", assetTags: Set(["foo"])),
                             TestBuildFile("de.lproj/C.png", assetTags: Set(["foo", "bar"])),
                             "Assets.xcassets",
-                        ]),
-                    ]),
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         final class ClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "actool", commandLine.dropFirst().first != "--version" {
                     return .result(status: .exit(0), stdout: Data("{}".utf8), stderr: Data())
                 }

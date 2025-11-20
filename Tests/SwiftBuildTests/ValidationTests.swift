@@ -48,11 +48,14 @@ fileprivate struct ValidationTests: CoreBasedTests {
     func buildProject(_ srcroot: Path, name: String, schemeName: String? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         try await withTemporaryDirectory { tmpDir in
             do {
-                try await executeXcodebuild([
-                    "-project", srcroot.join("\(name).xcodeproj").str,
-                    "-scheme", schemeName ?? name,
-                    "-derivedDataPath", tmpDir.str,
-                ], in: tmpDir)
+                try await executeXcodebuild(
+                    [
+                        "-project", srcroot.join("\(name).xcodeproj").str,
+                        "-scheme", schemeName ?? name,
+                        "-derivedDataPath", tmpDir.str,
+                    ],
+                    in: tmpDir
+                )
             } catch let error as RunProcessNonZeroExitError {
                 switch error.output {
                 case let .separate(stdout: stdout, stderr: stderr):

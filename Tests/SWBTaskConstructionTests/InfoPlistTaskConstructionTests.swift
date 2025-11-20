@@ -31,37 +31,44 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
                     TestFile("infoplist-prefix.h"),
                     TestFile("SourceFile.m"),
                     TestFile("Tool.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                    "INFOPLIST_FILE": "Tool.plist",
-                    "INFOPLIST_PREPROCESS": "YES",
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                        "INFOPLIST_FILE": "Tool.plist",
+                        "INFOPLIST_PREPROCESS": "YES",
 
-                    // These should be ignored for plist preprocessing
-                    "GCC_PREPROCESSOR_DEFINITIONS": "FOO=GCC_PREPROCESSOR_DEFINITIONS BAR=GCC_PREPROCESSOR_DEFINITIONS",
-                    "CPP_OTHER_PREPROCESSOR_FLAGS": "-CPP_OTHER_PREPROCESSOR_FLAGS1 -CPP_OTHER_PREPROCESSOR_FLAGS2",
-                    "CPP_PREFIX_HEADER": "cpp-prefix.h",
-                ]),
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                    "INFOPLIST_FILE": "Tool.plist",
-                    "INFOPLIST_PREPROCESS": "YES",
+                        // These should be ignored for plist preprocessing
+                        "GCC_PREPROCESSOR_DEFINITIONS": "FOO=GCC_PREPROCESSOR_DEFINITIONS BAR=GCC_PREPROCESSOR_DEFINITIONS",
+                        "CPP_OTHER_PREPROCESSOR_FLAGS": "-CPP_OTHER_PREPROCESSOR_FLAGS1 -CPP_OTHER_PREPROCESSOR_FLAGS2",
+                        "CPP_PREFIX_HEADER": "cpp-prefix.h",
+                    ]
+                ),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                        "INFOPLIST_FILE": "Tool.plist",
+                        "INFOPLIST_PREPROCESS": "YES",
 
-                    // These should be ignored for plist preprocessing
-                    "GCC_PREPROCESSOR_DEFINITIONS": "FOO=GCC_PREPROCESSOR_DEFINITIONS BAR=GCC_PREPROCESSOR_DEFINITIONS",
-                    "CPP_OTHER_PREPROCESSOR_FLAGS": "-CPP_OTHER_PREPROCESSOR_FLAGS1 -CPP_OTHER_PREPROCESSOR_FLAGS2",
-                    "CPP_PREFIX_HEADER": "cpp-prefix.h",
+                        // These should be ignored for plist preprocessing
+                        "GCC_PREPROCESSOR_DEFINITIONS": "FOO=GCC_PREPROCESSOR_DEFINITIONS BAR=GCC_PREPROCESSOR_DEFINITIONS",
+                        "CPP_OTHER_PREPROCESSOR_FLAGS": "-CPP_OTHER_PREPROCESSOR_FLAGS1 -CPP_OTHER_PREPROCESSOR_FLAGS2",
+                        "CPP_PREFIX_HEADER": "cpp-prefix.h",
 
-                    // These should take effect for plist preprocessing
-                    "INFOPLIST_PREPROCESSOR_DEFINITIONS": "FOO=INFOPLIST_PREPROCESSOR_DEFINITIONS BAR=INFOPLIST_PREPROCESSOR_DEFINITIONS",
-                    "INFOPLIST_OTHER_PREPROCESSOR_FLAGS": "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS1 -INFOPLIST_OTHER_PREPROCESSOR_FLAGS2",
-                    "INFOPLIST_PREFIX_HEADER": "$(PROJECT_DIR)/infoplist-prefix.h",
-                ]),
+                        // These should take effect for plist preprocessing
+                        "INFOPLIST_PREPROCESSOR_DEFINITIONS": "FOO=INFOPLIST_PREPROCESSOR_DEFINITIONS BAR=INFOPLIST_PREPROCESSOR_DEFINITIONS",
+                        "INFOPLIST_OTHER_PREPROCESSOR_FLAGS": "-INFOPLIST_OTHER_PREPROCESSOR_FLAGS1 -INFOPLIST_OTHER_PREPROCESSOR_FLAGS2",
+                        "INFOPLIST_PREFIX_HEADER": "$(PROJECT_DIR)/infoplist-prefix.h",
+                    ]
+                ),
             ],
             targets: [
                 TestAggregateTarget("All", dependencies: ["Tool", "App"]),
@@ -74,8 +81,8 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceFile.m",
-                        ]),
+                            "SourceFile.m"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
@@ -87,11 +94,12 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceFile.m",
-                        ]),
+                            "SourceFile.m"
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -157,7 +165,8 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
                         "builtin-mergeInfoPlist",
                         "\(SRCROOT)/build/aProject.build/Release/App.build/Preprocessed-Info.plist",
                         "\(SRCROOT)/build/aProject.build/Release/App.build/normal/arm64/Preprocessed-Info.plist",
-                        "\(SRCROOT)/build/aProject.build/Release/App.build/normal/x86_64/Preprocessed-Info.plist"])
+                        "\(SRCROOT)/build/aProject.build/Release/App.build/normal/x86_64/Preprocessed-Info.plist",
+                    ])
                     task.checkInputs([
                         .path("\(SRCROOT)/build/aProject.build/Release/App.build/normal/arm64/Preprocessed-Info.plist"),
                         .path("\(SRCROOT)/build/aProject.build/Release/App.build/normal/x86_64/Preprocessed-Info.plist"),

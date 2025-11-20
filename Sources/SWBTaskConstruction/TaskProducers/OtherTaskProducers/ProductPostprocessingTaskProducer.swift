@@ -163,7 +163,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         return tasks
     }
 
-
     // MARK: Copy aside
 
     /// Creates a task to copy aside the symboled product to the SYMROOT during an install build.
@@ -191,13 +190,11 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
                 // Since a build might have multiple targets which generate the same product name, we want to avoid collisions when computing the destination here.  So for installed products we place them at their INSTALL_PATH relative to the SYMROOT, and for uninstalled products we place them at $(SYMROOT)/UninstalledProducts/$(PROJECT_NAME)/$(TARGET_NAME).
                 if scope.evaluate(BuiltinMacros.SKIP_INSTALL) || scope.evaluate(BuiltinMacros.INSTALL_PATH).isEmpty {
                     output = buildDir.join("UninstalledProducts").join(context.settings.project?.name).join(context.settings.target?.name).join(fullProductName)
-                }
-                else {
+                } else {
                     let installPath = scope.evaluate(Static { BuiltinMacros.namespace.parseString("$(INSTALL_PATH)$(TARGET_BUILD_SUBPATH)") })
-                    output = buildDir.join(installPath, preserveRoot:true).join(fullProductName)
+                    output = buildDir.join(installPath, preserveRoot: true).join(fullProductName)
                 }
-            }
-            else {
+            } else {
                 // Right now we use the old, flat layout until we can enable the hierarchical layout by default.
                 output = buildDir.join(fullProductName)
             }
@@ -206,7 +203,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
             }
         }
     }
-
 
     // MARK: Stripping
 
@@ -371,7 +367,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
             context.setAttributesSpec.constructSetAttributesTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: path)]), delegate, owner: (owner != "") ? .some(owner) : nil, group: (group != "") ? .some(group) : nil, mode: (mode != "") ? .some(mode) : nil)
         }
     }
-
 
     // MARK: Code signing
 
@@ -560,7 +555,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
     }
 }
 
-
 // MARK: Product Type Extensions
 
 extension ProductTypeSpec {
@@ -724,7 +718,7 @@ private extension ProductTypeSpec {
                     // FIXME: headerDestPaths should only be used for framework targets when determining outputPath
                     // until rdar://81762676 (Dylib targets inconsistently writes headers to BUILD_PRODUCTS_DIR
                     // based install vs normal build) has been resolved.
-                    let outputPath : Path
+                    let outputPath: Path
                     let tapiVisibility: TAPIFileList.HeaderVisibility
                     switch visibility {
                     case .public?:
@@ -774,17 +768,24 @@ private extension ProductTypeSpec {
             postProcessingProducer.uniqueAuxiliaryFilePaths.insert(jsonPath)
         }
 
-
         return jsonPath
     }
 }
 
 /// Adds the InstallAPI tasks that are common between framework and dylib targets.
 /// This function will determine if Swift and TAPI-based InstallAPI actions took place during the build.
-func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEvaluationScope, inputs: [FileToBuild],
-                              headerDependencyInputs: [any PlannedNode],
-                              tapiOutputNode: PlannedPathNode, tapiOrderingNode: PlannedVirtualNode, phaseStartNodes: [any PlannedNode],
-                              phaseEndTask: any PlannedTask, jsonPath: Path?, destination: InstallAPIDestination) async -> [any PlannedTask] {
+func addCommonInstallAPITasks(
+    _ producer: PhasedTaskProducer,
+    _ scope: MacroEvaluationScope,
+    inputs: [FileToBuild],
+    headerDependencyInputs: [any PlannedNode],
+    tapiOutputNode: PlannedPathNode,
+    tapiOrderingNode: PlannedVirtualNode,
+    phaseStartNodes: [any PlannedNode],
+    phaseEndTask: any PlannedTask,
+    jsonPath: Path?,
+    destination: InstallAPIDestination
+) async -> [any PlannedTask] {
     let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
     var dependencyInputs = headerDependencyInputs
     // Only add dSYM dependency iff this the task is installAPI verification.
@@ -792,7 +793,7 @@ func addCommonInstallAPITasks(_ producer: PhasedTaskProducer, _ scope: MacroEval
     if buildComponents.contains("build") && !(destination == .eagerLinkingTBDDir) && tapiReadDSYM {
         let dsymBundle = scope.evaluate(BuiltinMacros.DWARF_DSYM_FOLDER_PATH)
             .join(scope.evaluate(BuiltinMacros.DWARF_DSYM_FILE_NAME))
-        dependencyInputs.append(producer.context.createDirectoryTreeNode(dsymBundle, excluding:[""]))
+        dependencyInputs.append(producer.context.createDirectoryTreeNode(dsymBundle, excluding: [""]))
     }
 
     let variant = scope.evaluate(BuiltinMacros.CURRENT_VARIANT)
@@ -861,7 +862,8 @@ private extension FrameworkProductTypeSpec {
         if !scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) && !producer.targetContext.supportsEagerLinking(scope: scope) {
             // If the target has no installed headers, it is not an error for it not to support InstallAPI.
             guard let targetInfo = targetHeaderInfo,
-                  !targetInfo.publicHeaders.isEmpty || !targetInfo.privateHeaders.isEmpty else {
+                !targetInfo.publicHeaders.isEmpty || !targetInfo.privateHeaders.isEmpty
+            else {
                 return
             }
 
@@ -898,7 +900,7 @@ private extension FrameworkProductTypeSpec {
         let tapiInputNode = producer.context.createNode(scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.WRAPPER_NAME)))
 
         guard let jsonPath = await addFileListInstallAPITasks(targetHeaderInfo, true, producer, tapiInfo: tapiInfo, scope, &tasks, &tapiInputNodes) else {
-            return // we've already emitted an error
+            return  // we've already emitted an error
         }
 
         // NOTE: These must be captured here; they are mutable and used to define the task order gating.
@@ -908,8 +910,18 @@ private extension FrameworkProductTypeSpec {
         producer.context.addDeferredProducer {
             let inputs = [FileToBuild(context: producer.context, absolutePath: tapiInputNode.path)]
 
-            return await addCommonInstallAPITasks(producer, scope, inputs: inputs, headerDependencyInputs: tapiInputNodes, tapiOutputNode: tapiOutputNode, tapiOrderingNode: tapiOrderingNode,
-                                            phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask, jsonPath: jsonPath, destination: destination)
+            return await addCommonInstallAPITasks(
+                producer,
+                scope,
+                inputs: inputs,
+                headerDependencyInputs: tapiInputNodes,
+                tapiOutputNode: tapiOutputNode,
+                tapiOrderingNode: tapiOrderingNode,
+                phaseStartNodes: phaseStartNodes,
+                phaseEndTask: phaseEndTask,
+                jsonPath: jsonPath,
+                destination: destination
+            )
         }
     }
 
@@ -982,7 +994,8 @@ private extension LibraryProductTypeSpec {
         if !scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) && !producer.targetContext.supportsEagerLinking(scope: scope) {
             // If the target has no installed headers, it is not an error for it not to support InstallAPI.
             guard let targetHeaderInfo = targetHeaderInfo,
-                  !targetHeaderInfo.publicHeaders.isEmpty || !targetHeaderInfo.privateHeaders.isEmpty else {
+                !targetHeaderInfo.publicHeaders.isEmpty || !targetHeaderInfo.privateHeaders.isEmpty
+            else {
                 return
             }
 
@@ -1015,7 +1028,7 @@ private extension LibraryProductTypeSpec {
         var tapiInputNodes = [any PlannedNode]()
 
         guard let jsonPath = await addFileListInstallAPITasks(targetHeaderInfo, false, producer, tapiInfo: tapiInfo, scope, &tasks, &tapiInputNodes) else {
-            return // we've already emitted an error
+            return  // we've already emitted an error
         }
 
         // NOTE: These must be captured here; they are mutable and used to define the task order gating.
@@ -1023,8 +1036,18 @@ private extension LibraryProductTypeSpec {
         let phaseEndTask = producer.phaseEndTask
 
         producer.context.addDeferredProducer {
-            return await addCommonInstallAPITasks(producer, scope, inputs: [], headerDependencyInputs: tapiInputNodes, tapiOutputNode: tapiOutputNode, tapiOrderingNode: tapiOrderingNode,
-                                            phaseStartNodes: phaseStartNodes, phaseEndTask: phaseEndTask, jsonPath: jsonPath, destination: destination)
+            return await addCommonInstallAPITasks(
+                producer,
+                scope,
+                inputs: [],
+                headerDependencyInputs: tapiInputNodes,
+                tapiOutputNode: tapiOutputNode,
+                tapiOrderingNode: tapiOrderingNode,
+                phaseStartNodes: phaseStartNodes,
+                phaseEndTask: phaseEndTask,
+                jsonPath: jsonPath,
+                destination: destination
+            )
         }
     }
 

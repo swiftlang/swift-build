@@ -18,7 +18,7 @@ import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
 
-@Suite(.requireHostOS(.macOS)) // `tiffutil` only exists on macOS
+@Suite(.requireHostOS(.macOS))  // `tiffutil` only exists on macOS
 fileprivate struct CopyTiffTaskTests {
     @Test
     func diagnostics() async {

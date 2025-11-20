@@ -46,7 +46,7 @@ public final class VFS {
         // Gather the complete, ordered, flat list of non-empty directories.
         func gatherAllDirectories(_ path: Path, _ directory: Directory, _ result: inout [(path: Path, directory: Directory)]) {
             // Visit all children.
-            for (key: name, value: child) in directory.children.sorted(byKey: <) {
+            for (key:name, value:child) in directory.children.sorted(byKey: <) {
                 gatherAllDirectories(path.join(name), child, &result)
             }
 
@@ -58,16 +58,23 @@ public final class VFS {
         var allDirectories = [(path: Path, directory: Directory)]()
         gatherAllDirectories(.root, root, &allDirectories)
 
-        return VFSOverlay(version: 0, caseSensitive: false, roots: allDirectories.map { path, directory in
-            VFSOverlay.Root(name: path.str, contents: directory.externalContents.sorted(byKey: <).map { name, path in
-                VFSOverlay.Root.Contents(name: name, externalContents: path.str)
-            })
-        })
+        return VFSOverlay(
+            version: 0,
+            caseSensitive: false,
+            roots: allDirectories.map { path, directory in
+                VFSOverlay.Root(
+                    name: path.str,
+                    contents: directory.externalContents.sorted(byKey: <).map { name, path in
+                        VFSOverlay.Root.Contents(name: name, externalContents: path.str)
+                    }
+                )
+            }
+        )
     }
 }
 
 @available(*, unavailable)
-extension VFS: Sendable { }
+extension VFS: Sendable {}
 
 public struct VFSOverlay: PropertyListItemConvertible, Sendable {
     struct Root: PropertyListItemConvertible {
@@ -80,7 +87,7 @@ public struct VFSOverlay: PropertyListItemConvertible, Sendable {
                 return .plDict([
                     "type": type.propertyListItem,
                     "name": name.propertyListItem,
-                    "external-contents": externalContents.propertyListItem
+                    "external-contents": externalContents.propertyListItem,
                 ])
             }
         }
@@ -93,7 +100,7 @@ public struct VFSOverlay: PropertyListItemConvertible, Sendable {
             return .plDict([
                 "type": type.propertyListItem,
                 "name": name.propertyListItem,
-                "contents": contents.propertyListItem
+                "contents": contents.propertyListItem,
             ])
         }
     }
@@ -105,8 +112,8 @@ public struct VFSOverlay: PropertyListItemConvertible, Sendable {
     public var propertyListItem: PropertyListItem {
         return .plDict([
             "version": version.propertyListItem,
-            "case-sensitive": String(caseSensitive).propertyListItem, // serialized as string for some reason
-            "roots": roots.propertyListItem
+            "case-sensitive": String(caseSensitive).propertyListItem,  // serialized as string for some reason
+            "roots": roots.propertyListItem,
         ])
     }
 }
@@ -131,7 +138,7 @@ public struct DirectoryRemapVFSOverlay: PropertyListItemConvertible, Sendable {
             return .plDict([
                 "type": "directory-remap".propertyListItem,
                 "name": name.propertyListItem,
-                "external-contents": externalContents.propertyListItem
+                "external-contents": externalContents.propertyListItem,
             ])
         }
     }
@@ -151,9 +158,9 @@ public struct DirectoryRemapVFSOverlay: PropertyListItemConvertible, Sendable {
     public var propertyListItem: PropertyListItem {
         let values = [
             "version": version.propertyListItem,
-            "case-sensitive": String(caseSensitive).propertyListItem, // serialized as string for some reason
+            "case-sensitive": String(caseSensitive).propertyListItem,  // serialized as string for some reason
             "redirecting-with": redirectingWith.rawValue.propertyListItem,
-            "roots": remapping.propertyListItem
+            "roots": remapping.propertyListItem,
         ]
         return .plDict(values)
     }

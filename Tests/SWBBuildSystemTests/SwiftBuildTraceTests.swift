@@ -33,8 +33,9 @@ fileprivate struct SwiftBuildTraceTests: CoreBasedTests {
                             groupTree: TestGroup(
                                 "Sources",
                                 children: [
-                                    TestFile("main.swift"),
-                                ]),
+                                    TestFile("main.swift")
+                                ]
+                            ),
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
@@ -42,7 +43,8 @@ fileprivate struct SwiftBuildTraceTests: CoreBasedTests {
                                         "CODE_SIGNING_ALLOWED": "NO",
                                         "PRODUCT_NAME": "$(TARGET_NAME)",
                                         "SWIFT_VERSION": "5.0",
-                                    ]),
+                                    ]
+                                )
                             ],
                             targets: [
                                 TestStandardTarget(
@@ -50,12 +52,14 @@ fileprivate struct SwiftBuildTraceTests: CoreBasedTests {
                                     type: .commandLineTool,
                                     buildPhases: [
                                         TestSourcesBuildPhase([
-                                            "main.swift",
-                                        ]),
+                                            "main.swift"
+                                        ])
                                     ]
-                                ),
-                            ])
-                    ])
+                                )
+                            ]
+                        )
+                    ]
+                )
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
                 try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {

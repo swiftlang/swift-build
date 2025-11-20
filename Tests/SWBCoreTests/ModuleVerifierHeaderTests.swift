@@ -29,20 +29,25 @@ import Testing
         try withTemporaryDirectory { tmpDir in
             let headerPath = tmpDir.join("PerfectFramework.framework/Versions/A/Headers/PerfectFramework.h")
             try localFS.createDirectory(headerPath.dirname, recursive: true)
-            try localFS.write(headerPath, contents: """
-                #import <PerfectFramework/PerfectHeader.h>
-                """)
+            try localFS.write(
+                headerPath,
+                contents: """
+                    #import <PerfectFramework/PerfectHeader.h>
+                    """
+            )
 
             let header = ModuleVerifierHeader(header: headerPath, frameworkName: "PerfectFramework")
 
-            self.assert(header: header,
-                        file: headerPath,
-                        frameworkName: "PerfectFramework",
-                        subFolder: [],
-                        headerName: "PerfectFramework.h",
-                        language: .objectiveC,
-                        include: "#import <PerfectFramework/PerfectFramework.h>",
-                        cPlusPlus: false)
+            self.assert(
+                header: header,
+                file: headerPath,
+                frameworkName: "PerfectFramework",
+                subFolder: [],
+                headerName: "PerfectFramework.h",
+                language: .objectiveC,
+                include: "#import <PerfectFramework/PerfectFramework.h>",
+                cPlusPlus: false
+            )
         }
     }
 }

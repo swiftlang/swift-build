@@ -14,11 +14,11 @@ public import Foundation
 import SWBLibc
 
 #if os(Windows)
-#if canImport(System)
-import System
-#else
-import SystemPackage
-#endif
+    #if canImport(System)
+        import System
+    #else
+        import SystemPackage
+    #endif
 #endif
 
 // Defined in System.framework's sys/resource.h, but not available to Swift
@@ -27,57 +27,57 @@ fileprivate let IOPOL_TYPE_VFS_HFS_CASE_SENSITIVITY: Int32 = 1
 extension ProcessInfo {
     public var userID: Int {
         #if os(Windows)
-        return 0
+            return 0
         #else
-        return Int(getuid())
+            return Int(getuid())
         #endif
     }
 
     public var effectiveUserID: Int {
         #if os(Windows)
-        return 0
+            return 0
         #else
-        return Int(geteuid())
+            return Int(geteuid())
         #endif
     }
 
     public var groupID: Int {
         #if os(Windows)
-        return 0
+            return 0
         #else
-        return Int(getgid())
+            return Int(getgid())
         #endif
     }
 
     public var effectiveGroupID: Int {
         #if os(Windows)
-        return 0
+            return 0
         #else
-        return Int(getegid())
+            return Int(getegid())
         #endif
     }
 
     public var shortUserName: String {
         #if os(Windows)
-        var capacity = UNLEN + 1
-        let pointer = UnsafeMutablePointer<CInterop.PlatformChar>.allocate(capacity: Int(capacity))
-        defer { pointer.deallocate() }
-        if GetUserNameW(pointer, &capacity) {
-            return String(platformString: pointer)
-        }
-        return ""
+            var capacity = UNLEN + 1
+            let pointer = UnsafeMutablePointer<CInterop.PlatformChar>.allocate(capacity: Int(capacity))
+            defer { pointer.deallocate() }
+            if GetUserNameW(pointer, &capacity) {
+                return String(platformString: pointer)
+            }
+            return ""
         #else
-        let uid = geteuid().orIfZero(getuid())
-        return (getpwuid(uid)?.pointee.pw_name).map { String(cString: $0) } ?? String(uid)
+            let uid = geteuid().orIfZero(getuid())
+            return (getpwuid(uid)?.pointee.pw_name).map { String(cString: $0) } ?? String(uid)
         #endif
     }
 
     public var shortGroupName: String {
         #if os(Windows)
-        return ""
+            return ""
         #else
-        let gid = getegid().orIfZero(getgid())
-        return (getgrgid(gid)?.pointee.gr_name).map { String(cString: $0) } ?? String(gid)
+            let gid = getegid().orIfZero(getgid())
+            return (getgrgid(gid)?.pointee.gr_name).map { String(cString: $0) } ?? String(gid)
         #endif
     }
 
@@ -88,42 +88,41 @@ extension ProcessInfo {
 
     public var isRunningUnderFilesystemCaseSensitivityIOPolicy: Bool {
         #if os(macOS)
-        return getiopolicy_np(IOPOL_TYPE_VFS_HFS_CASE_SENSITIVITY, IOPOL_SCOPE_PROCESS) == 1
+            return getiopolicy_np(IOPOL_TYPE_VFS_HFS_CASE_SENSITIVITY, IOPOL_SCOPE_PROCESS) == 1
         #else
-        return false
+            return false
         #endif
     }
 
     public func hostOperatingSystem() throws -> OperatingSystem {
         #if os(Windows)
-        return .windows
+            return .windows
         #elseif os(Linux)
-        return .linux
+            return .linux
         #elseif os(FreeBSD)
-        return .freebsd
+            return .freebsd
         #elseif os(OpenBSD)
-        return .openbsd
+            return .openbsd
         #else
-        if try FileManager.default.isReadableFile(atPath: systemVersionPlistURL.filePath.str) {
-            switch try systemVersion().productName {
-            case "Mac OS X", "macOS":
-                return .macOS
-            case "iPhone OS":
-                return .iOS(simulator: simulatorRoot != nil)
-            case "Apple TVOS":
-                return .tvOS(simulator: simulatorRoot != nil)
-            case "Watch OS":
-                return .watchOS(simulator: simulatorRoot != nil)
-            case "xrOS":
-                return .visionOS(simulator: simulatorRoot != nil)
-            default:
-                break
+            if try FileManager.default.isReadableFile(atPath: systemVersionPlistURL.filePath.str) {
+                switch try systemVersion().productName {
+                case "Mac OS X", "macOS":
+                    return .macOS
+                case "iPhone OS":
+                    return .iOS(simulator: simulatorRoot != nil)
+                case "Apple TVOS":
+                    return .tvOS(simulator: simulatorRoot != nil)
+                case "Watch OS":
+                    return .watchOS(simulator: simulatorRoot != nil)
+                case "xrOS":
+                    return .visionOS(simulator: simulatorRoot != nil)
+                default:
+                    break
+                }
             }
-        }
-        return .unknown
+            return .unknown
         #endif
     }
-
 
 }
 
@@ -240,7 +239,8 @@ public enum OperatingSystem: Hashable, Sendable {
         let osReleasePath = Path("/etc/os-release")
         if fs.exists(osReleasePath) {
             if let osReleaseData = try? fs.read(osReleasePath),
-               let osRelease = String(data: Data(osReleaseData.bytes), encoding: .utf8) {
+                let osRelease = String(data: Data(osReleaseData.bytes), encoding: .utf8)
+            {
                 if let distribution = parseOSRelease(osRelease) {
                     return distribution
                 }
@@ -386,10 +386,10 @@ extension ImageFormat {
 
     public var usesRpaths: Bool {
         switch self {
-            case .macho, .elf:
-                return true
-            case .pe:
-                return false
+        case .macho, .elf:
+            return true
+        case .pe:
+            return false
         }
     }
 
@@ -419,4 +419,3 @@ extension FixedWidthInteger {
         return self != 0 ? self : other
     }
 }
-

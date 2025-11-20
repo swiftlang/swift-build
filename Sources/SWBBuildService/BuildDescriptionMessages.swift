@@ -57,7 +57,9 @@ fileprivate extension Request {
                 buildRequestContext: buildRequestContext,
                 workspaceContext: workspaceContext,
                 retain: false
-            ), clientDelegate: clientDelegate, constructionDelegate: operation
+            ),
+            clientDelegate: clientDelegate,
+            constructionDelegate: operation
         )?.buildDescription
 
         guard let buildDescription else {
@@ -167,11 +169,14 @@ struct BuildDescriptionSelectConfiguredTargetsForIndexMsg: MessageHandler {
 
         let uniqueTargets = OrderedSet(message.targets.map(\.rawValue))
 
-        let targets: Dictionary<String, ConfiguredTarget?> = Dictionary(buildDescription.allConfiguredTargets.lazy.filter { uniqueTargets.contains($0.target.guid) }.map {
-            ($0.target.guid, $0)
-        }, uniquingKeysWith: {
-            buildRequestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: buildRequest.enableIndexBuildArena, runDestination: message.request.parameters.activeRunDestination)
-        })
+        let targets: Dictionary<String, ConfiguredTarget?> = Dictionary(
+            buildDescription.allConfiguredTargets.lazy.filter { uniqueTargets.contains($0.target.guid) }.map {
+                ($0.target.guid, $0)
+            },
+            uniquingKeysWith: {
+                buildRequestContext.selectConfiguredTargetForIndex($0, $1, hasEnabledIndexBuildArena: buildRequest.enableIndexBuildArena, runDestination: message.request.parameters.activeRunDestination)
+            }
+        )
 
         let configuredTargets = try uniqueTargets.map { target in
             guard let configuredTarget = targets[target] else {

@@ -27,8 +27,7 @@ private extension ToolchainRegistryDelegate {
     func issue(strict: Bool, _ path: Path, _ message: String) {
         if strict {
             error(path, message)
-        }
-        else {
+        } else {
             warning(path, message)
         }
     }
@@ -79,7 +78,7 @@ public final class Toolchain: Hashable, Sendable {
         self.identifier = identifier
         self.version = version
 
-        assert(!aliases.contains{ $0.lowercased() != $0 })
+        assert(!aliases.contains { $0.lowercased() != $0 })
         self.aliases = aliases
 
         self.path = path
@@ -165,14 +164,12 @@ public final class Toolchain: Hashable, Sendable {
                 throw StubError.error("if the 'Name' key is present, it must be a string")
             }
             displayName = infoDisplayNameString
-        }
-        else if let infoDisplayName = items["DisplayName"] {
+        } else if let infoDisplayName = items["DisplayName"] {
             guard case .plString(let infoDisplayNameString) = infoDisplayName else {
                 throw StubError.error("if the 'DisplayName' key is present, it must be a string")
             }
             displayName = infoDisplayNameString
-        }
-        else {
+        } else {
             displayName = Toolchain.deriveDisplayName(identifier: identifier)
         }
 
@@ -185,12 +182,10 @@ public final class Toolchain: Hashable, Sendable {
 
             do {
                 version = try Version(infoVersionString)
-            }
-            catch {
+            } catch {
                 throw StubError.error("'Version' parse error: \(error)")
             }
-        }
-        else {
+        } else {
             // No version specified in the plist, so we derive the version from the identifier.
             version = Toolchain.deriveVersion(identifier: identifier)
         }
@@ -210,8 +205,7 @@ public final class Toolchain: Hashable, Sendable {
                 guard !aliasStr.isEmpty else { continue }
                 aliases.insert(aliasStr.lowercased())
             }
-        }
-        else {
+        } else {
             // No aliases specified in the plist, so we derive them from the identifier.
             aliases = Toolchain.deriveAliases(path: path, identifier: identifier)
         }
@@ -285,7 +279,7 @@ public final class Toolchain: Hashable, Sendable {
         defaultSettingsWhenPrimary["TOOLCHAIN_VERSION"] = .plString(version.description)
 
         var executableSearchPaths = [
-            path.join("usr").join("bin"),
+            path.join("usr").join("bin")
         ]
 
         for platformExtension in pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
@@ -294,18 +288,21 @@ public final class Toolchain: Hashable, Sendable {
 
         executableSearchPaths.append(contentsOf: [
             path.join("usr").join("local").join("bin"),
-            path.join("usr").join("libexec")
+            path.join("usr").join("libexec"),
         ])
 
         // Testing library platform names
         let testingLibrarySearchDir = path.join("usr").join("lib").join("swift")
-        let testingLibraryPlatformNames: Set<String> = if let platformRegistry, fs.exists(testingLibrarySearchDir) {
-            Set(try fs.listdir(testingLibrarySearchDir).filter {
-                platformRegistry.lookup(name: $0) != nil && fs.exists(testingLibrarySearchDir.join($0).join("testing"))
-            })
-        } else {
-            []
-        }
+        let testingLibraryPlatformNames: Set<String> =
+            if let platformRegistry, fs.exists(testingLibrarySearchDir) {
+                Set(
+                    try fs.listdir(testingLibrarySearchDir).filter {
+                        platformRegistry.lookup(name: $0) != nil && fs.exists(testingLibrarySearchDir.join($0).join("testing"))
+                    }
+                )
+            } else {
+                []
+            }
 
         // Construct the toolchain
         self.init(identifier: identifier, displayName: displayName, version: version, aliases: aliases, path: path, frameworkPaths: frameworkSearchPaths, libraryPaths: librarySearchPaths, defaultSettings: defaultSettings, overrideSettings: overrideSettings, defaultSettingsWhenPrimary: defaultSettingsWhenPrimary, executableSearchPaths: executableSearchPaths, testingLibraryPlatformNames: testingLibraryPlatformNames, fs: fs)
@@ -315,18 +312,16 @@ public final class Toolchain: Hashable, Sendable {
         hasher.combine(ObjectIdentifier(self))
     }
 
-    public static func ==(lhs: Toolchain, rhs: Toolchain) -> Bool {
+    public static func == (lhs: Toolchain, rhs: Toolchain) -> Bool {
         return lhs === rhs
     }
 
     @_spi(Testing) public static func deriveDisplayName(identifier: String) -> String {
         if identifier == ToolchainRegistry.defaultToolchainIdentifier {
             return "Xcode Default"
-        }
-        else if identifier.hasPrefix(ToolchainRegistry.appleToolchainIdentifierPrefix) {
+        } else if identifier.hasPrefix(ToolchainRegistry.appleToolchainIdentifierPrefix) {
             return identifier.withoutPrefix(ToolchainRegistry.appleToolchainIdentifierPrefix)
-        }
-        else {
+        } else {
             return identifier
         }
     }
@@ -382,7 +377,7 @@ public final class Toolchain: Hashable, Sendable {
         let groups: [[String]] = Static.deriveVersionPattern.matchGroups(in: identifier)
 
         // <rdar://problem/31359366> error: ambiguous use of 'prefix'
-        let numbers: [UInt] = Array(groups.prefix(3)).map{ $0.first! }.map{ UInt($0) ?? 0 }
+        let numbers: [UInt] = Array(groups.prefix(3)).map { $0.first! }.map { UInt($0) ?? 0 }
 
         return Version(numbers)
     }
@@ -466,8 +461,7 @@ public final class ToolchainRegistry: @unchecked Sendable {
 
             do {
                 try await registerToolchainsInDirectory(path, strict: strict, aliases: searchPath.aliases, operatingSystem: hostOperatingSystem, delegate: delegate)
-            }
-            catch let err {
+            } catch let err {
                 delegate.issue(strict: strict, path, "failed to load toolchains in \(path.str): \(err)")
             }
         }

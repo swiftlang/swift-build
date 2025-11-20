@@ -34,37 +34,48 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
                             TestFile("file.swift"),
                             TestFile("file2.swift"),
                             TestFile("file3.c"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SWIFT_VERSION": swiftVersion,
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ])],
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "Framework",
                             type: .framework,
-                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT":"iphoneos"])],
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file.swift"]),
-                            ], dependencies: ["Tool", "Framework2"]),
+                                TestSourcesBuildPhase(["file.swift"])
+                            ],
+                            dependencies: ["Tool", "Framework2"]
+                        ),
                         TestStandardTarget(
                             "Framework2",
                             type: .framework,
-                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT":"iphoneos"])],
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file3.c"]),
-                            ]),
+                                TestSourcesBuildPhase(["file3.c"])
+                            ]
+                        ),
                         TestStandardTarget(
                             "Tool",
                             type: .commandLineTool,
-                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT":"macosx"])],
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file2.swift"]),
-                            ]),
-                    ])])
+                                TestSourcesBuildPhase(["file2.swift"])
+                            ]
+                        ),
+                    ]
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testWorkspace)
@@ -119,30 +130,40 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
                         children: [
                             TestFile("file.swift"),
                             TestFile("file2.swift"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SWIFT_VERSION": swiftVersion,
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ])],
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "Framework",
                             type: .framework,
                             buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDK_STAT_CACHE_VERBOSE_LOGGING": "YES"])],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file.swift"]),
-                            ], dependencies: ["Framework2"]),
+                                TestSourcesBuildPhase(["file.swift"])
+                            ],
+                            dependencies: ["Framework2"]
+                        ),
                         TestStandardTarget(
                             "Framework2",
                             type: .framework,
                             buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDK_STAT_CACHE_VERBOSE_LOGGING": "NO"])],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file2.swift"]),
-                            ]),
-                    ])])
+                                TestSourcesBuildPhase(["file2.swift"])
+                            ]
+                        ),
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
@@ -164,24 +185,32 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
                     groupTree: TestGroup(
                         "Sources",
                         children: [
-                            TestFile("file.swift"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SWIFT_VERSION": swiftVersion,
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "SDK_STAT_CACHE_VERBOSE_LOGGING": "YES"
-                        ])],
+                            TestFile("file.swift")
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "SDK_STAT_CACHE_VERBOSE_LOGGING": "YES",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "Framework",
                             type: .framework,
                             buildPhases: [
-                                TestSourcesBuildPhase(["file.swift"]),
-                            ]),
-                    ])])
+                                TestSourcesBuildPhase(["file.swift"])
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testWorkspace)
@@ -203,22 +232,30 @@ fileprivate struct ClangStatCacheTaskConstructionTests: CoreBasedTests {
                     groupTree: TestGroup(
                         "Sources",
                         children: [
-                            TestFile("file.m"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ])],
+                            TestFile("file.m")
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "Framework",
                             type: .framework,
                             buildPhases: [
-                                TestSourcesBuildPhase(["file.m"]),
-                            ]),
-                    ])])
+                                TestSourcesBuildPhase(["file.m"])
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in

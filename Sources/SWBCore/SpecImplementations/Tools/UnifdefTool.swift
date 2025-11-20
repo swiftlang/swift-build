@@ -13,14 +13,15 @@
 public import SWBUtil
 import SWBMacro
 
-public final class UnifdefToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class UnifdefToolSpec: CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "public.build-task.unifdef"
 
     public override func evaluatedOutputs(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate) -> [(path: Path, isDirectory: Bool)]? {
         let outputs = cbc.outputs.map { ($0, false) }
-        return outputs.nilIfEmpty ?? cbc.resourcesDir.map { resourcesDir in
-            cbc.inputs.map { (resourcesDir.join($0.absolutePath.basename), false) }
-        }
+        return outputs.nilIfEmpty
+            ?? cbc.resourcesDir.map { resourcesDir in
+                cbc.inputs.map { (resourcesDir.join($0.absolutePath.basename), false) }
+            }
     }
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

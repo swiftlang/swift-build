@@ -31,32 +31,39 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                         TestFile("infoplist-prefix.h"),
                         TestFile("SourceFile.m"),
                         TestFile("Tool.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                        "INFOPLIST_FILE": "Tool.plist",
-                        "INFOPLIST_PREPROCESS": "YES",
-                        "DSTROOT": tmpDir.path.join("dstroot").str,
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                            "INFOPLIST_FILE": "Tool.plist",
+                            "INFOPLIST_PREPROCESS": "YES",
+                            "DSTROOT": tmpDir.path.join("dstroot").str,
 
-                        // Disable the SetOwnerAndGroup action by setting them to empty values.
-                        "INSTALL_GROUP": "",
-                        "INSTALL_OWNER": "",
-                    ]),
-                    TestBuildConfiguration("Release", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
-                        "INFOPLIST_FILE": "Tool.plist",
-                        "INFOPLIST_PREPROCESS": "YES",
-                        "DSTROOT": tmpDir.path.join("dstroot").str,
+                            // Disable the SetOwnerAndGroup action by setting them to empty values.
+                            "INSTALL_GROUP": "",
+                            "INSTALL_OWNER": "",
+                        ]
+                    ),
+                    TestBuildConfiguration(
+                        "Release",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "CREATE_INFOPLIST_SECTION_IN_BINARY": "YES",
+                            "INFOPLIST_FILE": "Tool.plist",
+                            "INFOPLIST_PREPROCESS": "YES",
+                            "DSTROOT": tmpDir.path.join("dstroot").str,
 
-                        // Disable the SetOwnerAndGroup action by setting them to empty values.
-                        "INSTALL_GROUP": "",
-                        "INSTALL_OWNER": "",
-                    ]),
+                            // Disable the SetOwnerAndGroup action by setting them to empty values.
+                            "INSTALL_GROUP": "",
+                            "INSTALL_OWNER": "",
+                        ]
+                    ),
                 ],
                 targets: [
                     TestAggregateTarget("All", dependencies: ["Tool", "App"]),
@@ -69,8 +76,8 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "SourceFile.m",
-                            ]),
+                                "SourceFile.m"
+                            ])
                         ]
                     ),
                     TestStandardTarget(
@@ -82,11 +89,12 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "SourceFile.m",
-                            ]),
+                                "SourceFile.m"
+                            ])
                         ]
                     ),
-                ])
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -94,14 +102,13 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
             try tester.fs.write(tmpDir.path.join("SourceFile.m"), contents: ByteString("int main() { return 0; }"))
             func writeToolPlist(different: Bool) async throws {
                 try await tester.fs.writeFileContents(tmpDir.path.join("Tool.plist")) { contents in
-                    contents <<<
-                    """
-                    <?xml version="1.0" encoding="UTF-8"?>
-                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                    <plist version="1.0">
-                    <dict>
+                    contents <<< """
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                        <plist version="1.0">
+                        <dict>
 
-                    """
+                        """
                     for arch in ["arm64", "x86_64"] {
                         contents <<< "#if __is_target_arch(\(arch))\n"
                         contents <<< "<key>arch</key>\n"
@@ -134,7 +141,8 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                         "builtin-mergeInfoPlist",
                         "\(SRCROOT)/build/aProject.build/Release/App.build/Preprocessed-Info.plist",
                         "\(SRCROOT)/build/aProject.build/Release/App.build/normal/arm64/Preprocessed-Info.plist",
-                        "\(SRCROOT)/build/aProject.build/Release/App.build/normal/x86_64/Preprocessed-Info.plist"])
+                        "\(SRCROOT)/build/aProject.build/Release/App.build/normal/x86_64/Preprocessed-Info.plist",
+                    ])
                 }
             }
 
@@ -174,41 +182,45 @@ fileprivate struct InfoPlistBuildOperationTests: CoreBasedTests {
                     children: [
                         TestFile("SourceFile.m"),
                         TestFile("Tool.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "INFOPLIST_FILE": "Tool.plist",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "INFOPLIST_FILE": "Tool.plist",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "App",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "SourceFile.m",
-                            ]),
+                                "SourceFile.m"
+                            ])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             try tester.fs.write(tmpDir.path.join("SourceFile.m"), contents: ByteString("int main() { return 0; }"))
             try await tester.fs.writeFileContents(tmpDir.path.join("Tool.plist")) { contents in
-                contents <<<
-                """
-                <?xml version="1.0" encoding="UTF-8"?>
-                <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                <plist version="1.0">
-                <dict>
-                </dict></plist>
-                """
+                contents <<< """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                    <plist version="1.0">
+                    <dict>
+                    </dict></plist>
+                    """
             }
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .anyMac, persistent: true) { results in
                 results.checkNoDiagnostics()

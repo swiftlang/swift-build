@@ -69,11 +69,11 @@ public struct ElapsedTimerInterval: Hashable, Sendable {
     }
 
     public var nanoseconds: UInt64 {
-        UInt64(duration.nanoseconds) // always positive
+        UInt64(duration.nanoseconds)  // always positive
     }
 
     public var microseconds: UInt64 {
-        UInt64(duration.microseconds) // always positive
+        UInt64(duration.microseconds)  // always positive
     }
 
     public var seconds: TimeInterval {

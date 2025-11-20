@@ -26,33 +26,35 @@ final class CreateBuildDirectoryTaskProducer: StandardTaskProducer, TaskProducer
     func prepare() {
         let containsSwiftPackages = context.globalProductPlan.planRequest.buildGraph.containsSwiftPackages
         let buildDirectoryContext = context.globalProductPlan.buildDirectories
-        buildDirectoryContext.add(targetContexts.flatMap { (targetContext: TaskProducerContext) -> [Path] in
-            // Package products only group dependent targets or carry imparted settings, but never build any content of their own, so we should not create any build directories for them.
-            if targetContext.configuredTarget?.target.type == .packageProduct {
-                return []
-            }
-            return targetContext.workspaceContext.buildDirectoryMacros.flatMap { macro -> [Path] in
-                let scope = targetContext.settings.globalScope
-                let path = scope.evaluate(macro)
-
-                switch macro {
-                case BuiltinMacros.BUILT_PRODUCTS_DIR:
-                    // If the workspace contains any packages, eagerly create the "PackageFrameworks" directory. As part of "rdar://72205262 (Explore moving away from two target approach for dynamic targets to changing linkage directly in Swift Build)", we should instead compute any search paths to "PackageFrameworks" dynamically to avoid this.
-                    if containsSwiftPackages {
-                        return [path, path.join("PackageFrameworks")]
-                    }
-                case BuiltinMacros.DSTROOT:
-                    // Skip generating DSTROOT if DEPLOYMENT_LOCATION is not enabled.
-                    if !scope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
-                        return []
-                    }
-                default:
-                    break
+        buildDirectoryContext.add(
+            targetContexts.flatMap { (targetContext: TaskProducerContext) -> [Path] in
+                // Package products only group dependent targets or carry imparted settings, but never build any content of their own, so we should not create any build directories for them.
+                if targetContext.configuredTarget?.target.type == .packageProduct {
+                    return []
                 }
+                return targetContext.workspaceContext.buildDirectoryMacros.flatMap { macro -> [Path] in
+                    let scope = targetContext.settings.globalScope
+                    let path = scope.evaluate(macro)
 
-                return [path]
+                    switch macro {
+                    case BuiltinMacros.BUILT_PRODUCTS_DIR:
+                        // If the workspace contains any packages, eagerly create the "PackageFrameworks" directory. As part of "rdar://72205262 (Explore moving away from two target approach for dynamic targets to changing linkage directly in Swift Build)", we should instead compute any search paths to "PackageFrameworks" dynamically to avoid this.
+                        if containsSwiftPackages {
+                            return [path, path.join("PackageFrameworks")]
+                        }
+                    case BuiltinMacros.DSTROOT:
+                        // Skip generating DSTROOT if DEPLOYMENT_LOCATION is not enabled.
+                        if !scope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
+                            return []
+                        }
+                    default:
+                        break
+                    }
+
+                    return [path]
+                }
             }
-        })
+        )
         buildDirectoryContext.freeze()
     }
 

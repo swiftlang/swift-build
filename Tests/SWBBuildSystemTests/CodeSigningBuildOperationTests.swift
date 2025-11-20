@@ -26,21 +26,26 @@ fileprivate struct CodeSigningBuildOperationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDirPath,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("AppSource.m"),
-                    ]),
+                        TestFile("AppSource.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration( "Debug", buildSettings: [
-                        "COPY_PHASE_STRIP": "NO",
-                        "DEBUG_INFORMATION_FORMAT": "dwarf",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "COPY_PHASE_STRIP": "NO",
+                            "DEBUG_INFORMATION_FORMAT": "dwarf",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -48,10 +53,10 @@ fileprivate struct CodeSigningBuildOperationTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "AppSource.m",
-                            ]),
+                                "AppSource.m"
+                            ])
                         ],
-                    ),
+                    )
                 ]
             )
 
@@ -83,21 +88,26 @@ fileprivate struct CodeSigningBuildOperationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDirPath,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("AppSource.m"),
-                    ]),
+                        TestFile("AppSource.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration( "Debug", buildSettings: [
-                        "COPY_PHASE_STRIP": "NO",
-                        "DEBUG_INFORMATION_FORMAT": "dwarf",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
-                        "SDKROOT": "macosx",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "COPY_PHASE_STRIP": "NO",
+                            "DEBUG_INFORMATION_FORMAT": "dwarf",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.entitlements",
+                            "SDKROOT": "macosx",
+                            "SUPPORTED_PLATFORMS": "macosx",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -105,10 +115,10 @@ fileprivate struct CodeSigningBuildOperationTests: CoreBasedTests {
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "AppSource.m",
-                            ]),
+                                "AppSource.m"
+                            ])
                         ],
-                    ),
+                    )
                 ]
             )
 
@@ -140,4 +150,3 @@ fileprivate struct CodeSigningBuildOperationTests: CoreBasedTests {
         }
     }
 }
-

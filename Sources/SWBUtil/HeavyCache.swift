@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #if canImport(os)
-import os
+    import os
 #endif
 
 import Synchronization
@@ -76,7 +76,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value: Sendable>: _Heavy
 
     fileprivate final class Entry: Sendable {
         /// Empty helper type to prove exclusive access to `accessTime` without storing a mutex for each instance.
-        struct Witness: ~Copyable { }
+        struct Witness: ~Copyable {}
 
         /// The actual value.
         let value: Value
@@ -224,8 +224,7 @@ public final class HeavyCache<Key: Hashable & Sendable, Value: Sendable>: _Heavy
         // Prune one item at a time. This is not efficient for pruning large numbers of items, but that is not the intended use case currently.
         //
         // We take some care to make sure we drop keys already evicted by the underlying cache before anything else.
-    whileLoop:
-        while _keys.count > max {
+        whileLoop: while _keys.count > max {
             // Prune the oldest entry.
             var oldest: (key: Key, entry: Entry)? = nil
             for key in _keys {

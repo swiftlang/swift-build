@@ -128,7 +128,7 @@ public struct ModuleVerifierFramework {
         return headers
     }
 
-    private static func modules(ofKind kind:ModuleMapKind, rootPath: Path, fs: any FSProxy, frameworkName: String) throws -> [ModuleVerifierModuleMap] {
+    private static func modules(ofKind kind: ModuleMapKind, rootPath: Path, fs: any FSProxy, frameworkName: String) throws -> [ModuleVerifierModuleMap] {
         var moduleMaps: [ModuleVerifierModuleMap] = []
 
         for path in ModuleVerifierModuleMap.paths(for: kind) {
@@ -210,12 +210,12 @@ extension ModuleVerifierFramework {
         }
         return filteredHeaders.sorted { (lhp, rhp) -> Bool in
             lhp.include(language: language) < rhp.include(language: language)
-        }.map {$0.include(language: language)}.joined(separator: "\n").appending("\n")
+        }.map { $0.include(language: language) }.joined(separator: "\n").appending("\n")
     }
 }
 
 extension String {
-    fileprivate func hasSuffix(_ strings:[String]) -> Bool {
+    fileprivate func hasSuffix(_ strings: [String]) -> Bool {
         for string in strings {
             if self.hasSuffix(string) {
                 return true

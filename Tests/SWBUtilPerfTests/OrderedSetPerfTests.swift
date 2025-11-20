@@ -26,17 +26,17 @@ fileprivate struct OrderedSetPerfTests: PerfTests {
         #expect(halfN * 2 == N)
 
         await measure {
-            for _ in 0 ..< numIterations {
+            for _ in 0..<numIterations {
                 // Test many inserts followed by many duplicates.
                 var insertCount = 0
                 do {
                     var set = OrderedSet<Int>()
-                    for i in 0 ..< halfN {
+                    for i in 0..<halfN {
                         if set.append(i).inserted {
                             insertCount += 1
                         }
                     }
-                    for i in 0 ..< halfN {
+                    for i in 0..<halfN {
                         if set.append(i).inserted {
                             insertCount += 1
                         }
@@ -45,7 +45,7 @@ fileprivate struct OrderedSetPerfTests: PerfTests {
                 // Test interleaved insert & duplicate.
                 do {
                     var set = OrderedSet<Int>()
-                    for i in 0 ..< halfN {
+                    for i in 0..<halfN {
                         if set.append(i).inserted {
                             insertCount += 1
                         }

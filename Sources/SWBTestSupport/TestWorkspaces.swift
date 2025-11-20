@@ -74,8 +74,7 @@ private protocol TestInternalObjectItem: TestInternalItem {
     func toObject(_ resolver: any Resolver) throws -> PropertyListItem
 }
 
-
-package protocol TestStructureItem { }
+package protocol TestStructureItem {}
 private protocol TestInternalStructureItem: TestInternalItem, TestStructureItem, Sendable {
     func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.GroupTreeReference
 }
@@ -115,7 +114,7 @@ extension TestTarget {
 package enum TestSourceTree: Equatable, Sendable {
     case absolute
     case groupRelative
-    case buildSetting(String) // FIXME: This should be a MacroExpressionSource.
+    case buildSetting(String)  // FIXME: This should be a MacroExpressionSource.
 }
 
 extension TestSourceTree {
@@ -366,7 +365,7 @@ package final class TestGroup: TestInternalItem, TestInternalStructureItem, Cust
 
     fileprivate func toProtocol(_ resolver: any Resolver, isRoot: Bool) throws -> SWBProtocol.FileGroup {
         let sourceTree = self.sourceTree ?? (isRoot ? .buildSetting("PROJECT_DIR") : .groupRelative)
-        return try SWBProtocol.FileGroup(guid: guid, sourceTree: sourceTree.toProtocol(), path: .string(path ?? (sourceTree == .buildSetting("PROJECT_DIR") ? "" : name)), name: name, children: children.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.FileGroup(guid: guid, sourceTree: sourceTree.toProtocol(), path: .string(path ?? (sourceTree == .buildSetting("PROJECT_DIR") ? "" : name)), name: name, children: children.map { try $0.toProtocol(resolver) })
     }
 
     package var description: String {
@@ -386,7 +385,7 @@ package final class TestVariantGroup: TestInternalItem, TestInternalStructureIte
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.GroupTreeReference {
-        return try SWBProtocol.VariantGroup(guid: guid, sourceTree: .groupRelative, path: .string(""), name: name, children: children.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.VariantGroup(guid: guid, sourceTree: .groupRelative, path: .string(""), name: name, children: children.map { try $0.toProtocol(resolver) })
     }
 
     package var description: String {
@@ -411,7 +410,7 @@ package final class TestVersionGroup: TestInternalItem, TestInternalStructureIte
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.GroupTreeReference {
         let sourceTree = self.sourceTree ?? .groupRelative
-        return try SWBProtocol.VersionGroup(guid: guid, sourceTree: .groupRelative, path: .string(path ?? (sourceTree == .buildSetting("PROJECT_DIR") ? "" : name)), children: children.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.VersionGroup(guid: guid, sourceTree: .groupRelative, path: .string(path ?? (sourceTree == .buildSetting("PROJECT_DIR") ? "" : name)), children: children.map { try $0.toProtocol(resolver) })
     }
 
     package var description: String {
@@ -523,7 +522,7 @@ package final class TestBuildFile: TestInternalItem, Sendable {
         case let .namedReference(name, fileTypeIdentifier):
             buildableItemGUID = .namedReference(name: name, fileTypeIdentifier: fileTypeIdentifier)
         }
-        return SWBProtocol.BuildFile(guid: guid, buildableItemGUID: buildableItemGUID, additionalArgs: additionalArgs.map{ .stringList($0) }, decompress: decompress, headerVisibility: headerVisibility?.toProtocol(), migCodegenFiles: migCodegenFiles?.toProtocol(), intentsCodegenVisibility: intentsCodegenVisibility, resourceRule: resourceRule.toProtocol(), codeSignOnCopy: codeSignOnCopy ?? false, removeHeadersOnCopy: removeHeadersOnCopy ?? false, shouldLinkWeakly: shouldLinkWeakly ?? false, assetTags: assetTags, platformFilters: platformFilters, shouldWarnIfNoRuleToProcess: shouldWarnIfNoRuleToProcess)
+        return SWBProtocol.BuildFile(guid: guid, buildableItemGUID: buildableItemGUID, additionalArgs: additionalArgs.map { .stringList($0) }, decompress: decompress, headerVisibility: headerVisibility?.toProtocol(), migCodegenFiles: migCodegenFiles?.toProtocol(), intentsCodegenVisibility: intentsCodegenVisibility, resourceRule: resourceRule.toProtocol(), codeSignOnCopy: codeSignOnCopy ?? false, removeHeadersOnCopy: removeHeadersOnCopy ?? false, shouldLinkWeakly: shouldLinkWeakly ?? false, assetTags: assetTags, platformFilters: platformFilters, shouldWarnIfNoRuleToProcess: shouldWarnIfNoRuleToProcess)
     }
 }
 
@@ -571,7 +570,7 @@ extension TestBuildFile: ExpressibleByStringLiteral {
     }
 }
 
-package protocol TestBuildPhase { }
+package protocol TestBuildPhase {}
 fileprivate protocol TestInternalBuildPhase: TestInternalItem, TestBuildPhase, Sendable {
     func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildPhase
 }
@@ -622,7 +621,8 @@ package final class TestCopyFilesBuildPhase: TestInternalBuildPhase {
             buildFiles: buildFiles.map { try $0.toProtocol(resolver) },
             destinationSubfolder: .string(destinationSubfolder),
             destinationSubpath: .string(destinationSubpath),
-            runOnlyForDeploymentPostprocessing: onlyForDeployment)
+            runOnlyForDeploymentPostprocessing: onlyForDeployment
+        )
     }
 }
 
@@ -636,7 +636,7 @@ package final class TestAppleScriptBuildPhase: TestInternalBuildPhase {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildPhase {
-        return try SWBProtocol.AppleScriptBuildPhase(guid: guid, buildFiles: buildFiles.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.AppleScriptBuildPhase(guid: guid, buildFiles: buildFiles.map { try $0.toProtocol(resolver) })
     }
 }
 
@@ -650,7 +650,7 @@ package final class TestFrameworksBuildPhase: TestInternalBuildPhase {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildPhase {
-        return try SWBProtocol.FrameworksBuildPhase(guid: guid, buildFiles: buildFiles.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.FrameworksBuildPhase(guid: guid, buildFiles: buildFiles.map { try $0.toProtocol(resolver) })
     }
 }
 
@@ -664,7 +664,7 @@ package final class TestHeadersBuildPhase: TestInternalBuildPhase {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildPhase {
-        return try SWBProtocol.HeadersBuildPhase(guid: guid, buildFiles: buildFiles.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.HeadersBuildPhase(guid: guid, buildFiles: buildFiles.map { try $0.toProtocol(resolver) })
     }
 }
 package final class TestShellScriptBuildPhase: TestInternalBuildPhase {
@@ -709,10 +709,10 @@ package final class TestShellScriptBuildPhase: TestInternalBuildPhase {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) -> SWBProtocol.BuildPhase {
-        let inputs = self.inputs.map{ MacroExpressionSource.string($0) }
-        let outputs = self.outputs.map{ MacroExpressionSource.string($0) }
-        let inputFileLists = self.inputFileLists.map{ MacroExpressionSource.string($0) }
-        let outputFileLists = self.outputFileLists.map{ MacroExpressionSource.string($0) }
+        let inputs = self.inputs.map { MacroExpressionSource.string($0) }
+        let outputs = self.outputs.map { MacroExpressionSource.string($0) }
+        let inputFileLists = self.inputFileLists.map { MacroExpressionSource.string($0) }
+        let outputFileLists = self.outputFileLists.map { MacroExpressionSource.string($0) }
         return SWBProtocol.ShellScriptBuildPhase(
             guid: guid,
             name: name,
@@ -744,7 +744,7 @@ package final class TestResourcesBuildPhase: TestInternalBuildPhase {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildPhase {
-        return try SWBProtocol.ResourcesBuildPhase(guid: guid, buildFiles: buildFiles.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.ResourcesBuildPhase(guid: guid, buildFiles: buildFiles.map { try $0.toProtocol(resolver) })
     }
 }
 
@@ -758,7 +758,7 @@ package final class TestRezBuildPhase: TestInternalBuildPhase {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildPhase {
-        return try SWBProtocol.RezBuildPhase(guid: guid, buildFiles: buildFiles.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.RezBuildPhase(guid: guid, buildFiles: buildFiles.map { try $0.toProtocol(resolver) })
     }
 }
 
@@ -772,7 +772,7 @@ package final class TestSourcesBuildPhase: TestInternalBuildPhase {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildPhase {
-        return try SWBProtocol.SourcesBuildPhase(guid: guid, buildFiles: buildFiles.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.SourcesBuildPhase(guid: guid, buildFiles: buildFiles.map { try $0.toProtocol(resolver) })
     }
 }
 
@@ -811,15 +811,15 @@ package final class TestBuildRule: TestInternalItem, Sendable {
         self.name = name
         self.inputSpecifier = inputSpecifier
 
-        let outputs = outputs.enumerated().map{ (entry) -> SWBProtocol.BuildRule.ShellScriptOutputInfo in
-                let (i, output) = entry
-                if i < outputFilesCompilerFlags.count {
-                    return .init(path: .string(output), additionalCompilerFlags: .stringList(outputFilesCompilerFlags[i]))
-                } else {
-                    return .init(path: .string(output), additionalCompilerFlags: nil)
-                }
+        let outputs = outputs.enumerated().map { (entry) -> SWBProtocol.BuildRule.ShellScriptOutputInfo in
+            let (i, output) = entry
+            if i < outputFilesCompilerFlags.count {
+                return .init(path: .string(output), additionalCompilerFlags: .stringList(outputFilesCompilerFlags[i]))
+            } else {
+                return .init(path: .string(output), additionalCompilerFlags: nil)
             }
-        self.actionSpecifier = .shellScript(contents: script, inputs: inputs.map{ .string($0) }, inputFileLists: inputFileLists.map { .string($0) }, outputs: outputs, outputFileLists: outputFileLists.map { .string($0) }, dependencyInfo: dependencyInfo, runOncePerArchitecture: runOncePerArchitecture ?? true)
+        }
+        self.actionSpecifier = .shellScript(contents: script, inputs: inputs.map { .string($0) }, inputFileLists: inputFileLists.map { .string($0) }, outputs: outputs, outputFileLists: outputFileLists.map { .string($0) }, dependencyInfo: dependencyInfo, runOncePerArchitecture: runOncePerArchitecture ?? true)
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) -> SWBProtocol.BuildRule {
@@ -837,7 +837,7 @@ package final class TestCustomTask: Sendable {
     package let enableSandboxing: Bool
     package let preparesForIndexing: Bool
 
-    package init(commandLine: [String], environment: [String : String], workingDirectory: String, executionDescription: String, inputs: [String], outputs: [String], enableSandboxing: Bool, preparesForIndexing: Bool) {
+    package init(commandLine: [String], environment: [String: String], workingDirectory: String, executionDescription: String, inputs: [String], outputs: [String], enableSandboxing: Bool, preparesForIndexing: Bool) {
         self.commandLine = commandLine
         self.environment = environment
         self.workingDirectory = workingDirectory
@@ -904,7 +904,7 @@ extension TestInternalTarget {
         return .plDict([
             "signature": .plString(signature),
             "type": .plString("target"),
-            "contents": .plDict(["data": .plArray(serializer.byteString.bytes.map { .plInt(Int($0)) })])
+            "contents": .plDict(["data": .plArray(serializer.byteString.bytes.map { .plInt(Int($0)) })]),
         ])
     }
 }
@@ -1022,18 +1022,18 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
         func computeProductReferenceName(_ name: String) -> String {
             switch self {
             case .application,
-                 .watchKit1App,
-                 .watchKitApp,
-                 .watchKitAppContainer,
-                 .messagesApp,
-                 .appClip:
+                .watchKit1App,
+                .watchKitApp,
+                .watchKitAppContainer,
+                .messagesApp,
+                .appClip:
                 return "\(name).app"
             case .commandLineTool,
-                 .hostBuildTool,
-                 .swiftpmTestRunner:
+                .hostBuildTool,
+                .swiftpmTestRunner:
                 return "\(name)"
             case .framework,
-                 .staticFramework:
+                .staticFramework:
                 return "\(name).framework"
             case .staticLibrary:
                 return "lib\(name).a"
@@ -1052,11 +1052,11 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
             case .xpcService:
                 return "\(name).xpc"
             case .applicationExtension,
-                 .extensionKitExtension,
-                 .xcodeExtension,
-                 .watchKitExtension,
-                 .messagesExtension,
-                 .messagesStickerPackExtension:
+                .extensionKitExtension,
+                .xcodeExtension,
+                .watchKitExtension,
+                .messagesExtension,
+                .messagesStickerPackExtension:
                 return "\(name).appex"
             case .unitTest, .uiTest, .multiDeviceUITest:
                 return "\(name).xctest"
@@ -1100,24 +1100,26 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
         self.buildRules = buildRules
         self.customTasks = customTasks
         self.dependencies = dependencies
-        self.explicitProductReferenceName = productReferenceName ?? {
-            // Try to correctly determine the product reference if not specified explicitly
-            let productNames = Set((buildConfigurations ?? []).compactMap { $0.buildSettings["PRODUCT_NAME"] })
-            if productNames.count > 1 {
-                preconditionFailure("productReferenceName must be explicitly set for this target because it cannot be determined automatically in this context")
-            }
+        self.explicitProductReferenceName =
+            productReferenceName
+            ?? {
+                // Try to correctly determine the product reference if not specified explicitly
+                let productNames = Set((buildConfigurations ?? []).compactMap { $0.buildSettings["PRODUCT_NAME"] })
+                if productNames.count > 1 {
+                    preconditionFailure("productReferenceName must be explicitly set for this target because it cannot be determined automatically in this context")
+                }
 
-            // Just return nil; we'll end up using the target name
-            if productNames.first == "$(TARGET_NAME)" {
-                return nil
-            }
+                // Just return nil; we'll end up using the target name
+                if productNames.first == "$(TARGET_NAME)" {
+                    return nil
+                }
 
-            if productNames.first?.contains("$") == true {
-                preconditionFailure("productReferenceName must be explicitly set for this target because it cannot be determined automatically in this context (build setting references are not evaluated here)")
-            }
+                if productNames.first?.contains("$") == true {
+                    preconditionFailure("productReferenceName must be explicitly set for this target because it cannot be determined automatically in this context (build setting references are not evaluated here)")
+                }
 
-            return productNames.first.map { type.computeProductReferenceName($0) }
-        }()
+                return productNames.first.map { type.computeProductReferenceName($0) }
+            }()
         self.predominantSourceCodeLanguage = predominantSourceCodeLanguage
         self.provisioningSourceData = provisioningSourceData
         self.dynamicTargetVariantName = dynamicTargetVariantName
@@ -1135,7 +1137,7 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.Target {
         let ref = SWBProtocol.ProductReference(guid: productReferenceGUID, name: productReferenceName)
         let performanceTestsBaselinePath = try (type == .unitTest) ? resolver.findProject(for: self).getPath(resolver).join("xcshareddata/xcbaselines").join("\(guid).xcbaseline") : nil
-        return try SWBProtocol.StandardTarget(guid: guid, name: name, buildConfigurations: buildConfigurations.map{ try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: dependencies.map{ $0.toProtocol(resolver) }, buildPhases: buildPhases.map{ try $0.toProtocol(resolver) }, buildRules: buildRules.map{ $0.toProtocol(resolver) }, productTypeIdentifier: type.productTypeIdentifier, productReference: ref, performanceTestsBaselinesPath: performanceTestsBaselinePath?.str, predominantSourceCodeLanguage: predominantSourceCodeLanguage.description, provisioningSourceData: provisioningSourceData, dynamicTargetVariantGuid: dynamicTargetVariantName?.nilIfEmpty.map(resolver.findTarget)??.guid, approvedByUser: approvedByUser)
+        return try SWBProtocol.StandardTarget(guid: guid, name: name, buildConfigurations: buildConfigurations.map { try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: dependencies.map { $0.toProtocol(resolver) }, buildPhases: buildPhases.map { try $0.toProtocol(resolver) }, buildRules: buildRules.map { $0.toProtocol(resolver) }, productTypeIdentifier: type.productTypeIdentifier, productReference: ref, performanceTestsBaselinesPath: performanceTestsBaselinePath?.str, predominantSourceCodeLanguage: predominantSourceCodeLanguage.description, provisioningSourceData: provisioningSourceData, dynamicTargetVariantGuid: dynamicTargetVariantName?.nilIfEmpty.map(resolver.findTarget)??.guid, approvedByUser: approvedByUser)
     }
 }
 
@@ -1167,7 +1169,7 @@ package final class TestAggregateTarget: TestInternalTarget {
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.Target {
         let deps = dependencies.map { SWBProtocol.TargetDependency(guid: resolver.findTarget($0)?.guid ?? $0, name: $0) }
-        return try SWBProtocol.AggregateTarget(guid: guid, name: name, buildConfigurations: buildConfigurations.map{ try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: deps, buildPhases: buildPhases.map{ try $0.toProtocol(resolver) })
+        return try SWBProtocol.AggregateTarget(guid: guid, name: name, buildConfigurations: buildConfigurations.map { try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: deps, buildPhases: buildPhases.map { try $0.toProtocol(resolver) })
     }
 }
 
@@ -1206,7 +1208,7 @@ package final class TestExternalTarget: TestInternalTarget {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.Target {
-        return try SWBProtocol.ExternalTarget(guid: actualGUID, name: name, buildConfigurations: buildConfigurations.map{ try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: dependencies.map { TargetDependency(guid: resolver.findTarget($0)?.guid ?? $0, name: $0) }, toolPath: .string(toolPath), arguments: .string(arguments), workingDirectory: .string(workingDirectory), passBuildSettingsInEnvironment: passBuildSettingsInEnvironment ?? true)
+        return try SWBProtocol.ExternalTarget(guid: actualGUID, name: name, buildConfigurations: buildConfigurations.map { try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: dependencies.map { TargetDependency(guid: resolver.findTarget($0)?.guid ?? $0, name: $0) }, toolPath: .string(toolPath), arguments: .string(arguments), workingDirectory: .string(workingDirectory), passBuildSettingsInEnvironment: passBuildSettingsInEnvironment ?? true)
     }
 }
 
@@ -1240,7 +1242,7 @@ package final class TestPackageProductTarget: TestInternalTarget {
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.Target {
         let deps = dependencies.map { SWBProtocol.TargetDependency(guid: resolver.findTarget($0)?.guid ?? $0, name: $0) }
-        return try SWBProtocol.PackageProductTarget(guid: guid, name: name, buildConfigurations: buildConfigurations.map{ try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: deps, frameworksBuildPhase: frameworksBuildPhase.toProtocol(resolver) as! SWBProtocol.FrameworksBuildPhase, dynamicTargetVariantGuid: dynamicTargetVariantName?.nilIfEmpty.map(resolver.findTarget)??.guid, approvedByUser: approvedByUser)
+        return try SWBProtocol.PackageProductTarget(guid: guid, name: name, buildConfigurations: buildConfigurations.map { try $0.toProtocol(resolver) }, customTasks: customTasks.map { $0.toProtocol(resolver) }, dependencies: deps, frameworksBuildPhase: frameworksBuildPhase.toProtocol(resolver) as! SWBProtocol.FrameworksBuildPhase, dynamicTargetVariantGuid: dynamicTargetVariantName?.nilIfEmpty.map(resolver.findTarget)??.guid, approvedByUser: approvedByUser)
 
     }
 }
@@ -1261,8 +1263,8 @@ package final class TestBuildConfiguration: TestInternalItem, Sendable {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.BuildConfiguration {
-        let baseConfigGUID = try self.baseConfig.map{ try resolver.findFile($0) }
-        return SWBProtocol.BuildConfiguration(name: name, buildSettings: buildSettings.map{ .init(key: $0.0, value: .string($0.1)) }, baseConfigurationFileReferenceGUID: baseConfigGUID, impartedBuildProperties: impartedBuildProperties.toProtocol(resolver))
+        let baseConfigGUID = try self.baseConfig.map { try resolver.findFile($0) }
+        return SWBProtocol.BuildConfiguration(name: name, buildSettings: buildSettings.map { .init(key: $0.0, value: .string($0.1)) }, baseConfigurationFileReferenceGUID: baseConfigGUID, impartedBuildProperties: impartedBuildProperties.toProtocol(resolver))
     }
 }
 
@@ -1276,7 +1278,7 @@ package final class TestImpartedBuildProperties: TestInternalItem, Sendable {
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) -> SWBProtocol.ImpartedBuildProperties {
-        return SWBProtocol.ImpartedBuildProperties(buildSettings: buildSettings.map{ .init(key: $0.0, value: .string($0.1)) })
+        return SWBProtocol.ImpartedBuildProperties(buildSettings: buildSettings.map { .init(key: $0.0, value: .string($0.1)) })
     }
 }
 
@@ -1328,13 +1330,13 @@ package class TestProject: TestInternalObjectItem, @unchecked Sendable {
         return .plDict([
             "signature": .plString(signature),
             "type": .plString("project"),
-            "contents": .plDict(["data": .plArray(serializer.byteString.bytes.map { .plInt(Int($0)) })])
+            "contents": .plDict(["data": .plArray(serializer.byteString.bytes.map { .plInt(Int($0)) })]),
         ])
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.Project {
         let path = getPath(resolver)
-        return try SWBProtocol.Project(guid: guid, isPackage: isPackage, xcodeprojPath: path, sourceRoot: sourceRoot ?? path.dirname, targetSignatures: _targets.map{ $0.signature }, groupTree: groupTree.toProtocol(resolver, isRoot: true), buildConfigurations: buildConfigurations.map{ try $0.toProtocol(resolver) }, defaultConfigurationName: defaultConfigurationName, developmentRegion: developmentRegion, classPrefix: classPrefix, appPreferencesBuildSettings: appPreferencesBuildSettings.map{ .init(key: $0.0, value: .string($0.1)) })
+        return try SWBProtocol.Project(guid: guid, isPackage: isPackage, xcodeprojPath: path, sourceRoot: sourceRoot ?? path.dirname, targetSignatures: _targets.map { $0.signature }, groupTree: groupTree.toProtocol(resolver, isRoot: true), buildConfigurations: buildConfigurations.map { try $0.toProtocol(resolver) }, defaultConfigurationName: defaultConfigurationName, developmentRegion: developmentRegion, classPrefix: classPrefix, appPreferencesBuildSettings: appPreferencesBuildSettings.map { .init(key: $0.0, value: .string($0.1)) })
     }
 }
 
@@ -1376,12 +1378,12 @@ package final class TestWorkspace: Resolver, TestInternalItem, Sendable {
     }
 
     /// Load the test workspace into a helper which can provide various derived objects.
-    package func loadHelper(_ core: Core) throws-> WorkspaceTestHelper {
+    package func loadHelper(_ core: Core) throws -> WorkspaceTestHelper {
         return WorkspaceTestHelper(try load(core), core: core)
     }
 
     package func toObjects() throws -> [PropertyListItem] {
-        return try [toObject(self)] + projects.map{ try $0.toObject(self) } + projects.flatMap{ try $0._targets.map{ try $0.toObject(self) } }
+        return try [toObject(self)] + projects.map { try $0.toObject(self) } + projects.flatMap { try $0._targets.map { try $0.toObject(self) } }
     }
 
     fileprivate func toObject(_ resolver: any Resolver) -> PropertyListItem {
@@ -1390,12 +1392,12 @@ package final class TestWorkspace: Resolver, TestInternalItem, Sendable {
         return .plDict([
             "signature": .plString(signature),
             "type": .plString("workspace"),
-            "contents": .plDict(["data": .plArray(serializer.byteString.bytes.map { .plInt(Int($0)) })])
+            "contents": .plDict(["data": .plArray(serializer.byteString.bytes.map { .plInt(Int($0)) })]),
         ])
     }
 
     fileprivate func toProtocol(_ resolver: any Resolver) -> SWBProtocol.Workspace {
-        return SWBProtocol.Workspace(guid: guid, name: name, path: sourceRoot.join("\(name).xcworkspace"), projectSignatures: projects.map{ $0.signature })
+        return SWBProtocol.Workspace(guid: guid, name: name, path: sourceRoot.join("\(name).xcworkspace"), projectSignatures: projects.map { $0.signature })
     }
 
     var workspaceName: String {
@@ -1562,7 +1564,7 @@ package final class WorkspaceTestHelper: Sendable {
         self.core = core
         self.workspace = workspace
         self.workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
-        self.workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [:]))
+        self.workspaceContext.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid: 12345, home: Path("/Users/exampleUser"), environment: [:]))
         self.workspaceContext.updateSystemInfo(SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
     }
 
@@ -1597,7 +1599,8 @@ extension UserPreferences {
         enableBuildSystemCaching: true,
         activityTextShorteningLevel: .default,
         usePerConfigurationBuildLocations: nil,
-        allowsExternalToolExecution: false)
+        allowsExternalToolExecution: false
+    )
 
     package func with(
         enableDebugActivityLogs: Bool? = nil,

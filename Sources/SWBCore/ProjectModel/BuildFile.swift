@@ -15,8 +15,7 @@ public import SWBUtil
 public import SWBMacro
 
 /// Reference subclasses which can be represented by a build file must adopt the BuildFileRepresentable protocol.
-public protocol BuildFileRepresentable: AnyObject
-{
+public protocol BuildFileRepresentable: AnyObject {
 }
 
 public typealias HeaderVisibility = SWBProtocol.BuildFile.HeaderVisibility
@@ -91,20 +90,19 @@ public final class BuildFile: ProjectModelItem {
     /// Whether to skip the "no rule to process file..." warning for this file.
     public let shouldWarnIfNoRuleToProcess: Bool
 
-    init(_ model: SWBProtocol.BuildFile, _ pifLoader: PIFLoader)
-    {
+    init(_ model: SWBProtocol.BuildFile, _ pifLoader: PIFLoader) {
         guid = model.guid
         codeSignOnCopy = model.codeSignOnCopy
         removeHeadersOnCopy = model.removeHeadersOnCopy
         shouldLinkWeakly = model.shouldLinkWeakly
         headerVisibility = model.headerVisibility
-        additionalArgs = model.additionalArgs.map{ pifLoader.userNamespace.parseStringList($0) }
+        additionalArgs = model.additionalArgs.map { pifLoader.userNamespace.parseStringList($0) }
         decompress = model.decompress
         migCodegenFiles = model.migCodegenFiles
         assetTags = model.assetTags
         intentsCodegenVisibility = model.intentsCodegenVisibility
         resourceRule = model.resourceRule
-        platformFilters = Set(model.platformFilters.map{ SWBCore.PlatformFilter($0, pifLoader) })
+        platformFilters = Set(model.platformFilters.map { SWBCore.PlatformFilter($0, pifLoader) })
         shouldWarnIfNoRuleToProcess = model.shouldWarnIfNoRuleToProcess
 
         switch model.buildableItemGUID {
@@ -133,12 +131,14 @@ public final class BuildFile: ProjectModelItem {
         case .plString(let stringValue)?:
             self.additionalArgs = pifLoader.userNamespace.parseStringList(stringValue)
         case .plArray(let arrayValue)?:
-            self.additionalArgs = try pifLoader.userNamespace.parseStringList(arrayValue.map { (plItem) -> String in
-                guard case .plString(let string) = plItem else {
-                    throw PIFParsingError.incorrectTypeInArray(keyName: PIFKey_BuildFile_additionalCompilerOptions, objectType: Self.self, expectedType: "String")
-                }
-                return string
-            }.joined(separator: " "))
+            self.additionalArgs = try pifLoader.userNamespace.parseStringList(
+                arrayValue.map { (plItem) -> String in
+                    guard case .plString(let string) = plItem else {
+                        throw PIFParsingError.incorrectTypeInArray(keyName: PIFKey_BuildFile_additionalCompilerOptions, objectType: Self.self, expectedType: "String")
+                    }
+                    return string
+                }.joined(separator: " ")
+            )
         case .none:
             self.additionalArgs = nil
             break
@@ -162,13 +162,20 @@ public final class BuildFile: ProjectModelItem {
         if let value: ResourceRule = try Self.parseOptionalValueForKeyAsStringEnum(PIFKey_BuildFile_resourceRule, pifDict: pifDict) {
             resourceRule = value
         } else {
-            resourceRule = .process // default to `.process` for backwards compatibility
+            resourceRule = .process  // default to `.process` for backwards compatibility
         }
 
         // Parse the platformFilters data.
-        platformFilters = try Set(Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_platformFilters, pifDict: pifDict, pifLoader: pifLoader, construct: {
-            try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
-        }) ?? [])
+        platformFilters = try Set(
+            Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(
+                PIFKey_platformFilters,
+                pifDict: pifDict,
+                pifLoader: pifLoader,
+                construct: {
+                    try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+                }
+            ) ?? []
+        )
 
         if let targetReferenceGUID = try Self.parseOptionalValueForKeyAsString(PIFKey_BuildFile_targetReference, pifDict: pifDict) {
             buildableItem = .targetProduct(guid: targetReferenceGUID)
@@ -198,8 +205,7 @@ public final class BuildFile: ProjectModelItem {
         self.resourceRule = .process
     }
 
-    public var description: String
-    {
+    public var description: String {
         // It would be convenient to emit something to identify the reference here.
         return "\(type(of: self))<\(guid)>"
     }

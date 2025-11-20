@@ -14,7 +14,7 @@ import SWBUtil
 public import SWBCore
 import SWBMacro
 
-public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class ResMergerLinkerSpec: GenericLinkerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.pbx.linkers.resmerger"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -35,8 +35,7 @@ public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, 
             let resmergerSourcesFork = cbc.scope.evaluate(BuiltinMacros.RESMERGER_SOURCES_FORK)
             if resmergerSourcesFork == "data" {
                 commandLine += ["-srcIs", "DF"]
-            }
-            else if resmergerSourcesFork == "resource" {
+            } else if resmergerSourcesFork == "resource" {
                 commandLine += ["-srcIs", "RSRC"]
             }
 
@@ -51,7 +50,7 @@ public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, 
                 default: return nil
                 }
             }
-            delegate.createTask(type: self, ruleInfo: ["ResMergerCollector", tmpOutputPath.str], commandLine: commandLine, environment: environment, workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [tmpOutputPath], action: nil, execDescription:  execDescription, enableSandboxing: enableSandboxing)
+            delegate.createTask(type: self, ruleInfo: ["ResMergerCollector", tmpOutputPath.str], commandLine: commandLine, environment: environment, workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [tmpOutputPath], action: nil, execDescription: execDescription, enableSandboxing: enableSandboxing)
         }
 
         // Create the task for the product merge.
@@ -76,8 +75,7 @@ public final class ResMergerLinkerSpec : GenericLinkerSpec, SpecIdentifierType, 
             let resmergerSourcesFork = cbc.scope.evaluate(BuiltinMacros.RESMERGER_SOURCES_FORK)
             if resmergerSourcesFork == "data" {
                 commandLine += ["-srcIs", "DF"]
-            }
-            else if resmergerSourcesFork == "resource" {
+            } else if resmergerSourcesFork == "resource" {
                 commandLine += ["-srcIs", "RSRC"]
             }
 

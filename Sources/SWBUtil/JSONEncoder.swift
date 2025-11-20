@@ -27,7 +27,7 @@ extension JSONEncoder {
 }
 
 extension JSONDecoder {
-    public func decode<T>(_ type: T.Type, from path: Path, fs: any FSProxy) throws -> T where T : Decodable {
+    public func decode<T>(_ type: T.Type, from path: Path, fs: any FSProxy) throws -> T where T: Decodable {
         let data = try fs.read(path)
         do {
             return try decode(type, from: Data(data))

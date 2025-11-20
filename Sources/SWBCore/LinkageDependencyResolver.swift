@@ -247,7 +247,7 @@ actor LinkageDependencyResolver {
         }
 
         // If we're resolving implicit dependencies, build up the names of products of these targets, so we don't try to resolve implicit dependencies for any of them.
-        let productNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap{ ($0.target as? StandardTarget)?.productReference.name })
+        let productNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap { ($0.target as? StandardTarget)?.productReference.name })
 
         // Get information about the configured target which we need to determine its implicit dependencies.
         let buildFileFilter = LinkageDependencyBuildFileFilteringContext(scope: configuredTargetSettings.globalScope)
@@ -296,7 +296,6 @@ actor LinkageDependencyResolver {
                         await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildPhaseLinkage(filename: productName, buildableItem: buildFile.buildableItem, buildPhase: buildPhase.name)))
                         continue
                     }
-
 
                     // Look for a target which generates a product with the stem of this name.
                     //
@@ -371,9 +370,11 @@ actor LinkageDependencyResolver {
             }
         }
 
-        let moduleNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap{
-            buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
-        })
+        let moduleNamesOfExplicitDependencies = Set<String>(
+            immediateDependencies.compactMap {
+                buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+            }
+        )
 
         for moduleDependencyName in (configuredTargetSettings.moduleDependencies.map { $0.name }) {
             if !moduleNamesOfExplicitDependencies.contains(moduleDependencyName), let implicitDependency = await implicitDependency(forModuleName: moduleDependencyName, from: configuredTarget, imposedParameters: imposedParameters, source: .moduleDependency(name: moduleDependencyName, buildSetting: BuiltinMacros.MODULE_DEPENDENCIES)) {
@@ -575,19 +576,27 @@ actor LinkageDependencyResolver {
             let location: Diagnostic.Location
             switch source {
             case let .frameworkLinkerFlag(_, _, buildSetting),
-                 let .libraryLinkerFlag(_, _, buildSetting):
+                let .libraryLinkerFlag(_, _, buildSetting):
                 location = .buildSetting(buildSetting)
             case let .productReference(_, buildFile, buildPhase),
-                 let .productNameStem(_, buildFile, buildPhase):
+                let .productNameStem(_, buildFile, buildPhase):
                 location = .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: buildPhase.guid, targetGUID: configuredTarget.target.guid)
             case let .moduleDependency(_, buildSetting):
                 location = .buildSettings([buildSetting])
             }
 
-            delegate.emit(.overrideTarget(configuredTarget), SWBUtil.Diagnostic(behavior: .warning, location: location, data: DiagnosticData("Multiple targets match implicit dependency for \(source.valueForDisplay). Consider adding an explicit dependency on the intended target to resolve this ambiguity.", component: .targetIntegrity), childDiagnostics: candidateConfiguredTargets.map({ dependency -> Diagnostic in
-                let project = workspaceContext.workspace.project(for: dependency.target)
-                return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Target '\(dependency.target.name)' (in project '\(project.name)')"))
-            })))
+            delegate.emit(
+                .overrideTarget(configuredTarget),
+                SWBUtil.Diagnostic(
+                    behavior: .warning,
+                    location: location,
+                    data: DiagnosticData("Multiple targets match implicit dependency for \(source.valueForDisplay). Consider adding an explicit dependency on the intended target to resolve this ambiguity.", component: .targetIntegrity),
+                    childDiagnostics: candidateConfiguredTargets.map({ dependency -> Diagnostic in
+                        let project = workspaceContext.workspace.project(for: dependency.target)
+                        return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Target '\(dependency.target.name)' (in project '\(project.name)')"))
+                    })
+                )
+            )
         }
     }
 

@@ -300,7 +300,7 @@ public struct SWBBuildRequest: Codable, Sendable {
     /// Whether or not legacy build locations are being used. Currently, this flag is only relevant for clean build folder.
     public var useLegacyBuildLocations = false
 
-    public init() { }
+    public init() {}
 
     /// Add a configured target to build to the request.
     public mutating func add(target configuredTarget: SWBConfiguredTarget) {

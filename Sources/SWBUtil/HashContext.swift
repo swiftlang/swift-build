@@ -11,9 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #if os(Windows)
-import WinSDK
+    import WinSDK
 #elseif canImport(CryptoKit)
-private import CryptoKit
+    private import CryptoKit
 #endif
 
 public import Foundation
@@ -45,104 +45,104 @@ extension HashContext {
 }
 
 #if os(Windows)
-fileprivate final class BCryptHashContext: HashContext {
-    private let digestLength: Int
-    private var hAlgorithm: BCRYPT_ALG_HANDLE?
-    private var hash: BCRYPT_HASH_HANDLE?
+    fileprivate final class BCryptHashContext: HashContext {
+        private let digestLength: Int
+        private var hAlgorithm: BCRYPT_ALG_HANDLE?
+        private var hash: BCRYPT_HASH_HANDLE?
 
-    @usableFromInline
-    internal var result: ByteString?
+        @usableFromInline
+        internal var result: ByteString?
 
-    public init(algorithm: String, digestLength: Int) {
-        self.digestLength = digestLength
-        algorithm.withCString(encodedAs: UTF16.self) { wName in
-            precondition(BCryptOpenAlgorithmProvider(&hAlgorithm, wName, nil, 0) == 0)
-        }
-        precondition(BCryptCreateHash(hAlgorithm, &hash, nil, 0, nil, 0, 0) == 0)
-    }
-
-    deinit {
-        precondition(BCryptDestroyHash(hash) == 0)
-        precondition(BCryptCloseAlgorithmProvider(hAlgorithm, 0) == 0)
-    }
-
-    public func add<D: DataProtocol>(bytes: D) {
-        precondition(result == nil, "tried to add additional context to a finalized HashContext")
-        var byteArray = Array(bytes)
-        byteArray.withUnsafeMutableBufferPointer { buffer in
-            precondition(BCryptHashData(hash, buffer.baseAddress, numericCast(buffer.count), 0) == 0)
-        }
-    }
-
-    public var signature: ByteString {
-        guard let result = self.result else {
-            let digest = withUnsafeTemporaryAllocation(of: UInt8.self, capacity: digestLength) {
-                precondition(BCryptFinishHash(hash, $0.baseAddress, numericCast($0.count), 0) == 0)
-                return Array($0)
+        public init(algorithm: String, digestLength: Int) {
+            self.digestLength = digestLength
+            algorithm.withCString(encodedAs: UTF16.self) { wName in
+                precondition(BCryptOpenAlgorithmProvider(&hAlgorithm, wName, nil, 0) == 0)
             }
-            let byteCount = digestLength
+            precondition(BCryptCreateHash(hAlgorithm, &hash, nil, 0, nil, 0, 0) == 0)
+        }
 
-            var result = [UInt8](repeating: 0, count: Int(byteCount) * 2)
+        deinit {
+            precondition(BCryptDestroyHash(hash) == 0)
+            precondition(BCryptCloseAlgorithmProvider(hAlgorithm, 0) == 0)
+        }
 
-            digest.withUnsafeBytes { ptr in
-                for i in 0..<byteCount {
-                    let value = ptr[i]
-                    result[i*2 + 0] = hexchar(value >> 4)
-                    result[i*2 + 1] = hexchar(value & 0x0F)
+        public func add<D: DataProtocol>(bytes: D) {
+            precondition(result == nil, "tried to add additional context to a finalized HashContext")
+            var byteArray = Array(bytes)
+            byteArray.withUnsafeMutableBufferPointer { buffer in
+                precondition(BCryptHashData(hash, buffer.baseAddress, numericCast(buffer.count), 0) == 0)
+            }
+        }
+
+        public var signature: ByteString {
+            guard let result = self.result else {
+                let digest = withUnsafeTemporaryAllocation(of: UInt8.self, capacity: digestLength) {
+                    precondition(BCryptFinishHash(hash, $0.baseAddress, numericCast($0.count), 0) == 0)
+                    return Array($0)
                 }
+                let byteCount = digestLength
+
+                var result = [UInt8](repeating: 0, count: Int(byteCount) * 2)
+
+                digest.withUnsafeBytes { ptr in
+                    for i in 0..<byteCount {
+                        let value = ptr[i]
+                        result[i * 2 + 0] = hexchar(value >> 4)
+                        result[i * 2 + 1] = hexchar(value & 0x0F)
+                    }
+                }
+
+                let tmp = ByteString(result)
+                self.result = tmp
+                return tmp
             }
-
-            let tmp = ByteString(result)
-            self.result = tmp
-            return tmp
+            return result
         }
-        return result
     }
-}
 
-@available(*, unavailable)
-extension BCryptHashContext: Sendable { }
+    @available(*, unavailable)
+    extension BCryptHashContext: Sendable {}
 #elseif canImport(CryptoKit)
-fileprivate final class SwiftCryptoHashContext<HF: HashFunction>: HashContext {
-    @usableFromInline
-    internal var hash = HF()
+    fileprivate final class SwiftCryptoHashContext<HF: HashFunction>: HashContext {
+        @usableFromInline
+        internal var hash = HF()
 
-    @usableFromInline
-    internal var result: ByteString?
+        @usableFromInline
+        internal var result: ByteString?
 
-    public init() {
-    }
-
-    public func add<D: DataProtocol>(bytes: D) {
-        precondition(result == nil, "tried to add additional context to a finalized HashContext")
-        hash.update(data: bytes)
-    }
-
-    public var signature: ByteString {
-        guard let result = self.result else {
-            let digest = hash.finalize()
-            let byteCount = type(of: digest).byteCount
-
-            var result = [UInt8](repeating: 0, count: Int(byteCount) * 2)
-
-            digest.withUnsafeBytes { ptr in
-                for i in 0..<byteCount {
-                    let value = ptr[i]
-                    result[i*2 + 0] = hexchar(value >> 4)
-                    result[i*2 + 1] = hexchar(value & 0x0F)
-                }
-            }
-
-            let tmp = ByteString(result)
-            self.result = tmp
-            return tmp
+        public init() {
         }
-        return result
-    }
-}
 
-@available(*, unavailable)
-extension SwiftCryptoHashContext: Sendable { }
+        public func add<D: DataProtocol>(bytes: D) {
+            precondition(result == nil, "tried to add additional context to a finalized HashContext")
+            hash.update(data: bytes)
+        }
+
+        public var signature: ByteString {
+            guard let result = self.result else {
+                let digest = hash.finalize()
+                let byteCount = type(of: digest).byteCount
+
+                var result = [UInt8](repeating: 0, count: Int(byteCount) * 2)
+
+                digest.withUnsafeBytes { ptr in
+                    for i in 0..<byteCount {
+                        let value = ptr[i]
+                        result[i * 2 + 0] = hexchar(value >> 4)
+                        result[i * 2 + 1] = hexchar(value & 0x0F)
+                    }
+                }
+
+                let tmp = ByteString(result)
+                self.result = tmp
+                return tmp
+            }
+            return result
+        }
+    }
+
+    @available(*, unavailable)
+    extension SwiftCryptoHashContext: Sendable {}
 #endif
 
 fileprivate final class VendoredSHA256HashContext: HashContext {
@@ -154,7 +154,7 @@ fileprivate final class VendoredSHA256HashContext: HashContext {
 
     /// The initial hash value.
     private static let initalHashValue: [UInt32] = [
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
     ]
 
     /// The constants in the algorithm (K).
@@ -166,7 +166,7 @@ fileprivate final class VendoredSHA256HashContext: HashContext {
         0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
         0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
         0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
     ]
 
     private var bytes: OutputByteStream
@@ -175,19 +175,19 @@ fileprivate final class VendoredSHA256HashContext: HashContext {
         self.bytes = .init()
     }
 
-    func add<D>(bytes: D) where D : DataProtocol {
+    func add<D>(bytes: D) where D: DataProtocol {
         self.bytes.write(bytes)
     }
 
     var signature: ByteString {
-        let digest =  self.hash(self.bytes.bytes)
+        let digest = self.hash(self.bytes.bytes)
         var result = [UInt8](repeating: 0, count: Int(digest.count) * 2)
 
         digest.bytes.withUnsafeBufferPointer { ptr in
             for i in 0..<ptr.count {
                 let value = ptr[i]
-                result[i*2 + 0] = hexchar(value >> 4)
-                result[i*2 + 1] = hexchar(value & 0x0F)
+                result[i * 2 + 0] = hexchar(value >> 4)
+                result[i * 2 + 1] = hexchar(value & 0x0F)
             }
         }
 
@@ -234,14 +234,14 @@ fileprivate final class VendoredSHA256HashContext: HashContext {
             case 0...15:
                 let index = block.startIndex.advanced(by: t * 4)
                 // Put 4 bytes in each message.
-                W[t]  = UInt32(block[index + 0]) << 24
+                W[t] = UInt32(block[index + 0]) << 24
                 W[t] |= UInt32(block[index + 1]) << 16
                 W[t] |= UInt32(block[index + 2]) << 8
                 W[t] |= UInt32(block[index + 3])
             default:
-                let σ1 = W[t-2].rotateRight(by: 17) ^ W[t-2].rotateRight(by: 19) ^ (W[t-2] >> 10)
-                let σ0 = W[t-15].rotateRight(by: 7) ^ W[t-15].rotateRight(by: 18) ^ (W[t-15] >> 3)
-                W[t] = σ1 &+ W[t-7] &+ σ0 &+ W[t-16]
+                let σ1 = W[t - 2].rotateRight(by: 17) ^ W[t - 2].rotateRight(by: 19) ^ (W[t - 2] >> 10)
+                let σ0 = W[t - 15].rotateRight(by: 7) ^ W[t - 15].rotateRight(by: 18) ^ (W[t - 15] >> 3)
+                W[t] = σ1 &+ W[t - 7] &+ σ0 &+ W[t - 16]
             }
         }
 
@@ -367,29 +367,29 @@ public class DelegatedHashContext: HashContext {
 public final class InsecureHashContext: DelegatedHashContext {
     public init() {
         #if os(Windows)
-        super.init(impl: BCryptHashContext(algorithm: "MD5", digestLength: 16))
+            super.init(impl: BCryptHashContext(algorithm: "MD5", digestLength: 16))
         #elseif canImport(CryptoKit)
-        super.init(impl: SwiftCryptoHashContext<Insecure.MD5>())
+            super.init(impl: SwiftCryptoHashContext<Insecure.MD5>())
         #else
-        super.init(impl: VendoredSHA256HashContext())
+            super.init(impl: VendoredSHA256HashContext())
         #endif
     }
 }
 
 @available(*, unavailable)
-extension InsecureHashContext: Sendable { }
+extension InsecureHashContext: Sendable {}
 
 public final class SHA256Context: DelegatedHashContext {
     public init() {
         #if os(Windows)
-        super.init(impl: BCryptHashContext(algorithm: "SHA256", digestLength: 32))
+            super.init(impl: BCryptHashContext(algorithm: "SHA256", digestLength: 32))
         #elseif canImport(CryptoKit)
-        super.init(impl: SwiftCryptoHashContext<SHA256>())
+            super.init(impl: SwiftCryptoHashContext<SHA256>())
         #else
-        super.init(impl: VendoredSHA256HashContext())
+            super.init(impl: VendoredSHA256HashContext())
         #endif
     }
 }
 
 @available(*, unavailable)
-extension SHA256Context: Sendable { }
+extension SHA256Context: Sendable {}

@@ -19,7 +19,7 @@ import SWBTaskExecution
 
 import SWBCore
 
-@Suite(.requireHostOS(.macOS)) // many tests here crash or fail on Linux
+@Suite(.requireHostOS(.macOS))  // many tests here crash or fail on Linux
 fileprivate struct CopyStringsFileTaskTests {
     static let bom_utf8 = [UInt8]([0xEF, 0xBB, 0xBF])
     static let bom_utf16be = [UInt8]([0xFE, 0xFF])
@@ -28,33 +28,32 @@ fileprivate struct CopyStringsFileTaskTests {
     static let bom_utf32le = [UInt8]([0xFF, 0xFE, 0x00, 0x00])
 
     #if canImport(Darwin)
-    static let bom_utf16_host: [UInt8] = {
-        switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
-        case CFByteOrderBigEndian:
-            return bom_utf16be
-        case CFByteOrderLittleEndian:
-            return bom_utf16le
-        default:
-            return []
-        }
-    }()
+        static let bom_utf16_host: [UInt8] = {
+            switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
+            case CFByteOrderBigEndian:
+                return bom_utf16be
+            case CFByteOrderLittleEndian:
+                return bom_utf16le
+            default:
+                return []
+            }
+        }()
 
-    static let bom_utf32_host: [UInt8] = {
-        switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
-        case CFByteOrderBigEndian:
-            return bom_utf32be
-        case CFByteOrderLittleEndian:
-            return bom_utf32le
-        default:
-            return []
-        }
-    }()
+        static let bom_utf32_host: [UInt8] = {
+            switch __CFByteOrder(UInt32(CFByteOrderGetCurrent())) {
+            case CFByteOrderBigEndian:
+                return bom_utf32be
+            case CFByteOrderLittleEndian:
+                return bom_utf32le
+            default:
+                return []
+            }
+        }()
     #endif
 
     @Test
     func diagnostics() async {
-        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async
-        {
+        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async {
             let action = CopyStringsFileTaskAction()
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: commandLine, workingDirectory: .root, outputs: [], action: action, execDescription: "Copy Localization Strings File")
             let executionDelegate = MockExecutionDelegate()
@@ -82,17 +81,8 @@ fileprivate struct CopyStringsFileTaskTests {
         await checkDiagnostics(["copyStrings", "--what", "--outdir", "/", "--", "foo.plist"], errors: ["unrecognized argument: --what"])
     }
 
-
     let inputContents =
-    "//\n" +
-    "// input.strings\n" +
-    "//\n" +
-    "\n" +
-    "// SomeValue\n" +
-    "\"SomeValue\" = \"This is the first value.\";\n" +
-    "\n" +
-    "// Another Value\n" +
-    "\"Another Value\" = \"This is the second value.\";\n"
+        "//\n" + "// input.strings\n" + "//\n" + "\n" + "// SomeValue\n" + "\"SomeValue\" = \"This is the first value.\";\n" + "\n" + "// Another Value\n" + "\"Another Value\" = \"This is the second value.\";\n"
 
     @Test
     func uTF8ImpliedToUTF16() async throws {
@@ -141,12 +131,10 @@ fileprivate struct CopyStringsFileTaskTests {
     @Test
     func keepInfoPlistStrings() async throws {
         let action = CopyStringsFileTaskAction()
-        let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copyStrings", "--validate","--outputencoding", "UTF-16", "--outdir", "/tmp/outputs", "--", "/tmp/inputs/input-InfoPlist.strings"], workingDirectory: Path("/tmp"), outputs: [], action: action, execDescription: "Copy Localization Strings File")
+        let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copyStrings", "--validate", "--outputencoding", "UTF-16", "--outdir", "/tmp/outputs", "--", "/tmp/inputs/input-InfoPlist.strings"], workingDirectory: Path("/tmp"), outputs: [], action: action, execDescription: "Copy Localization Strings File")
 
         let executionDelegate = MockExecutionDelegate()
         let outputDelegate = MockTaskOutputDelegate()
-
-
 
         // Create the input file, in UTF-8 encoding.
         do {
@@ -411,49 +399,49 @@ fileprivate struct CopyStringsFileTaskTests {
     }
 
     #if canImport(Darwin)
-    @Test func UTF16ToUTF16() async throws {
-        let action = CopyStringsFileTaskAction()
-        let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copyStrings", "--validate", "--inputencoding", "utf-16", "--outputencoding", "UTF-16", "--outdir", "/tmp/outputs", "--", "/tmp/inputs/input.strings"], workingDirectory: Path("/tmp"), outputs: [], action: action, execDescription: "Copy Localization Strings File")
+        @Test func UTF16ToUTF16() async throws {
+            let action = CopyStringsFileTaskAction()
+            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copyStrings", "--validate", "--inputencoding", "utf-16", "--outputencoding", "UTF-16", "--outdir", "/tmp/outputs", "--", "/tmp/inputs/input.strings"], workingDirectory: Path("/tmp"), outputs: [], action: action, execDescription: "Copy Localization Strings File")
 
-        let executionDelegate = MockExecutionDelegate()
-        let outputDelegate = MockTaskOutputDelegate()
+            let executionDelegate = MockExecutionDelegate()
+            let outputDelegate = MockTaskOutputDelegate()
 
-        // Create the input file, in UTF-16 encoding.
-        let inputByteString: ByteString
-        do {
-            try executionDelegate.fs.createDirectory(Path("/tmp"))
-            try executionDelegate.fs.createDirectory(Path("/tmp/inputs"))
-            try executionDelegate.fs.createDirectory(Path("/tmp/outputs"))
+            // Create the input file, in UTF-16 encoding.
+            let inputByteString: ByteString
+            do {
+                try executionDelegate.fs.createDirectory(Path("/tmp"))
+                try executionDelegate.fs.createDirectory(Path("/tmp/inputs"))
+                try executionDelegate.fs.createDirectory(Path("/tmp/outputs"))
 
-            let data = inputContents.data(using: String.Encoding.utf16)!
-            #expect(data.starts(with: CopyStringsFileTaskTests.bom_utf16_host))
-            let byteString = ByteString(data)
-            inputByteString = byteString
-            try executionDelegate.fs.write(Path("/tmp/inputs/input.strings"), contents: byteString)
+                let data = inputContents.data(using: String.Encoding.utf16)!
+                #expect(data.starts(with: CopyStringsFileTaskTests.bom_utf16_host))
+                let byteString = ByteString(data)
+                inputByteString = byteString
+                try executionDelegate.fs.write(Path("/tmp/inputs/input.strings"), contents: byteString)
+            }
+
+            let result = await action.performTaskAction(
+                task,
+                dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
+                executionDelegate: executionDelegate,
+                clientDelegate: MockTaskExecutionClientDelegate(),
+                outputDelegate: outputDelegate
+            )
+
+            // Check the exit state.
+            #expect(result == .succeeded)
+            #expect(outputDelegate.errors == [])
+            #expect(outputDelegate.warnings == [])
+            #expect(outputDelegate.notes == [])
+
+            // Check the output.
+            do {
+                let outputContents = try executionDelegate.fs.read(Path("/tmp/outputs/input.strings"))
+
+                // Compare what the tool emitted to the UTF-16-encoded version of the input content.
+                #expect(outputContents == inputByteString)
+            }
         }
-
-        let result = await action.performTaskAction(
-            task,
-            dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
-            executionDelegate: executionDelegate,
-            clientDelegate: MockTaskExecutionClientDelegate(),
-            outputDelegate: outputDelegate
-        )
-
-        // Check the exit state.
-        #expect(result == .succeeded)
-        #expect(outputDelegate.errors == [])
-        #expect(outputDelegate.warnings == [])
-        #expect(outputDelegate.notes == [])
-
-        // Check the output.
-        do {
-            let outputContents = try executionDelegate.fs.read(Path("/tmp/outputs/input.strings"))
-
-            // Compare what the tool emitted to the UTF-16-encoded version of the input content.
-            #expect(outputContents == inputByteString)
-        }
-    }
     #endif
 
     @Test
@@ -548,51 +536,51 @@ fileprivate struct CopyStringsFileTaskTests {
         }
     }
 
-#if canImport(Darwin)
-    func testUTF32ToUTF16() async throws {
-        let action = CopyStringsFileTaskAction()
-        let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copyStrings", "--validate", "--inputencoding", "utf-32", "--outputencoding", "UTF-16", "--outdir", "/tmp/outputs", "--", "/tmp/inputs/input.strings"], workingDirectory: Path("/tmp"), outputs: [], action: action, execDescription: "Copy Localization Strings File")
+    #if canImport(Darwin)
+        func testUTF32ToUTF16() async throws {
+            let action = CopyStringsFileTaskAction()
+            let task = Task(forTarget: nil, ruleInfo: [], commandLine: ["builtin-copyStrings", "--validate", "--inputencoding", "utf-32", "--outputencoding", "UTF-16", "--outdir", "/tmp/outputs", "--", "/tmp/inputs/input.strings"], workingDirectory: Path("/tmp"), outputs: [], action: action, execDescription: "Copy Localization Strings File")
 
-        let executionDelegate = MockExecutionDelegate()
-        let outputDelegate = MockTaskOutputDelegate()
+            let executionDelegate = MockExecutionDelegate()
+            let outputDelegate = MockTaskOutputDelegate()
 
-        // Create the input file, in UTF-32 encoding.
-        do {
-            try executionDelegate.fs.createDirectory(Path("/tmp"))
-            try executionDelegate.fs.createDirectory(Path("/tmp/inputs"))
-            try executionDelegate.fs.createDirectory(Path("/tmp/outputs"))
+            // Create the input file, in UTF-32 encoding.
+            do {
+                try executionDelegate.fs.createDirectory(Path("/tmp"))
+                try executionDelegate.fs.createDirectory(Path("/tmp/inputs"))
+                try executionDelegate.fs.createDirectory(Path("/tmp/outputs"))
 
-            let data = inputContents.data(using: String.Encoding.utf32)!
-            #expect(data.starts(with: CopyStringsFileTaskTests.bom_utf32_host))
-            let byteString = ByteString(data)
-            try executionDelegate.fs.write(Path("/tmp/inputs/input.strings"), contents: byteString)
+                let data = inputContents.data(using: String.Encoding.utf32)!
+                #expect(data.starts(with: CopyStringsFileTaskTests.bom_utf32_host))
+                let byteString = ByteString(data)
+                try executionDelegate.fs.write(Path("/tmp/inputs/input.strings"), contents: byteString)
+            }
+
+            let result = await action.performTaskAction(
+                task,
+                dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
+                executionDelegate: executionDelegate,
+                clientDelegate: MockTaskExecutionClientDelegate(),
+                outputDelegate: outputDelegate
+            )
+
+            // Check the exit state.
+            #expect(result == .succeeded)
+            #expect(outputDelegate.errors == [])
+            #expect(outputDelegate.warnings == [])
+            #expect(outputDelegate.notes == [])
+
+            // Check the output.
+            do {
+                // Get the input strings in UTF-16 encoding.
+                let data = inputContents.data(using: String.Encoding.utf16)!
+                let byteString = ByteString(data)
+
+                // Compare what the tool emitted to the UTF-32-encoded version of the input content.
+                #expect(try executionDelegate.fs.read(Path("/tmp/outputs/input.strings")) == byteString)
+            }
         }
-
-        let result = await action.performTaskAction(
-            task,
-            dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(),
-            executionDelegate: executionDelegate,
-            clientDelegate: MockTaskExecutionClientDelegate(),
-            outputDelegate: outputDelegate
-        )
-
-        // Check the exit state.
-        #expect(result == .succeeded)
-        #expect(outputDelegate.errors == [])
-        #expect(outputDelegate.warnings == [])
-        #expect(outputDelegate.notes == [])
-
-        // Check the output.
-        do {
-            // Get the input strings in UTF-16 encoding.
-            let data = inputContents.data(using: String.Encoding.utf16)!
-            let byteString = ByteString(data)
-
-            // Compare what the tool emitted to the UTF-32-encoded version of the input content.
-            #expect(try executionDelegate.fs.read(Path("/tmp/outputs/input.strings")) == byteString)
-        }
-    }
-#endif
+    #endif
 
     @Test
     func UTF32BEToUTF16() async throws {
@@ -847,15 +835,7 @@ fileprivate struct CopyStringsFileTaskTests {
     }
 
     let badInputContents =
-    "//\n" +
-    "// input.strings\n" +
-    "//\n" +
-    "\n" +
-    "// SomeValue\n" +
-    "\"SomeValue\" = \"This is the first value.\"\n" +
-    "\n" +
-    "// Another Value\n" +
-    "\"Another Value\" =| \"This is the second value.\"\n"
+        "//\n" + "// input.strings\n" + "//\n" + "\n" + "// SomeValue\n" + "\"SomeValue\" = \"This is the first value.\"\n" + "\n" + "// Another Value\n" + "\"Another Value\" =| \"This is the second value.\"\n"
 
     @Test
     func validationFailure() async throws {

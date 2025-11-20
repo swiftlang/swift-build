@@ -58,17 +58,22 @@ private func constructTargetBuildGraph(for targetGUIDs: [TargetGUID], in workspa
     case .buildRequest:
         scope = .buildRequest
     }
-    let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext,
-                                      buildRequest: BuildRequest(parameters: parameters,
-                                                                 buildTargets: targets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }, dependencyScope: scope,
-                                                                 continueBuildingAfterErrors: false,
-                                                                 hideShellScriptEnvironment: true,
-                                                                 useParallelTargets: false,
-                                                                 useImplicitDependencies: includeImplicitDependencies,
-                                                                 useDryRun: false),
-                                      buildRequestContext: buildRequestContext,
-                                      delegate: delegate,
-                                      purpose: .dependencyGraph)
+    let buildGraph = await TargetBuildGraph(
+        workspaceContext: workspaceContext,
+        buildRequest: BuildRequest(
+            parameters: parameters,
+            buildTargets: targets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) },
+            dependencyScope: scope,
+            continueBuildingAfterErrors: false,
+            hideShellScriptEnvironment: true,
+            useParallelTargets: false,
+            useImplicitDependencies: includeImplicitDependencies,
+            useDryRun: false
+        ),
+        buildRequestContext: buildRequestContext,
+        delegate: delegate,
+        purpose: .dependencyGraph
+    )
     if delegate.hasErrors {
         throw StubError.error("unable to get target build graph:\n" + delegate.diagnostics.map { $0.formatLocalizedDescription(.debug) }.joined(separator: "\n"))
     }

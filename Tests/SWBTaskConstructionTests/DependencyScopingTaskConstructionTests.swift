@@ -31,36 +31,47 @@ fileprivate struct DependencyScopingTaskConstructionTests: CoreBasedTests {
                             TestFile("file.c"),
                             TestFile("file2.c"),
                             TestFile("file3.c"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ])],
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "StaticLibrary",
                             type: .staticLibrary,
                             buildConfigurations: [TestBuildConfiguration("Debug")],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file.c"]),
-                            ], dependencies: ["StaticLibrary2", "StaticLibrary3"]),
+                                TestSourcesBuildPhase(["file.c"])
+                            ],
+                            dependencies: ["StaticLibrary2", "StaticLibrary3"]
+                        ),
                         TestStandardTarget(
                             "StaticLibrary2",
                             type: .staticLibrary,
                             buildConfigurations: [TestBuildConfiguration("Debug")],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file3.c"]),
-                            ]),
+                                TestSourcesBuildPhase(["file3.c"])
+                            ]
+                        ),
                         TestStandardTarget(
                             "StaticLibrary3",
                             type: .staticLibrary,
                             buildConfigurations: [TestBuildConfiguration("Debug")],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file2.c"]),
-                            ]),
-                    ])])
+                                TestSourcesBuildPhase(["file2.c"])
+                            ]
+                        ),
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let params = BuildParameters(configuration: "Debug")
@@ -111,36 +122,48 @@ fileprivate struct DependencyScopingTaskConstructionTests: CoreBasedTests {
                             TestFile("file.c"),
                             TestFile("file2.c"),
                             TestFile("file3.c"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                        ])],
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "StaticLibrary",
                             type: .staticLibrary,
                             buildConfigurations: [TestBuildConfiguration("Debug")],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file.c"]),
-                            ], dependencies: ["Framework2"]),
+                                TestSourcesBuildPhase(["file.c"])
+                            ],
+                            dependencies: ["Framework2"]
+                        ),
                         TestStandardTarget(
                             "StaticLibrary2",
                             type: .staticLibrary,
                             buildConfigurations: [TestBuildConfiguration("Debug")],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file3.c"]),
-                            ], dependencies: ["StaticLibrary3"]),
+                                TestSourcesBuildPhase(["file3.c"])
+                            ],
+                            dependencies: ["StaticLibrary3"]
+                        ),
                         TestStandardTarget(
                             "StaticLibrary3",
                             type: .staticLibrary,
                             buildConfigurations: [TestBuildConfiguration("Debug")],
                             buildPhases: [
-                                TestSourcesBuildPhase(["file2.c"]),
-                            ]),
-                    ])])
+                                TestSourcesBuildPhase(["file2.c"])
+                            ]
+                        ),
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
         let params = BuildParameters(configuration: "Debug")

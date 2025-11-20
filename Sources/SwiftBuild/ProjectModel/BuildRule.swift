@@ -45,14 +45,13 @@ extension ProjectModel {
     }
 }
 
-
 extension ProjectModel.BuildRule: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let dict = try container.decode([String: Value].self)
         guard let id = dict[PIFKey_guid]?.string,
-              let name = dict[PIFKey_name]?.string,
-              let typeId = dict[PIFKey_BuildRule_fileTypeIdentifier]?.string
+            let name = dict[PIFKey_name]?.string,
+            let typeId = dict[PIFKey_BuildRule_fileTypeIdentifier]?.string
         else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to find expected values")
         }
@@ -60,7 +59,8 @@ extension ProjectModel.BuildRule: Codable {
         self.name = name
 
         if typeId == PIFKey_BuildRule_fileTypeIdentifier_pattern_proxy,
-           let pattern = dict[PIFKey_BuildRule_filePatterns]?.string {
+            let pattern = dict[PIFKey_BuildRule_filePatterns]?.string
+        {
             self.input = .filePattern(pattern)
         } else {
             self.input = .fileType(typeId)
@@ -69,8 +69,8 @@ extension ProjectModel.BuildRule: Codable {
         switch dict[PIFKey_BuildRule_compilerSpecificationIdentifier]?.string {
         case PIFKey_BuildRule_compilerSpecificationIdentifier_com_apple_compilers_proxy_script:
             guard let contents = dict[PIFKey_BuildRule_scriptContents]?.string,
-                  let inputPaths = dict[PIFKey_BuildRule_inputFilePaths]?.array,
-                  let outputPaths = dict[PIFKey_BuildRule_outputFilePaths]?.array
+                let inputPaths = dict[PIFKey_BuildRule_inputFilePaths]?.array,
+                let outputPaths = dict[PIFKey_BuildRule_outputFilePaths]?.array
             else {
                 throw DecodingError.dataCorruptedError(in: container, debugDescription: "Failed to decode proxy script information.")
             }
@@ -83,7 +83,8 @@ extension ProjectModel.BuildRule: Codable {
 
             let dependencyInfo: Action.DependencyInfoFormat?
             if let format = dict[PIFKey_BuildRule_dependencyFileFormat]?.string,
-               let paths = dict[PIFKey_BuildRule_dependencyFilePaths]?.array {
+                let paths = dict[PIFKey_BuildRule_dependencyFilePaths]?.array
+            {
 
                 if format == "dependencyInfo" {
                     dependencyInfo = .dependencyInfo(paths[0])
@@ -200,4 +201,3 @@ extension ProjectModel.BuildRule: Codable {
         return dict
     }
 }
-

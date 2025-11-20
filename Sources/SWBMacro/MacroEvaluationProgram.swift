@@ -377,33 +377,32 @@ final class MacroEvaluationProgram: Serializable, Sendable {
         for instr in instructions {
             switch instr {
 
-              case .appendLiteral(let s):
+            case .appendLiteral(let s):
                 // Emit a literal sequence of characters to the result buffer.  Even an empty string can have significant meaning if it causes a pending list element separator to be made real, so we don’t take any shortcuts here by checking for empty string or anything like that.  Any instruction that is actually unnecessary should have already been optimized out by the instruction generation logic anyway.
                 (subresults.last ?? resultBuilder).append(s)
 
-              case .appendStringFormOnlyLiteral(let s):
+            case .appendStringFormOnlyLiteral(let s):
                 // Emit a literal sequence of characters to the result buffer, as with `.appendLiteral`, but only if 'alwaysEvalAsString' is true.  This is used for whitespace, quotes, and escape characters that appear in the string form but not the string list form.  This allows the same macro evaluation program to be used for both the string form and the string list form.
                 if alwaysEvalAsString {
                     (subresults.last ?? resultBuilder).append(s)
                 }
 
-              case .setNeedsListSeparator(let s):
+            case .setNeedsListSeparator(let s):
                 // Either set a list separator or add a string-list-form-only substring (such as whitespace) to the result buffer, depending on whether or not the caller wants us to always execute the evaluation program as a string.  Note that we don’t look at `allEvalsAreStrings` here — that refers to evaluation of any embedded macro references.
                 if alwaysEvalAsString {
                     // Add the whitespace which was captured for this separator in the string form.
                     (subresults.last ?? resultBuilder).append(s)
-                }
-                else {
+                } else {
                     // Tell the result builder that we’ll need a list element separator.  This doesn’t add one immediately, but rather sets a flag so that the next `.appendLiteral` instruction will cause a list separator to be added.  This allows us to, for example, concatenate a completely empty array without getting extraneous list separators.
                     (subresults.last ?? resultBuilder).setNeedsListElementSeparator()
                 }
 
-              case .beginSubresult:
+            case .beginSubresult:
                 // Push a new, empty buffer onto the top of the subresult stack.  This must be balanced by one of the below instructions that use and pop result buffers off the stack.
                 let subresult = MacroEvaluationResultBuilder()
                 subresults.append(subresult)
 
-              case .evalNamedMacro(let asString, let preservesOriginal):
+            case .evalNamedMacro(let asString, let preservesOriginal):
                 // Pop the topmost subresult buffer, and use its contents as the name of a macro to evaluate.  It’s an internal error if the subresult stack is empty.
                 let nb = subresults.popLast()!
                 let s = nb.buildString()
@@ -413,8 +412,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                     if let value = context.nextValueForMacro(macro) {
                         // We found a value, so we evaluate its associated "macro evaluation program” into it the topmost subresult buffer.  Note that multiple programs often contribute to the same buffer, e.g. in "$(X)/$(Y)".
                         value.expression.evaluate(context: MacroEvaluationContext(scope: context.scope, macro: macro, value: value, parent: context), resultBuilder: subresults.last!, alwaysEvalAsString: asString || alwaysEvalAsString)
-                    }
-                    else {
+                    } else {
                         if preservesOriginal {
                             // If we are preserving the original string, we append it now.
                             (subresults.last ?? resultBuilder).append("$" + s)
@@ -425,20 +423,19 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                             }
                         }
                     }
-                }
-                else {
+                } else {
                     // It’s an unknown macro, so we cannot possibly have any definition for it — this should really be reported back as an error, and we should refine the API so that we can tell the calling context about it.  For now we silently append either the original string, if we've been asked to preserve it.
                     if preservesOriginal {
                         (subresults.last ?? resultBuilder).append("$" + s)
                     }
                 }
 
-              case .mergeSubresult:
+            case .mergeSubresult:
                 // Pop the topmost subresult buffer, and merge its contents into the buffer below it buffer.  It’s an internal error if the subresult stack is empty.
                 let nb = subresults.popLast()!
                 (subresults.last ?? resultBuilder).appendContentsOfResultBuilder(nb)
 
-              case .applyRetrievalOperator(let op):
+            case .applyRetrievalOperator(let op):
                 // Pop the topmost subresult buffer, and apply the retrieval operator to each of its elements.  This results in a new equivalent subresult buffer, which we then push.  It’s an internal error if the subresult stack is empty.
                 let sb = subresults.popLast()!
                 let nb = MacroEvaluationResultBuilder()
@@ -448,7 +445,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                 }
                 subresults.append(nb)
 
-              case .applyReplacementOperator(let op):
+            case .applyReplacementOperator(let op):
                 // Pop the topmost subresult buffer, and apply the retrieval operator to each of its elements.  This results in a new equivalent subresult buffer, which we then push.  It’s an internal error if the subresult stack is empty.
                 let operand = subresults.popLast()!.buildString()
                 let sb = subresults.popLast()!
@@ -458,8 +455,7 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                         nb.append(op.apply(to: elem, withReplacement: operand))
                         nb.setNeedsListElementSeparator()
                     }
-                }
-                else {
+                } else {
                     // Special case: If the subresult buffer is empty, but the operator wants to be applied even to empty results, then we do so here, applying it to an empty string.
                     if op.applyToEmptyResult {
                         nb.append(op.apply(to: "", withReplacement: operand))
@@ -508,7 +504,6 @@ final class MacroEvaluationProgram: Serializable, Sendable {
     }
 }
 
-
 /// A helper class to build a MacroEvaluationProgram.  Regular clients of macro evaluation don’t need to be aware of this class.
 final class MacroEvaluationProgramBuilder {
 
@@ -525,7 +520,6 @@ final class MacroEvaluationProgramBuilder {
         return MacroEvaluationProgram(instructions: instrs)
     }
 }
-
 
 /// Lets a macro expression evaluator program build a result (either a string or a string list).  Conceptually, the result consists of a sequence of literal string fragments separated by “list element separators”, which demarcate the subranges of the result string that form the string list elements.  Both string and string list results are supported using the same function (a string and a single-element string list are the same thing, in practical terms).  This approach of a single string demarcated by separators is conceptually quite similar to how, for example, a continuous stream of audio data is separated into tracks using “cue sheet split points” on a CD.  In the case of macro expression evaluation, this approach avoids many of the special cases that would otherwise occur when evaluating a string list that refers to a mixture of string and string list subexpressions.
 final class MacroEvaluationResultBuilder {
@@ -545,7 +539,7 @@ final class MacroEvaluationResultBuilder {
     fileprivate private(set) var hasHadAnyTextAppended = false
 
     /// Create a macro result builder.
-    init() { }
+    init() {}
 
     /// If the “needs list element separator” flag has been set, this function adds a list separator for the index corresponding to the current end of the accumulator string, and clears the flag.  Otherwise, this function does nothing.  Clients never invoke this function directly — instead, they note the need for a list element separator and let it be created the next time anything is appended.
     private func applyPendingListElementSeparatorIfNeeded() {

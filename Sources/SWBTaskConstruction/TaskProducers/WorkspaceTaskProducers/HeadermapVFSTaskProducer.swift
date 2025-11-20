@@ -33,22 +33,25 @@ final class HeadermapVFSTaskProducer: StandardTaskProducer, TaskProducer {
 
         var tasks = [any PlannedTask]()
         do {
-            let vfsContentsByPath = try Dictionary(try await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> (Path, ByteString)? in
-                let targetScope = targetContext.settings.globalScope
-                let vfsSetting = targetScope.evaluate(BuiltinMacros.CPP_HEADERMAP_PRODUCT_HEADERS_VFS_FILE)
-                guard targetContext.configuredTarget?.target is SWBCore.StandardTarget, targetScope.evaluate(BuiltinMacros.USE_HEADERMAP), !vfsSetting.isEmpty else {
-                    return nil
-                }
-                let vfsPath = self.context.makeAbsolute(vfsSetting)
+            let vfsContentsByPath = try Dictionary(
+                try await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> (Path, ByteString)? in
+                    let targetScope = targetContext.settings.globalScope
+                    let vfsSetting = targetScope.evaluate(BuiltinMacros.CPP_HEADERMAP_PRODUCT_HEADERS_VFS_FILE)
+                    guard targetContext.configuredTarget?.target is SWBCore.StandardTarget, targetScope.evaluate(BuiltinMacros.USE_HEADERMAP), !vfsSetting.isEmpty else {
+                        return nil
+                    }
+                    let vfsPath = self.context.makeAbsolute(vfsSetting)
 
-                let contents = try await targetContext.constructVFSContents()
-                return (vfsPath, contents)
-            }.compactMap { $0 }, uniquingKeysWith: { first, second in
-                guard first == second else {
-                    throw StubError.error("Unexpected difference in VFS content.\nFirst: \(first.asString)\nSecond:\(second.asString)")
+                    let contents = try await targetContext.constructVFSContents()
+                    return (vfsPath, contents)
+                }.compactMap { $0 },
+                uniquingKeysWith: { first, second in
+                    guard first == second else {
+                        throw StubError.error("Unexpected difference in VFS content.\nFirst: \(first.asString)\nSecond:\(second.asString)")
+                    }
+                    return first
                 }
-                return first
-            })
+            )
 
             for (vfsPath, contents) in vfsContentsByPath {
                 await appendGeneratedTasks(&tasks) { delegate in
@@ -175,11 +178,16 @@ extension TaskProducerContext {
                 let contentsFolderString = scope.evaluate(BuiltinMacros.CONTENTS_FOLDER_PATH).str
                 let wrapperNameString = scope.evaluate(BuiltinMacros.WRAPPER_NAME).str
 
-                let moduleInfo = GlobalProductPlan.computeModuleInfo(workspaceContext: globalProductPlan.planRequest.workspaceContext, target: target, settings: settings, diagnosticHandler: { message, location, component, essential in
-                    if essential {
-                        error(message, location: location, component: component)
+                let moduleInfo = GlobalProductPlan.computeModuleInfo(
+                    workspaceContext: globalProductPlan.planRequest.workspaceContext,
+                    target: target,
+                    settings: settings,
+                    diagnosticHandler: { message, location, component, essential in
+                        if essential {
+                            error(message, location: location, component: component)
+                        }
                     }
-                })
+                )
                 if let moduleInfo = moduleInfo {
                     let moduleMapSourcePath = mapToTempFilesOnly ? moduleInfo.moduleMapPaths.tmpPath : moduleInfo.moduleMapPaths.sourcePath
                     if !moduleMapSourcePath.isEmpty {
@@ -200,7 +208,7 @@ extension TaskProducerContext {
                     // Only invoke the closure for this file if the file is really going to be generated.
                     if moduleInfo.exportsSwiftObjCAPI {
                         let generatedSwiftHeaderPath = SwiftCompilerSpec.generatedObjectiveCHeaderOutputPath(scope)
-                        let swiftHeaderName = scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME) // if exportsSwiftObjCAPI, then swiftHeaderName is not empty
+                        let swiftHeaderName = scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME)  // if exportsSwiftObjCAPI, then swiftHeaderName is not empty
                         // FIXME: The calculation of swiftHeaderPath below seems like an unfortunate hard-coding of an algorithm that should be elsewhere; it comes from commit ce4151bf9e in HeadermapTaskProducer.swift originally.
                         // FIXME: It's also not clear under what conditions this calculation will be different from SwiftCompilerSpec.generatedObjectiveCHeaderOutputPath(), but if it is (now or someday) we invoke the closure.
                         let swiftHeaderPath = builtProductsDir.join(publicHeadersFolderPseudoPath).join(swiftHeaderName)

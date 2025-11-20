@@ -18,8 +18,11 @@ import SWBTaskExecution
 import SWBTestSupport
 import SWBUtil
 
-@Suite(.skipHostOS(.windows, "Windows platform has no CAS support yet"),
-       .requireDependencyScannerPlusCaching, .requireXcode26())
+@Suite(
+    .skipHostOS(.windows, "Windows platform has no CAS support yet"),
+    .requireDependencyScannerPlusCaching,
+    .requireXcode26()
+)
 fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     let canUseCASPlugin: Bool
     let canUseCASPruning: Bool
@@ -44,30 +47,37 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.s"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                            ])],
+                                TestFile("file.s")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.s"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.s"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.s")) { stream in
-                stream <<<
-                """
-                """
+                stream <<< """
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -89,15 +99,19 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("t.cpp"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                            ])],
+                                TestFile("t.cpp")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "Aggregate",
@@ -105,50 +119,65 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "Textual",
                                     "TextualWithFMod",
                                     "CppModules",
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Textual",
                                 type: .staticLibrary,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "CLANG_ENABLE_MODULES": "NO",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "CLANG_ENABLE_MODULES": "NO"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["t.cpp"]),
-                                ]),
+                                    TestSourcesBuildPhase(["t.cpp"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TextualWithFMod",
                                 type: .staticLibrary,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "CLANG_ENABLE_MODULES": "YES",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "CLANG_ENABLE_MODULES": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["t.cpp"]),
-                                ]),
+                                    TestSourcesBuildPhase(["t.cpp"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "CppModules",
                                 type: .staticLibrary,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "CLANG_ENABLE_MODULES": "YES",
-                                        "OTHER_CFLAGS": "$(inherited) -fcxx-modules",
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "CLANG_ENABLE_MODULES": "YES",
+                                            "OTHER_CFLAGS": "$(inherited) -fcxx-modules",
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["t.cpp"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["t.cpp"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/t.cpp")) { stream in
-                stream <<<
-                """
-                void foo(void) {}
-                """
+                stream <<< """
+                    void foo(void) {}
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -197,29 +226,36 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let rawUserInfo = tester.userInfo
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             let metricsEnv = { (suffix: String) in ["SWIFTBUILD_METRICS_PATH": tmpDirPath.join("Test/aProject/build/XCBuildData/metrics-\(suffix).json").str] }
@@ -253,7 +289,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 runDestination: runDestination,
                 persistent: true
             ) { results in
-                if tester.fs.fileSystemMode == .checksumOnly  {
+                if tester.fs.fileSystemMode == .checksumOnly {
                     // Updating timestamp of aProject/file.c will not re-trigger a "ScanDependencies" task
                 } else {
                     let scanTask: Task = try results.checkTask(.matchRuleType("ScanDependencies")) { $0 }
@@ -272,11 +308,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // Modify the source file to trigger a cache miss.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1000;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1000;
+                    """
             }
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("three"))
@@ -292,11 +327,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // Return to the original source -> should still be a hit.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("four"))
@@ -331,26 +365,34 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "CCHROOT": cchrootPath.str,
-                                "CLANG_ENABLE_MODULES": "NO",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
-                                "EMIT_FRONTEND_COMMAND_LINES": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "CCHROOT": cchrootPath.str,
+                                    "CLANG_ENABLE_MODULES": "NO",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                                    "EMIT_FRONTEND_COMMAND_LINES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -425,19 +467,27 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -526,19 +576,27 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -595,27 +653,35 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                                "BLOCKLISTS_PATH": tmpDirPath.str,
-                                "CLANG_ENABLE_MODULES": "NO",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
-                                "EMIT_FRONTEND_COMMAND_LINES": "YES",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "BLOCKLISTS_PATH": tmpDirPath.str,
+                                    "CLANG_ENABLE_MODULES": "NO",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                                    "EMIT_FRONTEND_COMMAND_LINES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             do {
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -624,12 +690,11 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 }
 
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "KnownFailures": []
-                            }
-                            """
+                    file <<< """
+                        {
+                            "KnownFailures": []
+                        }
+                        """
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -650,21 +715,27 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 }
 
                 try await tester.fs.writeFileContents(blockListFilePath) { file in
-                    file <<<
-                            """
-                            {
-                                "KnownFailures": ["aProject"]
-                            }
-                            """
+                    file <<< """
+                        {
+                            "KnownFailures": ["aProject"]
+                        }
+                        """
                 }
 
-                let buildParameters = BuildParameters(configuration: "Debug",
-                                                      // Hack to reset the build system's cache of the `CommandLineToolSpecInfo`,
-                                                      // which caches the `ClangCachingBlockListInfo`
-                                                      overrides: ["CC": clangCompilerPath.dirname.join("../bin/clang").str])
-                let buildRequest = BuildRequest(parameters: buildParameters,
-                                                buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: buildParameters, target: $0) }),
-                                                continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+                let buildParameters = BuildParameters(
+                    configuration: "Debug",
+                    // Hack to reset the build system's cache of the `CommandLineToolSpecInfo`,
+                    // which caches the `ClangCachingBlockListInfo`
+                    overrides: ["CC": clangCompilerPath.dirname.join("../bin/clang").str]
+                )
+                let buildRequest = BuildRequest(
+                    parameters: buildParameters,
+                    buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: buildParameters, target: $0) }),
+                    continueBuildingAfterErrors: true,
+                    useParallelTargets: true,
+                    useImplicitDependencies: false,
+                    useDryRun: false
+                )
 
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest) { results in
                     results.checkNoTask(.matchRuleType("ScanDependencies"))
@@ -712,28 +783,35 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -803,11 +881,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // Modify the source file to trigger a cache miss.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1000;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1000;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -834,7 +911,8 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 TestFile("header.h"),
                                 TestFile("file2.c"),
                                 TestFile("file3.c"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -843,13 +921,17 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "CLANG_ENABLE_COMPILE_CACHE": "YES",
                                     "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
                                     "COMPILATION_CACHE_LIMIT_SIZE": "1",
-                                    "DSTROOT": tmpDirPath.join("dstroot").str])],
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library1",
                                 type: .staticLibrary,
                                 buildPhases: [TestSourcesBuildPhase(["file1.c"])],
-                                dependencies: ["Library2"]),
+                                dependencies: ["Library2"]
+                            ),
                             TestStandardTarget(
                                 "Library2",
                                 type: .staticLibrary,
@@ -858,8 +940,16 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                         "Debug",
                                         buildSettings: [
                                             "GCC_PREFIX_HEADER": "header.h",
-                                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES"])],
-                                buildPhases: [TestSourcesBuildPhase(["file2.c", "file3.c"])])])])
+                                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                        ]
+                                    )
+                                ],
+                                buildPhases: [TestSourcesBuildPhase(["file2.c", "file3.c"])]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -968,7 +1058,8 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 TestFile("module.modulemap"),
                                 TestFile("header.h"),
                                 TestFile("file2.c"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -979,12 +1070,20 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "COMPILATION_CACHE_LIMIT_SIZE": "1",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "DSTROOT": tmpDirPath.join("dstroot").str])],
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
-                                buildPhases: [TestSourcesBuildPhase(["file1.c", "file2.c"])])])])
+                                buildPhases: [TestSourcesBuildPhase(["file1.c", "file2.c"])]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -992,20 +1091,18 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 stream <<< "int something = 1;"
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-                """
-                module M { header "header.h" }
-                """
+                stream <<< """
+                    module M { header "header.h" }
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/header.h")) { stream in
                 stream <<< "typedef int my_int;"
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.c")) { stream in
-                stream <<<
-                """
-                #include "header.h"
-                my_int something = 1;
-                """
+                stream <<< """
+                    #include "header.h"
+                    my_int something = 1;
+                    """
             }
 
             // Clean build.
@@ -1039,11 +1136,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // Incremental build of a file that does depend on the module.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.c")) { stream in
-                stream <<<
-                """
-                #include "header.h"
-                my_int something = 2;
-                """
+                stream <<< """
+                    #include "header.h"
+                    my_int something = 2;
+                    """
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
@@ -1063,11 +1159,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
             #expect(!tester.fs.exists(tmpDirPath.join("CompilationCache")))
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.c")) { stream in
-                stream <<<
-                """
-                #include "header.h"
-                my_int something = 3;
-                """
+                stream <<< """
+                    #include "header.h"
+                    my_int something = 3;
+                    """
             }
             // The module include-tree, PCM and diagnostics got removed; the TU include-tree got removed too.
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -1106,7 +1201,8 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 TestFile("header.h"),
                                 TestFile("file2.c"),
                                 TestFile("file3.c"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -1117,13 +1213,17 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "COMPILATION_CACHE_LIMIT_SIZE": "1",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "DSTROOT": tmpDirPath.join("dstroot").str])],
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library1",
                                 type: .staticLibrary,
                                 buildPhases: [TestSourcesBuildPhase(["file1.c"])],
-                                dependencies: ["Library2"]),
+                                dependencies: ["Library2"]
+                            ),
                             TestStandardTarget(
                                 "Library2",
                                 type: .staticLibrary,
@@ -1132,46 +1232,48 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                         "Debug",
                                         buildSettings: [
                                             "GCC_PREFIX_HEADER": "header.h",
-                                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES"])],
-                                buildPhases: [TestSourcesBuildPhase(["file2.c", "file3.c"])])])])
+                                            "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                        ]
+                                    )
+                                ],
+                                buildPhases: [TestSourcesBuildPhase(["file2.c", "file3.c"])]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file1.c")) { stream in
-                stream <<<
-                """
-                int something = 1;
-                """
+                stream <<< """
+                    int something = 1;
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/module.modulemap")) { stream in
-                stream <<<
-                """
-                module M { header "M.h" }
-                """
+                stream <<< """
+                    module M { header "M.h" }
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/M.h")) { stream in
-                stream <<<
-                """
-                typedef int my_int;
-                """
+                stream <<< """
+                    typedef int my_int;
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/header.h")) { stream in
-                stream <<<
-                """
-                #include "M.h"
-                """
+                stream <<< """
+                    #include "M.h"
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.c")) { stream in
-                stream <<<
-                """
-                my_int something = 1;
-                """
+                stream <<< """
+                    my_int something = 1;
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file3.c")) { stream in
-                stream <<<
-                """
-                my_int something = 1;
-                """
+                stream <<< """
+                    my_int something = 1;
+                    """
             }
 
             // Clean build.
@@ -1193,10 +1295,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // Incremental build of a file that does not depend on the prefix header.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file1.c")) { stream in
-                stream <<<
-                """
-                int something = 2;
-                """
+                stream <<< """
+                    int something = 2;
+                    """
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
@@ -1212,10 +1313,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             // Incremental build of a file that does depend on the prefix header.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.c")) { stream in
-                stream <<<
-                """
-                my_int something = 2;
-                """
+                stream <<< """
+                    my_int something = 2;
+                    """
             }
             // Despite the low CAS size limit the PCH include-tree should not get garbage collected.
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -1237,10 +1337,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
             #expect(!tester.fs.exists(tmpDirPath.join("CompilationCache")))
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.c")) { stream in
-                stream <<<
-                """
-                my_int something = 3;
-                """
+                stream <<< """
+                    my_int something = 3;
+                    """
             }
             // The module, PCH and TU include-trees got removed so the scanner needs to run again.
             // The module PCM got removed so the compiler needs to run again.
@@ -1282,41 +1381,47 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                             children: [
                                 TestFile("file1.c"),
                                 TestFile("file2.cpp"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                                "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file1.c", "file2.cpp"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file1.c", "file2.cpp"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file1.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.cpp")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int otherthing = 2;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int otherthing = 2;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -1376,30 +1481,38 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                             children: [
                                 TestFile("file.c"),
                                 TestFile("pch.h"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                                "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                                "DSTROOT": tmpDirPath.join("dstroot").str,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["GCC_PREFIX_HEADER": "pch.h"]),
+                                    TestBuildConfiguration("Debug", buildSettings: ["GCC_PREFIX_HEADER": "pch.h"])
                                 ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -1463,35 +1576,42 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                                "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
@@ -1520,52 +1640,57 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                             groupTree: TestGroup(
                                 "Sources",
                                 children: [
-                                    TestFile("file.c"),
-                                ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
-                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                                    "CLANG_ENABLE_MODULES": "YES",
-                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "HEADER_SEARCH_PATHS": "\(moduleDir.str)",
-                                    "CLANG_ENABLE_PREFIX_MAPPING": "YES",
-                                    "CLANG_OTHER_PREFIX_MAPPINGS": "\(moduleDir.str)=/^mod",
-                                    "DSTROOT": tmpDirPath.join("dstroot").str,
-                                    "EMIT_FRONTEND_COMMAND_LINES": "YES",
-                                ])],
+                                    TestFile("file.c")
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                        "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                        "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                        "CLANG_ENABLE_MODULES": "YES",
+                                        "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                        "HEADER_SEARCH_PATHS": "\(moduleDir.str)",
+                                        "CLANG_ENABLE_PREFIX_MAPPING": "YES",
+                                        "CLANG_OTHER_PREFIX_MAPPINGS": "\(moduleDir.str)=/^mod",
+                                        "DSTROOT": tmpDirPath.join("dstroot").str,
+                                        "EMIT_FRONTEND_COMMAND_LINES": "YES",
+                                    ]
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
                                     "Library",
                                     type: .staticLibrary,
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["file.c"]),
-                                    ]),
-                            ])])
+                                        TestSourcesBuildPhase(["file.c"])
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                    stream <<<
-                    """
-                    #include "other.h"
-                    void foo(void) {}
-                    """
+                    stream <<< """
+                        #include "other.h"
+                        void foo(void) {}
+                        """
                 }
                 try await tester.fs.writeFileContents(moduleDir.join("other.h")) { stream in
-                    stream <<<
-                    """
-                    int other;
-                    """
+                    stream <<< """
+                        int other;
+                        """
                 }
                 try await tester.fs.writeFileContents(moduleDir.join("module.modulemap")) { stream in
-                    stream <<<
-                    """
-                    module Other { header "other.h" }
-                    """
+                    stream <<< """
+                        module Other { header "other.h" }
+                        """
                 }
 
                 try await tester.checkBuild(runDestination: .macOS, persistent: true, body: body)
@@ -1628,40 +1753,50 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                                "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                                "DSTROOT": tmpDirPath.join("dstroot").str,
-                            ])],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
-            let parameters =  BuildParameters(configuration: "Debug", overrides: ["CCHROOT": "\(tmpDirPath.join("CCHROOT").str)"])
-            let parametersCustom =  BuildParameters(configuration: "Debug", overrides:[
-                "COMPILATION_CACHE_CAS_PATH": "\(tmpDirPath.join("Custom").str)",
-                "COMPILATION_CACHE_LIMIT_SIZE": "100K",
-            ])
+            let parameters = BuildParameters(configuration: "Debug", overrides: ["CCHROOT": "\(tmpDirPath.join("CCHROOT").str)"])
+            let parametersCustom = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "COMPILATION_CACHE_CAS_PATH": "\(tmpDirPath.join("Custom").str)",
+                    "COMPILATION_CACHE_LIMIT_SIZE": "100K",
+                ]
+            )
 
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Normal build, cache persists.
@@ -1695,9 +1830,13 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
             let arena = ArenaInfo.buildArena(derivedDataRoot: tmpDirPath.join("derived-data"))
-            let parametersWithDerivedData =  BuildParameters(configuration: "Debug", overrides:[
-                "COMPILATION_CACHE_LIMIT_SIZE": "0",
-            ], arena: arena)
+            let parametersWithDerivedData = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "COMPILATION_CACHE_LIMIT_SIZE": "0"
+                ],
+                arena: arena
+            )
 
             try await tester.checkBuild(parameters: parametersWithDerivedData, runDestination: .macOS, persistent: true) { results in
                 // Normal build, cache persists.
@@ -1731,13 +1870,17 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                             children: [
                                 TestFile("file.c"),
                                 TestFile("generated1.c.fake-customrule"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
@@ -1752,17 +1895,19 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 buildRules: [
                                     TestBuildRule(filePattern: "*.fake-customrule", script: "cp \"$INPUT_FILE_PATH\" \"${DERIVED_FILE_DIR}/${INPUT_FILE_BASE}\"", outputs: ["$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE)"])
                                 ]
-                            ),
-                        ])])
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/generated1.c.fake-customrule")) { stream in
                 stream <<< "void foo(void) {}"
@@ -1792,32 +1937,39 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("t.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
-                                "CLANG_COMPILE_CACHE_PATH": tmpDirPath.join("CompilationCache").str,
-                            ])],
+                                TestFile("t.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CLANG_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "CLANG_COMPILE_CACHE_PATH": tmpDirPath.join("CompilationCache").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Lib",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["t.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["t.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/t.c")) { stream in
-                stream <<<
-                """
-                void foo(void) {}
-                """
+                stream <<< """
+                    void foo(void) {}
+                    """
             }
 
             // Build with explicit modules scanning but without caching.
@@ -1860,27 +2012,34 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             let specificCAS = casPath.join(usePlugin ? "plugin" : "builtin")
@@ -1931,27 +2090,34 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             let specificCAS = casPath.join("builtin")
@@ -1972,9 +2138,11 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await checkBuild("validated successfully\n")
             // Create an error and trigger revalidation by messing with the validation data.
             let dataDir = casPath.join("builtin").join("v1.1")
-            let dataFile = try #require(tester.fs.listdir(dataDir).first {
-                $0.hasSuffix(".data") && $0.hasPrefix("v")
-            })
+            let dataFile = try #require(
+                tester.fs.listdir(dataDir).first {
+                    $0.hasSuffix(".data") && $0.hasPrefix("v")
+                }
+            )
             try tester.fs.move(dataDir.join(dataFile), to: dataDir.join("moved"))
             try await tester.fs.writeFileContents(casPath.join("builtin/v1.validation")) { stream in
                 stream <<< "0"
@@ -2005,38 +2173,49 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library1",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "Library2",
                                 type: .staticLibrary,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "VALIDATE_CAS_EXEC": llvmCasExec2.str,
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "VALIDATE_CAS_EXEC": llvmCasExec2.str
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.c"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                #include <stdio.h>
-                int something = 1;
-                """
+                stream <<< """
+                    #include <stdio.h>
+                    int something = 1;
+                    """
             }
 
             let specificCAS = casPath.join("builtin")

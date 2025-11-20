@@ -44,39 +44,44 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                             projectHeader1,
                             projectHeader2,
                             TestFile("ProjectHeader.h"),
-                        ]),
+                        ]
+                    ),
                     TestGroup(
                         "Internal",
                         path: "Internal",
                         children: [
                             privateHeader2,
                             TestFile("PrivateHeader.h"),
-                        ]),
+                        ]
+                    ),
                     TestGroup(
                         "Public",
                         path: "Public",
                         children: [
                             publicHeader1,
                             TestFile("PublicHeader.h"),
-                        ]),
-                ]),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
                         TestHeadersBuildPhase([
                             TestBuildFile(publicHeader1, headerVisibility: .public),
@@ -88,8 +93,9 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("ProjectHeader.h"),
                         ]),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -134,15 +140,18 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                         children: [
                             execHeader,
                             TestFile("main.c"),
-                        ]),
+                        ]
+                    ),
                     TestGroup(
                         "Fwk",
                         path: "fwk",
                         children: [
                             fwkHeader,
                             TestFile("something.c"),
-                        ]),
-                ]),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -150,35 +159,39 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "DEFINES_MODULE": "YES",
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "fwk",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "something.c",
+                            "something.c"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile(fwkHeader, headerVisibility: .public),
+                            TestBuildFile(fwkHeader, headerVisibility: .public)
                         ]),
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "exec",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.c",
-                        ]),
-                    ]),
-            ])
+                            "main.c"
+                        ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let parameters = BuildParameters(configuration: "Debug")
@@ -203,7 +216,8 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Custom1.fake-lang"),
                     TestFile("Custom2.fake-lang"),
@@ -224,7 +238,8 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                     TestFile("APIHeader2.h"),
                     TestFile("SPIHeader1.h"),
                     TestFile("SPIHeader2.h"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -233,16 +248,21 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "ALWAYS_SEARCH_USER_PATHS": "NO",
                         "CODE_SIGN_IDENTITY": "",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
-                    "Tool", type: .framework,
+                    "Tool",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
@@ -263,16 +283,25 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                         ]),
                     ],
                     buildRules: [
-                        TestBuildRule(filePattern: "*/*.fake-lang", script: "true", outputs: [
-                            "${DERIVED_SOURCES_DIR}/${INPUT_FILE_BASE}",
-                        ]),
-                        TestBuildRule(filePattern: "*.fake-gperf", script: "true", outputs: [
-                            "${DERIVED_SOURCES_DIR}/${INPUT_FILE_BASE}",
-                        ]),
+                        TestBuildRule(
+                            filePattern: "*/*.fake-lang",
+                            script: "true",
+                            outputs: [
+                                "${DERIVED_SOURCES_DIR}/${INPUT_FILE_BASE}"
+                            ]
+                        ),
+                        TestBuildRule(
+                            filePattern: "*.fake-gperf",
+                            script: "true",
+                            outputs: [
+                                "${DERIVED_SOURCES_DIR}/${INPUT_FILE_BASE}"
+                            ]
+                        ),
                     ]
                 ),
                 TestStandardTarget(
-                    "Lib", type: .dynamicLibrary,
+                    "Lib",
+                    type: .dynamicLibrary,
                     buildPhases: [
                         TestHeadersBuildPhase([
                             TestBuildFile("LibHeader.h", headerVisibility: .public),
@@ -283,10 +312,11 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("ProjHeader1.h"),
                             TestBuildFile("ProjHeader2.h"),
                             TestBuildFile("ProjHeader3.h"),
-                        ]),
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let headermapBasenames = [
@@ -307,57 +337,57 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                         hmapContents.append(headermap.rawBytes)
 
                         //XCTContext.runActivity(named: "Validate headermap contents for \(basename)") { _ in
-                            switch basename {
-                            case "project-headers":
-                                headermap.checkEntry("ProjHeader1.h", "/tmp/Test/aProject/Sources/ProjHeader1.h")
-                                headermap.checkEntry("ProjHeader2.h", "/tmp/Test/aProject/Sources/ProjHeader2.h")
-                                headermap.checkEntry("ProjHeader3.h", "/tmp/Test/aProject/Sources/ProjHeader3.h")
-                                headermap.checkEntry("TargetHeader1.h", "/tmp/Test/aProject/Sources/TargetHeader1.h")
-                                headermap.checkEntry("TargetHeader2.h", "/tmp/Test/aProject/Sources/TargetHeader2.h")
-                                headermap.checkEntry("TargetHeader3.h", "/tmp/Test/aProject/Sources/TargetHeader3.h")
-                                headermap.checkEntry("LibHeader.h", "Lib/LibHeader.h")
-                                headermap.checkEntry("APIHeader1.h", "Lib/APIHeader1.h")
-                                headermap.checkEntry("APIHeader2.h", "Lib/APIHeader2.h")
-                                headermap.checkEntry("SPIHeader1.h", "Lib/SPIHeader1.h")
-                                headermap.checkEntry("SPIHeader2.h", "Lib/SPIHeader2.h")
-                                break
-                            case "own-target-headers":
-                                headermap.checkEntry("Tool/TargetHeader1.h", "/tmp/Test/aProject/Sources/TargetHeader1.h")
-                                headermap.checkEntry("Tool/TargetHeader2.h", "/tmp/Test/aProject/Sources/TargetHeader2.h")
-                                headermap.checkEntry("Tool/TargetHeader3.h", "/tmp/Test/aProject/Sources/TargetHeader3.h")
-                                headermap.checkEntry("TargetHeader1.h", "/tmp/Test/aProject/Sources/TargetHeader1.h")
-                                headermap.checkEntry("TargetHeader2.h", "/tmp/Test/aProject/Sources/TargetHeader2.h")
-                                headermap.checkEntry("TargetHeader3.h", "/tmp/Test/aProject/Sources/TargetHeader3.h")
-                                break
-                            case "all-target-headers", "all-non-framework-target-headers":
-                                headermap.checkEntry("Lib/LibHeader.h", "/tmp/Test/aProject/Sources/LibHeader.h")
-                                headermap.checkEntry("Lib/APIHeader1.h", "/tmp/Test/aProject/Sources/APIHeader1.h")
-                                headermap.checkEntry("Lib/APIHeader2.h", "/tmp/Test/aProject/Sources/APIHeader2.h")
-                                headermap.checkEntry("Lib/SPIHeader1.h", "/tmp/Test/aProject/Sources/SPIHeader1.h")
-                                headermap.checkEntry("Lib/SPIHeader2.h", "/tmp/Test/aProject/Sources/SPIHeader2.h")
-                                break
-                            case "generated-files":
-                                headermap.checkEntry("Custom1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom1")
-                                headermap.checkEntry("Custom2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom2")
-                                headermap.checkEntry("Custom3", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom3")
-                                headermap.checkEntry("Tool/Custom1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom1")
-                                headermap.checkEntry("Tool/Custom2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom2")
-                                headermap.checkEntry("Tool/Custom3", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom3")
-                                headermap.checkEntry("Tool/regular1.h", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1.h")
-                                headermap.checkEntry("Tool/regular1User.c", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1User.c")
-                                headermap.checkEntry("Tool/some1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some1")
-                                headermap.checkEntry("Tool/some2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some2")
-                                headermap.checkEntry("regular1.h", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1.h")
-                                headermap.checkEntry("regular1User.c", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1User.c")
-                                headermap.checkEntry("some1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some1")
-                                headermap.checkEntry("some2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some2")
-                                break
-                            default:
-                                Issue.record("Unhandled headermap")
-                                break
-                            }
+                        switch basename {
+                        case "project-headers":
+                            headermap.checkEntry("ProjHeader1.h", "/tmp/Test/aProject/Sources/ProjHeader1.h")
+                            headermap.checkEntry("ProjHeader2.h", "/tmp/Test/aProject/Sources/ProjHeader2.h")
+                            headermap.checkEntry("ProjHeader3.h", "/tmp/Test/aProject/Sources/ProjHeader3.h")
+                            headermap.checkEntry("TargetHeader1.h", "/tmp/Test/aProject/Sources/TargetHeader1.h")
+                            headermap.checkEntry("TargetHeader2.h", "/tmp/Test/aProject/Sources/TargetHeader2.h")
+                            headermap.checkEntry("TargetHeader3.h", "/tmp/Test/aProject/Sources/TargetHeader3.h")
+                            headermap.checkEntry("LibHeader.h", "Lib/LibHeader.h")
+                            headermap.checkEntry("APIHeader1.h", "Lib/APIHeader1.h")
+                            headermap.checkEntry("APIHeader2.h", "Lib/APIHeader2.h")
+                            headermap.checkEntry("SPIHeader1.h", "Lib/SPIHeader1.h")
+                            headermap.checkEntry("SPIHeader2.h", "Lib/SPIHeader2.h")
+                            break
+                        case "own-target-headers":
+                            headermap.checkEntry("Tool/TargetHeader1.h", "/tmp/Test/aProject/Sources/TargetHeader1.h")
+                            headermap.checkEntry("Tool/TargetHeader2.h", "/tmp/Test/aProject/Sources/TargetHeader2.h")
+                            headermap.checkEntry("Tool/TargetHeader3.h", "/tmp/Test/aProject/Sources/TargetHeader3.h")
+                            headermap.checkEntry("TargetHeader1.h", "/tmp/Test/aProject/Sources/TargetHeader1.h")
+                            headermap.checkEntry("TargetHeader2.h", "/tmp/Test/aProject/Sources/TargetHeader2.h")
+                            headermap.checkEntry("TargetHeader3.h", "/tmp/Test/aProject/Sources/TargetHeader3.h")
+                            break
+                        case "all-target-headers", "all-non-framework-target-headers":
+                            headermap.checkEntry("Lib/LibHeader.h", "/tmp/Test/aProject/Sources/LibHeader.h")
+                            headermap.checkEntry("Lib/APIHeader1.h", "/tmp/Test/aProject/Sources/APIHeader1.h")
+                            headermap.checkEntry("Lib/APIHeader2.h", "/tmp/Test/aProject/Sources/APIHeader2.h")
+                            headermap.checkEntry("Lib/SPIHeader1.h", "/tmp/Test/aProject/Sources/SPIHeader1.h")
+                            headermap.checkEntry("Lib/SPIHeader2.h", "/tmp/Test/aProject/Sources/SPIHeader2.h")
+                            break
+                        case "generated-files":
+                            headermap.checkEntry("Custom1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom1")
+                            headermap.checkEntry("Custom2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom2")
+                            headermap.checkEntry("Custom3", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom3")
+                            headermap.checkEntry("Tool/Custom1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom1")
+                            headermap.checkEntry("Tool/Custom2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom2")
+                            headermap.checkEntry("Tool/Custom3", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/Custom3")
+                            headermap.checkEntry("Tool/regular1.h", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1.h")
+                            headermap.checkEntry("Tool/regular1User.c", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1User.c")
+                            headermap.checkEntry("Tool/some1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some1")
+                            headermap.checkEntry("Tool/some2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some2")
+                            headermap.checkEntry("regular1.h", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1.h")
+                            headermap.checkEntry("regular1User.c", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/\(results.runDestinationTargetArchitecture)/regular1User.c")
+                            headermap.checkEntry("some1", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some1")
+                            headermap.checkEntry("some2", "/tmp/Test/aProject/build/aProject.build/Debug/Tool.build/DerivedSources/some2")
+                            break
+                        default:
+                            Issue.record("Unhandled headermap")
+                            break
+                        }
 
-                            headermap.checkNoEntries()
+                        headermap.checkNoEntries()
                         //}
                     }
                 }
@@ -382,15 +412,18 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
         func buildConfiguration(withName name: String, extraSettings: [String: String]) async throws -> TestBuildConfiguration {
             let clangCompilerPath = try await self.clangCompilerPath
             let libClangPath = try await self.libClangPath
-            return try await TestBuildConfiguration(name, buildSettings: [
-                "CC": clangCompilerPath.str,
-                "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
-                "CLANG_USE_RESPONSE_FILE": "NO",
-                "GENERATE_INFOPLIST_FILE": "YES",
-                "PRODUCT_NAME": "$(TARGET_NAME)",
-                "SWIFT_EXEC": swiftCompilerPath.str,
-                "SWIFT_VERSION": swiftVersion,
-            ].merging(extraSettings, uniquingKeysWith: { a, b in a }))
+            return try await TestBuildConfiguration(
+                name,
+                buildSettings: [
+                    "CC": clangCompilerPath.str,
+                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                    "CLANG_USE_RESPONSE_FILE": "NO",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                ].merging(extraSettings, uniquingKeysWith: { a, b in a })
+            )
         }
 
         let testProject = try await TestProject(
@@ -401,7 +434,8 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                     TestFile("main.c"),
                     TestFile("source.swift"),
                     TestFile("Framework.h"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "Application",
@@ -420,8 +454,9 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase([
                             "main.c",
                             "source.swift",
-                        ]),
-                    ]),
+                        ])
+                    ]
+                ),
                 TestStandardTarget(
                     "Framework",
                     type: .framework,
@@ -437,10 +472,12 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("Framework.h", headerVisibility: .public),
-                        ]),
-                    ]),
-            ])
+                            TestBuildFile("Framework.h", headerVisibility: .public)
+                        ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         func checkBuild(configurationName: String, clangUsesAllTargetHeaders: Bool, swiftUsesAllTargetHeaders: Bool, buildRequest: BuildRequest? = nil, sourceLocation: SourceLocation = #_sourceLocation) async {
             let targetName = (buildRequest == nil) ? "Application" : nil
@@ -502,46 +539,62 @@ fileprivate struct HeadermapTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.c"),
                     TestFile("Header.h"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "Application",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Default", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
-                        TestBuildConfiguration("Off", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT": "NO",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
-                        TestBuildConfiguration("On", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        TestBuildConfiguration(
+                            "Default",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        ),
+                        TestBuildConfiguration(
+                            "Off",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        ),
+                        TestBuildConfiguration(
+                            "On",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            ]
+                        ),
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.c",
-                        ]),
-                    ]),
+                            "main.c"
+                        ])
+                    ]
+                ),
                 TestStandardTarget(
                     "Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestHeadersBuildPhase([
-                            TestBuildFile("Header.h", headerVisibility: .public),
-                        ]),
-                    ]),
-            ])
+                            TestBuildFile("Header.h", headerVisibility: .public)
+                        ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for configurationName in ["Default", "Off", "On"] {

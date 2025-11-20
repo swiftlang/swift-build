@@ -19,7 +19,7 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
         return .immediate
     }
 
-    func generateTasks() async -> [any PlannedTask]     {
+    func generateTasks() async -> [any PlannedTask] {
         let scope = context.settings.globalScope
 
         // Headermaps are generated only when the "build" or when "api" component is present.
@@ -164,7 +164,6 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
 
         return (hmap, diagnostics)
     }
-
 
     /// Construct the headermap for the "own target headers" separate headermap.
     ///
@@ -373,7 +372,6 @@ final class HeadermapTaskProducer: PhasedTaskProducer, TaskProducer {
 
 }
 
-
 /// Performance testing entry point to headermap construction.
 package func perfTestHeadermapProducer(planRequest: BuildPlanRequest, delegate: any TaskPlanningDelegate) async -> [String: [any PlannedTask]] {
     let targetTaskInfo = TargetGateNodes(startNode: MakePlannedPathNode(Path("a")), endNode: MakePlannedPathNode(Path("b")), unsignedProductReadyNode: MakePlannedPathNode(Path("c")), willSignNode: MakePlannedPathNode(Path("d")))
@@ -382,14 +380,14 @@ package func perfTestHeadermapProducer(planRequest: BuildPlanRequest, delegate: 
     for configuredTarget in planRequest.buildGraph.allTargets {
         let context = TargetTaskProducerContext(configuredTarget: configuredTarget, workspaceContext: planRequest.workspaceContext, targetTaskInfo: targetTaskInfo, globalProductPlan: globalProductPlan, delegate: delegate)
         let headermapProducer = HeadermapTaskProducer(context, phaseStartNodes: [context.createVirtualNode("headermap-start")], phaseEndNode: context.createVirtualNode("headermap-end"))
-        let tasks = await headermapProducer.generateTasks().map { $0 } + context.takeDeferredProducers().flatMap{ await $0() }
+        let tasks = await headermapProducer.generateTasks().map { $0 } + context.takeDeferredProducers().flatMap { await $0() }
         result[configuredTarget.target.name] = tasks
     }
     return result
 }
 
 extension Sequence {
-    fileprivate func flatMap<SegmentOfResult>(_ transform: (Self.Element) async throws -> SegmentOfResult) async rethrows -> [SegmentOfResult.Element] where SegmentOfResult : Sequence {
+    fileprivate func flatMap<SegmentOfResult>(_ transform: (Self.Element) async throws -> SegmentOfResult) async rethrows -> [SegmentOfResult.Element] where SegmentOfResult: Sequence {
         var result: [SegmentOfResult.Element] = []
         for element in self {
             try await result.append(contentsOf: transform(element))

@@ -27,7 +27,8 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDirPath,
                 groupTree: TestGroup(
-                    "Sources", path: "Sources",
+                    "Sources",
+                    path: "Sources",
                     children: [
                         // watchOS app files
                         TestFile("watchosApp/Base.lproj/Interface.storyboard"),
@@ -39,7 +40,8 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                         TestFile("watchosExtension/WatchClass.swift"),
                         TestFile("watchosExtension/Assets.xcassets"),
                         TestFile("watchosExtension/Info.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -49,24 +51,31 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                             "CODE_SIGN_IDENTITY": "Apple Development",
                             "SDKROOT": "watchos",
                             "SWIFT_VERSION": swiftVersion,
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Watchable",
                         type: .watchKitAppContainer,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug",
-                                                   buildSettings: [:]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [:]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 // The target must at least HAVE an empty phase for the automatic asset catalog and storyboard to work
                             ]),
-                            TestCopyFilesBuildPhase([
-                                "Watchable WatchKit App.app",
-                            ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch", onlyForDeployment: false
-                                                   ),
+                            TestCopyFilesBuildPhase(
+                                [
+                                    "Watchable WatchKit App.app"
+                                ],
+                                destinationSubfolder: .builtProductsDir,
+                                destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch",
+                                onlyForDeployment: false
+                            ),
                         ],
                         dependencies: ["Watchable WatchKit App"]
                     ),
@@ -74,28 +83,33 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                         "Watchable WatchKit App",
                         type: .watchKitApp,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug",
-                                                   buildSettings: [
-                                                    "ARCHS[sdk=watchos*]": "arm64_32",
-                                                    "ARCHS[sdk=watchsimulator*]": "x86_64",
-                                                    "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
-                                                    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                                                    "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
-                                                    "SDKROOT": "watchos",
-                                                    "SKIP_INSTALL": "YES",
-                                                    "TARGETED_DEVICE_FAMILY": "4",
-                                                    "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
-                                                   ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS[sdk=watchos*]": "arm64_32",
+                                    "ARCHS[sdk=watchsimulator*]": "x86_64",
+                                    "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                                    "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
+                                    "SDKROOT": "watchos",
+                                    "SKIP_INSTALL": "YES",
+                                    "TARGETED_DEVICE_FAMILY": "4",
+                                    "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 "Base.lproj/Interface.storyboard",
                                 "watchosApp/Assets.xcassets",
                             ]),
-                            TestCopyFilesBuildPhase([
-                                "Watchable WatchKit Extension.appex",
-                            ], destinationSubfolder: .plugins, onlyForDeployment: false
-                                                   ),
+                            TestCopyFilesBuildPhase(
+                                [
+                                    "Watchable WatchKit Extension.appex"
+                                ],
+                                destinationSubfolder: .plugins,
+                                onlyForDeployment: false
+                            ),
                         ],
                         dependencies: ["Watchable WatchKit Extension", "Watchable WatchKit Extension (old)"]
                     ),
@@ -103,19 +117,21 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                         "Watchable WatchKit Extension",
                         type: .watchKitExtension,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug",
-                                                   buildSettings: [
-                                                    "ARCHS[sdk=watchos*]": "arm64_32",
-                                                    "ARCHS[sdk=watchsimulator*]": "x86_64",
-                                                    "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                                                    "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
-                                                    "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                                                    "SDKROOT": "watchos",
-                                                    "SKIP_INSTALL": "YES",
-                                                    "SWIFT_VERSION": swiftVersion,
-                                                    "TARGETED_DEVICE_FAMILY": "4",
-                                                    "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
-                                                   ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS[sdk=watchos*]": "arm64_32",
+                                    "ARCHS[sdk=watchsimulator*]": "x86_64",
+                                    "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                    "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
+                                    "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                    "SDKROOT": "watchos",
+                                    "SKIP_INSTALL": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "TARGETED_DEVICE_FAMILY": "4",
+                                    "WATCHOS_DEPLOYMENT_TARGET": core.loadSDK(.watchOS).defaultDeploymentTarget,
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
@@ -128,7 +144,8 @@ fileprivate struct WatchBuildOperationTests: CoreBasedTests {
                             ]),
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: true)
 
             // Create files in the filesystem so they're known to exist.

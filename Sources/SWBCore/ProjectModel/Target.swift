@@ -58,7 +58,7 @@ public final class CustomTask: ProjectModelItem, Sendable {
             guard let keyAndValuePLs = environmentItemPL.arrayValue else {
                 throw PIFParsingError.incorrectTypeInArray(keyName: PIFKey_CustomTask_environment, objectType: Self.self, expectedType: "Array")
             }
-            guard keyAndValuePLs.count == 2 else  {
+            guard keyAndValuePLs.count == 2 else {
                 throw StubError.error("Expected a key/value pair when deserializing environment")
             }
             guard let key = keyAndValuePLs[0].stringValue, let value = keyAndValuePLs[1].stringValue else {
@@ -77,11 +77,9 @@ public final class CustomTask: ProjectModelItem, Sendable {
     }
 }
 
-
 // MARK: Target Dependency Info
 
-public final class TargetDependency: ProjectModelItem, Encodable, Sendable
-{
+public final class TargetDependency: ProjectModelItem, Encodable, Sendable {
     /// The GUID that maps back to the target GUID.
     public let guid: String
 
@@ -106,31 +104,36 @@ public final class TargetDependency: ProjectModelItem, Encodable, Sendable
     init(_ model: SWBProtocol.TargetDependency, _ pifLoader: PIFLoader) {
         self.guid = model.guid
         self.name = model.name
-        self.platformFilters = Set(model.platformFilters.map{ SWBCore.PlatformFilter($0, pifLoader) })
+        self.platformFilters = Set(model.platformFilters.map { SWBCore.PlatformFilter($0, pifLoader) })
     }
 
     init(fromDictionary pifDict: ProjectModelItemPIF, withPIFLoader pifLoader: PIFLoader) throws {
         // FIXME: Falling back to an empty string GUID does not seem correct, but this can happen for dependencies on targets from missing project references. Should we instead allow `guid` to be nil to represent this case?
         self.guid = try Self.parseOptionalValueForKeyAsString(PIFKey_guid, pifDict: pifDict) ?? ""
         self.name = try Self.parseOptionalValueForKeyAsString(PIFKey_name, pifDict: pifDict)
-        self.platformFilters = Set(try Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(PIFKey_platformFilters, pifDict: pifDict, pifLoader: pifLoader, construct: {
-            try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
-        }) ?? [])
+        self.platformFilters = Set(
+            try Self.parseOptionalValueForKeyAsArrayOfProjectModelItems(
+                PIFKey_platformFilters,
+                pifDict: pifDict,
+                pifLoader: pifLoader,
+                construct: {
+                    try PlatformFilter(fromDictionary: $0, withPIFLoader: pifLoader)
+                }
+            ) ?? []
+        )
     }
 }
-
 
 // MARK: Target abstract class
 
 /// The Target abstract class defines properties common to all types of targets.
-public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecked Sendable
-{
+public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecked Sendable {
     static func referencedObjects(for data: EncodedPIFValue) -> [PIFObjectReference] {
         return []
     }
 
     /// Parses a ProjectModelItemPIF dictionary as an object of the appropriate subclass of Target.
-    static func construct(from data: EncodedPIFValue, signature: PIFObject.Signature, loader: PIFLoader ) throws -> Self {
+    static func construct(from data: EncodedPIFValue, signature: PIFObject.Signature, loader: PIFLoader) throws -> Self {
         switch data {
         case .json(let data):
             return try construct(from: data, signature: signature, loader: loader)
@@ -169,7 +172,7 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecke
     public let guid: String
 
     public let name: String
-    public var type: TargetType { preconditionFailure( "\(Swift.type(of: self)) should never be asked directly for its type" ) }
+    public var type: TargetType { preconditionFailure("\(Swift.type(of: self)) should never be asked directly for its type") }
     public let buildConfigurations: [BuildConfiguration]
 
     public let hasImpartedBuildProperties: Bool
@@ -201,9 +204,9 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecke
         self.signature = signature
         self.guid = model.guid
         self.name = model.name
-        self.buildConfigurations = model.buildConfigurations.map{ BuildConfiguration($0, pifLoader) }
+        self.buildConfigurations = model.buildConfigurations.map { BuildConfiguration($0, pifLoader) }
         self.customTasks = model.customTasks.map { CustomTask($0, pifLoader) }
-        self.dependencies = model.dependencies.map{ TargetDependency($0, pifLoader) }
+        self.dependencies = model.dependencies.map { TargetDependency($0, pifLoader) }
         self.dynamicTargetVariantGuid = model.dynamicTargetVariantGuid
         self.approvedByUser = model.approvedByUser
         self.hasImpartedBuildProperties = buildConfigurations.filter { !$0.impartedBuildProperties.isEmpty }.isEmpty
@@ -233,9 +236,14 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecke
         // The list of dependencies is required.
         //
         // The target dependencies are resolved lazily (see `TargetDependencyResolver`) since they may cross target (and even project) boundaries.
-        dependencies = try Self.parseValueForKeyAsArrayOfProjectModelItems(PIFKey_Target_dependencies, pifDict: pifDict, pifLoader: pifLoader, construct: {
-            return try TargetDependency(fromDictionary: $0, withPIFLoader: pifLoader)
-        })
+        dependencies = try Self.parseValueForKeyAsArrayOfProjectModelItems(
+            PIFKey_Target_dependencies,
+            pifDict: pifDict,
+            pifLoader: pifLoader,
+            construct: {
+                return try TargetDependency(fromDictionary: $0, withPIFLoader: pifLoader)
+            }
+        )
 
         dynamicTargetVariantGuid = try Self.parseOptionalValueForKeyAsString(PIFKey_Target_dynamicTargetVariantGuid, pifDict: pifDict)
         approvedByUser = try Self.parseValueForKeyAsBool(PIFKey_Target_approvedByUser, pifDict: pifDict, defaultValue: true)
@@ -245,8 +253,7 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecke
     }
 
     /// Parses a ProjectModelItemPIF dictionary as an object of the appropriate subclass of Target.
-    static func construct(from data: ProjectModelItemPIF, signature: PIFObject.Signature, loader: PIFLoader ) throws -> Self
-    {
+    static func construct(from data: ProjectModelItemPIF, signature: PIFObject.Signature, loader: PIFLoader) throws -> Self {
         // Workaround inability to express protocol completely.
         func autocast<T>(_ some: Target) -> T {
             return some as! T
@@ -272,8 +279,7 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecke
         }
     }
 
-    public var description: String
-    {
+    public var description: String {
         return "\(Swift.type(of: self))<\(guid):\(name)>"
     }
 
@@ -312,17 +318,15 @@ public class Target: ProjectModelItem, PIFObject, Hashable, Encodable, @unchecke
         hasher.combine(ObjectIdentifier(self))
     }
 
-    public static func ==(lhs: Target, rhs: Target) -> Bool {
+    public static func == (lhs: Target, rhs: Target) -> Bool {
         return lhs === rhs
     }
 }
 
 // MARK: BuildPhaseTarget class
 
-
 /// A BuildPhaseTarget is a kind of target which can contain build phases.
-public class BuildPhaseTarget: Target, @unchecked Sendable
-{
+public class BuildPhaseTarget: Target, @unchecked Sendable {
     /// List of build phases in the target.
     public let buildPhases: [BuildPhase]
 
@@ -336,7 +340,7 @@ public class BuildPhaseTarget: Target, @unchecked Sendable
     public let resourcesBuildPhase: ResourcesBuildPhase?
 
     init(_ model: SWBProtocol.BuildPhaseTarget, _ pifLoader: PIFLoader, signature: String) {
-        buildPhases = model.buildPhases.map{ BuildPhase.create($0, pifLoader) }
+        buildPhases = model.buildPhases.map { BuildPhase.create($0, pifLoader) }
         // Populate the convenience build phase properties.
         var warnings: [String] = []
         var sourcesBuildPhase: SourcesBuildPhase? = nil
@@ -345,28 +349,28 @@ public class BuildPhaseTarget: Target, @unchecked Sendable
         var resourcesBuildPhase: ResourcesBuildPhase? = nil
         for buildPhase in self.buildPhases {
             switch buildPhase {
-                case let sourcesPhase as SourcesBuildPhase:
-                    if sourcesBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    sourcesBuildPhase = sourcesPhase
-                case let frameworksPhase as FrameworksBuildPhase:
-                    if frameworksBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    frameworksBuildPhase = frameworksPhase
-                case let headersPhase as HeadersBuildPhase:
-                    if headersBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    headersBuildPhase = headersPhase
-                case let resourcesPhase as ResourcesBuildPhase:
-                    if resourcesBuildPhase != nil {
-                        warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    resourcesBuildPhase = resourcesPhase
-                default:
-                    break
+            case let sourcesPhase as SourcesBuildPhase:
+                if sourcesBuildPhase != nil {
+                    warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                sourcesBuildPhase = sourcesPhase
+            case let frameworksPhase as FrameworksBuildPhase:
+                if frameworksBuildPhase != nil {
+                    warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                frameworksBuildPhase = frameworksPhase
+            case let headersPhase as HeadersBuildPhase:
+                if headersBuildPhase != nil {
+                    warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                headersBuildPhase = headersPhase
+            case let resourcesPhase as ResourcesBuildPhase:
+                if resourcesBuildPhase != nil {
+                    warnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                resourcesBuildPhase = resourcesPhase
+            default:
+                break
             }
         }
         self.sourcesBuildPhase = sourcesBuildPhase
@@ -376,8 +380,7 @@ public class BuildPhaseTarget: Target, @unchecked Sendable
         super.init(model, pifLoader, signature: signature, errors: [], warnings: warnings)
     }
 
-    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws
-    {
+    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws {
         // The list of build phases is required.
         buildPhases = try Self.parseValueForKeyAsArrayOfPropertyListItems(PIFKey_Target_buildPhases, pifDict: pifDict).map { plItem in
             guard case .plDict(let dictValue) = plItem else {
@@ -400,32 +403,31 @@ public class BuildPhaseTarget: Target, @unchecked Sendable
         var frameworksBuildPhase: FrameworksBuildPhase? = nil
         var headersBuildPhase: HeadersBuildPhase? = nil
         var resourcesBuildPhase: ResourcesBuildPhase? = nil
-        for buildPhase in self.buildPhases
-        {
+        for buildPhase in self.buildPhases {
             switch buildPhase
             {
-                case let sourcesPhase as SourcesBuildPhase:
-                    if sourcesBuildPhase != nil {
-                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    sourcesBuildPhase = sourcesPhase
-                case let frameworksPhase as FrameworksBuildPhase:
-                    if frameworksBuildPhase != nil {
-                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    frameworksBuildPhase = frameworksPhase
-                case let headersPhase as HeadersBuildPhase:
-                    if headersBuildPhase != nil {
-                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    headersBuildPhase = headersPhase
-                case let resourcesPhase as ResourcesBuildPhase:
-                    if resourcesBuildPhase != nil {
-                        newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
-                    }
-                    resourcesBuildPhase = resourcesPhase
-                default:
-                    break
+            case let sourcesPhase as SourcesBuildPhase:
+                if sourcesBuildPhase != nil {
+                    newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                sourcesBuildPhase = sourcesPhase
+            case let frameworksPhase as FrameworksBuildPhase:
+                if frameworksBuildPhase != nil {
+                    newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                frameworksBuildPhase = frameworksPhase
+            case let headersPhase as HeadersBuildPhase:
+                if headersBuildPhase != nil {
+                    newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                headersBuildPhase = headersPhase
+            case let resourcesPhase as ResourcesBuildPhase:
+                if resourcesBuildPhase != nil {
+                    newWarnings.append("target has multiple \(buildPhase.name) build phases, which may cause it to build incorrectly - all but one should be deleted")
+                }
+                resourcesBuildPhase = resourcesPhase
+            default:
+                break
             }
         }
         self.sourcesBuildPhase = sourcesBuildPhase
@@ -437,16 +439,13 @@ public class BuildPhaseTarget: Target, @unchecked Sendable
     }
 }
 
-
 // MARK: StandardTarget class
-
 
 /// Source data needed to compute provisioning task inputs for a target+configuration pair.
 public typealias ProvisioningSourceData = SWBProtocol.ProvisioningSourceData
 
 /// A StandardTarget is the most common type of target: A target which has build phases describing its input files, and which generates a product.
-public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
-{
+public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable {
     public enum SourceCodeLanguage: CustomStringConvertible, Sendable {
         case undefined
         case swift
@@ -511,7 +510,7 @@ public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
     }
 
     init(_ model: SWBProtocol.StandardTarget, _ pifLoader: PIFLoader, signature: String) throws {
-        buildRules = model.buildRules.map{ BuildRule($0, pifLoader) }
+        buildRules = model.buildRules.map { BuildRule($0, pifLoader) }
         productTypeIdentifier = model.productTypeIdentifier
         productReference = try ProductReference(model.productReference, pifLoader)
         isPackageTarget = model.isPackageTarget
@@ -528,8 +527,7 @@ public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
         _provisioningSourceData.initialize(to: provisioningSourceData)
     }
 
-    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws
-    {
+    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws {
         // The product type identifier is required.
         productTypeIdentifier = try Self.parseValueForKeyAsString(PIFKey_Target_productTypeIdentifier, pifDict: pifDict)
 
@@ -580,8 +578,7 @@ public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
             foundConfigurationNames.insert(sourceData.configurationName)
         }
         // If any configurations didn't have provisioning source data objects, then create default ones for those configurations.
-        for configurationName in configurationNames
-        {
+        for configurationName in configurationNames {
             let sourceData = ProvisioningSourceData(configurationName: configurationName, provisioningStyle: .automatic, bundleIdentifierFromInfoPlist: "")
             provisioningSourceData.append(sourceData)
         }
@@ -605,28 +602,21 @@ public final class StandardTarget: BuildPhaseTarget, @unchecked Sendable
     }
 }
 
-
 // MARK: AggregateTarget class
 
-
 /// An AggregateTarget is a special kind of target primarily intended to group together other targets it depends on, and which does not have a defined product.  However, it may also have build phases, which will be run after all of its dependencies have finished building.
-public final class AggregateTarget: BuildPhaseTarget, @unchecked Sendable
-{
+public final class AggregateTarget: BuildPhaseTarget, @unchecked Sendable {
     public override var type: TargetType { return TargetType.aggregate }
 }
 
-
-
 // MARK: PackageProductTarget class
-
 
 /// A PackageProductTarget is a custom target used by the Swift package manager to encapsulate the semantics of products.
 ///
 /// This target is currently only expected to have target dependencies and an optional frameworks build phase, which should reference other (static library) targets package product targets.
 ///
 /// The behavior of this target is "as if" the dependencies of the package pass through to downstream things which link the target.
-public final class PackageProductTarget: Target, @unchecked Sendable
-{
+public final class PackageProductTarget: Target, @unchecked Sendable {
     public override var type: TargetType { return TargetType.packageProduct }
 
     /// The frameworks build phase which encodes the link dependencies.
@@ -636,7 +626,7 @@ public final class PackageProductTarget: Target, @unchecked Sendable
     public let productReference: ProductReference
 
     init(_ model: SWBProtocol.PackageProductTarget, _ pifLoader: PIFLoader, signature: String) {
-        self.frameworksBuildPhase = model.frameworksBuildPhase.map{ BuildPhase.create($0, pifLoader) as! FrameworksBuildPhase }
+        self.frameworksBuildPhase = model.frameworksBuildPhase.map { BuildPhase.create($0, pifLoader) as! FrameworksBuildPhase }
         self.productReference = ProductReference(guid: "\(model.guid):ProductReference", name: model.name)
         super.init(model, pifLoader, signature: signature)
         self.productReference.target = self
@@ -651,13 +641,10 @@ public final class PackageProductTarget: Target, @unchecked Sendable
     }
 }
 
-
 // MARK: ExternalTarget class
 
-
 /// An ExternalTarget represents the use of an external build system (most commonly, but not limited to, make).  It is very different from other kinds of targets in that it has no build phases, and does have a defined product.
-public final class ExternalTarget: Target, @unchecked Sendable
-{
+public final class ExternalTarget: Target, @unchecked Sendable {
     public override var type: TargetType { return TargetType.external }
     public let toolPath: MacroStringExpression
     public let arguments: MacroStringListExpression
@@ -672,8 +659,7 @@ public final class ExternalTarget: Target, @unchecked Sendable
         super.init(model, pifLoader, signature: signature)
     }
 
-    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws
-    {
+    @_spi(Testing) public override init(fromDictionary pifDict: ProjectModelItemPIF, signature: String, withPIFLoader pifLoader: PIFLoader, errors: [String] = [], warnings: [String] = []) throws {
         // The tool path is required.
         toolPath = try pifLoader.userNamespace.parseString(Self.parseValueForKeyAsString(PIFKey_ExternalTarget_toolPath, pifDict: pifDict))
 

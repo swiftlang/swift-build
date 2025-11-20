@@ -29,8 +29,9 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("Reality.rkassets"),
-                    ]),
+                        TestFile("Reality.rkassets")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -43,7 +44,8 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                             "DSTROOT": tmpDir.join("dstroot").str,
                             "ENABLE_GENERIC_TASK_CACHING": "YES",
                             "GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -51,11 +53,12 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                         type: .framework,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                TestBuildFile("Reality.rkassets"),
-                            ]),
+                                TestBuildFile("Reality.rkassets")
+                            ])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
 
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
@@ -119,8 +122,9 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("Main.storyboard"),
-                    ]),
+                        TestFile("Main.storyboard")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -133,7 +137,8 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                             "DSTROOT": tmpDir.join("dstroot").str,
                             "ENABLE_GENERIC_TASK_CACHING": "YES",
                             "GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -141,11 +146,12 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                         type: .framework,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                TestBuildFile("Main.storyboard"),
-                            ]),
+                                TestBuildFile("Main.storyboard")
+                            ])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
 
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
@@ -198,8 +204,9 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("Assets.xcassets"),
-                    ]),
+                        TestFile("Assets.xcassets")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -212,7 +219,8 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                             "DSTROOT": tmpDir.join("dstroot").str,
                             "ENABLE_GENERIC_TASK_CACHING": "YES",
                             "GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -220,11 +228,12 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                         type: .framework,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                TestBuildFile("Assets.xcassets"),
-                            ]),
+                                TestBuildFile("Assets.xcassets")
+                            ])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
 
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
@@ -276,8 +285,9 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("Assets.xcassets"),
-                    ]),
+                        TestFile("Assets.xcassets")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -290,8 +300,9 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                             "DSTROOT": tmpDir.join("dstroot").str,
                             "ENABLE_GENERIC_TASK_CACHING": "YES",
                             "GENERIC_TASK_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                            "COMPILATION_CACHE_LIMIT_SIZE": "1"
-                        ]),
+                            "COMPILATION_CACHE_LIMIT_SIZE": "1",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -299,11 +310,12 @@ fileprivate struct GenericTaskCachingTests: CoreBasedTests {
                         type: .framework,
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                TestBuildFile("Assets.xcassets"),
-                            ]),
+                                TestBuildFile("Assets.xcassets")
+                            ])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
 
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)

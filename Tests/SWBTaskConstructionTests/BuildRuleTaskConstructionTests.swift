@@ -28,29 +28,33 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("SomeProj.fake-project"),
                     TestFile("SomeProj.fake-neutral"),
                     TestFile("OtherProj.fake-project"),
                     TestFile("file.m"),
                     TestFile("file.mm"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "IBC_EXEC": ibtoolPath.str,
-                                        "BUILD_VARIANTS": "normal debug profile",
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "IBC_EXEC": ibtoolPath.str,
+                        "BUILD_VARIANTS": "normal debug profile",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "SomeFwk",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -59,24 +63,39 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                             "file.mm",
                         ]),
                         TestResourcesBuildPhase([
-                            "SomeProj.fake-project",
+                            "SomeProj.fake-project"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "OtherProj.fake-project",
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "OtherProj.fake-project"
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     buildRules: [
                         TestBuildRule(filePattern: "*.fake-project", compilerIdentifier: "com.apple.compilers.pbxcp"),
-                        TestBuildRule(filePattern: "*.fake-neutral", script: "cp ${SCRIPT_INPUT_FILE} ${SCRIPT_OUTPUT_FILE_0}", outputs: [
-                            "$(DERIVED_FILES_DIR)/$(INPUT_FILE_NAME).c"
-                        ], runOncePerArchitecture: false),
-                        TestBuildRule(fileTypeIdentifier: "sourcecode.c.objc", script: "cp ${SCRIPT_INPUT_FILE} ${SCRIPT_OUTPUT_FILE_0}", outputs: [
-                            "$(DERIVED_FILES_DIR)/$(INPUT_FILE_NAME).x"
-                        ], runOncePerArchitecture: false),
+                        TestBuildRule(
+                            filePattern: "*.fake-neutral",
+                            script: "cp ${SCRIPT_INPUT_FILE} ${SCRIPT_OUTPUT_FILE_0}",
+                            outputs: [
+                                "$(DERIVED_FILES_DIR)/$(INPUT_FILE_NAME).c"
+                            ],
+                            runOncePerArchitecture: false
+                        ),
+                        TestBuildRule(
+                            fileTypeIdentifier: "sourcecode.c.objc",
+                            script: "cp ${SCRIPT_INPUT_FILE} ${SCRIPT_OUTPUT_FILE_0}",
+                            outputs: [
+                                "$(DERIVED_FILES_DIR)/$(INPUT_FILE_NAME).x"
+                            ],
+                            runOncePerArchitecture: false
+                        ),
                         TestBuildRule(fileTypeIdentifier: "sourcecode.cpp.objcpp", compilerIdentifier: "com.apple.xcode.tools.ibtool.compiler"),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -128,14 +147,17 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                     TestFile("suffix.txt"),
                     TestFile("example.fake-ts"),
                     TestFile("mock.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "BUILD_VARIANTS": "debug",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "BUILD_VARIANTS": "debug",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -145,18 +167,21 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase([
                             TestBuildFile("example.fake-ts"),
                             TestBuildFile("mock.c"),
-                        ]),
+                        ])
                     ],
                     buildRules: [
-                        TestBuildRule(filePattern: "*.fake-ts",
-                                      script: #"bash "${SRCROOT}/fake-typescript-compiler.fake-sh""#,
-                                      inputs: ["$(SRCROOT)/fake-typescript-compiler.fake-sh"],
-                                      inputFileLists: ["$(SRCROOT)/extra-input-files.xcfilelist", "$(SRCROOT)/license.xcfilelist"],
-                                      outputs: ["$(INPUT_FILE_PATH).fake-js"],
-                                      outputFileLists: ["$(SRCROOT)/extra-output-files-odd.xcfilelist", "$(SRCROOT)/extra-output-files-even.xcfilelist"]),
+                        TestBuildRule(
+                            filePattern: "*.fake-ts",
+                            script: #"bash "${SRCROOT}/fake-typescript-compiler.fake-sh""#,
+                            inputs: ["$(SRCROOT)/fake-typescript-compiler.fake-sh"],
+                            inputFileLists: ["$(SRCROOT)/extra-input-files.xcfilelist", "$(SRCROOT)/license.xcfilelist"],
+                            outputs: ["$(INPUT_FILE_PATH).fake-js"],
+                            outputFileLists: ["$(SRCROOT)/extra-output-files-odd.xcfilelist", "$(SRCROOT)/extra-output-files-even.xcfilelist"]
+                        )
                     ]
                 )
-            ])
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -214,7 +239,7 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
             "FAKE_PATH_LICENSE_YEAR": Path(SRCROOT).join("license-year.txt").str,
             "FAKE_PATH_LICENSE_TEXT": Path(SRCROOT).join("license-text.txt").str,
             "FAKE_PATH_PREFIX": Path(SRCROOT).join("prefix.txt").str,
-            "FAKE_PATH_SUFFIX": Path(SRCROOT).join("suffix.txt").str
+            "FAKE_PATH_SUFFIX": Path(SRCROOT).join("suffix.txt").str,
         ]
 
         // Check the build.
@@ -227,11 +252,13 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
 
                         let inputFileListPath = Path(SRCROOT).join("build/coolWebsite.build/Debug\(effectivePlatformName)/TypeScriptApp.build/InputFileList").str
                         let outputFileListPath = Path(SRCROOT).join("build/coolWebsite.build/Debug\(effectivePlatformName)/TypeScriptApp.build/OutputFileList").str
-                        task.checkRuleInfo(["RuleScriptExecution",
-                                            Path(SRCROOT).join("example.fake-ts.fake-js").str,
-                                            Path(SRCROOT).join("example.fake-ts").str,
-                                            "debug",
-                                            results.runDestinationTargetArchitecture])
+                        task.checkRuleInfo([
+                            "RuleScriptExecution",
+                            Path(SRCROOT).join("example.fake-ts.fake-js").str,
+                            Path(SRCROOT).join("example.fake-ts").str,
+                            "debug",
+                            results.runDestinationTargetArchitecture,
+                        ])
                         if enableSandboxingInTest {
                             #expect(task.commandLine.first == "/usr/bin/sandbox-exec")
                         } else {
@@ -248,25 +275,44 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                             .path(Path(SRCROOT).join("extra-output-files-even.xcfilelist").str),
                             .path(Path(SRCROOT).join("prefix.txt").str),
                             .path(Path(SRCROOT).join("suffix.txt").str),
-                            .pathPattern(.and(
-                                .prefix(inputFileListPath),
-                                .suffix("-extra-input-files-resolved.xcfilelist"))),
+                            .pathPattern(
+                                .and(
+                                    .prefix(inputFileListPath),
+                                    .suffix("-extra-input-files-resolved.xcfilelist")
+                                )
+                            ),
                             .path(Path(SRCROOT).join("license-year.txt").str),
                             .path(Path(SRCROOT).join("license-text.txt").str),
-                            .pathPattern(.and(
-                                .prefix(inputFileListPath),
-                                .suffix("-license-resolved.xcfilelist"))),
-                            .pathPattern(.and(
-                                .prefix(outputFileListPath), .suffix("-extra-output-files-odd-resolved.xcfilelist"))),
-                            .pathPattern(.and(
-                                .prefix(outputFileListPath), .suffix("-extra-output-files-even-resolved.xcfilelist"))),
-                            .any
+                            .pathPattern(
+                                .and(
+                                    .prefix(inputFileListPath),
+                                    .suffix("-license-resolved.xcfilelist")
+                                )
+                            ),
+                            .pathPattern(
+                                .and(
+                                    .prefix(outputFileListPath),
+                                    .suffix("-extra-output-files-odd-resolved.xcfilelist")
+                                )
+                            ),
+                            .pathPattern(
+                                .and(
+                                    .prefix(outputFileListPath),
+                                    .suffix("-extra-output-files-even-resolved.xcfilelist")
+                                )
+                            ),
+                            .any,
                         ]
 
                         if enableSandboxingInTest {
-                            inputs.append(.pathPattern(.and(
-                                .prefix(Path(SRCROOT).join("build/coolWebsite.build/Debug\(effectivePlatformName)/TypeScriptApp.build/").str),
-                                .suffix(".sb"))))
+                            inputs.append(
+                                .pathPattern(
+                                    .and(
+                                        .prefix(Path(SRCROOT).join("build/coolWebsite.build/Debug\(effectivePlatformName)/TypeScriptApp.build/").str),
+                                        .suffix(".sb")
+                                    )
+                                )
+                            )
                         }
 
                         inputs.append(.any)
@@ -297,7 +343,6 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                             "SCRIPT_INPUT_FILE_LIST_0": .and(.prefix(inputFileListPath), .suffix("-extra-input-files-resolved.xcfilelist")),
                             "SCRIPT_INPUT_FILE_LIST_1": .and(.prefix(inputFileListPath), .suffix("-license-resolved.xcfilelist")),
 
-
                             "SCRIPT_OUTPUT_FILE_LIST_COUNT": .equal("2"),
                             "SCRIPT_OUTPUT_FILE_LIST_0": .and(.prefix(outputFileListPath), .suffix("-extra-output-files-odd-resolved.xcfilelist")),
                             "SCRIPT_OUTPUT_FILE_LIST_1": .and(.prefix(outputFileListPath), .suffix("-extra-output-files-even-resolved.xcfilelist")),
@@ -321,7 +366,8 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Custom.fake-lang"),
                     TestFile("regular.defs"),
@@ -330,18 +376,25 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                     TestFile("header.h"),
                     genC1,
                     TestGroup(
-                        "Subdir", path: "Subdir",
+                        "Subdir",
+                        path: "Subdir",
                         children: [
-                            genC2,
-                        ]),
-                ]),
+                            genC2
+                        ]
+                    ),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
-                    "Tool", type: .commandLineTool,
+                    "Tool",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MIG_EXEC": migPath.str,
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MIG_EXEC": migPath.str
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -352,31 +405,52 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("header.h"),
                             TestBuildFile(genC1),
                             TestBuildFile(genC2),
-                        ]),
+                        ])
                     ],
                     buildRules: [
-                        TestBuildRule(filePattern: "*/*.fake-lang", script: "true", outputs: [
-                            "$(DERIVED_FILES_DIR)-$(CURRENT_VARIANT)/$(CURRENT_ARCH)/foo1.c",
-                            "$(DERIVED_FILES_DIR)-$(CURRENT_VARIANT)/$(CURRENT_ARCH)/foo2.c",
-                        ], outputFilesCompilerFlags: [
-                            ["-flag1"],
-                            ["-flag2", "-flag3"],
-                        ]),
-                        TestBuildRule(filePattern: "*/custom.defs */special.defs", script: "true", outputs: [
-                            "$(DERIVED_FILES_DIR)-$(CURRENT_VARIANT)/$(CURRENT_ARCH)/$(INPUT_FILE_BASE)User.c",
-                        ], outputFilesCompilerFlags: [
-                            ["-specialFlag"],
-                        ]),
-                        TestBuildRule(filePattern: "*.h", script: "true", outputs: [
-                            "$(DERIVED_FILES_DIR)$(CURRENT_ARCH)/$(INPUT_FILE_BASE)_gen.cpp",
-                        ], outputFilesCompilerFlags: [
-                            ["-DHEADER_GEN=1"],
-                        ]),
-                        TestBuildRule(filePattern: "*.fake-c", script: "true", outputs: [
-                            "$(DERIVED_FILES_DIR)/$(INPUT_FILE_DIR)/$(INPUT_FILE_BASE).c",
-                        ]),
+                        TestBuildRule(
+                            filePattern: "*/*.fake-lang",
+                            script: "true",
+                            outputs: [
+                                "$(DERIVED_FILES_DIR)-$(CURRENT_VARIANT)/$(CURRENT_ARCH)/foo1.c",
+                                "$(DERIVED_FILES_DIR)-$(CURRENT_VARIANT)/$(CURRENT_ARCH)/foo2.c",
+                            ],
+                            outputFilesCompilerFlags: [
+                                ["-flag1"],
+                                ["-flag2", "-flag3"],
+                            ]
+                        ),
+                        TestBuildRule(
+                            filePattern: "*/custom.defs */special.defs",
+                            script: "true",
+                            outputs: [
+                                "$(DERIVED_FILES_DIR)-$(CURRENT_VARIANT)/$(CURRENT_ARCH)/$(INPUT_FILE_BASE)User.c"
+                            ],
+                            outputFilesCompilerFlags: [
+                                ["-specialFlag"]
+                            ]
+                        ),
+                        TestBuildRule(
+                            filePattern: "*.h",
+                            script: "true",
+                            outputs: [
+                                "$(DERIVED_FILES_DIR)$(CURRENT_ARCH)/$(INPUT_FILE_BASE)_gen.cpp"
+                            ],
+                            outputFilesCompilerFlags: [
+                                ["-DHEADER_GEN=1"]
+                            ]
+                        ),
+                        TestBuildRule(
+                            filePattern: "*.fake-c",
+                            script: "true",
+                            outputs: [
+                                "$(DERIVED_FILES_DIR)/$(INPUT_FILE_DIR)/$(INPUT_FILE_BASE).c"
+                            ]
+                        ),
                     ]
-                )])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -426,23 +500,23 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItem("\(SRCROOT)/Sources/Gen.fake-c")) { task in
                 task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c", "\(SRCROOT)/Sources/Gen.fake-c", "normal", results.runDestinationTargetArchitecture])
                 task.checkOutputs(contain: [
-                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c"),
+                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c")
                 ])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItem("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Gen.c")) { task in
                 task.checkOutputs(contain: [
-                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Gen.fake-c"))).o"),
+                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Gen.fake-c"))).o")
                 ])
             }
             results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItem("\(SRCROOT)/Sources/Subdir/Gen.fake-c")) { task in
                 task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c", "\(SRCROOT)/Sources/Subdir/Gen.fake-c", "normal", results.runDestinationTargetArchitecture])
                 task.checkOutputs(contain: [
-                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c"),
+                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c")
                 ])
             }
             results.checkTask(.matchRuleType("CompileC"), .matchRuleItem("\(SRCROOT)/build/aProject.build/Debug/Tool.build/DerivedSources/tmp/Test/aProject/Sources/Subdir/Gen.c")) { task in
                 task.checkOutputs(contain: [
-                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Subdir/Gen.fake-c"))).o"),
+                    .path("\(SRCROOT)/build/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Gen-\(BuildPhaseWithBuildFiles.filenameUniquefierSuffixFor(path: Path("\(SRCROOT)/Sources/Subdir/Gen.fake-c"))).o")
                 ])
             }
         }
@@ -457,12 +531,16 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("Foo.fake-bar"),
                     TestFile("main.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -471,8 +549,9 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                     buildConfigurations: [TestBuildConfiguration("Release")],
                     buildPhases: [TestSourcesBuildPhase(["Foo.fake-bar", "main.c"])],
                     buildRules: [TestBuildRule(filePattern: "*.fake-bar", script: "echo foo", outputs: [])]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -487,34 +566,46 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Multiple.fake-lang"),
-                ]),
+                    TestFile("Multiple.fake-lang")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "CODE_SIGN_IDENTITY": ""
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "Multiple.fake-lang",
                             "Multiple.fake-lang",
-                        ]),
+                        ])
                     ],
-                    buildRules: [TestBuildRule(filePattern: "*/*.fake-lang", script: "echo hi", outputs: [
-                        "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_DIR)/$(INPUT_FILE_BASE).data",
-                    ])]
-                ),
-            ])
+                    buildRules: [
+                        TestBuildRule(
+                            filePattern: "*/*.fake-lang",
+                            script: "echo hi",
+                            outputs: [
+                                "$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_DIR)/$(INPUT_FILE_BASE).data"
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -543,19 +634,25 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: srcroot,
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("main.c"),
                     TestFile("error.c", path: "\(srcroot.str)/build/aProject.build/Debug/Tool.build/DerivedSources/error.c"),
                     TestFile("custom.fake-lang"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
-                    "Tool", type: .commandLineTool,
+                    "Tool",
+                    type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -563,14 +660,20 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("error.c"),
                             TestBuildFile("custom.fake-lang"),
                             TestBuildFile("main.c"),
-                        ]),
+                        ])
                     ],
                     buildRules: [
-                        TestBuildRule(filePattern: "*/*.fake-lang", script: "true", outputs: [
-                            "$(DERIVED_FILE_DIR)/error.c",
-                        ]),
+                        TestBuildRule(
+                            filePattern: "*/*.fake-lang",
+                            script: "true",
+                            outputs: [
+                                "$(DERIVED_FILE_DIR)/error.c"
+                            ]
+                        )
                     ]
-                )])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -585,38 +688,48 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("file.fake-x"),
-                ]),
+                    TestFile("file.fake-x")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "BUILD_VARIANTS": "normal debug profile",
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "VERSIONING_SYSTEM": "apple-generic"
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "BUILD_VARIANTS": "normal debug profile",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "VERSIONING_SYSTEM": "apple-generic",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "SomeFwk",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "file.fake-x",
-                        ]),
+                            "file.fake-x"
+                        ])
                     ],
                     buildRules: [
-                        TestBuildRule(filePattern: "$(DERIVED_FILE_DIR)/$(PRODUCT_NAME)_vers.c", script: "touch \"$SCRIPT_OUTPUT_FILE_0\"", outputs: [
-                            "$(DERIVED_FILE_DIR)/$(FULL_PRODUCT_NAME)_vers1.c"
-                        ], runOncePerArchitecture: false)
+                        TestBuildRule(
+                            filePattern: "$(DERIVED_FILE_DIR)/$(PRODUCT_NAME)_vers.c",
+                            script: "touch \"$SCRIPT_OUTPUT_FILE_0\"",
+                            outputs: [
+                                "$(DERIVED_FILE_DIR)/$(FULL_PRODUCT_NAME)_vers1.c"
+                            ],
+                            runOncePerArchitecture: false
+                        )
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -653,15 +766,19 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("test.c"),
                     TestFile("test.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -673,8 +790,10 @@ fileprivate struct BuildRuleTaskConstructionTests: CoreBasedTests {
                     ],
                     buildRules: [
                         TestBuildRule(fileTypeIdentifier: "sourcecode.c", compilerIdentifier: "com.apple.compilers.pbxcp")
-                    ]),
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: PseudoFS()) { results in

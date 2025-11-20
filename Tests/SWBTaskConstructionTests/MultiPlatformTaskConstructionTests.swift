@@ -40,7 +40,6 @@ extension TestTargetDependency: DependencyFilter {
     var value: String { return self.name }
 }
 
-
 extension SWBCore.Workspace {
     /// Finds the target with the given name.
     /// - Precondition: There are no duplicate targets with the given name.
@@ -51,7 +50,6 @@ extension SWBCore.Workspace {
     }
 }
 
-
 @Suite
 fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
     /// A helper function to determine which dependencies to return.
@@ -61,13 +59,12 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
         return d
     }
 
-
     /**
      * Helper function to create the basic test project.
      * - Parameter overrides: set of build setting overrides for the specialized targets only.
      */
     /// @param overrides -
-    func createBasicTestWorkspace(fs: any FSProxy, overrides: [String:String] = [:], useImplicitDependencies: Bool = false, allowTargetSpecializationByDefault: Bool = false) async throws -> TestWorkspace {
+    func createBasicTestWorkspace(fs: any FSProxy, overrides: [String: String] = [:], useImplicitDependencies: Bool = false, allowTargetSpecializationByDefault: Bool = false) async throws -> TestWorkspace {
         let core = try await getCore()
         var buildSettings = try await [
             "ARCHS": "$(ARCHS_STANDARD)",
@@ -96,7 +93,8 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     // watchOS app files
                     TestFile("watchosApp/Base.lproj/Interface.storyboard"),
@@ -128,7 +126,8 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     // Shared framework files
                     TestFile("shared/Info.plist"),
                     TestFile("shared/lib.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 debugBuildConfiguration
             ],
@@ -137,16 +136,23 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "Watchable",
                     type: .watchKitAppContainer,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             // The target must at least HAVE an empty phase for the automatic asset catalog and storyboard to work
                         ]),
-                        TestCopyFilesBuildPhase(["Watchable WatchKit App.app"], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch", onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            ["Watchable WatchKit App.app"],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch",
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: deps(["Watchable WatchKit App"], useImplicitDependencies: useImplicitDependencies)
                 ),
@@ -154,20 +160,26 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "Watchable WatchKit App",
                     type: .watchKitApp,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
-                            "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                            "SDKROOT": "watchos",
-                            "TARGETED_DEVICE_FAMILY": "4",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                                "SDKROOT": "watchos",
+                                "TARGETED_DEVICE_FAMILY": "4",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             "Base.lproj/Interface.storyboard",
                             "watchosApp/Assets.xcassets",
                         ]),
-                        TestCopyFilesBuildPhase(["Watchable WatchKit Extension.appex"], destinationSubfolder: .plugins, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            ["Watchable WatchKit Extension.appex"],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
                         TestFrameworksBuildPhase([
                             TestBuildFile(.target("Shared Framework")),
                             TestBuildFile(.target("SharedPkgTarget")),
@@ -179,12 +191,15 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "Watchable WatchKit Extension",
                     type: .watchKitExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                            "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                            "SDKROOT": "watchos",
-                            "TARGETED_DEVICE_FAMILY": "4",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                "SDKROOT": "watchos",
+                                "TARGETED_DEVICE_FAMILY": "4",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -201,17 +216,20 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "iOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                            "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                            "SDKROOT": "iphoneos",
-                            "TARGETED_DEVICE_FAMILY": "1",
-                            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                "SDKROOT": "iphoneos",
+                                "TARGETED_DEVICE_FAMILY": "1",
+                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "iphoneosApp/ios.swift",
+                            "iphoneosApp/ios.swift"
                         ]),
                         TestResourcesBuildPhase([
                             "Base.lproj/Interface.storyboard",
@@ -228,20 +246,23 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "macCatalyst App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTS_MACCATALYST": "YES",
-                            "TARGETED_DEVICE_FAMILY": "2,6",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "YES",
+                                "TARGETED_DEVICE_FAMILY": "2,6",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["maccatalystApp/cat.swift"]),
                         TestFrameworksBuildPhase([
                             TestBuildFile(.target("Shared Framework")),
                             TestBuildFile(.target("SharedPkgTarget")),
-                        ])
+                        ]),
                     ],
                     dependencies: deps([TestTargetDependency("Shared Framework")], useImplicitDependencies: useImplicitDependencies).appending(contentsOf: [TestTargetDependency("SharedPkgTarget")])
                 ),
@@ -249,15 +270,18 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "macOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "macosApp/mac.swift",
+                            "macosApp/mac.swift"
                         ]),
                         TestResourcesBuildPhase([]),
                         TestFrameworksBuildPhase([
@@ -271,15 +295,18 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "tvOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                            "SDKROOT": "appletvos",
-                            "SUPPORTED_PLATFORMS": "appletvos",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                "SDKROOT": "appletvos",
+                                "SUPPORTED_PLATFORMS": "appletvos",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "tvosApp/tv.swift",
+                            "tvosApp/tv.swift"
                         ]),
                         TestResourcesBuildPhase([]),
                         TestFrameworksBuildPhase([
@@ -293,48 +320,60 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "Shared Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "TARGETED_DEVICE_FAMILY": "1",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "TARGETED_DEVICE_FAMILY": "1",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("shared/lib.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("shared/lib.swift")])
                     ]
                 ),
                 TestStandardTarget(
-                    "MacAppEmbeddingiOSApp", type: .application,
+                    "MacAppEmbeddingiOSApp",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "macosApp/mac.swift",
+                            "macosApp/mac.swift"
                         ]),
                         TestResourcesBuildPhase([]),
                         TestFrameworksBuildPhase([
                             TestBuildFile(.target("Shared Framework")),
                             TestBuildFile(.target("SharedPkgTarget")),
                         ]),
-                        TestCopyFilesBuildPhase([TestBuildFile(.target("iOS App"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "Samples")
+                        TestCopyFilesBuildPhase([TestBuildFile(.target("iOS App"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "Samples"),
                     ],
                     dependencies: deps([TestTargetDependency("Shared Framework")], useImplicitDependencies: useImplicitDependencies).appending(contentsOf: [TestTargetDependency("SharedPkgTarget"), TestTargetDependency("iOS App")])
-                )
-            ])
+                ),
+            ]
+        )
 
         let packageProject = TestPackageProject(
             "Package",
-            groupTree: TestGroup("Sources", path: "Sources", children: [
-                // Shared package files
-                TestFile("SharedPackageProduct/Info.plist"),
-                TestFile("SharedPkgTarget/Info.plist"),
-                TestFile("SharedPkgSource.swift"),
-            ]),
+            groupTree: TestGroup(
+                "Sources",
+                path: "Sources",
+                children: [
+                    // Shared package files
+                    TestFile("SharedPackageProduct/Info.plist"),
+                    TestFile("SharedPkgTarget/Info.plist"),
+                    TestFile("SharedPkgSource.swift"),
+                ]
+            ),
             buildConfigurations: [
                 debugBuildConfiguration
             ],
@@ -345,22 +384,29 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                         TestBuildFile(.target("SharedPkgTarget"))
                     ]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SUPPORTS_MACCATALYST": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     dependencies: ["SharedPkgTarget"]
                 ),
                 TestStandardTarget(
-                    "SharedPkgTarget", type: .framework,
+                    "SharedPkgTarget",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SUPPORTS_MACCATALYST": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["SharedPkgSource.swift"])
@@ -482,8 +528,7 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                             validateTargetCompiledForPlatform("-macabi", tasks: tasks)
                         }
                     }
-                }
-                else {
+                } else {
                     validated.append(.iOS)
 
                     results.checkTarget("macCatalyst App") { target in
@@ -514,13 +559,11 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     results.checkTarget("macOS App") { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { #expect($0.count > 0) }
                     }
-                }
-                else if targets.contains(macAppWithEmbeddedPhoneAppTarget) {
+                } else if targets.contains(macAppWithEmbeddedPhoneAppTarget) {
                     results.checkTarget("MacAppEmbeddingiOSApp") { target in
                         results.checkTasks(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { #expect($0.count > 0) }
                     }
-                }
-                else {
+                } else {
                     Issue.record("Unexpectedly building for macos for targets: \(targets.map({ $0.name }))")
                 }
 
@@ -625,14 +668,13 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
         #expect(try await validateBuildFor([iphoneosTarget], destination: .iOS, tester: tester, useImplicitDependencies: useImplicitDependencies, fs: fs) == [.iOS])
         #expect(try await validateBuildFor([catalystTarget], destination: .macCatalyst, tester: tester, useImplicitDependencies: useImplicitDependencies, fs: fs) == [.macCatalyst])
         #expect(try await validateBuildFor([macosTarget], destination: .macOS, tester: tester, useImplicitDependencies: useImplicitDependencies, fs: fs) == [.macOS])
-        #expect(try await validateBuildFor([macAppWithEmbeddedPhoneAppTarget], destination: .macOS, tester: tester, useImplicitDependencies: useImplicitDependencies, fs: fs) == [ .iOS, .macOS])
+        #expect(try await validateBuildFor([macAppWithEmbeddedPhoneAppTarget], destination: .macOS, tester: tester, useImplicitDependencies: useImplicitDependencies, fs: fs) == [.iOS, .macOS])
     }
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func singleTopLevelTargetSpecializedDeps_PublicSDK_ExplicitDependencies() async throws {
         try await _testSingleTopLevelTargetSpecialization(useImplicitDependencies: false)
     }
-
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func singleTopLevelTargetSpecializedDeps_PublicSDK_ImplicitDependencies() async throws {
@@ -684,7 +726,6 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
         #expect(try await _testBasicMultiPlatformScenario(targets: ["macOS App", "iOS App"], destination: .iOS, useImplicitDependencies: false) == [.iOS, .macOS])
         #expect(try await _testBasicMultiPlatformScenario(targets: ["macOS App", "macCatalyst App"], destination: .iOS, useImplicitDependencies: false) == [.iOS, .macOS])
 
-
         #expect(try await _testBasicMultiPlatformScenario(targets: ["iOS App", "macCatalyst App"], destination: .iOS, useImplicitDependencies: false) == [.iOS])
         #expect(try await _testBasicMultiPlatformScenario(targets: ["iOS App", "macCatalyst App"], destination: .macCatalyst, useImplicitDependencies: false) == [.iOS, .macCatalyst])
         #expect(try await _testBasicMultiPlatformScenario(targets: ["iOS App", "macCatalyst App"], destination: .macOS, useImplicitDependencies: false) == [.iOS])
@@ -713,7 +754,8 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     // macCatalyst app files
                     TestFile("maccatalystApp/cat.swift"),
@@ -723,39 +765,46 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
 
                     // Shared framework files
                     TestFile("shared_maccat/lib.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "$(ARCHS_STANDARD)",
-                    "ENABLE_ON_DEMAND_RESOURCES": "NO",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
-                    "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "ENABLE_ON_DEMAND_RESOURCES": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "CODE_SIGN_IDENTITY": "",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
+                        "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "macCatalyst App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTS_MACCATALYST": "YES",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["maccatalystApp/cat.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile("Shared Framework.framework"),
-                        ])
+                            TestBuildFile("Shared Framework.framework")
+                        ]),
                     ],
                     dependencies: []
                 ),
@@ -763,34 +812,41 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
                     "Shared Framework 1",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx watchos watchsimulator",
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "PRODUCT_NAME": "Shared Framework",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx watchos watchsimulator",
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "PRODUCT_NAME": "Shared Framework",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("shared_mac/lib.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("shared_mac/lib.swift")])
                     ]
                 ),
                 TestStandardTarget(
                     "Shared Framework 2",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTS_MACCATALYST": "YES",
-                            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "PRODUCT_NAME": "Shared Framework",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "YES",
+                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "PRODUCT_NAME": "Shared Framework",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("shared_maccat/lib.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("shared_maccat/lib.swift")])
                     ]
-                )
-            ])
+                ),
+            ]
+        )
 
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -842,38 +898,47 @@ fileprivate struct MultiPlatformTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     TestFile("test.c")
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
-                    "SDKROOT": sdkroot,
-                    "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                    "SUPPORTS_MACCATALYST": "YES",
-                    "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                    "CLANG_USE_RESPONSE_FILE": "NO",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                        "SDKROOT": sdkroot,
+                        "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                        "SUPPORTS_MACCATALYST": "YES",
+                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "NativeTool",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SUPPORTS_MACCATALYST": "NO",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SUPPORTS_MACCATALYST": "NO",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["test.c"]),
+                        TestSourcesBuildPhase(["test.c"])
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let tester = try TaskConstructionTester(core, testProject)
 

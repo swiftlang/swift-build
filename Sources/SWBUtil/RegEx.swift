@@ -41,7 +41,7 @@ public struct RegEx: Sendable {
         let nsString = string as NSString
 
         return regex.firstMatch(in: string, range: NSMakeRange(0, nsString.length)).map { match -> [String] in
-            return (1 ..< match.numberOfRanges).map { idx -> String in
+            return (1..<match.numberOfRanges).map { idx -> String in
                 let range = match.range(at: idx)
                 return range.location == NSNotFound ? "" : nsString.substring(with: range)
             }
@@ -75,8 +75,8 @@ public struct RegEx: Sendable {
     public func matchGroups(in string: String) -> [[String]] {
         let nsString = string as NSString
 
-        return regex.matches(in: string, range: NSMakeRange(0, nsString.length)).map{ match -> [String] in
-            return (1 ..< match.numberOfRanges).map { idx -> String in
+        return regex.matches(in: string, range: NSMakeRange(0, nsString.length)).map { match -> [String] in
+            return (1..<match.numberOfRanges).map { idx -> String in
                 let range = match.range(at: idx)
                 return range.location == NSNotFound ? "" : nsString.substring(with: range)
             }
@@ -99,7 +99,7 @@ public struct RegEx: Sendable {
 }
 
 @available(*, unavailable)
-extension RegEx.MatchResult: Sendable { }
+extension RegEx.MatchResult: Sendable {}
 
 // Unsafe Sendable wrapper for Swift Regexs known to be thread safe because they don't include custom components or non-sendable transform closures.
 public struct UnsafeSendableRegex<Output: Sendable>: @unchecked Sendable {

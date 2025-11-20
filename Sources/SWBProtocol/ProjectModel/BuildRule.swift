@@ -30,7 +30,8 @@ public struct BuildRule: Sendable {
             outputs: [ShellScriptOutputInfo],
             outputFileLists: [MacroExpressionSource],
             dependencyInfo: DependencyInfo?,
-            runOncePerArchitecture: Bool)
+            runOncePerArchitecture: Bool
+        )
     }
 
     public struct ShellScriptOutputInfo: Sendable {

@@ -21,7 +21,7 @@ import class SwiftBuild.SWBBuildService
 import SWBTaskExecution
 
 #if canImport(Darwin)
-import MachO
+    import MachO
 #endif
 
 @Suite(.requireXcode16())
@@ -54,42 +54,47 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 // App sources
                                 TestFile("Application.swift"),
 
                                 // Mergeable framework and library sources
                                 TestFile("ClassOne.swift"),
                                 TestFile("ClassTwo.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "COPY_PHASE_STRIP": "NO",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                                "GCC_OPTIMIZATION_LEVEL": "0",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "INSTALL_PATH": "",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                                "SWIFT_VERSION": swiftVersion,
-                                "TAPI_EXEC": tapiToolPath.str,
-                                "LIBTOOL": libtoolPath.str,
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                                    "GCC_OPTIMIZATION_LEVEL": "0",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "INSTALL_PATH": "",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "TAPI_EXEC": tapiToolPath.str,
+                                    "LIBTOOL": libtoolPath.str,
 
-                                // Force file attribute changes off by default.
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_MODE_FLAG": "",
-                                "SDK_STAT_CACHE_ENABLE": "NO",
+                                    // Force file attribute changes off by default.
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_MODE_FLAG": "",
+                                    "SDK_STAT_CACHE_ENABLE": "NO",
 
-                                "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES"
-                            ])
+                                    "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             // App target
@@ -97,25 +102,31 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug",
-                                                           buildSettings: [
-                                                            "INSTALL_PATH": "/Applications",
-                                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "INSTALL_PATH": "/Applications",
+                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "Application.swift",
+                                        "Application.swift"
                                     ]),
                                     TestFrameworksBuildPhase([
-                                        "MergedFwkTarget.framework",
+                                        "MergedFwkTarget.framework"
                                     ]),
                                     // Embed
-                                    TestCopyFilesBuildPhase([
-                                        TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
-                                        TestBuildFile("FwkTarget1.framework", codeSignOnCopy: true),
-                                        TestBuildFile("FwkTarget2.framework", codeSignOnCopy: true),
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
+                                            TestBuildFile("FwkTarget1.framework", codeSignOnCopy: true),
+                                            TestBuildFile("FwkTarget2.framework", codeSignOnCopy: true),
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: ["MergedFwkTarget"]
                             ),
@@ -124,10 +135,12 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "MergedFwkTarget",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug",
-                                                           buildSettings: [
-                                                            "MERGED_BINARY_TYPE": "automatic",
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "MERGED_BINARY_TYPE": "automatic"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -146,33 +159,32 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "FwkTarget1",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug"),
+                                    TestBuildConfiguration("Debug")
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "ClassOne.swift",
+                                        "ClassOne.swift"
                                     ]),
-                                    TestFrameworksBuildPhase([
-                                    ]),
+                                    TestFrameworksBuildPhase([]),
                                 ]
                             ),
                             TestStandardTarget(
                                 "FwkTarget2",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug"),
+                                    TestBuildConfiguration("Debug")
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "ClassTwo.swift",
+                                        "ClassTwo.swift"
                                     ]),
-                                    TestFrameworksBuildPhase([
-                                    ]),
+                                    TestFrameworksBuildPhase([]),
                                 ]
                             ),
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             let signableTargets: Set<String> = Set(tester.workspace.projects[0].targets.map({ $0.name }))
@@ -198,7 +210,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "SymLink", "MkDir", "ProcessInfoPlistFile",
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
-                "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
+                "CopySwiftLibs", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
                 "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
@@ -206,14 +218,17 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
             do {
                 let buildType = "Debug"
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: tmpDirPath, for: buildType)
-                let parameters = BuildParameters(configuration: "Debug", overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                    "GCC_OPTIMIZATION_LEVEL": "0",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                        "GCC_OPTIMIZATION_LEVEL": "0",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                    ]
+                )
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
                 try await tester.checkBuild(buildType, parameters: parameters, runDestination: .iOS, buildRequest: request, persistent: true, signableTargets: signableTargets) { results in
@@ -301,87 +316,86 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     results.checkNoTask(.matchRuleType("Strip"))
                     results.checkNoTask()
 
-#if canImport(Darwin)
-                    // Examine that the contents on disk have the expected properties.
-                    // First, check that the mergeable frameworks in the SYMROOT were *not* built as mergeable.
-                    // Second, check that the mergeable frameworks embedded in the app don't contain their binaries.
-                    // Third, check that the mergeable frameworks embedded in the merged framework do contain their binaries.
-                    for fwkTargetName in ["FwkTarget1", "FwkTarget2"] {
-                        // Reexported
+                    #if canImport(Darwin)
+                        // Examine that the contents on disk have the expected properties.
+                        // First, check that the mergeable frameworks in the SYMROOT were *not* built as mergeable.
+                        // Second, check that the mergeable frameworks embedded in the app don't contain their binaries.
+                        // Third, check that the mergeable frameworks embedded in the merged framework do contain their binaries.
+                        for fwkTargetName in ["FwkTarget1", "FwkTarget2"] {
+                            // Reexported
+                            do {
+                                let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/\(fwkTargetName).framework")
+                                #expect(tester.fs.exists(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
+                                #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
+
+                                try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should not have been built mergeable")
+                            }
+
+                            // Lacking binary in app
+                            do {
+                                let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/AppTarget.app/Frameworks/\(fwkTargetName).framework")
+                                #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
+                                if useAppStoreCodelessFrameworksWorkaround {
+                                    #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+
+                                    // The binary should be an iOS dylib
+                                    let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
+                                    let (slices, linkage) = try macho.slicesIncludingLinkage()
+                                    #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
+                                    #expect(linkage == .macho(.dylib))
+                                } else {
+                                    #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                                }
+                            }
+
+                            // Including binary in merged framework
+                            do {
+                                let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/MergedFwkTarget.framework/\(reexportedBinariesDirectoryName)/\(fwkTargetName).framework")
+                                #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
+                                #expect(tester.fs.exists(machoPath), "Could not find binary '\(machoPath.str)'")
+                            }
+                        }
+
+                        // Second, check the contents of the merged binary for expected characteristics.
                         do {
-                            let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/\(fwkTargetName).framework")
-                            #expect(tester.fs.exists(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
+                            let targetName = "MergedFwkTarget"
+                            let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/\(targetName).framework")
+                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                            let machoPath = fwkPath.join(targetName)
                             #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
 
-                            try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should not have been built mergeable")
-                        }
-
-                        // Lacking binary in app
-                        do {
-                            let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/AppTarget.app/Frameworks/\(fwkTargetName).framework")
-                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
-                            if useAppStoreCodelessFrameworksWorkaround {
-                                #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
-
-                                // The binary should be an iOS dylib
-                                let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
-                                let (slices, linkage) = try macho.slicesIncludingLinkage()
-                                #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
-                                #expect(linkage == .macho(.dylib))
-                            } else {
-                                #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
-                            }
-                        }
-
-                        // Including binary in merged framework
-                        do {
-                            let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/MergedFwkTarget.framework/\(reexportedBinariesDirectoryName)/\(fwkTargetName).framework")
-                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
-                            #expect(tester.fs.exists(machoPath), "Could not find binary '\(machoPath.str)'")
-                        }
-                    }
-
-                    // Second, check the contents of the merged binary for expected characteristics.
-                    do {
-                        let targetName = "MergedFwkTarget"
-                        let fwkPath = Path("\(SYMROOT)/Debug-iphoneos/\(targetName).framework")
-                        #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                        let machoPath = fwkPath.join(targetName)
-                        #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
-
-                        // Check the merged binary.
-                        let reader = try BinaryReader(data: tester.fs.read(machoPath))
-                        let machO = try MachO(reader: reader)
-                        let slices = try machO.slices()
-                        #expect(slices.count > 0, "Framework binary contains no slices '\(machoPath.str)'")
-                        for slice in slices {
-                            // Check that the merged binary is reexporting the mergeable frameworks.
-                            let linkedLibraries = try slice.linkedLibraries()
-                            for libraryName in ["FwkTarget1", "FwkTarget2"] {
-                                let foundLibraries = linkedLibraries.filter { (pathStr: String, linkageType: MachO.Slice.LinkageType) in
-                                    Path(pathStr).basename == libraryName
+                            // Check the merged binary.
+                            let reader = try BinaryReader(data: tester.fs.read(machoPath))
+                            let machO = try MachO(reader: reader)
+                            let slices = try machO.slices()
+                            #expect(slices.count > 0, "Framework binary contains no slices '\(machoPath.str)'")
+                            for slice in slices {
+                                // Check that the merged binary is reexporting the mergeable frameworks.
+                                let linkedLibraries = try slice.linkedLibraries()
+                                for libraryName in ["FwkTarget1", "FwkTarget2"] {
+                                    let foundLibraries = linkedLibraries.filter { (pathStr: String, linkageType: MachO.Slice.LinkageType) in
+                                        Path(pathStr).basename == libraryName
+                                    }
+                                    if let library = foundLibraries.first {
+                                        #expect(library.linkageType == .reexport)
+                                    } else {
+                                        Issue.record("Could not find load command for reexported framework '\(libraryName)")
+                                    }
                                 }
-                                if let library = foundLibraries.first {
-                                    #expect(library.linkageType == .reexport)
-                                }
-                                else {
-                                    Issue.record("Could not find load command for reexported framework '\(libraryName)")
-                                }
+
+                                // Check that the merged binary has an rpath into ReexportedBinaries.
+                                let expectedRpath = "@loader_path/\(reexportedBinariesDirectoryName)"
+                                let foundRpath = (try slice.rpaths().first(where: { $0 == expectedRpath }) != nil)
+                                #expect(foundRpath, "Could not find rpath '\(expectedRpath)'")
                             }
 
-                            // Check that the merged binary has an rpath into ReexportedBinaries.
-                            let expectedRpath = "@loader_path/\(reexportedBinariesDirectoryName)"
-                            let foundRpath = (try slice.rpaths().first(where: { $0 == expectedRpath }) != nil)
-                            #expect(foundRpath, "Could not find rpath '\(expectedRpath)'")
+                            // Check that the symbols from the mergeable frameworks are *not* present.
+                            try await checkForSymbols(in: machoPath, symbolPatterns: ["FwkTarget1.+ClassOne.+label.+UILabel", "FwkTarget2.+ClassTwo.+label.+UILabel"], expected: false)
                         }
-
-                        // Check that the symbols from the mergeable frameworks are *not* present.
-                        try await checkForSymbols(in: machoPath, symbolPatterns: ["FwkTarget1.+ClassOne.+label.+UILabel", "FwkTarget2.+ClassTwo.+label.+UILabel"], expected: false)
-                    }
-#endif
+                    #endif
                 }
             }
 
@@ -389,16 +403,19 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
             do {
                 let buildType = "Release"
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: tmpDirPath, for: buildType)
-                let parameters = BuildParameters(configuration: "Debug", overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                    "GCC_OPTIMIZATION_LEVEL": "s",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                    ]
+                )
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
                 try await tester.checkBuild(buildType, parameters: parameters, runDestination: .iOS, buildRequest: request, persistent: true, signableTargets: signableTargets) { results in
@@ -483,54 +500,54 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     results.checkNoTask()
 
-#if canImport(Darwin)
-                    // Examine that the contents on disk have the expected properties.
-                    // First, check that the mergeable frameworks in the SYMROOT were built as mergeable.
-                    // Second, check that the mergeable frameworks in the product don't contain their binaries.
-                    for fwkTargetName in ["FwkTarget1", "FwkTarget2"] {
-                        // Mergeable
-                        do {
-                            let fwkPath = Path("\(OBJROOT)/UninstalledProducts/iphoneos/\(fwkTargetName).framework")
-                            #expect(tester.fs.exists(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
+                    #if canImport(Darwin)
+                        // Examine that the contents on disk have the expected properties.
+                        // First, check that the mergeable frameworks in the SYMROOT were built as mergeable.
+                        // Second, check that the mergeable frameworks in the product don't contain their binaries.
+                        for fwkTargetName in ["FwkTarget1", "FwkTarget2"] {
+                            // Mergeable
+                            do {
+                                let fwkPath = Path("\(OBJROOT)/UninstalledProducts/iphoneos/\(fwkTargetName).framework")
+                                #expect(tester.fs.exists(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
 
-                            try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: true, reason: "it should have been built mergeable")
-                        }
+                                try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: true, reason: "it should have been built mergeable")
+                            }
 
-                        // Lacking binary
-                        do {
-                            let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkTargetName).framework")
-                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
-                            if useAppStoreCodelessFrameworksWorkaround {
-                                #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+                            // Lacking binary
+                            do {
+                                let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkTargetName).framework")
+                                #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
+                                if useAppStoreCodelessFrameworksWorkaround {
+                                    #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
 
-                                // The binary should be an iOS dylib
-                                let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
-                                let (slices, linkage) = try macho.slicesIncludingLinkage()
-                                #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
-                                #expect(linkage == .macho(.dylib))
-                            } else {
-                                #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                                    // The binary should be an iOS dylib
+                                    let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
+                                    let (slices, linkage) = try macho.slicesIncludingLinkage()
+                                    #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
+                                    #expect(linkage == .macho(.dylib))
+                                } else {
+                                    #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                                }
                             }
                         }
-                    }
 
-                    // Finally, check that the merged library contains the symbols from the mergeable libraries.
-                    do {
-                        let targetName = "MergedFwkTarget"
-                        let fwkPath = Path("\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework")
-                        #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                        let machoPath = fwkPath.join(targetName)
-                        #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
+                        // Finally, check that the merged library contains the symbols from the mergeable libraries.
+                        do {
+                            let targetName = "MergedFwkTarget"
+                            let fwkPath = Path("\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework")
+                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                            let machoPath = fwkPath.join(targetName)
+                            #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
 
-                        // Check that the merged framework is *not* linking the mergeable frameworks.
-                        try checkForLinkedLibraries(in: machoPath, libraryNames: ["FwkTarget1", "FwkTarget2"], fs: tester.fs, expected: false)
+                            // Check that the merged framework is *not* linking the mergeable frameworks.
+                            try checkForLinkedLibraries(in: machoPath, libraryNames: ["FwkTarget1", "FwkTarget2"], fs: tester.fs, expected: false)
 
-                        // Check that the symbols from the mergeable frameworks are present, meaning that they were merged in.
-                        try await checkForSymbols(in: machoPath, symbolPatterns: ["T.+FwkTarget1.+ClassOne.+label.+UILabel.+", "T.+FwkTarget2.+ClassTwo.+label.+UILabel.+"], expected: true)
-                    }
-#endif
+                            // Check that the symbols from the mergeable frameworks are present, meaning that they were merged in.
+                            try await checkForSymbols(in: machoPath, symbolPatterns: ["T.+FwkTarget1.+ClassOne.+label.+UILabel.+", "T.+FwkTarget2.+ClassTwo.+label.+UILabel.+"], expected: true)
+                        }
+                    #endif
                 }
             }
         }
@@ -552,37 +569,42 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "AppProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
-                                TestFile("Application.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Config",
-                            buildSettings: [
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "COPY_PHASE_STRIP": "NO",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                                "GCC_OPTIMIZATION_LEVEL": "0",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "INSTALL_PATH": "",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                                "SWIFT_VERSION": swiftVersion,
-                                "TAPI_EXEC": tapiToolPath.str,
-                                "LIBTOOL": libtoolPath.str,
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("Application.swift")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Config",
+                                buildSettings: [
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                                    "GCC_OPTIMIZATION_LEVEL": "0",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "INSTALL_PATH": "",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "TAPI_EXEC": tapiToolPath.str,
+                                    "LIBTOOL": libtoolPath.str,
 
-                                // Force file attribute changes off by default.
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_MODE_FLAG": "",
-                                "SDK_STAT_CACHE_ENABLE": "NO",
-                                "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
-                                "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
-                            ])
+                                    // Force file attribute changes off by default.
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_MODE_FLAG": "",
+                                    "SDK_STAT_CACHE_ENABLE": "NO",
+                                    "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
+                                    "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             // App target
@@ -590,86 +612,99 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Config",
-                                                           buildSettings: [
-                                                            "INSTALL_PATH": "/Applications",
-                                                            "MERGED_BINARY_TYPE": "manual",
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        "Config",
+                                        buildSettings: [
+                                            "INSTALL_PATH": "/Applications",
+                                            "MERGED_BINARY_TYPE": "manual",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "Application.swift",
+                                        "Application.swift"
                                     ]),
                                     // FIXME: rdar://119275052 This is not quite right: These references should go through a project reference, but the test infrastructure doesn't support project references. Instead we take advantage of rdar://119010301 which will create a product reference even though the producing target is in another project.
                                     TestFrameworksBuildPhase([
-                                        "FwkTarget.framework",
+                                        "FwkTarget.framework"
                                     ]),
                                     // Embed
-                                    TestCopyFilesBuildPhase([
-                                        TestBuildFile("FwkTarget.framework", codeSignOnCopy: true),
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            TestBuildFile("FwkTarget.framework", codeSignOnCopy: true)
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ]
-                            ),
+                            )
                         ]
                     ),
                     TestProject(
                         "FwkProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
-                                TestFile("ClassOne.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Config",
-                            buildSettings: [
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "COPY_PHASE_STRIP": "NO",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                                "GCC_OPTIMIZATION_LEVEL": "0",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "INSTALL_PATH": "",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                                "SWIFT_VERSION": swiftVersion,
-                                "TAPI_EXEC": tapiToolPath.str,
-                                "LIBTOOL": libtoolPath.str,
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("ClassOne.swift")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Config",
+                                buildSettings: [
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                                    "GCC_OPTIMIZATION_LEVEL": "0",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "INSTALL_PATH": "",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "TAPI_EXEC": tapiToolPath.str,
+                                    "LIBTOOL": libtoolPath.str,
 
-                                // Force file attribute changes off by default.
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_MODE_FLAG": "",
-                                "SDK_STAT_CACHE_ENABLE": "NO",
-                            ])
+                                    // Force file attribute changes off by default.
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_MODE_FLAG": "",
+                                    "SDK_STAT_CACHE_ENABLE": "NO",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
                                 "FwkTarget",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Config",
-                                                           buildSettings: [
-                                                            "MERGEABLE_LIBRARY": "YES",
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        "Config",
+                                        buildSettings: [
+                                            "MERGEABLE_LIBRARY": "YES"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "ClassOne.swift",
+                                        "ClassOne.swift"
                                     ]),
-                                    TestFrameworksBuildPhase([
-                                    ]),
+                                    TestFrameworksBuildPhase([]),
                                 ]
-                            ),
+                            )
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT_App = testWorkspace.sourceRoot.join("AppProject")
             let SRCROOT_Fwk = testWorkspace.sourceRoot.join("FwkProject")
-            let signableTargets: Set<String> = Set(tester.workspace.projects.flatMap({$0.targets}).map({ $0.name }))
+            let signableTargets: Set<String> = Set(tester.workspace.projects.flatMap({ $0.targets }).map({ $0.name }))
             let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
 
             // Write the source files.
@@ -688,7 +723,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "SymLink", "MkDir", "ProcessInfoPlistFile",
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
-                "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
+                "CopySwiftLibs", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
                 "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
@@ -696,14 +731,17 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
             do {
                 let buildType = "Debug"
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: tmpDirPath, for: buildType)
-                let parameters = BuildParameters(configuration: "Debug", overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                    "GCC_OPTIMIZATION_LEVEL": "0",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                        "GCC_OPTIMIZATION_LEVEL": "0",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                    ]
+                )
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
                 try await tester.checkBuild(buildType, parameters: parameters, runDestination: .iOS, buildRequest: request, persistent: true, signableTargets: signableTargets) { results in
@@ -765,88 +803,87 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     results.checkNoTask(.matchRuleType("Strip"))
                     results.checkNoTask()
 
-#if canImport(Darwin)
-                    // Examine that the contents on disk have the expected properties.
-                    // First, check that the mergeable frameworks in the SYMROOT were *not* built as mergeable.
-                    // Second, check that the mergeable frameworks embedded in the app's Framework folder don't contain their binaries.
-                    // Third, check that the mergeable frameworks embedded in the app's ReexportedBinaries folder do contain their binaries.
-                    do {
-                        let fwkTargetName = "FwkTarget"
-                        // Reexported
+                    #if canImport(Darwin)
+                        // Examine that the contents on disk have the expected properties.
+                        // First, check that the mergeable frameworks in the SYMROOT were *not* built as mergeable.
+                        // Second, check that the mergeable frameworks embedded in the app's Framework folder don't contain their binaries.
+                        // Third, check that the mergeable frameworks embedded in the app's ReexportedBinaries folder do contain their binaries.
                         do {
-                            let fwkPath = Path("\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework")
-                            #expect(tester.fs.exists(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
-                            #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
+                            let fwkTargetName = "FwkTarget"
+                            // Reexported
+                            do {
+                                let fwkPath = Path("\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework")
+                                #expect(tester.fs.exists(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
+                                #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
 
-                            try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should not have been built mergeable")
+                                try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should not have been built mergeable")
+                            }
+
+                            // Lacking binary in app's Frameworks folder.
+                            do {
+                                let fwkPath = Path("\(SYMROOT)/Config-iphoneos/AppTarget.app/Frameworks/\(fwkTargetName).framework")
+                                #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
+                                if useAppStoreCodelessFrameworksWorkaround {
+                                    #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+
+                                    // The binary should be an iOS dylib
+                                    let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
+                                    let (slices, linkage) = try macho.slicesIncludingLinkage()
+                                    #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
+                                    #expect(linkage == .macho(.dylib))
+                                } else {
+                                    #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                                }
+                            }
+
+                            // Including binary in app's ReexportedBinaries folder.
+                            do {
+                                let fwkPath = Path("\(SYMROOT)/Config-iphoneos/AppTarget.app/\(reexportedBinariesDirectoryName)/\(fwkTargetName).framework")
+                                #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                                let machoPath = fwkPath.join(fwkTargetName)
+                                #expect(tester.fs.exists(machoPath), "Could not find binary '\(machoPath.str)'")
+                            }
                         }
 
-                        // Lacking binary in app's Frameworks folder.
+                        // Second, check the contents of the app binary for expected characteristics.
+                        // Check that the merged app binary contains the symbols from the mergeable libraries.
                         do {
-                            let fwkPath = Path("\(SYMROOT)/Config-iphoneos/AppTarget.app/Frameworks/\(fwkTargetName).framework")
-                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
-                            if useAppStoreCodelessFrameworksWorkaround {
-                                #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+                            let targetName = "AppTarget"
+                            let fwkTargetName = "FwkTarget"
+                            let appPath = Path("\(SYMROOT)/Config-iphoneos/\(targetName).app")
+                            #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
+                            let machoPath = appPath.join(targetName)
+                            #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
 
-                                // The binary should be an iOS dylib
-                                let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
-                                let (slices, linkage) = try macho.slicesIncludingLinkage()
-                                #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
-                                #expect(linkage == .macho(.dylib))
-                            } else {
-                                #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                            // Check the app binary.
+                            let reader = try BinaryReader(data: tester.fs.read(machoPath))
+                            let machO = try MachO(reader: reader)
+                            let slices = try machO.slices()
+                            #expect(slices.count > 0, "Framework binary contains no slices '\(machoPath.str)'")
+                            for slice in slices {
+                                // Check that the app binary is reexporting the mergeable frameworks.
+                                let linkedLibraries = try slice.linkedLibraries()
+                                let foundLibraries = linkedLibraries.filter { (pathStr: String, linkageType: MachO.Slice.LinkageType) in
+                                    Path(pathStr).basename == fwkTargetName
+                                }
+                                if let library = foundLibraries.first {
+                                    #expect(library.linkageType == .reexport)
+                                } else {
+                                    Issue.record("Could not find load command for reexported framework '\(fwkTargetName)")
+                                }
+
+                                // Check that the merged binary has an rpath into ReexportedBinaries.
+                                let expectedRpath = "@loader_path/\(reexportedBinariesDirectoryName)"
+                                let foundRpath = (try slice.rpaths().first(where: { $0 == expectedRpath }) != nil)
+                                #expect(foundRpath, "Could not find rpath '\(expectedRpath)'")
                             }
+
+                            // Check that the symbols from the mergeable frameworks are *not* present.
+                            try await checkForSymbols(in: machoPath, symbolPatterns: ["FwkTarget.+ClassOne.+label.+UILabel"], expected: false)
                         }
-
-                        // Including binary in app's ReexportedBinaries folder.
-                        do {
-                            let fwkPath = Path("\(SYMROOT)/Config-iphoneos/AppTarget.app/\(reexportedBinariesDirectoryName)/\(fwkTargetName).framework")
-                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                            let machoPath = fwkPath.join(fwkTargetName)
-                            #expect(tester.fs.exists(machoPath), "Could not find binary '\(machoPath.str)'")
-                        }
-                    }
-
-                    // Second, check the contents of the app binary for expected characteristics.
-                    // Check that the merged app binary contains the symbols from the mergeable libraries.
-                    do {
-                        let targetName = "AppTarget"
-                        let fwkTargetName = "FwkTarget"
-                        let appPath = Path("\(SYMROOT)/Config-iphoneos/\(targetName).app")
-                        #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
-                        let machoPath = appPath.join(targetName)
-                        #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
-
-                        // Check the app binary.
-                        let reader = try BinaryReader(data: tester.fs.read(machoPath))
-                        let machO = try MachO(reader: reader)
-                        let slices = try machO.slices()
-                        #expect(slices.count > 0, "Framework binary contains no slices '\(machoPath.str)'")
-                        for slice in slices {
-                            // Check that the app binary is reexporting the mergeable frameworks.
-                            let linkedLibraries = try slice.linkedLibraries()
-                            let foundLibraries = linkedLibraries.filter { (pathStr: String, linkageType: MachO.Slice.LinkageType) in
-                                Path(pathStr).basename == fwkTargetName
-                            }
-                            if let library = foundLibraries.first {
-                                #expect(library.linkageType == .reexport)
-                            }
-                            else {
-                                Issue.record("Could not find load command for reexported framework '\(fwkTargetName)")
-                            }
-
-                            // Check that the merged binary has an rpath into ReexportedBinaries.
-                            let expectedRpath = "@loader_path/\(reexportedBinariesDirectoryName)"
-                            let foundRpath = (try slice.rpaths().first(where: { $0 == expectedRpath }) != nil)
-                            #expect(foundRpath, "Could not find rpath '\(expectedRpath)'")
-                        }
-
-                        // Check that the symbols from the mergeable frameworks are *not* present.
-                        try await checkForSymbols(in: machoPath, symbolPatterns: ["FwkTarget.+ClassOne.+label.+UILabel"], expected: false)
-                    }
-#endif
+                    #endif
                 }
             }
 
@@ -854,17 +891,20 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
             do {
                 let buildType = "Release"
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: tmpDirPath, for: buildType)
-                let parameters = BuildParameters(configuration: "Config", overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                    "GCC_OPTIMIZATION_LEVEL": "s",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                    "STRIP_STYLE": "debugging",                    // So we can examine the merged binary to confirm that merging happened
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Config",
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                        "STRIP_STYLE": "debugging",  // So we can examine the merged binary to confirm that merging happened
+                    ]
+                )
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
                 try await tester.checkBuild(buildType, parameters: parameters, runDestination: .iOS, buildRequest: request, persistent: true, signableTargets: signableTargets) { results in
@@ -925,42 +965,42 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     results.checkNoTask()
 
-#if canImport(Darwin)
-                    // Check that the mergeable framework in the product doesn't contain its binary.
-                    do {
-                        let fwkTargetName = "FwkTarget"
-                        let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkTargetName).framework")
-                        #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                        let machoPath = fwkPath.join(fwkTargetName)
-                        if useAppStoreCodelessFrameworksWorkaround {
-                            #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+                    #if canImport(Darwin)
+                        // Check that the mergeable framework in the product doesn't contain its binary.
+                        do {
+                            let fwkTargetName = "FwkTarget"
+                            let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkTargetName).framework")
+                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                            let machoPath = fwkPath.join(fwkTargetName)
+                            if useAppStoreCodelessFrameworksWorkaround {
+                                #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
 
-                            // The binary should be an iOS dylib
-                            let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
-                            let (slices, linkage) = try macho.slicesIncludingLinkage()
-                            #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
-                            #expect(linkage == .macho(.dylib))
-                        } else {
-                            #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                                // The binary should be an iOS dylib
+                                let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
+                                let (slices, linkage) = try macho.slicesIncludingLinkage()
+                                #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
+                                #expect(linkage == .macho(.dylib))
+                            } else {
+                                #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                            }
                         }
-                    }
 
-                    // Check that the merged app binary contains the symbols from the mergeable libraries.
-                    do {
-                        let targetName = "AppTarget"
-                        let fwkTargetName = "FwkTarget"
-                        let appPath = Path("\(DSTROOT)/Applications/\(targetName).app")
-                        #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
-                        let machoPath = appPath.join(targetName)
-                        #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
+                        // Check that the merged app binary contains the symbols from the mergeable libraries.
+                        do {
+                            let targetName = "AppTarget"
+                            let fwkTargetName = "FwkTarget"
+                            let appPath = Path("\(DSTROOT)/Applications/\(targetName).app")
+                            #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
+                            let machoPath = appPath.join(targetName)
+                            #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
 
-                        // Check that the merged framework is *not* linking the mergeable framework.
-                        try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkTargetName], fs: tester.fs, expected: false)
+                            // Check that the merged framework is *not* linking the mergeable framework.
+                            try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkTargetName], fs: tester.fs, expected: false)
 
-                        // Check that the symbols from the mergeable framework are present, meaning that they were merged in.
-                        try await checkForSymbols(in: machoPath, symbolPatterns: ["T.+FwkTarget.+ClassOne.+label.+UILabel.+"], expected: true)
-                    }
-#endif
+                            // Check that the symbols from the mergeable framework are present, meaning that they were merged in.
+                            try await checkForSymbols(in: machoPath, symbolPatterns: ["T.+FwkTarget.+ClassOne.+label.+UILabel.+"], expected: true)
+                        }
+                    #endif
                 }
             }
         }
@@ -1015,44 +1055,49 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 // App sources
                                 TestFile("Application.swift"),
 
                                 // XCFrameworks
                                 TestFile("Framework.xcframework"),
                                 TestFile("Library.xcframework"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            CONFIGURATION,
-                            buildSettings: [
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "COPY_PHASE_STRIP": "NO",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                                "GCC_OPTIMIZATION_LEVEL": "0",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "INSTALL_PATH": "",
-                                "APP_MERGE_LINKED_LIBRARIES": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "STRIP_STYLE": "debugging",                                     // So we can examine whether the app ends up with symbols from the merged libraries
-                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                                "SWIFT_VERSION": swiftVersion,
-                                "TAPI_EXEC": tapiToolPath.str,
-                                "LIBTOOL": libtoolPath.str,
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                CONFIGURATION,
+                                buildSettings: [
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                                    "GCC_OPTIMIZATION_LEVEL": "0",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "INSTALL_PATH": "",
+                                    "APP_MERGE_LINKED_LIBRARIES": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "STRIP_STYLE": "debugging",  // So we can examine whether the app ends up with symbols from the merged libraries
+                                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "TAPI_EXEC": tapiToolPath.str,
+                                    "LIBTOOL": libtoolPath.str,
 
-                                // Force file attribute changes off by default.
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_MODE_FLAG": "",
-                                "SDK_STAT_CACHE_ENABLE": "NO",
+                                    // Force file attribute changes off by default.
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_MODE_FLAG": "",
+                                    "SDK_STAT_CACHE_ENABLE": "NO",
 
-                                "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
-                            ])
+                                    "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             // App target
@@ -1060,31 +1105,38 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration(CONFIGURATION,
-                                                           buildSettings: [
-                                                            "INSTALL_PATH": "/Applications",
-                                                            "MERGE_LINKED_LIBRARIES": "$(APP_MERGE_LINKED_LIBRARIES)",      // Builds below can override APP_MERGE_LINKED_LIBRARIES to NO to disable merging.
-                                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        CONFIGURATION,
+                                        buildSettings: [
+                                            "INSTALL_PATH": "/Applications",
+                                            "MERGE_LINKED_LIBRARIES": "$(APP_MERGE_LINKED_LIBRARIES)",  // Builds below can override APP_MERGE_LINKED_LIBRARIES to NO to disable merging.
+                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "Application.swift",
+                                        "Application.swift"
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "Framework.xcframework",
                                         "Library.xcframework",
                                     ]),
                                     // Embed
-                                    TestCopyFilesBuildPhase([
-                                        TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
-                                        TestBuildFile("Library.xcframework", codeSignOnCopy: true),
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
+                                            TestBuildFile("Library.xcframework", codeSignOnCopy: true),
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ]
-                            ),
+                            )
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOTpath = testWorkspace.sourceRoot.join("aProject")
             let SRCROOT = SRCROOTpath.str
@@ -1104,7 +1156,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "SymLink", "MkDir", "ProcessInfoPlistFile",
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
-                "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
+                "CopySwiftLibs", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
                 "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
@@ -1113,16 +1165,19 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 let buildType = "Merge"
                 let runDestination = RunDestinationInfo.iOS
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: tmpDirPath, for: buildType)
-                let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                    "GCC_OPTIMIZATION_LEVEL": "s",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                ])
+                let parameters = BuildParameters(
+                    configuration: CONFIGURATION,
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                    ]
+                )
                 let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -1148,12 +1203,14 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                         // Check that we're merging the XCFrameworks.
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
-                            task.checkCommandLineContains([
-                                ["\(toolchain.path.str)/usr/bin/clang"],
-                                ["-Xlinker", "-merge_framework", "-Xlinker", "\(fwkBaseName)"],
-                                ["-Xlinker", "-merge-l\(libBaseName)"],
-                                ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["\(toolchain.path.str)/usr/bin/clang"],
+                                    ["-Xlinker", "-merge_framework", "-Xlinker", "\(fwkBaseName)"],
+                                    ["-Xlinker", "-merge-l\(libBaseName)"],
+                                    ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
+                                ].reduce([], +)
+                            )
                         }
 
                         // Check that we're excluding the binary when embedding the framework, and not embedding the library at all.
@@ -1183,40 +1240,40 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     results.checkNoTask()
 
-#if canImport(Darwin)
-                    // Check that the mergeable framework in the product doesn't contain its binary.
-                    do {
-                        let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkBaseName).framework")
-                        #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                        let machoPath = fwkPath.join(fwkBaseName)
-                        if useAppStoreCodelessFrameworksWorkaround {
-                            #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+                    #if canImport(Darwin)
+                        // Check that the mergeable framework in the product doesn't contain its binary.
+                        do {
+                            let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkBaseName).framework")
+                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                            let machoPath = fwkPath.join(fwkBaseName)
+                            if useAppStoreCodelessFrameworksWorkaround {
+                                #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
 
-                            // The binary should be an iOS dylib
-                            let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
-                            let (slices, linkage) = try macho.slicesIncludingLinkage()
-                            #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
-                            #expect(linkage == .macho(.dylib))
-                        } else {
-                            #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                                // The binary should be an iOS dylib
+                                let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
+                                let (slices, linkage) = try macho.slicesIncludingLinkage()
+                                #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
+                                #expect(linkage == .macho(.dylib))
+                            } else {
+                                #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                            }
                         }
-                    }
 
-                    // Check that the merged app binary contains the symbols from the mergeable libraries.
-                    do {
-                        let targetName = "AppTarget"
-                        let appPath = Path("\(DSTROOT)/Applications/\(targetName).app")
-                        #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
-                        let machoPath = appPath.join(targetName)
-                        #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
+                        // Check that the merged app binary contains the symbols from the mergeable libraries.
+                        do {
+                            let targetName = "AppTarget"
+                            let appPath = Path("\(DSTROOT)/Applications/\(targetName).app")
+                            #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
+                            let machoPath = appPath.join(targetName)
+                            #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
 
-                        // Check that the merged framework is *not* linking the mergeable libraries.
-                        try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkBaseName, libBaseName], fs: tester.fs, expected: false)
+                            // Check that the merged framework is *not* linking the mergeable libraries.
+                            try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkBaseName, libBaseName], fs: tester.fs, expected: false)
 
-                        // Check that the symbols from the mergeable frameworks are present, meaning that they were merged in.
-                        try await checkForSymbols(in: machoPath, symbolPatterns: ["Framework.+ClassOne.+value", "Library.+ClassTwo.+value"], expected: true)
-                    }
-#endif
+                            // Check that the symbols from the mergeable frameworks are present, meaning that they were merged in.
+                            try await checkForSymbols(in: machoPath, symbolPatterns: ["Framework.+ClassOne.+value", "Library.+ClassTwo.+value"], expected: true)
+                        }
+                    #endif
                 }
             }
 
@@ -1225,17 +1282,20 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 let buildType = "Link"
                 let runDestination = RunDestinationInfo.iOS
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: tmpDirPath, for: buildType)
-                let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                    "GCC_OPTIMIZATION_LEVEL": "s",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                    "APP_MERGE_LINKED_LIBRARIES": "NO",
-                ])
+                let parameters = BuildParameters(
+                    configuration: CONFIGURATION,
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                        "APP_MERGE_LINKED_LIBRARIES": "NO",
+                    ]
+                )
                 let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -1261,12 +1321,14 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                         // Check that we're merging the XCFrameworks.
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
-                            task.checkCommandLineContains([
-                                ["\(toolchain.path.str)/usr/bin/clang"],
-                                ["-framework", "\(fwkBaseName)"],
-                                ["-l\(libBaseName)"],
-                                ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["\(toolchain.path.str)/usr/bin/clang"],
+                                    ["-framework", "\(fwkBaseName)"],
+                                    ["-l\(libBaseName)"],
+                                    ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-merge_framework")
                             task.checkCommandLineDoesNotContain("-merge-l\(libBaseName)")
                         }
@@ -1292,47 +1354,46 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     results.checkNoTask()
 
-#if canImport(Darwin)
-                    // Check that the mergeable framework in the app *does* contain its binary.
-                    do {
-                        let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkBaseName).framework")
-                        #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                        let machoPath = fwkPath.join(fwkBaseName)
-                        #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+                    #if canImport(Darwin)
+                        // Check that the mergeable framework in the app *does* contain its binary.
+                        do {
+                            let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkBaseName).framework")
+                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                            let machoPath = fwkPath.join(fwkBaseName)
+                            #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
 
-                        // Check that its binary does not contain an LC_ATOM_INFO action as that should have been removed during embedding.
-                        try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should have been removed during embedding")
-                    }
+                            // Check that its binary does not contain an LC_ATOM_INFO action as that should have been removed during embedding.
+                            try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should have been removed during embedding")
+                        }
 
-                    // Check that the app does contain the library.
-                    do {
-                        let machoPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/lib\(libBaseName).dylib")
-                        #expect(tester.fs.exists(machoPath), "Missing library '\(machoPath.str)'")
+                        // Check that the app does contain the library.
+                        do {
+                            let machoPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/lib\(libBaseName).dylib")
+                            #expect(tester.fs.exists(machoPath), "Missing library '\(machoPath.str)'")
 
-                        // Check that it does not contain an LC_ATOM_INFO action as that should have been removed during embedding.
-                        try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should have been removed during embedding")
-                    }
+                            // Check that it does not contain an LC_ATOM_INFO action as that should have been removed during embedding.
+                            try checkForMergeableMetadata(in: machoPath, fs: tester.fs, expected: false, reason: "it should have been removed during embedding")
+                        }
 
-                    // Check that the merged app binary does not contain the symbols from the mergeable libraries.
-                    do {
-                        let targetName = "AppTarget"
-                        let appPath = Path("\(DSTROOT)/Applications/\(targetName).app")
-                        #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
-                        let machoPath = appPath.join(targetName)
-                        #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
+                        // Check that the merged app binary does not contain the symbols from the mergeable libraries.
+                        do {
+                            let targetName = "AppTarget"
+                            let appPath = Path("\(DSTROOT)/Applications/\(targetName).app")
+                            #expect(tester.fs.isDirectory(appPath), "Could not find app '\(appPath.str)'")
+                            let machoPath = appPath.join(targetName)
+                            #expect(tester.fs.exists(machoPath), "Could not find app binary '\(machoPath.str)'")
 
-                        // Check that the merged framework *is* linking the mergeable libraries.
-                        try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkBaseName, libBaseName], fs: tester.fs, expected: true)
+                            // Check that the merged framework *is* linking the mergeable libraries.
+                            try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkBaseName, libBaseName], fs: tester.fs, expected: true)
 
-                        // Check that the symbols from the mergeable frameworks are absent, because we didn't merge them.
-                        try await checkForSymbols(in: machoPath, symbolPatterns: ["Framework.+ClassOne.+value", "Library.+ClassTwo.+value"], expected: false)
-                    }
-#endif
+                            // Check that the symbols from the mergeable frameworks are absent, because we didn't merge them.
+                            try await checkForSymbols(in: machoPath, symbolPatterns: ["Framework.+ClassOne.+value", "Library.+ClassTwo.+value"], expected: false)
+                        }
+                    #endif
                 }
             }
         }
     }
-
 
     /// Test building an app with an intervening framework which is merging an XCFramework.
     @Test(.requireSDKs(.iOS))
@@ -1381,7 +1442,9 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 // App sources
                                 TestFile("Application.swift"),
 
@@ -1391,37 +1454,40 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 // XCFrameworks
                                 TestFile("Framework.xcframework"),
                                 TestFile("Library.xcframework"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            CONFIGURATION,
-                            buildSettings: [
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "COPY_PHASE_STRIP": "NO",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                                "GCC_OPTIMIZATION_LEVEL": "0",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "INSTALL_PATH": "",
-                                "APP_MERGE_LINKED_LIBRARIES": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphoneos",
-                                "STRIP_STYLE": "debugging",                                     // So we can examine whether the app ends up with symbols from the merged libraries
-                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                                "SWIFT_VERSION": swiftVersion,
-                                "TAPI_EXEC": tapiToolPath.str,
-                                "LIBTOOL": libtoolPath.str,
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                CONFIGURATION,
+                                buildSettings: [
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                                    "GCC_OPTIMIZATION_LEVEL": "0",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "INSTALL_PATH": "",
+                                    "APP_MERGE_LINKED_LIBRARIES": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphoneos",
+                                    "STRIP_STYLE": "debugging",  // So we can examine whether the app ends up with symbols from the merged libraries
+                                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "TAPI_EXEC": tapiToolPath.str,
+                                    "LIBTOOL": libtoolPath.str,
 
-                                // Force file attribute changes off by default.
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_MODE_FLAG": "",
-                                "SDK_STAT_CACHE_ENABLE": "NO",
+                                    // Force file attribute changes off by default.
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_MODE_FLAG": "",
+                                    "SDK_STAT_CACHE_ENABLE": "NO",
 
-                                "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
-                            ])
+                                    "ASSETCATALOG_COMPILER_SKIP_APP_STORE_DEPLOYMENT": useAppStoreCodelessFrameworksWorkaround ? "NO" : "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             // App target
@@ -1429,25 +1495,31 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "AppTarget",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration(CONFIGURATION,
-                                                           buildSettings: [
-                                                            "INSTALL_PATH": "/Applications",
-                                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        CONFIGURATION,
+                                        buildSettings: [
+                                            "INSTALL_PATH": "/Applications",
+                                            "SKIP_EMBEDDED_FRAMEWORKS_VALIDATION": "YES",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "Application.swift",
+                                        "Application.swift"
                                     ]),
                                     TestFrameworksBuildPhase([
-                                        "MergedFwkTarget.framework",
+                                        "MergedFwkTarget.framework"
                                     ]),
                                     // Embed
-                                    TestCopyFilesBuildPhase([
-                                        TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
-                                        TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
-                                        TestBuildFile("Library.xcframework", codeSignOnCopy: true),
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
+                                            TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
+                                            TestBuildFile("Library.xcframework", codeSignOnCopy: true),
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ]
                             ),
                             // Framework target
@@ -1455,15 +1527,17 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "MergedFwkTarget",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration(CONFIGURATION,
-                                                           buildSettings: [
-                                                            "INSTALL_PATH": "",
-                                                            "MERGE_LINKED_LIBRARIES": "$(APP_MERGE_LINKED_LIBRARIES)",      // Builds below can override APP_MERGE_LINKED_LIBRARIES to NO to disable merging.
-                                                           ]),
+                                    TestBuildConfiguration(
+                                        CONFIGURATION,
+                                        buildSettings: [
+                                            "INSTALL_PATH": "",
+                                            "MERGE_LINKED_LIBRARIES": "$(APP_MERGE_LINKED_LIBRARIES)",  // Builds below can override APP_MERGE_LINKED_LIBRARIES to NO to disable merging.
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "ClassOne.swift",
+                                        "ClassOne.swift"
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "Framework.xcframework",
@@ -1473,7 +1547,8 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                             ),
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOTpath = testWorkspace.sourceRoot.join("aProject")
             let SRCROOT = SRCROOTpath.str
@@ -1495,7 +1570,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 "Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "SymLink", "MkDir", "ProcessInfoPlistFile",
                 "ClangStatCache", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining",
                 "SwiftDriver", "SwiftEmitModule", "SwiftDriver Compilation", "SwiftDriver Compilation Requirements", "SwiftMergeGeneratedHeaders",
-                "CopySwiftLibs","RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
+                "CopySwiftLibs", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "Validate", "Touch",
                 "SwiftExplicitDependencyCompileModuleFromInterface", "SwiftExplicitDependencyGeneratePcm", "ProcessSDKImports",
             ])
 
@@ -1504,16 +1579,19 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                 let buildType = "Merge"
                 let runDestination = RunDestinationInfo.iOS
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: tmpDirPath, for: buildType)
-                let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                    "GCC_OPTIMIZATION_LEVEL": "s",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                ])
+                let parameters = BuildParameters(
+                    configuration: CONFIGURATION,
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                    ]
+                )
                 let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -1595,48 +1673,46 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     results.checkNoTask()
 
-#if canImport(Darwin)
-                    // Check that the mergeable framework in the product doesn't contain its binary.
-                    do {
-                        let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkBaseName).framework")
-                        #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                        let machoPath = fwkPath.join(fwkBaseName)
-                        if useAppStoreCodelessFrameworksWorkaround {
-                            #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
+                    #if canImport(Darwin)
+                        // Check that the mergeable framework in the product doesn't contain its binary.
+                        do {
+                            let fwkPath = Path("\(DSTROOT)/Applications/AppTarget.app/Frameworks/\(fwkBaseName).framework")
+                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                            let machoPath = fwkPath.join(fwkBaseName)
+                            if useAppStoreCodelessFrameworksWorkaround {
+                                #expect(tester.fs.exists(machoPath), "Missing framework binary '\(machoPath.str)'")
 
-                            // The binary should be an iOS dylib
-                            let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
-                            let (slices, linkage) = try macho.slicesIncludingLinkage()
-                            #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
-                            #expect(linkage == .macho(.dylib))
-                        } else {
-                            #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                                // The binary should be an iOS dylib
+                                let macho = try MachO(reader: BinaryReader(data: tester.fs.read(machoPath)))
+                                let (slices, linkage) = try macho.slicesIncludingLinkage()
+                                #expect(try slices.flatMap { try $0.buildVersions().map(\.platform) }.only == .iOS)
+                                #expect(linkage == .macho(.dylib))
+                            } else {
+                                #expect(!tester.fs.exists(machoPath), "Found unexpected framework binary '\(machoPath.str)'")
+                            }
                         }
-                    }
 
-                    // Check that the merged framework binary contains the symbols from the mergeable libraries.
-                    do {
-                        let targetName = "MergedFwkTarget"
-                        let fwkPath = Path("\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework")
-                        #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
-                        let machoPath = fwkPath.join(targetName)
-                        #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
+                        // Check that the merged framework binary contains the symbols from the mergeable libraries.
+                        do {
+                            let targetName = "MergedFwkTarget"
+                            let fwkPath = Path("\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework")
+                            #expect(tester.fs.isDirectory(fwkPath), "Could not find framework '\(fwkPath.str)'")
+                            let machoPath = fwkPath.join(targetName)
+                            #expect(tester.fs.exists(machoPath), "Could not find framework binary '\(machoPath.str)'")
 
-                        // Check that the merged framework is *not* linking the mergeable libraries.
-                        try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkBaseName, libBaseName], fs: tester.fs, expected: false)
+                            // Check that the merged framework is *not* linking the mergeable libraries.
+                            try checkForLinkedLibraries(in: machoPath, libraryNames: [fwkBaseName, libBaseName], fs: tester.fs, expected: false)
 
-                        // Check that the symbols from the mergeable frameworks are present, meaning that they were merged in.
-                        try await checkForSymbols(in: machoPath, symbolPatterns: ["Framework.+ClassOne.+value", "Library.+ClassTwo.+value"], expected: true)
-                    }
-#endif
+                            // Check that the symbols from the mergeable frameworks are present, meaning that they were merged in.
+                            try await checkForSymbols(in: machoPath, symbolPatterns: ["Framework.+ClassOne.+value", "Library.+ClassTwo.+value"], expected: true)
+                        }
+                    #endif
                 }
             }
         }
     }
 
-
     // MARK: - Utility methods
-
 
     /// Utility method to try to be tolerant of Swift symbol mangling in the output of `nm`.
     /// - parameter symbolPatterns: A list of regular expression static strings to search for in the output.
@@ -1647,8 +1723,7 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
             let foundLines = symbols.filter({ regex.firstMatch(in: String($0)) != nil })
             if expected {
                 #expect(foundLines.count == 1, "Couldn't find symbol matching /\(pattern)/ in '\(machoPath.str)'", sourceLocation: sourceLocation)
-            }
-            else {
+            } else {
                 #expect(foundLines.isEmpty, "Unexpectedly found symbol matching /\(pattern)/ in '\(machoPath.str)'", sourceLocation: sourceLocation)
             }
         }
@@ -1657,47 +1732,45 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
     /// Utility method to check whether a binary is or is not linking libraries of the given name. It does this by checking the slices of the binary to see if they are each linking all of the libraries.
     /// - parameter expected: If `true`, then emits a test failure if the library is not linked. If `false`, then emits a test failure if it is linked.
     fileprivate func checkForLinkedLibraries(in machoPath: Path, libraryNames: [String], fs: any FSProxy, expected: Bool, sourceLocation: SourceLocation = #_sourceLocation) throws {
-#if canImport(Darwin)
-        let reader = try BinaryReader(data: fs.read(machoPath))
-        let machO = try MachO(reader: reader)
-        let slices = try machO.slices()
-        #expect(slices.count > 0, "Binary contains no slices", sourceLocation: sourceLocation)
-        for slice in slices {
-            let linkedLibraries = Set(try slice.linkedLibraryPaths().map({ Path($0).basename }))
-            for libraryName in libraryNames {
-                if expected {
-                    #expect(linkedLibraries.contains(libraryName), "Could not find expected linkage of '\(libraryName)'", sourceLocation: sourceLocation)
-                }
-                else {
-                    #expect(!linkedLibraries.contains(libraryName), "Found unexpected linkage of '\(libraryName)'", sourceLocation: sourceLocation)
+        #if canImport(Darwin)
+            let reader = try BinaryReader(data: fs.read(machoPath))
+            let machO = try MachO(reader: reader)
+            let slices = try machO.slices()
+            #expect(slices.count > 0, "Binary contains no slices", sourceLocation: sourceLocation)
+            for slice in slices {
+                let linkedLibraries = Set(try slice.linkedLibraryPaths().map({ Path($0).basename }))
+                for libraryName in libraryNames {
+                    if expected {
+                        #expect(linkedLibraries.contains(libraryName), "Could not find expected linkage of '\(libraryName)'", sourceLocation: sourceLocation)
+                    } else {
+                        #expect(!linkedLibraries.contains(libraryName), "Found unexpected linkage of '\(libraryName)'", sourceLocation: sourceLocation)
+                    }
                 }
             }
-        }
-#endif
+        #endif
     }
 
     /// Utility method to check whether a binary contains `LC_ATOM_INFO` in any of its slices.
     /// - parameter expected: If `true`, then emits a test failure if `LC_ATOM_INFO` is absent. If `false`, then emits a test failure if it is present.
     /// - parameter reason: A string describing the reason the `LC_ATOM_INFO` is expected to be present or absent, to be emitted in the test failure.
     fileprivate func checkForMergeableMetadata(in machoPath: Path, fs: any FSProxy, expected: Bool, reason: String? = nil, sourceLocation: SourceLocation = #_sourceLocation) throws {
-#if canImport(Darwin)
-        let reader = try BinaryReader(data: fs.read(machoPath))
-        let machO = try MachO(reader: reader)
-        let slices = try machO.slices()
-        #expect(slices.count > 0, "Binary contains no slices", sourceLocation: sourceLocation)
-        for slice in slices {
-            let loadCommands = try slice.loadCommands()
-            let atomInfoCmds = loadCommands.filter({ $0.base.cmd == 0x36 /* LC_ATOM_INFO */ })
-            if expected {
-                let string = "Could not find LC_ATOM_INFO load command in binary" + (reason.flatMap({ " (\($0))" }) ?? "") + "."
-                #expect(!atomInfoCmds.isEmpty, Comment(rawValue: string), sourceLocation: sourceLocation)
+        #if canImport(Darwin)
+            let reader = try BinaryReader(data: fs.read(machoPath))
+            let machO = try MachO(reader: reader)
+            let slices = try machO.slices()
+            #expect(slices.count > 0, "Binary contains no slices", sourceLocation: sourceLocation)
+            for slice in slices {
+                let loadCommands = try slice.loadCommands()
+                let atomInfoCmds = loadCommands.filter({ $0.base.cmd == 0x36 /* LC_ATOM_INFO */ })
+                if expected {
+                    let string = "Could not find LC_ATOM_INFO load command in binary" + (reason.flatMap({ " (\($0))" }) ?? "") + "."
+                    #expect(!atomInfoCmds.isEmpty, Comment(rawValue: string), sourceLocation: sourceLocation)
+                } else {
+                    let string = "Found unexpected LC_ATOM_INFO load command in binary" + (reason.flatMap({ " (\($0))" }) ?? "") + "."
+                    #expect(atomInfoCmds.isEmpty, Comment(rawValue: string), sourceLocation: sourceLocation)
+                }
             }
-            else {
-                let string = "Found unexpected LC_ATOM_INFO load command in binary" + (reason.flatMap({ " (\($0))" }) ?? "") + "."
-                #expect(atomInfoCmds.isEmpty, Comment(rawValue: string), sourceLocation: sourceLocation)
-            }
-        }
-#endif
+        #endif
     }
 
 }

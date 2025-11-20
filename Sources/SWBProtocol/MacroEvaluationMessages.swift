@@ -12,13 +12,11 @@
 
 public import SWBUtil
 
-
 public enum MacroEvaluationRequestLevel: Equatable, Sendable, SerializableCodable {
     case defaults
     case project(_ guid: String)
     case target(_ guid: String)
 }
-
 
 /// Requests a macro evaluation scope handle in a session.
 ///
@@ -57,7 +55,6 @@ public struct DiscardMacroEvaluationScope: SessionMessage, RequestMessage, Equat
         self.settingsHandle = settingsHandle
     }
 }
-
 
 /// The context within which a macro evaluation should occur.
 public enum MacroEvaluationRequestContext: Equatable, Sendable, SerializableCodable {

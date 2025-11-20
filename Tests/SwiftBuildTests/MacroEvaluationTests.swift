@@ -37,7 +37,8 @@ fileprivate struct MacroEvaluationTests {
                     "aProject",
                     defaultConfigurationName: "Release",
                     groupTree: TestGroup("Foo"),
-                    targets: [testTarget])
+                    targets: [testTarget]
+                )
                 let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [testProject])
 
                 try await testSession.sendPIF(testWorkspace)
@@ -120,10 +121,10 @@ fileprivate struct MacroEvaluationTests {
                 let projectFilesDir = "\(projectDir)/SomeFiles"
 
                 let workspacePIF: SWBPropertyListItem = [
-                    "guid":     "some-workspace-guid",
-                    "name":     "aWorkspace",
-                    "path":     .plString("\(tmpDirPath)/aWorkspace.xcworkspace/contents.xcworkspacedata"),
-                    "projects": ["P1"]
+                    "guid": "some-workspace-guid",
+                    "name": "aWorkspace",
+                    "path": .plString("\(tmpDirPath)/aWorkspace.xcworkspace/contents.xcworkspacedata"),
+                    "projects": ["P1"],
                 ]
                 let projectPIF: SWBPropertyListItem = [
                     "guid": "P1",
@@ -135,16 +136,18 @@ fileprivate struct MacroEvaluationTests {
                         "sourceTree": "PROJECT_DIR",
                         "path": .plString(projectFilesDir),
                     ],
-                    "buildConfigurations": [[
-                        "guid": "BC1",
-                        "name": "Config1",
-                        "buildSettings": [
-                            "OTHER_CFLAGS": "$(inherited) -DPROJECT",
+                    "buildConfigurations": [
+                        [
+                            "guid": "BC1",
+                            "name": "Config1",
+                            "buildSettings": [
+                                "OTHER_CFLAGS": "$(inherited) -DPROJECT"
+                            ],
                         ]
-                    ]],
+                    ],
                     "defaultConfigurationName": "Config1",
                     "developmentRegion": "English",
-                    "targets": ["T1"]
+                    "targets": ["T1"],
                 ]
                 let targetPIF: SWBPropertyListItem = [
                     "guid": "T1",
@@ -156,20 +159,22 @@ fileprivate struct MacroEvaluationTests {
                         "name": "MyApp",
                     ],
                     "buildPhases": [],
-                    "buildConfigurations": [[
-                        "guid": "C2",
-                        "name": "Config1",
-                        "buildSettings": [
-                            "PRODUCT_NAME": "MyApp",
-                            "IS_TRUE": "YES",
-                            "IS_FALSE": "NO",
-                            "OTHER_CFLAGS": "$(inherited) -DTARGET",
-                            "FLEXIBLE": "$(A) $(B) $(C)",
-                            "A": "A",
-                            "B": "B",
-                            "C": "C",
+                    "buildConfigurations": [
+                        [
+                            "guid": "C2",
+                            "name": "Config1",
+                            "buildSettings": [
+                                "PRODUCT_NAME": "MyApp",
+                                "IS_TRUE": "YES",
+                                "IS_FALSE": "NO",
+                                "OTHER_CFLAGS": "$(inherited) -DTARGET",
+                                "FLEXIBLE": "$(A) $(B) $(C)",
+                                "A": "A",
+                                "B": "B",
+                                "C": "C",
+                            ],
                         ]
-                    ]],
+                    ],
                     "dependencies": [],
                     "buildRules": [],
                 ]
@@ -177,18 +182,18 @@ fileprivate struct MacroEvaluationTests {
                     [
                         "type": "workspace",
                         "signature": "W1",
-                        "contents": workspacePIF
+                        "contents": workspacePIF,
                     ],
                     [
                         "type": "project",
                         "signature": "P1",
-                        "contents": projectPIF
+                        "contents": projectPIF,
                     ],
                     [
                         "type": "target",
                         "signature": "T1",
-                        "contents": targetPIF
-                    ]
+                        "contents": targetPIF,
+                    ],
                 ]
                 try await session.sendPIF(topLevelPIF)
 

@@ -208,7 +208,7 @@ extension DependencyInfo {
             { Opcode.version.bytes(for: [try self.version.validatingEncodability()]) },
             { Opcode.input.bytes(for: try self.inputs.validatingEncodability()) },
             { Opcode.missing.bytes(for: try self.missing.validatingEncodability()) },
-            { Opcode.output.bytes(for: try self.outputs.validatingEncodability()) }
+            { Opcode.output.bytes(for: try self.outputs.validatingEncodability()) },
         ]
         return try operations.map({ try $0() }).reduce(into: [], { result, element in result += element })
     }

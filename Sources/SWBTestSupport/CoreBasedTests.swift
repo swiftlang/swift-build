@@ -40,9 +40,11 @@ extension CoreBasedTests {
         let core: Result<Core, any Error>
         do {
             let path = try await simulatedInferiorProductsPath()
-            core = try await .success(testingCoreRegistry.value(forKey: path) {
-                try await Self.makeCore(simulatedInferiorProductsPath: path)
-            })
+            core = try await .success(
+                testingCoreRegistry.value(forKey: path) {
+                    try await Self.makeCore(simulatedInferiorProductsPath: path)
+                }
+            )
         } catch {
             core = .failure(error)
         }
@@ -242,9 +244,12 @@ extension CoreBasedTests {
         get async throws {
             let (core, defaultToolchain) = try await coreAndToolchain()
             let fallbacklibtool = Path("/usr/bin/libtool")
-            return try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "libtool")
-                                ?? defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-ar")
-                                ?? (localFS.exists(fallbacklibtool) ? fallbacklibtool : nil), "couldn't find libtool in default toolchain")
+            return try #require(
+                defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "libtool")
+                    ?? defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "llvm-ar")
+                    ?? (localFS.exists(fallbacklibtool) ? fallbacklibtool : nil),
+                "couldn't find libtool in default toolchain"
+            )
         }
     }
 
@@ -260,13 +265,13 @@ extension CoreBasedTests {
     package var supportsSDKImports: Bool {
         get async throws {
             #if os(macOS)
-            let (core, defaultToolchain) = try await coreAndToolchain()
-            let toolPath = try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld"), "couldn't find ld in default toolchain")
-            let mockProducer = try await MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: PseudoFS())
-            let toolsInfo = await SWBCore.discoveredLinkerToolsInfo(mockProducer, AlwaysDeferredCoreClientDelegate(), at: toolPath)
-            return (try? toolsInfo?.toolVersion >= .init("1164")) == true
+                let (core, defaultToolchain) = try await coreAndToolchain()
+                let toolPath = try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "ld"), "couldn't find ld in default toolchain")
+                let mockProducer = try await MockCommandProducer(core: getCore(), productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: PseudoFS())
+                let toolsInfo = await SWBCore.discoveredLinkerToolsInfo(mockProducer, AlwaysDeferredCoreClientDelegate(), at: toolPath)
+                return (try? toolsInfo?.toolVersion >= .init("1164")) == true
             #else
-            return false
+                return false
             #endif
         }
     }
@@ -316,7 +321,7 @@ extension CoreBasedTests {
     }
     package func linkPath(_ targetArchitecture: String) async throws -> Path? {
         let (core, defaultToolchain) = try await self.coreAndToolchain()
-        let prefixMapping =  ["aarch64" : "arm64", "arm64ec" : "arm64", "armv7" : "arm", "x86_64": "x64", "i686": "x86"]
+        let prefixMapping = ["aarch64": "arm64", "arm64ec": "arm64", "armv7": "arm", "x86_64": "x64", "i686": "x86"]
 
         guard let prefix = prefixMapping[targetArchitecture] else {
             return nil
@@ -371,7 +376,7 @@ private final class AlwaysDeferredCoreClientDelegate: CoreClientDelegate, CoreCl
         _diagnosticsEngine.hasErrors
     }
 
-    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         .deferred
     }
 }

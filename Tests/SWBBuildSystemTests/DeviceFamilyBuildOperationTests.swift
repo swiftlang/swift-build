@@ -123,7 +123,7 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
     }
 
     /// Tests `TARGETED_DEVICE_FAMILY` filtering in conjunction with some Mac Catalyst specifics such as deployment target and variance between product types.
-    @Test(.requireSDKs(.iOS, .macOS)) // rdar://94648014 (Mac Catalyst builds may still attempt to use the iOS SDK)
+    @Test(.requireSDKs(.iOS, .macOS))  // rdar://94648014 (Mac Catalyst builds may still attempt to use the iOS SDK)
     func targetedDeviceFamilyFilteringMacCatalyst() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testProject = TestProject(
@@ -134,7 +134,7 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
                     path: "",
                     children: [
                         TestFile("Assets.xcassets"),
-                        TestFile("Info.plist")
+                        TestFile("Info.plist"),
                     ]
                 ),
                 buildConfigurations: [
@@ -147,7 +147,7 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
                             "SDKROOT": "iphoneos",
                             "SUPPORTS_MACCATALYST": "YES",
                             "TARGETED_DEVICE_FAMILY": "2,6",
-                            "VERSIONING_SYSTEM": "apple-generic"
+                            "VERSIONING_SYSTEM": "apple-generic",
                         ]
                     )
                 ],
@@ -159,7 +159,7 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist",
+                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist"
                                 ]
                             )
                         ],
@@ -175,7 +175,7 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist",
+                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist"
                                 ]
                             )
                         ],
@@ -190,24 +190,27 @@ fileprivate struct DeviceFamilyBuildOperationTests: CoreBasedTests {
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist",
+                                    "INFOPLIST_FILE": "$(SRCROOT)/Info.plist"
                                 ]
                             )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase(["Assets.xcassets"])
                         ]
-                    )
+                    ),
                 ]
             )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let SRCROOT = tmpDirPath
 
-            try await tester.fs.writePlist(SRCROOT.join("Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             try await tester.fs.writeAssetCatalog(SRCROOT.join("Assets.xcassets"), .root, .appIcon("AppIcon"))
 

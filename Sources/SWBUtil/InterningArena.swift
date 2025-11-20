@@ -54,7 +54,7 @@ public final class InterningArena<T: Hashable & Sendable> {
 }
 
 @available(*, unavailable)
-extension InterningArena: Sendable { }
+extension InterningArena: Sendable {}
 
 public final class FrozenInterningArena<T: Hashable & Sendable>: Sendable {
     private let items: [T]

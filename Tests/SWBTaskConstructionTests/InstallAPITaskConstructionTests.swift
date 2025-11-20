@@ -29,51 +29,73 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Mock.c")]),
+                    TestFile("Mock.c")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "-",
-                    "DONT_GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SKIP_INSTALL": "NO",
-                    "TAPI_EXEC": tapiToolPath.str])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "-",
+                        "DONT_GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SKIP_INSTALL": "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestAggregateTarget(
                     "ALL",
                     dependencies: [
-                        "Tool", "Fwk", "FwkNoPlist", "FwkNoSrc", "Dylib", "DylibNoSrc"]),
+                        "Tool", "Fwk", "FwkNoPlist", "FwkNoSrc", "Dylib", "DylibNoSrc",
+                    ]
+                ),
                 TestStandardTarget(
                     "Tool",
                     type: .commandLineTool,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Mock.c"])]),
+                        TestSourcesBuildPhase(["Mock.c"])
+                    ]
+                ),
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildConfigurations: [TestBuildConfiguration("Fwk", buildSettings: ["INFOPLIST_FILE": "Info.plist"])],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Mock.c"])]),
+                        TestSourcesBuildPhase(["Mock.c"])
+                    ]
+                ),
                 TestStandardTarget(
                     "FwkNoPlist",
                     type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Mock.c"])]),
+                        TestSourcesBuildPhase(["Mock.c"])
+                    ]
+                ),
                 TestStandardTarget(
                     "FwkNoSrc",
                     type: .framework,
-                    buildPhases: []),
+                    buildPhases: []
+                ),
                 TestStandardTarget(
                     "Dylib",
                     type: .dynamicLibrary,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Mock.c"])]),
+                        TestSourcesBuildPhase(["Mock.c"])
+                    ]
+                ),
                 TestStandardTarget(
                     "DylibNoSrc",
                     type: .dynamicLibrary,
-                    buildPhases: [])])
+                    buildPhases: []
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -103,20 +125,28 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "-",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "-",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -124,7 +154,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])])])
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -143,13 +178,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -158,7 +195,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
 
                     "-x", "objective-c", .anySequence,
                     "--demangle", .anySequence,
@@ -170,7 +207,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
                 ])
@@ -192,13 +229,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             var generateTapiTask: (any PlannedTask)! = nil
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
@@ -211,14 +250,14 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check search paths.
                     "-F/TEST/build/Debug/BuiltProducts",
                     "-L/TEST/build/Debug/BuiltProducts",
                     "-I/TEST/build/Debug/BuiltProducts/include",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
@@ -231,7 +270,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLineMatches([
                     .suffix("codesign"), .anySequence,
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
+                ])
             }
             results.checkNoTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("Fwk.framework.dSYM"))
 
@@ -267,24 +307,32 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "-",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_LANGUAGE": "objective-c++",
-                    "TAPI_LANGUAGE_STANDARD": "c++20",
-                    "TAPI_DEMANGLE": "NO",
-                    "TAPI_EXTRA_PRIVATE_HEADERS": "**/tmp/FooSecret.h FrameworkHeaders/FooPrivate.h",
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "-",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_LANGUAGE": "objective-c++",
+                        "TAPI_LANGUAGE_STANDARD": "c++20",
+                        "TAPI_DEMANGLE": "NO",
+                        "TAPI_EXTRA_PRIVATE_HEADERS": "**/tmp/FooSecret.h FrameworkHeaders/FooPrivate.h",
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -292,7 +340,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])])])
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -311,13 +364,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -326,7 +381,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
 
                     "-x", "objective-c++", .anySequence,
                     "-std=c++20", .anySequence,
@@ -343,7 +398,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
                 ])
@@ -363,13 +418,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             var generateTapiTask: (any PlannedTask)! = nil
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
@@ -382,7 +439,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
 
                     "-x", "objective-c++", .anySequence,
                     "-std=c++20", .anySequence,
@@ -397,7 +454,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-L/TEST/build/Debug/BuiltProducts",
                     "-I/TEST/build/Debug/BuiltProducts/include",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
@@ -411,7 +468,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLineMatches([
                     .suffix("codesign"), .anySequence,
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
+                ])
             }
 
             // Also check the ordering of postprocessing tasks.
@@ -440,30 +498,37 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         }
     }
 
-
     @Test(.requireSDKs(.macOS))
     func frameworkBasicsProjectHeadersEnabled() async throws {
         let testProject = try await TestProject(
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
                     TestFile("FwkInternal.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "GCC_GENERATE_DEBUGGING_SYMBOLS" : "YES",
-                    "DEBUG_INFORMATION_FORMAT" : "dwarf-with-dsym",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_ENABLE_PROJECT_HEADERS": "YES",
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_ENABLE_PROJECT_HEADERS": "YES",
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -472,7 +537,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase(["Fwk.c"]),
                         TestHeadersBuildPhase([
                             TestBuildFile("Fwk.h", headerVisibility: .public),
-                            TestBuildFile("FwkInternal.h")])])])
+                            TestBuildFile("FwkInternal.h"),
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -486,14 +556,13 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let expectedHeaders: PropertyListItem = .plArray([
             .plDict([
                 "type": .plString("public"),
-                "path": .plString("/TEST/build/Debug/Fwk.framework/Headers/Fwk.h")
+                "path": .plString("/TEST/build/Debug/Fwk.framework/Headers/Fwk.h"),
             ]),
             .plDict([
                 "type": .plString("project"),
-                "path": .plString("/TEST/Sources/FwkInternal.h")
-            ])
+                "path": .plString("/TEST/Sources/FwkInternal.h"),
+            ]),
         ])
-
 
         // Check the `installapi` build.
         try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
@@ -501,13 +570,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Fwk.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -531,7 +602,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-F/TEST/build/Debug",
                     "-L/TEST/build/Debug",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check SRCROOT search paths
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-generated-files.hmap",
@@ -539,10 +610,10 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-I/TEST/build/aProject.build/Debug/Fwk.build/Fwk-all-target-headers.hmap",
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-project-headers.hmap",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check IO options.
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
 
@@ -564,17 +635,22 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("Fwk.framework.dSYM")) { task in
-                task.checkCommandLine([ "dsymutil", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
-                                        "-o", "/TEST/build/Debug/Fwk.framework.dSYM"]) }
+                task.checkCommandLine([
+                    "dsymutil", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
+                    "-o", "/TEST/build/Debug/Fwk.framework.dSYM",
+                ])
+            }
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
                 task.checkCommandLineMatches([
@@ -585,13 +661,13 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check build products search paths
                     "-F/TEST/build/Debug/BuiltProducts",
                     "-L/TEST/build/Debug/BuiltProducts",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check SRCROOT search paths
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-generated-files.hmap",
@@ -599,10 +675,10 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-I/TEST/build/aProject.build/Debug/Fwk.build/Fwk-all-target-headers.hmap",
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-project-headers.hmap",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check IO options.
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
                 ])
@@ -616,16 +692,24 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "GENERATE_TEXT_BASED_STUBS": "YES",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_TEXT_BASED_STUBS": "YES",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -633,7 +717,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])])])
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `install` build performs the stubify step.
@@ -651,7 +740,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
                     "-o",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
+                ])
             }
         }
     }
@@ -663,21 +753,29 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Core.h"),
                     TestFile("CoreInternal.h"),
-                    TestFile("Core.c")]),
+                    TestFile("Core.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "-",
-                    "EXECUTABLE_PREFIX": "lib",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "-",
+                        "EXECUTABLE_PREFIX": "lib",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Core",
@@ -686,7 +784,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase(["Core.c"]),
                         TestHeadersBuildPhase([
                             TestBuildFile("Core.h", headerVisibility: .public),
-                            TestBuildFile("CoreInternal.h")])])])
+                            TestBuildFile("CoreInternal.h"),
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let tapiVersion = try await discoveredTAPIToolInfo(at: tapiToolPath).toolVersion ?? Version()
@@ -694,7 +797,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let expectedHeaders: PropertyListItem = .plArray([
             .plDict([
                 "type": .plString("public"),
-                "path": .plString("/tmp/aProject.dst/usr/local/include/Core.h")
+                "path": .plString("/tmp/aProject.dst/usr/local/include/Core.h"),
             ])
         ])
 
@@ -708,7 +811,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Core.h",
-                    "/tmp/aProject.dst/usr/local/include"])
+                    "/tmp/aProject.dst/usr/local/include",
+                ])
             }
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Core.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -735,13 +839,13 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-L/TEST/build/Debug",
                     "-I/TEST/build/Debug/include",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check IO options.
                     "-filelist", "/TEST/build/aProject.build/Debug/Core.build/Core.json",
                     "-o",
                     "/tmp/aProject.dst/usr/local/lib/libCore.tbd", .anySequence,
-                    "--product-name=Core"
+                    "--product-name=Core",
 
                 ])
             }
@@ -753,7 +857,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Core.h",
-                    "/tmp/aProject.dst/usr/local/include"])
+                    "/tmp/aProject.dst/usr/local/include",
+                ])
             }
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Core.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -782,19 +887,20 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-L/TEST/build/Debug",
                     "-I/TEST/build/Debug/include",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check IO options.
                     "-filelist", "/TEST/build/aProject.build/Debug/Core.build/Core.json",
                     "-o",
                     "/tmp/aProject.dst/usr/local/lib/libCore.tbd", .anySequence,
-                    "--product-name=Core"
+                    "--product-name=Core",
                 ])
             }
             results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemBasename("libCore.tbd")) { task in
                 task.checkCommandLineMatches([
                     .suffix("codesign"), .anySequence,
-                    "/tmp/aProject.dst/usr/local/lib/libCore.tbd"])
+                    "/tmp/aProject.dst/usr/local/lib/libCore.tbd",
+                ])
             }
         }
     }
@@ -806,21 +912,29 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Core.h"),
                     TestFile("CoreInternal.h"),
-                    TestFile("Core.c")]),
+                    TestFile("Core.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "EXECUTABLE_PREFIX": "lib",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_ENABLE_PROJECT_HEADERS":  "YES",
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "EXECUTABLE_PREFIX": "lib",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_ENABLE_PROJECT_HEADERS": "YES",
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Core",
@@ -829,7 +943,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase(["Core.c"]),
                         TestHeadersBuildPhase([
                             TestBuildFile("Core.h", headerVisibility: .public),
-                            TestBuildFile("CoreInternal.h")])])])
+                            TestBuildFile("CoreInternal.h"),
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let tapiVersion = try await discoveredTAPIToolInfo(at: tapiToolPath).toolVersion ?? Version()
@@ -837,12 +956,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let expectedHeaders: PropertyListItem = .plArray([
             .plDict([
                 "type": .plString("public"),
-                "path": .plString("/tmp/aProject.dst/usr/local/include/Core.h")
+                "path": .plString("/tmp/aProject.dst/usr/local/include/Core.h"),
             ]),
             .plDict([
                 "type": .plString("project"),
-                "path": .plString("/TEST/Sources/CoreInternal.h")
-            ])
+                "path": .plString("/TEST/Sources/CoreInternal.h"),
+            ]),
         ])
 
         // Check the `installapi` build.
@@ -880,12 +999,11 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-iquote", "/TEST/build/aProject.build/Debug/Core.build/Core-project-headers.hmap",
                     .anySequence,
 
-
                     // Check IO options.
                     "-filelist", "/TEST/build/aProject.build/Debug/Core.build/Core.json",
                     "-o",
                     "/tmp/aProject.dst/usr/local/lib/libCore.tbd", .anySequence,
-                    "--product-name=Core"
+                    "--product-name=Core",
                 ])
             }
         }
@@ -896,7 +1014,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Core.h",
-                    "/tmp/aProject.dst/usr/local/include"])
+                    "/tmp/aProject.dst/usr/local/include",
+                ])
             }
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Core.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -936,12 +1055,11 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-filelist", "/TEST/build/aProject.build/Debug/Core.build/Core.json",
                     "-o",
                     "/tmp/aProject.dst/usr/local/lib/libCore.tbd", .anySequence,
-                    "--product-name=Core"
+                    "--product-name=Core",
                 ])
             }
         }
     }
-
 
     @Test(.requireSDKs(.macOS))
     func dylibStubifyMode() async throws {
@@ -949,16 +1067,24 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Core.h"),
-                    TestFile("Core.c")]),
+                    TestFile("Core.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "EXECUTABLE_PREFIX": "lib",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "GENERATE_TEXT_BASED_STUBS": "YES",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "EXECUTABLE_PREFIX": "lib",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_TEXT_BASED_STUBS": "YES",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Core",
@@ -966,7 +1092,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Core.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Core.h", headerVisibility: .public)])])])
+                            TestBuildFile("Core.h", headerVisibility: .public)
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `install` build performs the stubify step.
@@ -984,7 +1115,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     // Check IO options.
                     "/tmp/aProject.dst/usr/local/lib/libCore.dylib",
                     "-o",
-                    "/tmp/aProject.dst/usr/local/lib/libCore.tbd"])
+                    "/tmp/aProject.dst/usr/local/lib/libCore.tbd",
+                ])
             }
         }
     }
@@ -996,37 +1128,51 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Core.h"),
-                    TestFile("Core.c")]),
+                    TestFile("Core.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "EXECUTABLE_PREFIX": "lib",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "GENERATE_TEXT_BASED_STUBS": "YES",
-                    "SKIP_INSTALL": "NO",
-                    "LIBTOOL": libtoolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "EXECUTABLE_PREFIX": "lib",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "GENERATE_TEXT_BASED_STUBS": "YES",
+                        "SKIP_INSTALL": "NO",
+                        "LIBTOOL": libtoolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestAggregateTarget(
                     "All",
-                    dependencies: ["CoreKit", "Core", "CoreKitWrongType", "CoreWrongType"]),
+                    dependencies: ["CoreKit", "Core", "CoreKitWrongType", "CoreWrongType"]
+                ),
                 TestStandardTarget(
                     "CoreKit",
                     type: .staticFramework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Core.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Core.h", headerVisibility: .public)])]),
+                            TestBuildFile("Core.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "Core",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["Core.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Core.h", headerVisibility: .public)])]),
+                            TestBuildFile("Core.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "CoreKitWrongType",
                     type: .framework,
@@ -1036,7 +1182,10 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Core.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Core.h", headerVisibility: .public)])]),
+                            TestBuildFile("Core.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "CoreWrongType",
                     type: .dynamicLibrary,
@@ -1046,7 +1195,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Core.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Core.h", headerVisibility: .public)])])])
+                            TestBuildFile("Core.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `install` build performs the stubify step.
@@ -1063,14 +1217,20 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [TestFile("Fwk.c"), TestFile("Fwk.h")]),
+                "SomeFiles",
+                path: "Sources",
+                children: [TestFile("Fwk.c"), TestFile("Fwk.h")]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SKIP_INSTALL": "NO",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SKIP_INSTALL": "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
+            ],
             targets: [
                 TestAggregateTarget(
                     "ALL",
@@ -1083,110 +1243,155 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         "BadFwk",
                         "BadDynamicLib",
                         "BadStaticLibWrongType",
-                        "BadStaticFrameworkWrongType"]),
+                        "BadStaticFrameworkWrongType",
+                    ]
+                ),
 
                 // These frameworks are ok because they have no installed headers.
                 TestStandardTarget(
                     "OkFwk1",
                     type: .framework,
-                    buildPhases: []),
+                    buildPhases: []
+                ),
                 TestStandardTarget(
                     "OkFwk2",
                     type: .framework,
-                    buildPhases: [TestHeadersBuildPhase([])]),
+                    buildPhases: [TestHeadersBuildPhase([])]
+                ),
                 TestStandardTarget(
                     "OkFwk3",
                     type: .framework,
-                    buildPhases: [TestHeadersBuildPhase([
-                        TestBuildFile("Fwk.h")])]),
+                    buildPhases: [
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Fwk.h")
+                        ])
+                    ]
+                ),
 
                 TestStandardTarget(
                     "OkBecauseIsApp1",
                     type: .application,
-                    buildPhases: []),
+                    buildPhases: []
+                ),
 
                 TestStandardTarget(
                     "OkBecauseIsApp2",
                     type: .application,
-                    buildPhases: [TestHeadersBuildPhase([])]),
+                    buildPhases: [TestHeadersBuildPhase([])]
+                ),
 
                 TestStandardTarget(
                     "OkBecauseIsApp3",
                     type: .application,
-                    buildPhases: [TestHeadersBuildPhase([
-                        TestBuildFile("Fwk.h")])]),
-
+                    buildPhases: [
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Fwk.h")
+                        ])
+                    ]
+                ),
 
                 // This library should be skipped because it is static and contains no Swift sources.
                 TestStandardTarget(
                     "OkBecauseIsStatic1",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/static1/include",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/static1/include"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Fwk.c")]),
+                            TestBuildFile("Fwk.c")
+                        ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])]),
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
 
                 // This library should be skipped because it is static and contains no Swift sources.
                 TestStandardTarget(
                     "OkBecauseIsStatic2",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MACH_O_TYPE": "staticlib",
-                            "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/static2/include",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MACH_O_TYPE": "staticlib",
+                                "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/static2/include",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Fwk.c")]),
+                            TestBuildFile("Fwk.c")
+                        ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])]),
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
 
                 // This library should produce an error because it is static and contains no Swift sources.
                 TestStandardTarget(
                     "BadStaticLib1",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/badstatic1/include",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/badstatic1/include",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Fwk.c")]),
+                            TestBuildFile("Fwk.c")
+                        ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])]),
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
 
                 // This library should produce an error because it is static and contains no Swift sources.
                 TestStandardTarget(
                     "BadStaticLib2",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MACH_O_TYPE": "staticlib",
-                            "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/badstatic2/include",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MACH_O_TYPE": "staticlib",
+                                "PUBLIC_HEADERS_FOLDER_PATH": "/usr/local/badstatic2/include",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Fwk.c")]),
+                            TestBuildFile("Fwk.c")
+                        ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])]),
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
 
                 // This framework should be skipped because it contains no sources (and thus won't generate an actual binary).
                 TestStandardTarget(
                     "BadFwkNoSrc",
                     type: .framework,
-                    buildPhases: [TestHeadersBuildPhase([
-                        TestBuildFile("Fwk.h", headerVisibility: .public)])]),
+                    buildPhases: [
+                        TestHeadersBuildPhase([
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ])
+                    ]
+                ),
 
                 // This framework should produce an error.
                 TestStandardTarget(
@@ -1194,9 +1399,13 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Fwk.c")]),
+                            TestBuildFile("Fwk.c")
+                        ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])]),
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
 
                 // This library should produce an error.
                 TestStandardTarget(
@@ -1204,32 +1413,45 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     type: .dynamicLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("Fwk.c")]),
+                            TestBuildFile("Fwk.c")
+                        ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])]),
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
 
                 // Only dynamic libraries and frameworks are supported
                 TestStandardTarget(
                     "BadStaticLibWrongType",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MACH_O_TYPE": "mh_execute",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MACH_O_TYPE": "mh_execute",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                            ]
+                        )
                     ],
-                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Fwk.c")])]),
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Fwk.c")])]
+                ),
                 TestStandardTarget(
                     "BadStaticFrameworkWrongType",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "MACH_O_TYPE": "mh_execute",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "MACH_O_TYPE": "mh_execute",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                            ]
+                        )
                     ],
-                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Fwk.c")])]),
-            ])
+                    buildPhases: [TestSourcesBuildPhase([TestBuildFile("Fwk.c")])]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
@@ -1245,37 +1467,47 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.swift"),
-                ]),
+                    TestFile("Foo.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SKIP_INSTALL": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "MACH_O_TYPE": "staticlib"
-                ])],
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SKIP_INSTALL": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "MACH_O_TYPE": "staticlib",
+                    ]
+                )
+            ],
             targets: [
                 TestAggregateTarget(
                     "ALL",
-                    dependencies: ["FooDynamicLib", "FooStaticLib"]),
+                    dependencies: ["FooDynamicLib", "FooStaticLib"]
+                ),
                 TestStandardTarget(
                     "FooDynamicLib",
                     type: .dynamicLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["Foo.swift"])
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "FooStaticLib",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["Foo.swift"])
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         func checkTarget(results: TaskConstructionTester.PlanningResults, target: ConfiguredTarget) {
             results.checkNoDiagnostics()
@@ -1286,7 +1518,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineMatches([
                     "builtin-Swift-Compilation-Requirements", "--", .suffix("swiftc"), "-module-name", .anySequence, .and(.prefix("@"), .suffix("SwiftFileList")), .anySequence,
                     // Check we forced WMO mode.
-                    "-whole-module-optimization", .anySequence
+                    "-whole-module-optimization", .anySequence,
                 ])
 
                 // We shouldn't have a '-c'.
@@ -1310,30 +1542,38 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Foo.swift")
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SKIP_INSTALL": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "REEXPORTED_LIBRARY_NAMES": "libA libB",
-                    "REEXPORTED_LIBRARY_PATHS": "/tmp/libA /tmp/libB",
-                    "REEXPORTED_FRAMEWORK_NAMES": "SubFrameA SubFrameB",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SKIP_INSTALL": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "REEXPORTED_LIBRARY_NAMES": "libA libB",
+                        "REEXPORTED_LIBRARY_PATHS": "/tmp/libA /tmp/libB",
+                        "REEXPORTED_FRAMEWORK_NAMES": "SubFrameA SubFrameB",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "FooFramework",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Foo.swift"])
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in
             // Check that the VFS is generated.
@@ -1360,26 +1600,32 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.swift"),
-                    TestFile("App.swift")
-                ]),
+                    TestFile("App.swift"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SKIP_INSTALL": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "TAPI_SHARED_CACHE_ELIGIBLE": "NO",
-                    "TAPI_ENABLE_MODULES": "YES",
-                    "DYLIB_CURRENT_VERSION": "2.0",
-                    "DYLIB_COMPATIBILITY_VERSION": "1.0",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SKIP_INSTALL": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "TAPI_SHARED_CACHE_ELIGIBLE": "NO",
+                        "TAPI_ENABLE_MODULES": "YES",
+                        "DYLIB_CURRENT_VERSION": "2.0",
+                        "DYLIB_COMPATIBILITY_VERSION": "1.0",
+                    ]
+                )
+            ],
             targets: [
                 TestAggregateTarget("All", dependencies: ["App", "Fwk"]),
                 TestStandardTarget(
@@ -1387,15 +1633,18 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ]),
+                    ]
+                ),
 
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase(["App.swift"])
-                    ])
-            ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let tapiVersion = try await discoveredTAPIToolInfo(at: tapiToolPath).toolVersion ?? Version()
 
@@ -1420,7 +1669,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         "-Xfrontend", "-tbd-compatibility-version", "-Xfrontend", "1.0", .anySequence,
                         // Check we forced WMO mode.
                         "-whole-module-optimization", .anySequence,
-                        "-emit-objc-header", "-emit-objc-header-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Fwk-Swift.h"
+                        "-emit-objc-header", "-emit-objc-header-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Fwk-Swift.h",
                     ])
 
                     // We shouldn't have a '-c'.
@@ -1435,14 +1684,14 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                         "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                            .anySequence,
+                        .anySequence,
 
                         // Check search paths.
                         "-F/TEST/build/Debug",
                         "-L/TEST/build/Debug",
                         "-I/TEST/build/Debug/include",
 
-                            .anySequence,
+                        .anySequence,
 
                         // Check IO options.
                         "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
@@ -1453,8 +1702,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         StringPattern.and(.prefix("-L/"), .contains(".xctoolchain/")),
                         StringPattern.and(.prefix("-L/"), .suffix(".sdk/usr/lib/swift")),
                         "-exclude-public-header", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers/Fwk-Swift.h",
-                        "-swift-installapi-interface", .suffix("\(results.runDestinationTargetArchitecture)/Swift-API.tbd")
-                    ] )
+                        "-swift-installapi-interface", .suffix("\(results.runDestinationTargetArchitecture)/Swift-API.tbd"),
+                    ])
 
                     // Check version specific options
                     if tapiVersion >= Version(1600, 0, 6) {
@@ -1493,35 +1742,42 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "ProjectName",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File2.swift"),
-                ]),
+                    TestFile("File2.swift")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "ProductName",
-                            "ARCHS": "x86_64",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "TAPI_EXEC": tapiToolPath.str,
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                            "SDKROOT": sdkRoot
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "ProductName",
+                                "ARCHS": "x86_64",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                                "SDKROOT": sdkRoot,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File2.swift"),
-                        ]),
+                            TestBuildFile("File2.swift")
+                        ])
                     ],
                     buildRules: [
-                        TestBuildRule(filePattern: "*.swift",
-                                      script: "cp $INPUT_FILE_PATH /tmp/b",
-                                      outputs: ["/tmp/b"])
+                        TestBuildRule(
+                            filePattern: "*.swift",
+                            script: "cp $INPUT_FILE_PATH /tmp/b",
+                            outputs: ["/tmp/b"]
+                        )
                     ]
                 )
             ]
@@ -1554,32 +1810,37 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "ProjectName",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File2.swift"),
-                ]),
+                    TestFile("File2.swift")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "TargetName",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "ProductName",
-                            "ARCHS": "x86_64",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "TAPI_EXEC": tapiToolPath.str,
-                            "TAPI_VERIFY_MODE": "ErrorsOnly",
-                            "TAPI_USE_SRCROOT": "NO",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                            "SDKROOT": sdkRoot
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "ProductName",
+                                "ARCHS": "x86_64",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                                "TAPI_VERIFY_MODE": "ErrorsOnly",
+                                "TAPI_USE_SRCROOT": "NO",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                                "SDKROOT": sdkRoot,
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File2.swift"),
-                        ]),
+                            TestBuildFile("File2.swift")
+                        ])
                     ]
                 )
             ]
@@ -1610,7 +1871,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         "-Xfrontend", "-experimental-skip-non-inlinable-function-bodies", .anySequence,
                         // Check we forced WMO mode.
                         "-whole-module-optimization", .anySequence,
-                        "-emit-objc-header", "-emit-objc-header-path", .suffix("x86_64/ProductName-Swift.h")
+                        "-emit-objc-header", "-emit-objc-header-path", .suffix("x86_64/ProductName-Swift.h"),
                     ])
 
                     // We shouldn't have a '-c'.
@@ -1625,20 +1886,20 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                         "-target", StringPattern.prefix("x86_64-apple"),
 
-                            .anySequence,
+                        .anySequence,
 
                         // Check search paths.
                         "-F/TEST/build/Debug",
                         "-L/TEST/build/Debug",
                         "-I/TEST/build/Debug/include",
 
-                            .anySequence,
+                        .anySequence,
 
                         "-o", "/tmp/ProjectName.dst/usr/local/lib/ProductName.tbd",
                         StringPattern.and(.prefix("-L/"), .contains(".xctoolchain/")),
                         StringPattern.and(.prefix("-L/"), .suffix(".sdk/usr/lib/swift")),
                         "-exclude-public-header", "/TEST/build/ProjectName.build/Debug/TargetName.build/DerivedSources/ProductName-Swift.h",
-                        "-swift-installapi-interface", .suffix("x86_64/Swift-API.tbd"), .anySequence, "--product-name=ProductName"
+                        "-swift-installapi-interface", .suffix("x86_64/Swift-API.tbd"), .anySequence, "--product-name=ProductName",
                     ])
 
                     task.checkCommandLineNoMatch([.suffix("File2.swift")])
@@ -1659,28 +1920,39 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Fwk.swift")]),
+                    TestFile("Fwk.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64 arm64e",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SKIP_INSTALL": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64 arm64e",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SKIP_INSTALL": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Fwk.swift"])])])
+                        TestSourcesBuildPhase(["Fwk.swift"])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `installapi` build.
@@ -1704,7 +1976,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/Fwk", .anySequence,
                         // Check we forced WMO mode.
                         "-whole-module-optimization", .anySequence,
-                        "-emit-objc-header", "-emit-objc-header-path", .equal("/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/\(arch)/Fwk-Swift.h")
+                        "-emit-objc-header", "-emit-objc-header-path", .equal("/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/\(arch)/Fwk-Swift.h"),
                     ])
 
                     // We shouldn't have a '-c'.
@@ -1718,39 +1990,46 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             // Check that we generated correct TAPI installapi invocation.
             results.checkTask(.matchRuleType("GenerateTAPI"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 // check TAPI options.
-                task.checkCommandLineMatches([
-                    StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence] +
+                task.checkCommandLineMatches(
+                    [
+                        StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
+                    ]
+                        +
 
-                                             archs.map{ [StringPattern.equal("-target"), StringPattern.prefix("\($0)-apple")] }.joined() +
+                        archs.map { [StringPattern.equal("-target"), StringPattern.prefix("\($0)-apple")] }.joined() +
 
-                                             [.anySequence,
+                        [
+                            .anySequence,
 
-                                              // Check search paths.
-                                              "-F/TEST/build/Debug-iphoneos",
-                                              "-L/TEST/build/Debug-iphoneos",
-                                              "-I/TEST/build/Debug-iphoneos/include", .anySequence,
+                            // Check search paths.
+                            "-F/TEST/build/Debug-iphoneos",
+                            "-L/TEST/build/Debug-iphoneos",
+                            "-I/TEST/build/Debug-iphoneos/include", .anySequence,
 
-                                              // Check IO options.
-                                              "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
+                            // Check IO options.
+                            "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
 
-                                              "-filelist", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Fwk.json",
-                                              "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                            "-filelist", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Fwk.json",
+                            "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
 
-                                              // Check Swift options.
-                                              StringPattern.and(.prefix("-L/"), .contains(".xctoolchain/")),
-                                              StringPattern.and(.prefix("-L/"), .suffix(".sdk/usr/lib/swift")),
-                                              "-exclude-public-header", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h",
-                                              "-swift-installapi-interface", .suffix("arm64/Swift-API.tbd"),
-                                              "-swift-installapi-interface", .suffix("arm64e/Swift-API.tbd")
-                                             ])
+                            // Check Swift options.
+                            StringPattern.and(.prefix("-L/"), .contains(".xctoolchain/")),
+                            StringPattern.and(.prefix("-L/"), .suffix(".sdk/usr/lib/swift")),
+                            "-exclude-public-header", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h",
+                            "-swift-installapi-interface", .suffix("arm64/Swift-API.tbd"),
+                            "-swift-installapi-interface", .suffix("arm64e/Swift-API.tbd"),
+                        ]
+                )
             }
 
             // Check that we generate a copy of the compatibility header.
             results.checkTask(.matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("Fwk-Swift.h")) { task in
-                task.checkCommandLine(["builtin-swiftHeaderTool",
-                                       "-arch", "arm64", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64/Fwk-Swift.h",
-                                       "-arch", "arm64e", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64e/Fwk-Swift.h",
-                                       "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h"])
+                task.checkCommandLine([
+                    "builtin-swiftHeaderTool",
+                    "-arch", "arm64", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64/Fwk-Swift.h",
+                    "-arch", "arm64e", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64e/Fwk-Swift.h",
+                    "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h",
+                ])
             }
         }
     }
@@ -1763,29 +2042,39 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.swift"),
-                    TestVariantGroup("Intents.intentdefinition", children: [
-                        TestFile("Base.lproj/Intents.intentdefinition"),
-                        TestFile("en.lproj/Intents.strings", regionVariantName: "en"),
-                        TestFile("de.lproj/Intents.strings", regionVariantName: "de"),
-                    ])]),
+                    TestVariantGroup(
+                        "Intents.intentdefinition",
+                        children: [
+                            TestFile("Base.lproj/Intents.intentdefinition"),
+                            TestFile("en.lproj/Intents.strings", regionVariantName: "en"),
+                            TestFile("de.lproj/Intents.strings", regionVariantName: "de"),
+                        ]
+                    ),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "arm64 arm64e",
-                    "BUILD_VARIANTS": "normal asan",
-                    "SDKROOT": "iphoneos",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SKIP_INSTALL": "NO",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "INTENTS_CODEGEN_LANGUAGE": "Swift",
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "arm64 arm64e",
+                        "BUILD_VARIANTS": "normal asan",
+                        "SDKROOT": "iphoneos",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SKIP_INSTALL": "NO",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "INTENTS_CODEGEN_LANGUAGE": "Swift",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -1793,16 +2082,22 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "Fwk.swift",
-                            TestBuildFile("Intents.intentdefinition", intentsCodegenVisibility: .public)]),])])
+                            TestBuildFile("Intents.intentdefinition", intentsCodegenVisibility: .public),
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         final class Delegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "intentbuilderc",
-                   let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
-                   let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),
-                   let language = commandLine.elementAfterElements(["-language"]),
-                   let visibility = commandLine.elementAfterElements(["-visibility"]) {
+                    let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
+                    let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),
+                    let language = commandLine.elementAfterElements(["-language"]),
+                    let visibility = commandLine.elementAfterElements(["-visibility"])
+                {
                     if visibility != "public" {
                         throw StubError.error("Visibility should be public")
                     }
@@ -1842,7 +2137,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                             "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/\(variant == "normal" ? "Fwk" : "Fwk_\(variant)")", .anySequence,
                             // Check we forced WMO mode.
                             "-whole-module-optimization", .anySequence,
-                            "-emit-objc-header", "-emit-objc-header-path", .equal("/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-\(variant)/\(arch)/Fwk-Swift.h")
+                            "-emit-objc-header", "-emit-objc-header-path", .equal("/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-\(variant)/\(arch)/Fwk-Swift.h"),
                         ])
 
                         // We shouldn't have a '-c'.
@@ -1858,39 +2153,46 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                 // Check that we generated correct TAPI installapi invocation.
                 results.checkTask(.matchRuleType("GenerateTAPI"), .matchRuleItemBasename(tapiTBDName)) { task in
                     // check TAPI options.
-                    task.checkCommandLineMatches([
-                        StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence] +
+                    task.checkCommandLineMatches(
+                        [
+                            StringPattern.equal(tapiToolPath.str), "installapi", "--verify-mode=ErrorsOnly", .anySequence,
+                        ]
+                            +
 
-                                                 archs.map{ [StringPattern.equal("-target"), StringPattern.prefix("\($0)-apple")] }.joined() +
+                            archs.map { [StringPattern.equal("-target"), StringPattern.prefix("\($0)-apple")] }.joined() +
 
-                                                 [.anySequence,
+                            [
+                                .anySequence,
 
-                                                  // Check search paths.
-                                                  "-F/TEST/build/Debug-iphoneos",
-                                                  "-L/TEST/build/Debug-iphoneos",
-                                                  "-I/TEST/build/Debug-iphoneos/include", .anySequence,
+                                // Check search paths.
+                                "-F/TEST/build/Debug-iphoneos",
+                                "-L/TEST/build/Debug-iphoneos",
+                                "-I/TEST/build/Debug-iphoneos/include", .anySequence,
 
-                                                  // Check IO options.
-                                                  "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
-                                                  "-filelist", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Fwk.json",
-                                                  "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/\(tapiTBDName)",
+                                // Check IO options.
+                                "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
+                                "-filelist", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Fwk.json",
+                                "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/\(tapiTBDName)",
 
-                                                  // Check Swift options.
-                                                  StringPattern.and(.prefix("-L/"), .contains(".xctoolchain/")),
-                                                  StringPattern.and(.prefix("-L/"), .suffix(".sdk/usr/lib/swift")),
-                                                  "-exclude-public-header", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h",
-                                                  "-swift-installapi-interface", .suffix("arm64/Swift-API.tbd"),
-                                                  "-swift-installapi-interface", .suffix("arm64e/Swift-API.tbd")
-                                                 ])
+                                // Check Swift options.
+                                StringPattern.and(.prefix("-L/"), .contains(".xctoolchain/")),
+                                StringPattern.and(.prefix("-L/"), .suffix(".sdk/usr/lib/swift")),
+                                "-exclude-public-header", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h",
+                                "-swift-installapi-interface", .suffix("arm64/Swift-API.tbd"),
+                                "-swift-installapi-interface", .suffix("arm64e/Swift-API.tbd"),
+                            ]
+                    )
                 }
             }
 
             // Check that we generate a copy of the compatibility header.
             results.checkTask(.matchRuleType("SwiftMergeGeneratedHeaders"), .matchRuleItemBasename("Fwk-Swift.h")) { task in
-                task.checkCommandLine(["builtin-swiftHeaderTool",
-                                       "-arch", "arm64", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64/Fwk-Swift.h",
-                                       "-arch", "arm64e", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64e/Fwk-Swift.h",
-                                       "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h"])
+                task.checkCommandLine([
+                    "builtin-swiftHeaderTool",
+                    "-arch", "arm64", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64/Fwk-Swift.h",
+                    "-arch", "arm64e", "/TEST/build/aProject.build/Debug-iphoneos/Fwk.build/Objects-normal/arm64e/Fwk-Swift.h",
+                    "-o", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Headers/Fwk-Swift.h",
+                ])
             }
 
             results.checkTask(.matchRuleType("IntentDefinitionCodegen")) { task in
@@ -1908,33 +2210,48 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Src.swift")]),
+                    TestFile("Src.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SKIP_INSTALL": "NO",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SKIP_INSTALL": "NO",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "BadApp",
                     type: .application,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Src.swift"])],
-                    dependencies: ["BadDylib", "BadFwk"]),
+                        TestSourcesBuildPhase(["Src.swift"])
+                    ],
+                    dependencies: ["BadDylib", "BadFwk"]
+                ),
                 TestStandardTarget(
                     "BadDylib",
                     type: .dynamicLibrary,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Src.swift"])]),
+                        TestSourcesBuildPhase(["Src.swift"])
+                    ]
+                ),
                 TestStandardTarget(
                     "BadFwk",
                     type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Src.swift"])])])
+                        TestSourcesBuildPhase(["Src.swift"])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `installapi` build.
@@ -1958,49 +2275,67 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Src.swift")]),
+                    TestFile("Src.swift")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "iphoneos",
-                    "SKIP_INSTALL": "NO",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "SKIP_INSTALL": "NO",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
 
-                    "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES",
+                        "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES",
 
-                    // Conventional settings when using Swift InstallAPI
-                    "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
-                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                    "DEFINES_MODULE": "NO",
-                ])],
+                        // Conventional settings when using Swift InstallAPI
+                        "SWIFT_OBJC_INTERFACE_HEADER_NAME": "",
+                        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                        "DEFINES_MODULE": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "BadApp",
                     type: .application,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Src.swift"])],
-                    dependencies: ["FwkPrivate", "FwkPublic"]),
+                        TestSourcesBuildPhase(["Src.swift"])
+                    ],
+                    dependencies: ["FwkPrivate", "FwkPublic"]
+                ),
                 TestStandardTarget(
                     "FwkPrivate",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Src.swift"])]),
+                        TestSourcesBuildPhase(["Src.swift"])
+                    ]
+                ),
                 TestStandardTarget(
                     "FwkPublic",
                     type: .framework,
                     buildPhases: [
-                        TestSourcesBuildPhase(["Src.swift"])],
-                    dependencies: ["FwkPrivate"])])
+                        TestSourcesBuildPhase(["Src.swift"])
+                    ],
+                    dependencies: ["FwkPrivate"]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the `installapi` build.
@@ -2063,63 +2398,71 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "ProjectName",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File2.swift"),
-                ]),
+                    TestFile("File2.swift")
+                ]
+            ),
             targets: [
                 TestAggregateTarget("Aggregate", dependencies: ["PackageProduct"]),
                 TestStandardTarget(
                     "TargetName",
                     type: .objectFile,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "ProductName",
-                            "ARCHS": "x86_64",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "TAPI_EXEC": tapiToolPath.str,
-                            "TAPI_VERIFY_MODE": "ErrorsOnly",
-                            "TAPI_USE_SRCROOT": "NO",
-                            "SDKROOT": sdkRoot,
-                            // These will be provided in the PIF by SwiftPM.
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                            "TAPI_DYLIB_INSTALL_NAME": "ProductName",
-                            // This will need to be passed by the user to make InstallAPI for packages opt-in.
-                            "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "ProductName",
+                                "ARCHS": "x86_64",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                                "TAPI_VERIFY_MODE": "ErrorsOnly",
+                                "TAPI_USE_SRCROOT": "NO",
+                                "SDKROOT": sdkRoot,
+                                // These will be provided in the PIF by SwiftPM.
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                                "TAPI_DYLIB_INSTALL_NAME": "ProductName",
+                                // This will need to be passed by the user to make InstallAPI for packages opt-in.
+                                "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File2.swift"),
-                        ]),
+                            TestBuildFile("File2.swift")
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "PackageProduct",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "ProductName",
-                            "ARCHS": "x86_64",
-                            "SWIFT_EXEC": swiftCompilerPath.str,
-                            "SWIFT_VERSION": swiftVersion,
-                            "TAPI_EXEC": tapiToolPath.str,
-                            "TAPI_VERIFY_MODE": "ErrorsOnly",
-                            "TAPI_USE_SRCROOT": "NO",
-                            "SDKROOT": sdkRoot,
-                            // These will be provided in the PIF by SwiftPM.
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                            "TAPI_DYLIB_INSTALL_NAME": "ProductName",
-                            // This will need to be passed by the user to make InstallAPI for packages opt-in.
-                            "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "ProductName",
+                                "ARCHS": "x86_64",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                                "TAPI_VERIFY_MODE": "ErrorsOnly",
+                                "TAPI_USE_SRCROOT": "NO",
+                                "SDKROOT": sdkRoot,
+                                // These will be provided in the PIF by SwiftPM.
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                                "TAPI_DYLIB_INSTALL_NAME": "ProductName",
+                                // This will need to be passed by the user to make InstallAPI for packages opt-in.
+                                "INSTALLAPI_IGNORE_SKIP_INSTALL": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestFrameworksBuildPhase([TestBuildFile(.target("TargetName"))]),
-                        TestSourcesBuildPhase([]), // we need a sources build phase for `willProduceBinary` to return true
+                        TestSourcesBuildPhase([]),  // we need a sources build phase for `willProduceBinary` to return true
                     ]
                 ),
             ]
@@ -2150,25 +2493,32 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
                     TestFile("FwkInternal.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "CC": clangCompilerPath.str,
-                    "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
-                    "SKIP_INSTALL": "NO",
-                    "DEFINES_MODULE": "YES",
-                    "CLANG_ENABLE_MODULES": "YES",
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "YES"
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "CC": clangCompilerPath.str,
+                        "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                        "SKIP_INSTALL": "NO",
+                        "DEFINES_MODULE": "YES",
+                        "CLANG_ENABLE_MODULES": "YES",
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "YES",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -2177,7 +2527,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         TestSourcesBuildPhase(["Fwk.c"]),
                         TestHeadersBuildPhase([
                             TestBuildFile("Fwk.h", headerVisibility: .public),
-                            TestBuildFile("FwkInternal.h")])])])
+                            TestBuildFile("FwkInternal.h"),
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -2189,7 +2544,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let expectedHeaders: PropertyListItem = .plArray([
             .plDict([
                 "type": .plString("public"),
-                "path": .plString("/TEST/build/Debug/Fwk.framework/Headers/Fwk.h")
+                "path": .plString("/TEST/build/Debug/Fwk.framework/Headers/Fwk.h"),
             ])
         ])
         // Check the `installapi` build.
@@ -2198,13 +2553,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             try results.checkWriteAuxiliaryFileTask(.matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Fwk.json")) { task, contents in
                 let data = try PropertyList.fromJSONData(contents)
@@ -2227,7 +2584,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-F/TEST/build/Debug",
                     "-L/TEST/build/Debug",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check SRCROOT search paths
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-generated-files.hmap",
@@ -2235,11 +2592,10 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-I/TEST/build/aProject.build/Debug/Fwk.build/Fwk-all-target-headers.hmap",
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-project-headers.hmap",
 
-                        .anySequence,
-
+                    .anySequence,
 
                     // Check IO options.
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
                 ])
@@ -2252,13 +2608,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
 
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
@@ -2271,13 +2629,13 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check build products search paths
                     "-F/TEST/build/Debug/BuiltProducts",
                     "-L/TEST/build/Debug/BuiltProducts",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check SRCROOT search paths
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-generated-files.hmap",
@@ -2285,10 +2643,10 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     "-I/TEST/build/aProject.build/Debug/Fwk.build/Fwk-all-target-headers.hmap",
                     "-iquote", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk-project-headers.hmap",
 
-                        .anySequence,
+                    .anySequence,
 
                     // Check IO options.
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
                 ])
@@ -2303,22 +2661,30 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
                     TestFile("Fwk-iOS.h"),
                     TestFile("Fwk-Excluded.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "SDKROOT": "auto",
-                    "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_ENABLE_PROJECT_HEADERS": "YES",
-                    "EXCLUDED_SOURCE_FILE_NAMES": "Fwk-Excluded.h"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "SDKROOT": "auto",
+                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_ENABLE_PROJECT_HEADERS": "YES",
+                        "EXCLUDED_SOURCE_FILE_NAMES": "Fwk-Excluded.h",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -2328,7 +2694,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                         TestHeadersBuildPhase([
                             TestBuildFile("Fwk.h", headerVisibility: .public),
                             TestBuildFile("Fwk-iOS.h", headerVisibility: .public, platformFilters: PlatformFilter.iOSFilters),
-                            TestBuildFile("Fwk-Excluded.h", headerVisibility: .public)])])])
+                            TestBuildFile("Fwk-Excluded.h", headerVisibility: .public),
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -2338,19 +2709,19 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let expectedMacOSHeaders: PropertyListItem = .plArray([
             .plDict([
                 "type": .plString("public"),
-                "path": .plString("/TEST/build/Debug/Fwk.framework/Headers/Fwk.h")
+                "path": .plString("/TEST/build/Debug/Fwk.framework/Headers/Fwk.h"),
             ])
         ])
 
         let expectedIOSHeaders: PropertyListItem = .plArray([
             .plDict([
                 "type": .plString("public"),
-                "path": .plString("/TEST/build/Debug-iphoneos/Fwk.framework/Headers/Fwk.h")
+                "path": .plString("/TEST/build/Debug-iphoneos/Fwk.framework/Headers/Fwk.h"),
             ]),
             .plDict([
                 "type": .plString("public"),
-                "path": .plString("/TEST/build/Debug-iphoneos/Fwk.framework/Headers/Fwk-iOS.h")
-            ])
+                "path": .plString("/TEST/build/Debug-iphoneos/Fwk.framework/Headers/Fwk-iOS.h"),
+            ]),
         ])
 
         try await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
@@ -2383,7 +2754,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tapiToolPath = try await self.tapiToolPath
         let tapiVersion = try await discoveredTAPIToolInfo(at: tapiToolPath).toolVersion
         guard let version = tapiVersion,
-              version >= TAPIToolSpec.dSYMSupportRequiredVersion else {
+            version >= TAPIToolSpec.dSYMSupportRequiredVersion
+        else {
             return
         }
 
@@ -2391,24 +2763,32 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "-",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "GCC_GENERATE_DEBUGGING_SYMBOLS" : "YES",
-                    "DEBUG_INFORMATION_FORMAT" : "dwarf-with-dsym",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_LANGUAGE": "objective-c++",
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "-",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_LANGUAGE": "objective-c++",
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -2416,7 +2796,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])])])
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -2433,7 +2818,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
                     "-rpath", "@executable_path/../Frameworks", .anySequence,
                     "-rpath", "@loader_path/../Frameworks", .anySequence,
 
@@ -2441,7 +2826,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
                 ])
@@ -2459,17 +2844,21 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("Fwk.framework.dSYM")) { task in
-                task.checkCommandLine([ "dsymutil", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
-                                        "-o", "/TEST/build/Debug/Fwk.framework.dSYM"])
+                task.checkCommandLine([
+                    "dsymutil", "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
+                    "-o", "/TEST/build/Debug/Fwk.framework.dSYM",
+                ])
             }
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -2488,18 +2877,19 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd", .anySequence,
 
                     // Check dSYM Path.
-                    "--dsym=/TEST/build/Debug/Fwk.framework.dSYM"
+                    "--dsym=/TEST/build/Debug/Fwk.framework.dSYM",
                 ])
             }
             results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLineMatches([
                     .suffix("codesign"), .anySequence,
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
+                ])
             }
         }
     }
@@ -2509,7 +2899,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
         let tapiToolPath = try await self.tapiToolPath
         let tapiVersion = try await discoveredTAPIToolInfo(at: tapiToolPath).toolVersion
         guard let version = tapiVersion,
-              version >= TAPIToolSpec.dSYMSupportRequiredVersion else {
+            version >= TAPIToolSpec.dSYMSupportRequiredVersion
+        else {
             return
         }
 
@@ -2517,25 +2908,33 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Fwk.h"),
-                    TestFile("Fwk.c")]),
+                    TestFile("Fwk.c"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGN_IDENTITY": "-",
-                    "INFOPLIST_FILE": "Info.plist",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "GCC_GENERATE_DEBUGGING_SYMBOLS" : "YES",
-                    "TAPI_READ_DSYM" : "NO",
-                    "DEBUG_INFORMATION_FORMAT" : "dwarf-with-dsym",
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "TAPI_VERIFY_MODE": "ErrorsOnly",
-                    "TAPI_USE_SRCROOT": "NO",
-                    "TAPI_LANGUAGE": "objective-c++",
-                    "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                    "SKIP_INSTALL": "NO"])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "-",
+                        "INFOPLIST_FILE": "Info.plist",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                        "TAPI_READ_DSYM": "NO",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "TAPI_VERIFY_MODE": "ErrorsOnly",
+                        "TAPI_USE_SRCROOT": "NO",
+                        "TAPI_LANGUAGE": "objective-c++",
+                        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "Fwk",
@@ -2543,7 +2942,12 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.c"]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("Fwk.h", headerVisibility: .public)])])])
+                            TestBuildFile("Fwk.h", headerVisibility: .public)
+                        ]),
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -2560,7 +2964,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     "-target", StringPattern.prefix("\(results.runDestinationTargetArchitecture)-apple"),
 
-                        .anySequence,
+                    .anySequence,
                     "-rpath", "@executable_path/../Frameworks", .anySequence,
                     "-rpath", "@loader_path/../Frameworks", .anySequence,
 
@@ -2568,7 +2972,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
                 ])
@@ -2586,13 +2990,15 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CpHeader")) { task in
                 task.checkCommandLineMatches([
                     "builtin-copy", .anySequence, "/TEST/Sources/Fwk.h",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Headers",
+                ])
             }
             results.checkTask(.matchRuleType("SymLink"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLine([
                     "/bin/ln", "-sfh",
                     "Versions/Current/Fwk.tbd",
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Fwk.tbd",
+                ])
             }
             results.checkTask(.matchRuleType("GenerateTAPI")) { task in
                 // check TAPI options.
@@ -2611,7 +3017,7 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
 
                     // Check IO options.
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework",
-                    "-filelist" ,"/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
+                    "-filelist", "/TEST/build/aProject.build/Debug/Fwk.build/Fwk.json",
                     "-o",
                     "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd", .anySequence,
                 ])
@@ -2620,7 +3026,8 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRuleType("CodeSign"), .matchRuleItemBasename("Fwk.tbd")) { task in
                 task.checkCommandLineMatches([
                     .suffix("codesign"), .anySequence,
-                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd"])
+                    "/tmp/aProject.dst/Library/Frameworks/Fwk.framework/Versions/A/Fwk.tbd",
+                ])
             }
         }
     }
@@ -2631,48 +3038,62 @@ fileprivate struct InstallAPITaskConstructionTests: CoreBasedTests {
             "aProject",
             sourceRoot: Path("/TEST"),
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("App.swift"),
                     TestFile("Fwk.swift"),
                     TestFile("StaticLib.swift"),
                     TestFile("StaticLib2.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTS_TEXT_BASED_API": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "TAPI_EXEC": tapiToolPath.str,
-                    "SKIP_INSTALL": "NO"
-                ])],
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTS_TEXT_BASED_API": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "TAPI_EXEC": tapiToolPath.str,
+                        "SKIP_INSTALL": "NO",
+                    ]
+                )
+            ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase(["App.swift"])
-                    ], dependencies: ["Fwk"]),
+                    ],
+                    dependencies: ["Fwk"]
+                ),
                 TestStandardTarget(
                     "Fwk",
                     type: .framework,
                     buildPhases: [
                         TestSourcesBuildPhase(["Fwk.swift"])
-                    ], dependencies: ["StaticLib"]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
                 TestStandardTarget(
                     "StaticLib",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["StaticLib.swift"])
-                    ], dependencies: ["StaticLib2"]),
+                    ],
+                    dependencies: ["StaticLib2"]
+                ),
                 TestStandardTarget(
                     "StaticLib2",
                     type: .staticLibrary,
                     buildPhases: [
                         TestSourcesBuildPhase(["StaticLib2.swift"])
-                    ])
-            ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         // Even though SUPPORTS_TEXT_BASED_API=YES is global for the project, don't emit a swiftmodule for the app target because it doesn't emit a TBD, and isn't a dependency of any target which emits a TBD.
         await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Debug"), runDestination: .macOS) { results in

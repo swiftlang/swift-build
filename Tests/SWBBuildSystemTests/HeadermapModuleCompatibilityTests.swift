@@ -37,8 +37,9 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                             "Client",
                             path: "Client",
                             children: [
-                                TestFile("main.m"),
-                            ]),
+                                TestFile("main.m")
+                            ]
+                        ),
                         TestGroup(
                             "Framework",
                             path: "Framework",
@@ -46,25 +47,31 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                                 TestFile("Framework.modulemap"),
                                 TestFile("Framework.h"),
                                 TestFile("Object.h"),
-                            ]),
-                    ]),
+                            ]
+                        ),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Client-Default",
                         type: .application,
                         buildConfigurations: [
                             // The default all-target-headers.hmap will make this setup fail.
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "main.m",
-                            ]),
-                        ]),
+                                "main.m"
+                            ])
+                        ]
+                    ),
                     TestStandardTarget(
                         "Client-UseVFS",
                         type: .application,
@@ -72,18 +79,22 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                             // Forcing HEADERMAP_USES_VFS will turn off all-target-headers.hmap,
                             // but its replacement all-non-framework-target-headers.hmap will
                             // cause the same failure.
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "HEADERMAP_USES_VFS": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "HEADERMAP_USES_VFS": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "main.m",
-                            ]),
-                        ]),
+                                "main.m"
+                            ])
+                        ]
+                    ),
                     TestStandardTarget(
                         "Client-NoFrameworkEntries",
                         type: .application,
@@ -91,36 +102,45 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                             // HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT
                             // will neuter all-non-framework-target-headers.hmap enough that this
                             // setup will work.
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT": "NO",
-                                "HEADERMAP_USES_VFS": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "HEADERMAP_INCLUDES_FRAMEWORK_ENTRIES_FOR_TARGETS_NOT_BEING_BUILT": "NO",
+                                    "HEADERMAP_USES_VFS": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "main.m",
-                            ]),
-                        ]),
+                                "main.m"
+                            ])
+                        ]
+                    ),
                     TestStandardTarget(
                         "Framework",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "DEFINES_MODULE": "YES",
-                                "MODULEMAP_FILE": "Framework/Framework.modulemap",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DEFINES_MODULE": "YES",
+                                    "MODULEMAP_FILE": "Framework/Framework.modulemap",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([
                                 TestBuildFile("Framework.h", headerVisibility: .public),
                                 TestBuildFile("Object.h", headerVisibility: .public),
-                            ]),
-                        ]),
-                ])
+                            ])
+                        ]
+                    ),
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
             // A common interoperability issue with header maps and clang modules is that the same
@@ -132,29 +152,33 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                 // to Project/Framework.h which isn't in any kind of module structure on disk.
                 // However, @import does a module lookup and build.
                 // Also make sure that quoted includes still resolve via header maps.
-                $0.write("""
-                    @import Framework;
-                    #import "Object.h"
+                $0.write(
+                    """
+                        @import Framework;
+                        #import "Object.h"
 
-                    int main(int argc, const char *argv[]) {
-                        return 0;
-                    }
-                """)
+                        int main(int argc, const char *argv[]) {
+                            return 0;
+                        }
+                    """
+                )
             }
             try await tester.fs.writeFileContents(temporaryDirectory.join("Project/Framework/Framework.modulemap")) {
                 // Force seeing Object.h outside of the influence of header maps by explicitly
                 // accessing it in a `header` declaration, which is resolved relative to the
                 // module map file. [system] is so -Wnon-modular-include-in-framework-module
                 // doesn't hide the redeclaration error (and to better simulate real modules).
-                $0.write("""
-                    framework module Framework [system] {
-                      umbrella header "Framework.h"
+                $0.write(
+                    """
+                        framework module Framework [system] {
+                          umbrella header "Framework.h"
 
-                      module Object {
-                        header "Object.h"
-                      }
-                    }
-                """)
+                          module Object {
+                            header "Object.h"
+                          }
+                        }
+                    """
+                )
             }
             try await tester.fs.writeFileContents(temporaryDirectory.join("Project/Framework/Framework.h")) {
                 // Force seeing Object.h under the influence of header maps by including it
@@ -163,10 +187,12 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
             }
             try await tester.fs.writeFileContents(temporaryDirectory.join("Project/Framework/Object.h")) {
                 // Add a declaration to the header file that will cause a conflict when seen twice.
-                $0.write("""
-                    @interface Object
-                    @end
-                """)
+                $0.write(
+                    """
+                        @interface Object
+                        @end
+                    """
+                )
             }
 
             let buildParameters = BuildParameters(configuration: "Debug")
@@ -174,7 +200,7 @@ fileprivate struct HeadermapModuleCompatibilityTests: CoreBasedTests {
                 return BuildRequest(
                     parameters: buildParameters,
                     buildTargets: [
-                        BuildRequest.BuildTargetInfo(parameters: buildParameters, target: tester.workspace.projects[0].targets[targetIndex]),
+                        BuildRequest.BuildTargetInfo(parameters: buildParameters, target: tester.workspace.projects[0].targets[targetIndex])
                     ],
                     continueBuildingAfterErrors: false,
                     useParallelTargets: false,

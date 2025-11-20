@@ -22,12 +22,15 @@ public struct TaskActionExtensionPoint: ExtensionPoint {
     // MARK: - actual extension point
 
     package static func taskActionImplementations(pluginManager: any PluginManager) throws -> [SerializableTypeCode: any PolymorphicSerializable.Type] {
-        return try pluginManager.extensions(of: Self.self).reduce([:], { implementations, ext in
-            for (code, _) in ext.taskActionImplementations where implementations[code] != nil {
-                throw StubError.error("Multiple implementations for task action implementation type code: \(code)")
+        return try pluginManager.extensions(of: Self.self).reduce(
+            [:],
+            { implementations, ext in
+                for (code, _) in ext.taskActionImplementations where implementations[code] != nil {
+                    throw StubError.error("Multiple implementations for task action implementation type code: \(code)")
+                }
+                return implementations.addingContents(of: ext.taskActionImplementations)
             }
-            return implementations.addingContents(of: ext.taskActionImplementations)
-        })
+        )
     }
 }
 

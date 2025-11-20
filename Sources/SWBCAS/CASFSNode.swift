@@ -13,9 +13,9 @@
 public import SWBUtil
 import Foundation
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 /// A CAS object representing a filesystem node
@@ -49,7 +49,7 @@ public struct CASFSNode<CAS: CASProtocol>: Sendable {
             self.destination = destination
         }
 
-        func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+        func serialize<T>(to serializer: T) where T: SWBUtil.Serializer {
             serializer.beginAggregate(2)
             serializer.serialize(name)
             serializer.serialize(destination)

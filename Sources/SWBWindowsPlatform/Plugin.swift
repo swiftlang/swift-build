@@ -35,9 +35,9 @@ public final class WindowsPlugin: Sendable {
     }
 
     func cachedLatestVSInstallDirectory(fs: any FSProxy) async throws -> Path? {
-       try await latestVsInstallationDirectory.value {
+        try await latestVsInstallationDirectory.value {
             let installations = try await cachedVSInstallations()
-            .sorted(by: { $0.installationVersion > $1.installationVersion })
+                .sorted(by: { $0.installationVersion > $1.installationVersion })
             if let latest = installations.first {
                 let msvcDir = latest.installationPath.join("VC").join("Tools").join("MSVC")
                 if fs.exists(msvcDir) {
@@ -81,7 +81,7 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
             }
             return [vcToolsInstallDir: dir.str]
         } else {
-           return [:]
+            return [:]
         }
     }
 }
@@ -111,16 +111,19 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
                 throw StubError.error("Unexpected top-level property list type in \(windowsInfoPlistPath.str) (expected dictionary)")
             }
 
-            return (windowsInfoPlistPath.dirname, dict.merging([
-                "Type": .plString("Platform"),
-                "Name": .plString("windows"),
-                "Identifier": .plString("windows"),
-                "Description": .plString("Windows"),
-                "FamilyName": .plString("Windows"),
-                "FamilyIdentifier": .plString("windows"),
-                "IsDeploymentPlatform": .plString("YES"),
-                "Version": .plString(version),
-            ]) { old, new in new })
+            return (
+                windowsInfoPlistPath.dirname,
+                dict.merging([
+                    "Type": .plString("Platform"),
+                    "Name": .plString("windows"),
+                    "Identifier": .plString("windows"),
+                    "Description": .plString("Windows"),
+                    "FamilyName": .plString("Windows"),
+                    "FamilyIdentifier": .plString("windows"),
+                    "IsDeploymentPlatform": .plString("YES"),
+                    "Version": .plString(version),
+                ]) { old, new in new }
+            )
         }
     }
 
@@ -177,29 +180,34 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
         ]
 
         return try [
-            (windowsSDKSettingsPlistPath.dirname, windowsPlatform, dict.merging([
-                "Type": .plString("SDK"),
-                "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
-                "CanonicalName": .plString("windows"),
-                "IsBaseSDK": .plBool(true),
-                "DefaultProperties": .plDict([
-                    "PLATFORM_NAME": .plString("windows"),
-                ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-                "SupportedTargets": .plDict([
-                    "windows": .plDict([
-                        "Archs": .plArray([
-                            .plString("aarch64"),
-                            .plString("arm64ec"),
-                            .plString("armv7"),
-                            .plString("i686"),
-                            .plString("x86_64"),
-                        ]),
-                        "LLVMTargetTripleEnvironment": .plString("msvc"),
-                        "LLVMTargetTripleSys": .plString("windows"),
-                        "LLVMTargetTripleVendor": .plString("unknown"),
-                    ])
-                ]),
-            ]) { old, new in new })
+            (
+                windowsSDKSettingsPlistPath.dirname, windowsPlatform,
+                dict.merging([
+                    "Type": .plString("SDK"),
+                    "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
+                    "CanonicalName": .plString("windows"),
+                    "IsBaseSDK": .plBool(true),
+                    "DefaultProperties": .plDict(
+                        [
+                            "PLATFORM_NAME": .plString("windows")
+                        ].merging(defaultProperties, uniquingKeysWith: { _, new in new })
+                    ),
+                    "SupportedTargets": .plDict([
+                        "windows": .plDict([
+                            "Archs": .plArray([
+                                .plString("aarch64"),
+                                .plString("arm64ec"),
+                                .plString("armv7"),
+                                .plString("i686"),
+                                .plString("x86_64"),
+                            ]),
+                            "LLVMTargetTripleEnvironment": .plString("msvc"),
+                            "LLVMTargetTripleSys": .plString("windows"),
+                            "LLVMTargetTripleVendor": .plString("unknown"),
+                        ])
+                    ]),
+                ]) { old, new in new }
+            )
         ]
     }
 }

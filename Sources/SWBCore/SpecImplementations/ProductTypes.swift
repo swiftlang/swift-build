@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBMacro
 
-public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
+public class ProductTypeSpec: Spec, SpecType, @unchecked Sendable {
     /// The level to elevate the deprecation message as.
     public enum DeprecationLevel {
         case warning
@@ -141,8 +141,7 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
             if let specIdItem = plist["ValidationToolSpec"] {
                 if case .plString(let specId) = specIdItem {
                     productValidationToolSpecIdentifier = specId
-                }
-                else {
+                } else {
                     parser.error("Value for 'ValidationToolSpec' in the 'Validation' dictionary for product type '\(parser.proxy.identifier)' must be a string but is: \(specIdItem)")
                 }
             }
@@ -151,49 +150,50 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
         }
         self.productValidationToolSpecIdentifier = productValidationToolSpecIdentifier
 
-        self.buildPhaseFileRefAdditions = { () -> [String: [BuildPhaseFileRefAddition]]? in
-            let keyPath = "BuildPhaseFileRefAdditions"
-            guard let item = parser.parseObject(keyPath) else { return nil }
-            guard case .plDict(let dict) = item else { parser.error("Expected dict in \(keyPath)"); return nil }
-            var result = [String: [BuildPhaseFileRefAddition]](minimumCapacity: dict.count)
+        self.buildPhaseFileRefAdditions =
+            { () -> [String: [BuildPhaseFileRefAddition]]? in
+                let keyPath = "BuildPhaseFileRefAdditions"
+                guard let item = parser.parseObject(keyPath) else { return nil }
+                guard case .plDict(let dict) = item else { parser.error("Expected dict in \(keyPath)"); return nil }
+                var result = [String: [BuildPhaseFileRefAddition]](minimumCapacity: dict.count)
 
-            for (identifier, valuesPL) in dict {
-                let phaseKeyPath = "\(keyPath)['\(identifier)']"
-                guard case .plArray(let valuesArray) = valuesPL else { parser.error("Expected array in \(phaseKeyPath)"); return nil }
-                var resultValues = [BuildPhaseFileRefAddition]()
+                for (identifier, valuesPL) in dict {
+                    let phaseKeyPath = "\(keyPath)['\(identifier)']"
+                    guard case .plArray(let valuesArray) = valuesPL else { parser.error("Expected array in \(phaseKeyPath)"); return nil }
+                    var resultValues = [BuildPhaseFileRefAddition]()
 
-                for (index, valuePL) in valuesArray.enumerated() {
-                    let fileKeyPath = "\(phaseKeyPath)['\(identifier)'][\(index)]"
-                    guard case .plDict(let valueDict) = valuePL else {
-                        parser.error("Expected dict in \(fileKeyPath), but got \(valuesPL)")
-                        return nil
-                    }
-
-                    // Path must be present and must be a string
-                    guard case .plString(let path)? = valueDict["Path"] else {
-                        parser.error("Expected string in \(fileKeyPath)['Path']")
-                        return nil
-                    }
-
-                    // RegionVariantName must be a non-empty string if it is present, if it is missing this indicates non-localized content
-                    let regionVariantName: String? = {
-                        guard let regionVariantNamePL = valueDict["RegionVariantName"] else {
+                    for (index, valuePL) in valuesArray.enumerated() {
+                        let fileKeyPath = "\(phaseKeyPath)['\(identifier)'][\(index)]"
+                        guard case .plDict(let valueDict) = valuePL else {
+                            parser.error("Expected dict in \(fileKeyPath), but got \(valuesPL)")
                             return nil
                         }
-                        guard case .plString(let regionVariantName) = regionVariantNamePL, !regionVariantName.isEmpty else {
-                            parser.warning("Expected non-empty string in \(fileKeyPath)['RegionVariantName']")
+
+                        // Path must be present and must be a string
+                        guard case .plString(let path)? = valueDict["Path"] else {
+                            parser.error("Expected string in \(fileKeyPath)['Path']")
                             return nil
                         }
-                        return regionVariantName
-                    }()
 
-                    resultValues.append(BuildPhaseFileRefAddition(path: BuiltinMacros.namespace.parseString(path), regionVariantName: BuiltinMacros.namespace.parseString(regionVariantName ?? "")))
+                        // RegionVariantName must be a non-empty string if it is present, if it is missing this indicates non-localized content
+                        let regionVariantName: String? = {
+                            guard let regionVariantNamePL = valueDict["RegionVariantName"] else {
+                                return nil
+                            }
+                            guard case .plString(let regionVariantName) = regionVariantNamePL, !regionVariantName.isEmpty else {
+                                parser.warning("Expected non-empty string in \(fileKeyPath)['RegionVariantName']")
+                                return nil
+                            }
+                            return regionVariantName
+                        }()
+
+                        resultValues.append(BuildPhaseFileRefAddition(path: BuiltinMacros.namespace.parseString(path), regionVariantName: BuiltinMacros.namespace.parseString(regionVariantName ?? "")))
+                    }
+
+                    result[identifier] = resultValues
                 }
 
-                result[identifier] = resultValues
-            }
-
-            return result
+                return result
             }() ?? [:]
 
         self.infoPlistAdditions = parser.parseObject("InfoPlistAdditions")?.withConcreteBooleans(forKeys: ProductTypeSpec.booleanizedInfoPlistKeys)
@@ -207,8 +207,7 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
                 let parsedLevel = parser.parseString("DeprecationLevel") ?? "warning"
                 if let level = DeprecationLevel(level: parsedLevel) {
                     return DeprecationInfo(reason: reason, level: level)
-                }
-                else {
+                } else {
                     parser.error("invalid 'DeprecationLevel' value of '\(parsedLevel)'")
                 }
             }
@@ -371,11 +370,9 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 }
 
-
 // MARK: Bundle product types
 
-
-public class BundleProductTypeSpec : ProductTypeSpec, SpecClassType, @unchecked Sendable {
+public class BundleProductTypeSpec: ProductTypeSpec, SpecClassType, @unchecked Sendable {
     public class var className: String {
         return "PBXBundleProductType"
     }
@@ -383,13 +380,12 @@ public class BundleProductTypeSpec : ProductTypeSpec, SpecClassType, @unchecked 
     // autoConfigureAsMergeableLibrary() is not overridden here: Even if its MACH_O_TYPE has been changed to 'mh_dylib', automatically building a generic bundle as mergeable is outside what we want to handle automatically.  (We might change our mind in the future.)
 
     // This was originally implemented in an extension in InfoPlistTaskProducer.swift for rdar://78512102, but it has been adopted in other places so has been moved here.  It might be that this logic doesn't even belong on this class.
-	public static func validateBuildComponents(_ buildComponents: [String], scope: MacroEvaluationScope) -> Bool
-	{
-		return buildComponents.contains("build") || (buildComponents.contains("installLoc") && scope.evaluate(BuiltinMacros.INSTALLLOC_LANGUAGE).isEmpty) || buildComponents.contains("exportLoc")
-	}
+    public static func validateBuildComponents(_ buildComponents: [String], scope: MacroEvaluationScope) -> Bool {
+        return buildComponents.contains("build") || (buildComponents.contains("installLoc") && scope.evaluate(BuiltinMacros.INSTALLLOC_LANGUAGE).isEmpty) || buildComponents.contains("exportLoc")
+    }
 }
 
-public final class ApplicationProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
+public final class ApplicationProductTypeSpec: BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXApplicationProductType"
     }
@@ -419,7 +415,7 @@ public final class ApplicationExtensionProductTypeSpec: BundleProductTypeSpec, @
     }
 }
 
-public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
+public class FrameworkProductTypeSpec: BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXFrameworkProductType"
     }
@@ -448,39 +444,44 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
                 location: wrapperFolderPath.join(currentVersionFolderPath),
                 toPath: Path(scope.evaluateAsString(BuiltinMacros.FRAMEWORK_VERSION)),
                 effectiveToPath: nil
-            ) )
+            )
+        )
         // Resources -> Versions/Current/Resources
         let unlocalizedResourcesFolderName = Path(scope.evaluateAsString(BuiltinMacros.UNLOCALIZED_RESOURCES_FOLDER_PATH)).basename
         descriptors.insert(
             SymlinkDescriptor(
-            	location: wrapperFolderPath.join(unlocalizedResourcesFolderName),
+                location: wrapperFolderPath.join(unlocalizedResourcesFolderName),
                 toPath: currentVersionFolderPath.join(unlocalizedResourcesFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(unlocalizedResourcesFolderName)
-            ) )
+            )
+        )
         // Headers -> Versions/Current/Headers
         let headersResourcesFolderName = Path(scope.evaluateAsString(BuiltinMacros.PUBLIC_HEADERS_FOLDER_PATH)).basename
         descriptors.insert(
             SymlinkDescriptor(
-            	location: wrapperFolderPath.join(headersResourcesFolderName),
+                location: wrapperFolderPath.join(headersResourcesFolderName),
                 toPath: currentVersionFolderPath.join(headersResourcesFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(headersResourcesFolderName)
-            ) )
+            )
+        )
         // PrivateHeaders -> Versions/Current/PrivateHeaders
         let privateHeadersFolderName = Path(scope.evaluateAsString(BuiltinMacros.PRIVATE_HEADERS_FOLDER_PATH)).basename
         descriptors.insert(
             SymlinkDescriptor(
-            	location: wrapperFolderPath.join(privateHeadersFolderName),
+                location: wrapperFolderPath.join(privateHeadersFolderName),
                 toPath: currentVersionFolderPath.join(privateHeadersFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(privateHeadersFolderName)
-            ) )
+            )
+        )
         // Modules -> Versions/Current/Modules
         let modulesFolderName = Path(scope.evaluateAsString(BuiltinMacros.MODULES_FOLDER_PATH)).basename
         descriptors.insert(
             SymlinkDescriptor(
-            	location: wrapperFolderPath.join(modulesFolderName),
+                location: wrapperFolderPath.join(modulesFolderName),
                 toPath: currentVersionFolderPath.join(modulesFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(modulesFolderName)
-            ) )
+            )
+        )
         // Frameworks -> Versions/Current/Frameworks
         let frameworksFolderName = Path(scope.evaluateAsString(BuiltinMacros.FRAMEWORKS_FOLDER_PATH)).basename
         descriptors.insert(
@@ -488,15 +489,17 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
                 location: wrapperFolderPath.join(frameworksFolderName),
                 toPath: currentVersionFolderPath.join(frameworksFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(frameworksFolderName)
-            ) )
+            )
+        )
         // PlugIns -> Versions/Current/PlugIns
         let pluginsFolderName = Path(scope.evaluateAsString(BuiltinMacros.PLUGINS_FOLDER_PATH)).basename
         descriptors.insert(
             SymlinkDescriptor(
-            	location: wrapperFolderPath.join(pluginsFolderName),
+                location: wrapperFolderPath.join(pluginsFolderName),
                 toPath: currentVersionFolderPath.join(pluginsFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(pluginsFolderName)
-            ) )
+            )
+        )
         // Extensions -> Versions/Current/Extensions
         let extensionsFolderName = Path(scope.evaluateAsString(BuiltinMacros.EXTENSIONS_FOLDER_PATH)).basename
         descriptors.insert(
@@ -504,23 +507,26 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
                 location: wrapperFolderPath.join(extensionsFolderName),
                 toPath: currentVersionFolderPath.join(extensionsFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(extensionsFolderName)
-            ) )
+            )
+        )
         // <binary-name> -> Versions/Current/<binary-name>
         let executableName = scope.evaluateAsString(BuiltinMacros.EXECUTABLE_NAME)
         descriptors.insert(
             SymlinkDescriptor(
-            	location: wrapperFolderPath.join(executableName),
+                location: wrapperFolderPath.join(executableName),
                 toPath: currentVersionFolderPath.join(executableName),
                 effectiveToPath: frameworkVersionFolderPath.join(executableName)
-            ) )
+            )
+        )
         // XPCServices -> Versions/Current/XPCServices
         let xpcServicesFolderName = Path(scope.evaluateAsString(BuiltinMacros.XPCSERVICES_FOLDER_PATH)).basename
         descriptors.insert(
             SymlinkDescriptor(
-            	location: wrapperFolderPath.join(xpcServicesFolderName),
+                location: wrapperFolderPath.join(xpcServicesFolderName),
                 toPath: currentVersionFolderPath.join(xpcServicesFolderName),
                 effectiveToPath: frameworkVersionFolderPath.join(xpcServicesFolderName)
-            ) )
+            )
+        )
         // ExtraModules -> Versions/Current/ExtraModules
         if scope.evaluate(BuiltinMacros.BUILD_PACKAGE_FOR_DISTRIBUTION) {
             descriptors.insert(
@@ -528,7 +534,8 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
                     location: wrapperFolderPath.join("ExtraModules"),
                     toPath: currentVersionFolderPath.join("ExtraModules"),
                     effectiveToPath: frameworkVersionFolderPath.join("ExtraModules")
-                ) )
+                )
+            )
         }
 
         return descriptors
@@ -539,47 +546,47 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
         return ArtifactInfo(kind: .framework, path: path)
     }
 
-/*
-    /// Build setting expressions to evaluate to determine how to create symbolic links for the product structure.
-    static let productStructureSymlinkBuildSettings = [SymlinkDescriptor]([
-        // Versions/Current -> A
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(VERSIONS_PATH)/$(CURRENT_VERSION)"),
-            toPath: BuiltinMacros.namespace.parseString("$(FRAMEWORK_VERSION)")),
-        // Resources -> Versions/Current/Resources
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH:file)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH:file)")),
-        // Headers -> Versions/Current/Headers
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(PUBLIC_HEADERS_FOLDER_PATH:file)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(PUBLIC_HEADERS_FOLDER_PATH:file)")),
-        // PrivateHeaders -> Versions/Current/PrivateHeaders
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(PRIVATE_HEADERS_FOLDER_PATH:file)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(PRIVATE_HEADERS_FOLDER_PATH:file)")),
-        // Modules -> Versions/Current/Modules
-        SymlinkDescriptor(
-     location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(MODULES_FOLDER_PATH:file)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(MODULES_FOLDER_PATH:file)")),
-        // PlugIns -> Versions/Current/PlugIns
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(PLUGINS_FOLDER_PATH:file)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(PLUGINS_FOLDER_PATH:file)")),
-        // Extensions -> Versions/Current/Extensions
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(EXTENSIONS_FOLDER_PATH:file)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(EXTENSIONS_FOLDER_PATH:file)")),
-        // <binary-name> -> Versions/Current/<binary-name>
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(EXECUTABLE_NAME)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(EXECUTABLE_NAME)")),
-        // XPCServices -> Versions/Current/XPCServices
-        SymlinkDescriptor(
-            location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(XPCSERVICES_FOLDER_PATH:file)"),
-            toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(XPCSERVICES_FOLDER_PATH:file)")),
-    ])
-*/
+    /*
+        /// Build setting expressions to evaluate to determine how to create symbolic links for the product structure.
+        static let productStructureSymlinkBuildSettings = [SymlinkDescriptor]([
+            // Versions/Current -> A
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(VERSIONS_PATH)/$(CURRENT_VERSION)"),
+                toPath: BuiltinMacros.namespace.parseString("$(FRAMEWORK_VERSION)")),
+            // Resources -> Versions/Current/Resources
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH:file)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH:file)")),
+            // Headers -> Versions/Current/Headers
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(PUBLIC_HEADERS_FOLDER_PATH:file)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(PUBLIC_HEADERS_FOLDER_PATH:file)")),
+            // PrivateHeaders -> Versions/Current/PrivateHeaders
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(PRIVATE_HEADERS_FOLDER_PATH:file)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(PRIVATE_HEADERS_FOLDER_PATH:file)")),
+            // Modules -> Versions/Current/Modules
+            SymlinkDescriptor(
+         location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(MODULES_FOLDER_PATH:file)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(MODULES_FOLDER_PATH:file)")),
+            // PlugIns -> Versions/Current/PlugIns
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(PLUGINS_FOLDER_PATH:file)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(PLUGINS_FOLDER_PATH:file)")),
+            // Extensions -> Versions/Current/Extensions
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(EXTENSIONS_FOLDER_PATH:file)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(EXTENSIONS_FOLDER_PATH:file)")),
+            // <binary-name> -> Versions/Current/<binary-name>
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(EXECUTABLE_NAME)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(EXECUTABLE_NAME)")),
+            // XPCServices -> Versions/Current/XPCServices
+            SymlinkDescriptor(
+                location: BuiltinMacros.namespace.parseString("$(TARGET_BUILT_DIR)/$(WRAPPER_NAME)/$(XPCSERVICES_FOLDER_PATH:file)"),
+                toPath: BuiltinMacros.namespace.parseString("$(VERSIONS_PATH)/$(CURRENT_VERSION)/$(XPCSERVICES_FOLDER_PATH:file)")),
+        ])
+    */
 
     override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> (args: [String], inputs: [Path]) {
         if scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" {
@@ -598,20 +605,20 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
     }
 }
 
-public final class StaticFrameworkProductTypeSpec : FrameworkProductTypeSpec, @unchecked Sendable {
+public final class StaticFrameworkProductTypeSpec: FrameworkProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "XCStaticFrameworkProductType"
     }
 }
 
-public final class KernelExtensionProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
+public final class KernelExtensionProductTypeSpec: BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "XCKernelExtensionProductType"
     }
 }
 
 /// The product type for XCTest unit and UI test bundles.
-public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @unchecked Sendable {
+public final class XCTestBundleProductTypeSpec: BundleProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXXCTestBundleProductType"
     }
@@ -676,8 +683,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         // Add to the macro definition table based on how tests are being run (XCTRunner, TEST_HOST, or neither).
         if type(of: self).usesXCTRunner(scope) {
             addXCTRunnerSettings(to: &table, scope, platform, &warnings, &errors)
-        }
-        else if type(of: self).usesTestHost(scope) {
+        } else if type(of: self).usesTestHost(scope) {
             addTestHostSettings(to: &table, Path(scope.evaluate(BuiltinMacros.TEST_HOST)), scope, platform, &warnings, &errors)
         }
 
@@ -691,7 +697,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         // Define TARGET_BUILD_SUBPATH so the target builds to $(TARGET_BUILD_DIR)/$(TARGET_BUILD_SUBPATH) (or slightly different for deployment location builds).
         // <rdar://problem/18902931> Should PBXXCTestBundleProductType override BUILT_PRODUCTS_DIR when it overrides TARGET_BUILD_DIR?
         table.push(BuiltinMacros.TARGET_BUILD_SUBPATH, table.namespace.parseString("/$(XCTRUNNER_PRODUCT_NAME)$(_WRAPPER_CONTENTS_DIR)/PlugIns"))
-        table.push(BuiltinMacros.DWARF_DSYM_FOLDER_PATH, table.namespace.parseString("$(TARGET_BUILD_DIR)"))        // Do we really want dSYMs to go inside of the host app's PlugIns dir?
+        table.push(BuiltinMacros.DWARF_DSYM_FOLDER_PATH, table.namespace.parseString("$(TARGET_BUILD_DIR)"))  // Do we really want dSYMs to go inside of the host app's PlugIns dir?
 
         // Entitlements are always required for a UI test target.
         table.push(BuiltinMacros.ENTITLEMENTS_REQUIRED, literal: true)
@@ -708,12 +714,12 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         let targetBuildDir = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
         let testHost = adjustedTestHost(originalTestHost: testHost, addingSettingsToTable: &table, scope)
 
-// This check is disabled due to <rdar://problem/43032765>.  See UnsupportedBehaviorTaskConstructionTests.testOverridingTargetBuildDirInApplicationUnitTestTarget().
-//        guard targetBuildDir.isAncestor(of: testHost) else {
-//            // TEST_HOST must be inside of TARGET_BUILD_DIR.
-//            errors.append("$(TEST_HOST) is not a descendant of $(TARGET_BUILD_DIR) (\(testHost.str) !<= \(targetBuildDir.str))")
-//            return
-//        }
+        // This check is disabled due to <rdar://problem/43032765>.  See UnsupportedBehaviorTaskConstructionTests.testOverridingTargetBuildDirInApplicationUnitTestTarget().
+        //        guard targetBuildDir.isAncestor(of: testHost) else {
+        //            // TEST_HOST must be inside of TARGET_BUILD_DIR.
+        //            errors.append("$(TEST_HOST) is not a descendant of $(TARGET_BUILD_DIR) (\(testHost.str) !<= \(targetBuildDir.str))")
+        //            return
+        //        }
 
         // testHost is a path to the executable for the app, we need to strip off the executable to get the contents directory:
         //     ./MacApp.app/Contents/MacOS/MacApp OR
@@ -782,11 +788,9 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
     }
 }
 
-
 // MARK: Standalone binary Product types
 
-
-public class StandaloneExecutableProductTypeSpec : ProductTypeSpec, SpecClassType, @unchecked Sendable {
+public class StandaloneExecutableProductTypeSpec: ProductTypeSpec, SpecClassType, @unchecked Sendable {
     public class var className: String {
         return "XCStandaloneExecutableProductType"
     }
@@ -806,7 +810,7 @@ public class LibraryProductTypeSpec: StandaloneExecutableProductTypeSpec, @unche
     }
 }
 
-public final class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec, @unchecked Sendable {
+public final class DynamicLibraryProductTypeSpec: LibraryProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXDynamicLibraryProductType"
     }
@@ -833,7 +837,7 @@ public final class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec, @unch
 
 }
 
-public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unchecked Sendable {
+public final class StaticLibraryProductTypeSpec: LibraryProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXStaticLibraryProductType"
     }
@@ -850,7 +854,7 @@ public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unche
     }
 }
 
-public final class ToolProductTypeSpec : StandaloneExecutableProductTypeSpec, @unchecked Sendable {
+public final class ToolProductTypeSpec: StandaloneExecutableProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXToolProductType"
     }
@@ -862,8 +866,7 @@ public final class ToolProductTypeSpec : StandaloneExecutableProductTypeSpec, @u
 }
 
 /// Describes a symbolic link to create.
-public struct SymlinkDescriptor: Hashable
-{
+public struct SymlinkDescriptor: Hashable {
     /// Where the symbolic link will be created.  This should evaluate to an absolute path.
     public let location: Path
     /// The path the symbolic link points to.  This may be a relative path.
@@ -876,7 +879,7 @@ public struct SymlinkDescriptor: Hashable
         hasher.combine(toPath)
     }
 
-    public static func ==(lhs: SymlinkDescriptor, rhs: SymlinkDescriptor) -> Bool {
+    public static func == (lhs: SymlinkDescriptor, rhs: SymlinkDescriptor) -> Bool {
         return lhs.location == rhs.location && lhs.toPath == rhs.toPath
     }
 }

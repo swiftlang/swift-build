@@ -31,16 +31,20 @@ fileprivate struct QNXBuildOperationTests: CoreBasedTests {
                         TestFile("main.c"),
                         TestFile("dynamic.c"),
                         TestFile("static.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": arch,
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "qnx",
-                        "SUPPORTED_PLATFORMS": "qnx",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": arch,
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "qnx",
+                            "SUPPORTED_PLATFORMS": "qnx",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -54,7 +58,7 @@ fileprivate struct QNXBuildOperationTests: CoreBasedTests {
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("dynamiclib")),
                                 TestBuildFile(.target("staticlib")),
-                            ])
+                            ]),
                         ],
                         dependencies: [
                             "dynamiclib",
@@ -65,15 +69,18 @@ fileprivate struct QNXBuildOperationTests: CoreBasedTests {
                         "dynamiclib",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic.c"]),
+                            TestSourcesBuildPhase(["dynamic.c"])
                         ],
                         productReferenceName: "libdynamiclib.so"
                     ),
@@ -81,16 +88,20 @@ fileprivate struct QNXBuildOperationTests: CoreBasedTests {
                         "staticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib"
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.c"]),
+                            TestSourcesBuildPhase(["static.c"])
                         ]
                     ),
-                ])
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -126,7 +137,7 @@ fileprivate struct QNXBuildOperationTests: CoreBasedTests {
                         .pathEqual(prefix: "-L", tmpDir.join("build/Debug-qnx")),
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-qnx/dynamiclib.build/Objects-normal/\(arch)/dynamiclib.LinkFileList")),
                         "-Wl,-h$ORIGIN/libdynamiclib.so",
-                        "-o", .path(tmpDir.join("build/Debug-qnx/libdynamiclib.so"))
+                        "-o", .path(tmpDir.join("build/Debug-qnx/libdynamiclib.so")),
                     ])
                 }
 
@@ -140,7 +151,7 @@ fileprivate struct QNXBuildOperationTests: CoreBasedTests {
                         .pathEqual(prefix: "@", tmpDir.join("build/TestProject.build/Debug-qnx/tool.build/Objects-normal/\(arch)/tool.LinkFileList")),
                         "-ldynamiclib",
                         "-lstaticlib",
-                        "-o", .path(tmpDir.join("build/Debug-qnx/tool"))
+                        "-o", .path(tmpDir.join("build/Debug-qnx/tool")),
                     ])
                 }
 

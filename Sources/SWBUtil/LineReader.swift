@@ -13,9 +13,9 @@
 public import Foundation
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 public final class LineReader {
@@ -69,4 +69,4 @@ public final class LineReader {
 }
 
 @available(*, unavailable)
-extension LineReader: Sendable { }
+extension LineReader: Sendable {}

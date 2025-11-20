@@ -49,11 +49,11 @@ import SWBProjectModel
 
         // Serialize the aggregate target and check that nothing was lost.
         let targetDict = aggregateTarget.serialize(to: TestSerializer())
-        let dependencies = try #require(targetDict["dependencies"] as? Array<Dictionary<String,Any>>)
+        let dependencies = try #require(targetDict["dependencies"] as? Array<Dictionary<String, Any>>)
         #expect(dependencies.count == 1)
         let firstDependency = try #require(dependencies.first)
         #expect(firstDependency["guid"] as? String == standardTarget.id)
-        let platformFilters = try #require(firstDependency["platformFilters"] as? Array<Dictionary<String,Any>>)
+        let platformFilters = try #require(firstDependency["platformFilters"] as? Array<Dictionary<String, Any>>)
         #expect(platformFilters.count == 1)
         let firstPlatformFilter = try #require(platformFilters.first)
         #expect(firstPlatformFilter["platform"] as? String == "linux")

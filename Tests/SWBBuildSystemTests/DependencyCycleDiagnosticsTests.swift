@@ -38,13 +38,26 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             TestAggregateTarget(
                                 "A",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "A", originalObjectID: "A", contents: "true",
-                                                              inputs: ["/tmp/B-output"], outputs: ["/tmp/A-output"]),
-                                    TestShellScriptBuildPhase(name: "B", originalObjectID: "B", contents: "true",
-                                                              inputs: ["/tmp/A-output"], outputs: ["/tmp/B-output"]),
-                                ]),
-                        ])
-                ])
+                                    TestShellScriptBuildPhase(
+                                        name: "A",
+                                        originalObjectID: "A",
+                                        contents: "true",
+                                        inputs: ["/tmp/B-output"],
+                                        outputs: ["/tmp/A-output"]
+                                    ),
+                                    TestShellScriptBuildPhase(
+                                        name: "B",
+                                        originalObjectID: "B",
+                                        contents: "true",
+                                        inputs: ["/tmp/A-output"],
+                                        outputs: ["/tmp/B-output"]
+                                    ),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -63,7 +76,8 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Files", children: [
+                    "Files",
+                    children: [
                         TestFile("A.c"),
                         TestFile("A.swift"),
                         TestFile("A.metal"),
@@ -81,7 +95,8 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         TestFile("A.xcconfig"),
                         TestFile("A.strings"),
                         TestFile("B.xcconfig"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -101,13 +116,14 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             "GCC_PREFIX_HEADER": "\(tmpDir.str)/A.pch++",
                             "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
                         ]
-                    )],
+                    ),
+                ],
                 targets: [
                     TestStandardTarget(
                         "A-foo-bar",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: ["DONT_GENERATE_INFOPLIST_FILE": "YES"]),
+                            TestBuildConfiguration("Debug", buildSettings: ["DONT_GENERATE_INFOPLIST_FILE": "YES"])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
@@ -116,7 +132,9 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             TestResourcesBuildPhase([TestBuildFile("A.png"), TestBuildFile("A.plist"), TestBuildFile("A.xcassets"), TestBuildFile("A.storyboard"), TestBuildFile("A.xib"), TestBuildFile("A.xcdatamodel"), TestBuildFile("A.tiff"), TestBuildFile("A.xcconfig"), TestBuildFile("A.strings")]),
                             TestCopyFilesBuildPhase([TestBuildFile("B.xcconfig")], destinationSubfolder: .frameworks),
                         ]
-                    )])
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
 
             try await tester.checkBuildDescription(BuildParameters(configuration: "Other"), runDestination: .macOS) { results in
@@ -238,14 +256,16 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("A.h"),
                         TestFile("B.h"),
                         TestFile("C.h"),
                         TestFile("A.m"),
                         TestFile("B.m"),
                         TestFile("C.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -253,13 +273,14 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "EAGER_LINKING": "YES",
                         ]
-                    )],
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "A",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
@@ -271,7 +292,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "B",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("B.h", headerVisibility: .public)]),
@@ -283,7 +304,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "C",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("C.h", headerVisibility: .public)]),
@@ -291,7 +312,8 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         ],
                         dependencies: ["A"]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             for f in ["A.h", "B.h", "C.h", "A.m", "B.m", "C.m"] {
@@ -305,11 +327,13 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     #expect(cycle.header == "Cycle in dependencies between targets 'A' and 'C'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: A → B → C → A")
                     #expect(!cycle.usingManualOrder)
-                    #expect(cycle.lines == [
-                        "→ Target \'A\' has an explicit dependency on Target \'B\'",
-                        "→ Target \'B\' has an explicit dependency on Target \'C\'",
-                        "→ Target \'C\' has an explicit dependency on Target \'A\'",
-                    ])
+                    #expect(
+                        cycle.lines == [
+                            "→ Target \'A\' has an explicit dependency on Target \'B\'",
+                            "→ Target \'B\' has an explicit dependency on Target \'C\'",
+                            "→ Target \'C\' has an explicit dependency on Target \'A\'",
+                        ]
+                    )
                 }
                 results.checkNoDiagnostics()
             }
@@ -327,14 +351,16 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("A.h"),
                         TestFile("B.h"),
                         TestFile("C.h"),
                         TestFile("A.m"),
                         TestFile("B.m"),
                         TestFile("C.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -342,13 +368,14 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "EAGER_LINKING": "YES",
                         ]
-                    )],
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "A",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
@@ -360,9 +387,12 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "B",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "OTHER_LDFLAGS": "-framework C",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "OTHER_LDFLAGS": "-framework C"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("B.h", headerVisibility: .public)]),
@@ -374,16 +404,17 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "C",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("C.h", headerVisibility: .public)]),
                             TestSourcesBuildPhase([TestBuildFile("C.m")]),
-                            TestFrameworksBuildPhase([TestBuildFile("A.framework")])
+                            TestFrameworksBuildPhase([TestBuildFile("A.framework")]),
                         ],
                         dependencies: []
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             for f in ["A.h", "B.h", "C.h", "A.m", "B.m", "C.m"] {
@@ -399,11 +430,13 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     #expect(cycle.header == "Cycle in dependencies between targets 'A' and 'C'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: A → B → C → A")
                     #expect(!cycle.usingManualOrder)
-                    #expect(cycle.lines == [
-                        "→ Target \'A\' has an explicit dependency on Target \'B\'",
-                        "→ Target \'B\' has an implicit dependency on Target \'C\' because \'B\' defines the option \'-framework C\' in the build setting \'OTHER_LDFLAGS\'",
-                        "→ Target \'C\' has an implicit dependency on Target \'A\' because \'C\' references the file \'A.framework\' in the build phase \'Link Binary\'",
-                    ])
+                    #expect(
+                        cycle.lines == [
+                            "→ Target \'A\' has an explicit dependency on Target \'B\'",
+                            "→ Target \'B\' has an implicit dependency on Target \'C\' because \'B\' defines the option \'-framework C\' in the build setting \'OTHER_LDFLAGS\'",
+                            "→ Target \'C\' has an implicit dependency on Target \'A\' because \'C\' references the file \'A.framework\' in the build phase \'Link Binary\'",
+                        ]
+                    )
                 }
                 results.checkNoDiagnostics()
             }
@@ -421,7 +454,8 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("A.h"),
                         TestFile("A.m"),
                         TestFile("B.h"),
@@ -430,7 +464,8 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         TestFile("C.m"),
                         TestFile("D.h"),
                         TestFile("D.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -438,13 +473,14 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "EAGER_LINKING": "YES",
                         ]
-                    )],
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "A",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
@@ -456,7 +492,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "B",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("B.h", headerVisibility: .public)]),
@@ -468,7 +504,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "C",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("C.h", headerVisibility: .public)]),
@@ -480,7 +516,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "D",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("D.h", headerVisibility: .public)]),
@@ -488,7 +524,8 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         ],
                         dependencies: ["C"]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             for f in ["A.h", "A.m", "B.h", "B.m", "C.h", "C.m", "D.h", "D.m"] {
@@ -502,10 +539,12 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     #expect(cycle.header == "Cycle in dependencies between targets 'C' and 'D'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: C → D → C")
                     #expect(!cycle.usingManualOrder)
-                    #expect(cycle.lines == [
-                        "→ Target \'C\' has an explicit dependency on Target \'D\'",
-                        "→ Target \'D\' has an explicit dependency on Target \'C\'",
-                    ])
+                    #expect(
+                        cycle.lines == [
+                            "→ Target \'C\' has an explicit dependency on Target \'D\'",
+                            "→ Target \'D\' has an explicit dependency on Target \'C\'",
+                        ]
+                    )
                 }
                 results.checkNoDiagnostics()
             }
@@ -526,12 +565,14 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("A.h"),
                         TestFile("B.h"),
                         TestFile("A.m"),
                         TestFile("B.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -539,33 +580,35 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "EAGER_LINKING": "YES",
                         ]
-                    )],
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "A",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
                             TestSourcesBuildPhase([TestBuildFile("A.m")]),
                             TestShellScriptBuildPhase(name: "Generate B.m", originalObjectID: "bestID", contents: "touch \(tmpDir.str)/B.m", outputs: ["\(tmpDir.str)/B.m"]),
                         ],
-                        dependencies: [ "B" ]
+                        dependencies: ["B"]
                     ),
                     TestStandardTarget(
                         "B",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("B.h", headerVisibility: .public)]),
                             TestSourcesBuildPhase([TestBuildFile("B.m")]),
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             for f in ["A.h", "B.h", "A.m"] {
@@ -578,11 +621,13 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     #expect(cycle.header == "Cycle in dependencies between targets 'B' and 'A'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: B → A → B")
                     #expect(!cycle.usingManualOrder)
-                    #expect(cycle.lines == [
-                        "→ Target \'B\' has compile command with input \'\(tmpDir.str)/B.m\'",
-                        "→ That command depends on command in Target \'A\': script phase “Generate B.m”",
-                        "→ Target \'A\' has an explicit dependency on Target \'B\'",
-                    ])
+                    #expect(
+                        cycle.lines == [
+                            "→ Target \'B\' has compile command with input \'\(tmpDir.str)/B.m\'",
+                            "→ That command depends on command in Target \'A\': script phase “Generate B.m”",
+                            "→ Target \'A\' has an explicit dependency on Target \'B\'",
+                        ]
+                    )
                 }
                 results.checkNoDiagnostics()
             }
@@ -603,14 +648,16 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("A.h"),
                         TestFile("B.h"),
                         TestFile("C.h"),
                         TestFile("A.m"),
                         TestFile("B.m"),
                         TestFile("C.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -618,13 +665,14 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
                         ]
-                    )],
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "A",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
@@ -636,7 +684,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "B",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("B.h", headerVisibility: .public)]),
@@ -647,14 +695,15 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                         "C",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [:]),
+                            TestBuildConfiguration("Debug", buildSettings: [:])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([TestBuildFile("C.h", headerVisibility: .public)]),
                             TestSourcesBuildPhase([TestBuildFile("C.m")]),
                         ]
                     ),
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
             for f in ["A.h", "B.h", "C.h", "A.m", "C.m"] {
@@ -666,7 +715,7 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
             let project = tester.workspace.projects.first!
             let targetA = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
             let targetB = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[1])
-            let targetC  = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[2])
+            let targetC = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[2])
             let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [targetC, targetB, targetA], dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest) { results in
@@ -674,11 +723,13 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     #expect(cycle.header == "Cycle in dependencies between targets 'A' and 'B'; building could produce unreliable results.")
                     #expect(cycle.path == "Cycle path: A → B → A")
                     #expect(cycle.usingManualOrder)
-                    #expect(cycle.lines == [
-                        "→ Target \'A\' is ordered after Target \'B\' in a “Target Dependencies” build phase or in the scheme",
-                        "○ Target \'B\' has compile command with input \'\(tmpDir.str)/B.m\'",
-                        "→ That command depends on command in Target \'A\': script phase “Generate B.m”",
-                    ])
+                    #expect(
+                        cycle.lines == [
+                            "→ Target \'A\' is ordered after Target \'B\' in a “Target Dependencies” build phase or in the scheme",
+                            "○ Target \'B\' has compile command with input \'\(tmpDir.str)/B.m\'",
+                            "→ That command depends on command in Target \'A\': script phase “Generate B.m”",
+                        ]
+                    )
                 }
                 results.checkNoDiagnostics()
             }
@@ -698,49 +749,74 @@ fileprivate struct DependencyCycleDiagnosticsTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
-                                TestGroup("BaseFoo", path: "BaseFoo", children: [
-                                    TestFile("BaseFoo.m"),
-                                ]),
-                                TestGroup("CoreFoo", path: "CoreFoo", children: [
-                                    TestFile("CoreFoo.h"),
-                                    TestFile("CoreFoo.m"),
-                                ]),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                // Autolinking introduces a nondeterministic timing-based dependency cycle in this test.
-                                "CLANG_MODULES_AUTOLINK": "NO",
-
-                                // Eager parallel compilation prevents this cycle by removing dependencies between compiling tasks.
-                                // BaseFoo only depends on the header map creation, not the compilation.
-                                "EAGER_PARALLEL_COMPILATION_DISABLE": "\(!eagerParallelCompilation)",
-                                "DIAGNOSE_MISSING_TARGET_DEPENDENCIES": "NO"
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestGroup(
+                                    "BaseFoo",
+                                    path: "BaseFoo",
+                                    children: [
+                                        TestFile("BaseFoo.m")
+                                    ]
+                                ),
+                                TestGroup(
+                                    "CoreFoo",
+                                    path: "CoreFoo",
+                                    children: [
+                                        TestFile("CoreFoo.h"),
+                                        TestFile("CoreFoo.m"),
+                                    ]
+                                ),
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                    // Autolinking introduces a nondeterministic timing-based dependency cycle in this test.
+                                    "CLANG_MODULES_AUTOLINK": "NO",
+
+                                    // Eager parallel compilation prevents this cycle by removing dependencies between compiling tasks.
+                                    // BaseFoo only depends on the header map creation, not the compilation.
+                                    "EAGER_PARALLEL_COMPILATION_DISABLE": "\(!eagerParallelCompilation)",
+                                    "DIAGNOSE_MISSING_TARGET_DEPENDENCIES": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             // Main app, which depends on a framework, and the framework depends on a static library.
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug",
-                                                           buildSettings: [
-                                                            "DEFINES_MODULE": "YES"])],
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m"]),
                                     TestHeadersBuildPhase([
-                                        TestBuildFile("CoreFoo.h", headerVisibility: .public)])],
-                                dependencies: ["BaseFoo"]),
+                                        TestBuildFile("CoreFoo.h", headerVisibility: .public)
+                                    ]),
+                                ],
+                                dependencies: ["BaseFoo"]
+                            ),
                             TestStandardTarget(
-                                "BaseFoo", type: .framework,
-                                buildPhases: [TestSourcesBuildPhase(["BaseFoo.m"])]),
-                        ])
-                ])
+                                "BaseFoo",
+                                type: .framework,
+                                buildPhases: [TestSourcesBuildPhase(["BaseFoo.m"])]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the source files.

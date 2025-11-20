@@ -82,7 +82,7 @@ final class MacroConfigFileLoader: Sendable {
         }
 
         var normalizedPath: Path { return normalizedPathCache.getValue(self) }
-        private var normalizedPathCache = LazyCache{ (ancestorInclude: AncestorInclude) -> Path in
+        private var normalizedPathCache = LazyCache { (ancestorInclude: AncestorInclude) -> Path in
             return ancestorInclude.path.normalize()
         }
 
@@ -214,7 +214,7 @@ final class MacroConfigFileLoader: Sendable {
                         }
                     }
 
-                    let cyclePathStr = (ancestorIncludes.paths[startingCycleIndex...] + [pathToInclude]).map{ $0.descriptionWithBasename }.joined(separator: " -> ")
+                    let cyclePathStr = (ancestorIncludes.paths[startingCycleIndex...] + [pathToInclude]).map { $0.descriptionWithBasename }.joined(separator: " -> ")
 
                     // To maintain compatibility, we need to warn here. rdar://45532351 to consider putting this behind an option to expose it's level of diagnostic.
                     handleDiagnostic(MacroConfigFileDiagnostic(kind: .cyclicIncludeFileDirective, level: .warning, message: "Skipping the inclusion of '\(pathToInclude.normalizedPath.basename)' from '\(parser.path.normalize().basename)' as it would create a cycle.\nCycle Path: \(cyclePathStr)\nCycle Details:\n\(cycleDetailsStr)", lineNumber: parser.lineNumber), parser: parser)
@@ -255,7 +255,7 @@ final class MacroConfigFileLoader: Sendable {
                 // If we have any conditions, we also construct a condition set.
                 var conditionSet: MacroConditionSet?
                 if !conditions.isEmpty {
-                    conditionSet = MacroConditionSet(conditions: conditions.map{ MacroCondition(parameter: table.namespace.declareConditionParameter($0.0), valuePattern: $0.1) })
+                    conditionSet = MacroConditionSet(conditions: conditions.map { MacroCondition(parameter: table.namespace.declareConditionParameter($0.0), valuePattern: $0.1) })
                 }
 
                 // Parse the value in a manner consistent with the macro definition.
@@ -283,7 +283,7 @@ final class MacroConfigFileLoader: Sendable {
         let diagnostics = ConfigDiagnostics()
         let nestedConfigs = NestedConfigurations()
         let ancestorIncludes = AncestorIncludes()
-        path.map{ nestedConfigs.paths.append($0) }
+        path.map { nestedConfigs.paths.append($0) }
 
         if let path {
             ancestorIncludes.paths.append(AncestorInclude(path: path, fs: fs))

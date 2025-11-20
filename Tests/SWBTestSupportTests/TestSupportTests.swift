@@ -44,26 +44,37 @@ import SWBUtil
     @Test(.requireSDKs(.host))
     func ensureTaskBelongToCorrectBuild() async throws {
         try await withTemporaryDirectory { tmpDir in
-            let testWorkspace = TestWorkspace("TestWorkspace", sourceRoot: tmpDir, projects: [
-                TestProject("TestProject",
-                    groupTree: TestGroup("Root", children: [TestFile("test.c")]),
-                    buildConfigurations: [
-                        TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CODE_SIGN_IDENTITY": "-",
-                            ]),
-                    ],
-                    targets: [
-                        TestStandardTarget("TestTarget", type: .commandLineTool, buildPhases: [
-                            TestSourcesBuildPhase([
-                                TestBuildFile("test.c")
-                            ])
-                        ])
-                    ])
-                ])
+            let testWorkspace = TestWorkspace(
+                "TestWorkspace",
+                sourceRoot: tmpDir,
+                projects: [
+                    TestProject(
+                        "TestProject",
+                        groupTree: TestGroup("Root", children: [TestFile("test.c")]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "TestTarget",
+                                type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        TestBuildFile("test.c")
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let core = try await getCore()
             let buildA = try TaskConstructionTester(core, testWorkspace)

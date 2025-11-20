@@ -95,7 +95,8 @@ extension ModuleVerifierFilenameMap {
         let fixits = diag.fixIts.map { updateFixit($0) }
         var location = diag.location
         if case .path(let path, fileLocation: let fileLoc) = location,
-           let mappedFilename = map(filename: path.str) {
+            let mappedFilename = map(filename: path.str)
+        {
             location = .path(Path(mappedFilename), fileLocation: fileLoc)
         }
         return diag.with(location: location, fixIts: fixits, childDiagnostics: childDiagnostics)

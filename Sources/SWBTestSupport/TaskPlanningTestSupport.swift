@@ -197,7 +197,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
         switch commandLine.first.map(Path.init)?.basenameWithoutSuffix {
         case "actool" where args == ["--version", "--output-format", "xml1"]:
             return .deferred
-        case "cat": // docc
+        case "cat":  // docc
             return .deferred
         case "clang" where args.first == "-v":
             return .deferred
@@ -247,9 +247,11 @@ package class TestTaskPlanningDelegate: TaskPlanningDelegate, @unchecked Sendabl
     package let diagnosticContext: DiagnosticContextData
 
     package func diagnosticsEngine(for target: ConfiguredTarget?) -> DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
-        .init(_diagnosticsEngines.withLock { diagnosticsEngines in
-            diagnosticsEngines.getOrInsert(target, { DiagnosticsEngine() })
-        })
+        .init(
+            _diagnosticsEngines.withLock { diagnosticsEngines in
+                diagnosticsEngines.getOrInsert(target, { DiagnosticsEngine() })
+            }
+        )
     }
 
     var diagnostics: [ConfiguredTarget?: [Diagnostic]] {
@@ -277,7 +279,7 @@ package class TestTaskPlanningDelegate: TaskPlanningDelegate, @unchecked Sendabl
     }
 
     package var cancelled: Bool { return false }
-    package func updateProgress(statusMessage: String, showInLog: Bool) { }
+    package func updateProgress(statusMessage: String, showInLog: Bool) {}
 
     package func createVirtualNode(_ name: String) -> PlannedVirtualNode {
         return MakePlannedVirtualNode(name)
@@ -504,26 +506,26 @@ package final class CancellingTaskPlanningDelegate: TestTaskPlanningDelegate, @u
     }
 
     package override var cancelled: Bool {
-        return (queue.blocking_sync{ numNodesSeen }) > afterNodes || (queue.blocking_sync{ numTasksSeen }) > afterTasks
+        return (queue.blocking_sync { numNodesSeen }) > afterNodes || (queue.blocking_sync { numTasksSeen }) > afterTasks
     }
 
     package override func createVirtualNode(_ name: String) -> PlannedVirtualNode {
-        queue.blocking_sync{ numNodesSeen += 1 }
+        queue.blocking_sync { numNodesSeen += 1 }
         return super.createVirtualNode(name)
     }
 
     package override func createDirectoryTreeNode(absolutePath path: Path, excluding: [String]) -> PlannedDirectoryTreeNode {
-        queue.blocking_sync{ numNodesSeen += 1 }
+        queue.blocking_sync { numNodesSeen += 1 }
         return super.createDirectoryTreeNode(absolutePath: path, excluding: excluding)
     }
 
     package override func createNode(absolutePath path: Path) -> PlannedPathNode {
-        queue.blocking_sync{ numNodesSeen += 1 }
+        queue.blocking_sync { numNodesSeen += 1 }
         return super.createNode(absolutePath: path)
     }
 
     package override func createTask(_ builder: inout PlannedTaskBuilder) -> any PlannedTask {
-        queue.blocking_sync{ numTasksSeen += 1 }
+        queue.blocking_sync { numTasksSeen += 1 }
         return super.createTask(&builder)
     }
 }

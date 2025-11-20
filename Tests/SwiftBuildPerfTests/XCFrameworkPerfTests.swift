@@ -97,7 +97,7 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.swift"]),
@@ -113,26 +113,33 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
                         children: [
                             TestFile("main.swift"),
                             TestFile("sample.xcframework"),
-                            TestFile("Info.plist")
-                        ]),
+                            TestFile("Info.plist"),
+                        ]
+                    ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "CODE_SIGN_IDENTITY": "-",
-                            "ARCHS": "x86_64",
-                            "SWIFT_VERSION": "5",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CODE_SIGN_IDENTITY": "-",
+                                "ARCHS": "x86_64",
+                                "SWIFT_VERSION": "5",
+                            ]
+                        )
                     ],
                     targets: [
                         // Test building an app which links and embeds an xcframework.
-                        testTarget,
-                    ])
+                        testTarget
+                    ]
+                )
 
-                let testWorkspace = TestWorkspace("aWorkspace",
-                                                  sourceRoot: tmpDir.join("Test"),
-                                                  projects: [testProject])
+                let testWorkspace = TestWorkspace(
+                    "aWorkspace",
+                    sourceRoot: tmpDir.join("Test"),
+                    projects: [testProject]
+                )
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
                 let tester = try await CoreQualificationTester(testWorkspace, testSession, fs: fs)
@@ -175,14 +182,16 @@ fileprivate struct XCFrameworkCreationPerfTests: CoreBasedTests, PerfTests {
                         results.checkNoFailedTasks()
                     }
 
-                    #expect(events.filter { event in
-                        switch event {
-                        case .targetUpToDate:
-                            return true
-                        default:
-                            return false
-                        }
-                    }.count == 0)
+                    #expect(
+                        events.filter { event in
+                            switch event {
+                            case .targetUpToDate:
+                                return true
+                            default:
+                                return false
+                            }
+                        }.count == 0
+                    )
 
                     // completely remove the build folder to ensure all of the tasks are run again
                     try? fs.removeDirectory(SRCROOT.join("build"))

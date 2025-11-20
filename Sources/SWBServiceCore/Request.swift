@@ -47,16 +47,16 @@ public final class Request: Sendable {
         self.name = name
     }
 
-#if DEBUG
-    /// Validate that every request is completed, in debug builds.
-    deinit {
-        completed.withLock { completed in
-            if !completed {
-                fatalError("unexpected incomplete request: \(self)")
+    #if DEBUG
+        /// Validate that every request is completed, in debug builds.
+        deinit {
+            completed.withLock { completed in
+                if !completed {
+                    fatalError("unexpected incomplete request: \(self)")
+                }
             }
         }
-    }
-#endif
+    #endif
 
     /// Send a message to the client.
     public func send(_ message: any Message) {

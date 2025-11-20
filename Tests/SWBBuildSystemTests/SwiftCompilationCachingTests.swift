@@ -33,8 +33,9 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("App.swift"),
-                            ]),
+                                TestFile("App.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -50,7 +51,8 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                                     "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
                                     "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -58,12 +60,14 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                                 type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "App.swift",
-                                    ]),
+                                        "App.swift"
+                                    ])
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/App.swift")) {
@@ -151,94 +155,128 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     TestPackageProductTarget(
                         "BarProduct",
                         frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Bar"))]),
-                        dependencies: ["Bar"]),
+                        dependencies: ["Bar"]
+                    ),
                     TestStandardTarget(
                         "Bar",
                         type: .dynamicLibrary,
                         buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Bar", "EXECUTABLE_PREFIX": "lib"])],
-                        buildPhases: [TestSourcesBuildPhase(["Bar.swift"])])])
+                        buildPhases: [TestSourcesBuildPhase(["Bar.swift"])]
+                    ),
+                ]
+            )
 
             let package = TestPackageProject(
                 "aPackage",
                 groupTree: TestGroup("Sources", children: [TestFile("Foo.swift")]),
-                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings.addingContents(of: [
-                    "SWIFT_INCLUDE_PATHS": "$(TARGET_BUILD_DIR)/../../../aPackageLeaf/build/Debug",
-                ]))],
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: commonBuildSettings.addingContents(of: [
+                            "SWIFT_INCLUDE_PATHS": "$(TARGET_BUILD_DIR)/../../../aPackageLeaf/build/Debug"
+                        ])
+                    )
+                ],
                 targets: [
                     TestPackageProductTarget(
                         "FooProduct",
                         frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("Foo"))]),
-                        dependencies: ["Foo"]),
+                        dependencies: ["Foo"]
+                    ),
                     TestStandardTarget(
                         "Foo",
                         type: .dynamicLibrary,
                         buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Foo", "EXECUTABLE_PREFIX": "lib"])],
                         buildPhases: [
                             TestSourcesBuildPhase(["Foo.swift"]),
-                            TestFrameworksBuildPhase([TestBuildFile(.target("BarProduct"))])],
-                        dependencies: ["BarProduct"])])
+                            TestFrameworksBuildPhase([TestBuildFile(.target("BarProduct"))]),
+                        ],
+                        dependencies: ["BarProduct"]
+                    ),
+                ]
+            )
 
             let project = TestProject(
                 "aProject",
                 groupTree: TestGroup("Sources", children: [TestFile("App1.swift"), TestFile("App2.swift")]),
-                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: commonBuildSettings.addingContents(of: [
-                    "SWIFT_INCLUDE_PATHS": "$(TARGET_BUILD_DIR)/../../../aPackage/build/Debug $(TARGET_BUILD_DIR)/../../../aPackageLeaf/build/Debug"]))],
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: commonBuildSettings.addingContents(of: [
+                            "SWIFT_INCLUDE_PATHS": "$(TARGET_BUILD_DIR)/../../../aPackage/build/Debug $(TARGET_BUILD_DIR)/../../../aPackageLeaf/build/Debug"
+                        ])
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "App1",
                         type: .framework,
-                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SWIFT_ENABLE_COMPILE_CACHE": "YES",
-                            "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                            "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str])],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                ]
+                            )
+                        ],
                         buildPhases: [
                             TestSourcesBuildPhase(["App1.swift"]),
-                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
-                        dependencies: ["FooProduct"]),
+                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))]),
+                        ],
+                        dependencies: ["FooProduct"]
+                    ),
                     TestStandardTarget(
                         "App2",
                         type: .framework,
-                        buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)"])],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         buildPhases: [
                             TestSourcesBuildPhase(["App2.swift"]),
-                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
-                        dependencies: ["FooProduct"])])
+                            TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))]),
+                        ],
+                        dependencies: ["FooProduct"]
+                    ),
+                ]
+            )
 
             let workspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath.join("Test"), projects: [project, package, leafPackage])
 
             let tester = try await BuildOperationTester(getCore(), workspace, simulated: false)
 
             try await tester.fs.writeFileContents(workspace.sourceRoot.join("aPackageLeaf/Bar.swift")) { stream in
-                stream <<<
-                """
-                public func baz() {}
-                """
+                stream <<< """
+                    public func baz() {}
+                    """
             }
 
             try await tester.fs.writeFileContents(workspace.sourceRoot.join("aPackage/Foo.swift")) { stream in
-                stream <<<
-                """
-                import Bar
-                public func foo() { baz() }
-                """
+                stream <<< """
+                    import Bar
+                    public func foo() { baz() }
+                    """
             }
 
             try await tester.fs.writeFileContents(workspace.sourceRoot.join("aProject/App1.swift")) { stream in
-                stream <<<
-                """
-                import Foo
-                func app() { foo() }
-                """
+                stream <<< """
+                    import Foo
+                    func app() { foo() }
+                    """
             }
 
             try await tester.fs.writeFileContents(workspace.sourceRoot.join("aProject/App2.swift")) { stream in
-                stream <<<
-                """
-                import Foo
-                func app() { foo() }
-                """
+                stream <<< """
+                    import Foo
+                    func app() { foo() }
+                    """
             }
 
             let parameters = BuildParameters(configuration: "Debug", overrides: ["ARCHS": "arm64"])
@@ -283,8 +321,9 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("main.swift"),
-                            ]),
+                                TestFile("main.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -298,7 +337,8 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                                     "COMPILATION_CACHE_LIMIT_SIZE": "1",
                                     "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
-                                ]),
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -306,12 +346,14 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "main.swift",
-                                    ]),
+                                        "main.swift"
+                                    ])
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/main.swift")) {
@@ -363,26 +405,33 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("file.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: buildSettings)],
+                                TestFile("file.swift")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: buildSettings
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Library",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file.swift"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file.swift"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
-                stream <<<
-                """
-                public func libFunc() {}
-                """
+                stream <<< """
+                    public func libFunc() {}
+                    """
             }
 
             let specificCAS = casPath.join("builtin")

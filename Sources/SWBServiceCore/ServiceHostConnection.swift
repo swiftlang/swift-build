@@ -15,9 +15,9 @@ import SWBUtil
 import Foundation
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 /// Convert a count to a UInt8 buffer.
@@ -94,12 +94,12 @@ final class ServiceHostConnection: @unchecked Sendable {
             let totalSize = headerSize + payloadSize
 
             #if DEBUG
-            // A well behaved client would not send a negative payloadSize, but this can happen when we hit <rdar://problem/62081788>.
-            // In that case, consider all remaining bytes to be bogus and drop them.
-            if payloadSize < 0 {
-                count = 0
-                break
-            }
+                // A well behaved client would not send a negative payloadSize, but this can happen when we hit <rdar://problem/62081788>.
+                // In that case, consider all remaining bytes to be bogus and drop them.
+                if payloadSize < 0 {
+                    count = 0
+                    break
+                }
             #endif
 
             // If we do not have a complete message, we are done.
@@ -141,10 +141,10 @@ final class ServiceHostConnection: @unchecked Sendable {
             var error: (any Error)?
             while !self.isSuspended.withLock({ $0 }) {
                 #if DEBUG
-                // Work around <rdar://problem/62081788> read syscall can sometimes return a value greater than the count parameter
-                // We set the whole buffer to 0xFF so that parts that are not written will be interpreted as a payload with a negative length.
-                // This is only a mitigation that may not catch all cases.
-                tmp.update(repeating: 0xFF)
+                    // Work around <rdar://problem/62081788> read syscall can sometimes return a value greater than the count parameter
+                    // We set the whole buffer to 0xFF so that parts that are not written will be interpreted as a payload with a negative length.
+                    // This is only a mitigation that may not catch all cases.
+                    tmp.update(repeating: 0xFF)
                 #endif
 
                 // Read data.
@@ -164,9 +164,9 @@ final class ServiceHostConnection: @unchecked Sendable {
                     break
                 }
                 #if DEBUG
-                if result > tmpBufferSize {
-                    log("warning: read returned more bytes than requested: \(result) > \(tmpBufferSize)")
-                }
+                    if result > tmpBufferSize {
+                        log("warning: read returned more bytes than requested: \(result) > \(tmpBufferSize)")
+                    }
                 #endif
 
                 // Extract all the messages, combining into a contiguous buffer first if necessary.

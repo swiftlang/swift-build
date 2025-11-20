@@ -119,7 +119,7 @@ extension SWBPropertyListItem {
         case let .plDouble(value):
             self = .plDouble(value)
         case let .plArray(value):
-            self = try .plArray(value.map { try .init($0 ) })
+            self = try .plArray(value.map { try .init($0) })
         case let .plDict(value):
             self = try .plDict(value.mapValues { try .init($0) })
         case let .plOpaque(value):

@@ -22,20 +22,19 @@ public protocol PIFRepresentable {
     func serialize(to serializer: any IDEPIFSerializer) -> PIFDict
 }
 
-
-extension PIF.Project : PIFRepresentable {
+extension PIF.Project: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
-        var dict : PIFDict = [
+        var dict: PIFDict = [
             PIFKey_guid: id,
             PIFKey_Project_name: name,
-            PIFKey_Project_isPackage: isPackage ? "true" : "false" ,
+            PIFKey_Project_isPackage: isPackage ? "true" : "false",
             PIFKey_path: path,
             PIFKey_Project_projectDirectory: projectDir,
-            PIFKey_buildConfigurations: buildConfigs.map{ $0.serialize(to: serializer) },
+            PIFKey_buildConfigurations: buildConfigs.map { $0.serialize(to: serializer) },
             PIFKey_Project_defaultConfigurationName: "Release",
             PIFKey_Project_groupTree: mainGroup.serialize(to: serializer),
-            PIFKey_Project_targets: targets.compactMap{ $0.signature },
+            PIFKey_Project_targets: targets.compactMap { $0.signature },
         ]
 
         if let developmentRegion {
@@ -46,7 +45,7 @@ extension PIF.Project : PIFRepresentable {
     }
 }
 
-extension PIF.Group : PIFRepresentable {
+extension PIF.Group: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
@@ -55,12 +54,12 @@ extension PIF.Group : PIFRepresentable {
             PIFKey_Reference_sourceTree: pathBase.asString,
             PIFKey_path: path,
             PIFKey_name: name ?? path,
-            PIFKey_Reference_children: subitems.map{ ($0 as! (any PIFRepresentable)).serialize(to: serializer) }
+            PIFKey_Reference_children: subitems.map { ($0 as! (any PIFRepresentable)).serialize(to: serializer) },
         ]
     }
 }
 
-extension PIF.FileReference : PIFRepresentable {
+extension PIF.FileReference: PIFRepresentable {
 
     private func fileTypeIdentifier(for path: String) -> String {
         // FIXME: We need real logic here.  <rdar://problem/33634352> [SwiftPM] When generating PIF, we need a standard way to determine the file type
@@ -93,7 +92,6 @@ extension PIF.FileReference : PIFRepresentable {
         case "y", "ym", "ymm", "ypp", "yp", "yxx":
             return "sourcecode.yacc"
 
-
         // FIXME: This is probably now more important because of resources support.
         case "xcassets":
             return "folder.assetcatalog"
@@ -118,7 +116,7 @@ extension PIF.FileReference : PIFRepresentable {
             return "folder.rkassets"
 
         default:
-            return SwiftBuildFileType.all.first{ $0.fileTypes.contains(pathExtension) }?.fileTypeIdentifier ?? "file"
+            return SwiftBuildFileType.all.first { $0.fileTypes.contains(pathExtension) }?.fileTypeIdentifier ?? "file"
         }
     }
 
@@ -129,12 +127,12 @@ extension PIF.FileReference : PIFRepresentable {
             PIFKey_Reference_sourceTree: pathBase.asString,
             PIFKey_path: path,
             // FIXME: We need a real solution here (or: could we not omit the file type and let it be inferred?)
-            PIFKey_Reference_fileType: fileType ?? fileTypeIdentifier(for: path)
+            PIFKey_Reference_fileType: fileType ?? fileTypeIdentifier(for: path),
         ]
     }
 }
 
-extension PIF.BaseTarget : PIFRepresentable {
+extension PIF.BaseTarget: PIFRepresentable {
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         _serialize(to: serializer)
     }
@@ -143,7 +141,7 @@ extension PIF.BaseTarget : PIFRepresentable {
 extension PIF.PlatformFilter: PIFRepresentable {
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         if environment.isEmpty {
-            return [ "platform": platform ]
+            return ["platform": platform]
         } else {
             return [
                 "platform": platform,
@@ -153,46 +151,46 @@ extension PIF.PlatformFilter: PIFRepresentable {
     }
 }
 
-extension PIF.HeadersBuildPhase : PIFRepresentable {
+extension PIF.HeadersBuildPhase: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
             PIFKey_type: "com.apple.buildphase.headers",
             PIFKey_guid: id,
-            PIFKey_BuildPhase_buildFiles: files.map{ $0.serialize(to: serializer) },
+            PIFKey_BuildPhase_buildFiles: files.map { $0.serialize(to: serializer) },
         ]
     }
 }
 
-extension PIF.SourcesBuildPhase : PIFRepresentable {
+extension PIF.SourcesBuildPhase: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
             PIFKey_type: "com.apple.buildphase.sources",
             PIFKey_guid: id,
-            PIFKey_BuildPhase_buildFiles: files.map{ $0.serialize(to: serializer) },
+            PIFKey_BuildPhase_buildFiles: files.map { $0.serialize(to: serializer) },
         ]
     }
 }
 
-extension PIF.FrameworksBuildPhase : PIFRepresentable {
+extension PIF.FrameworksBuildPhase: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
             PIFKey_type: "com.apple.buildphase.frameworks",
             PIFKey_guid: id,
-            PIFKey_BuildPhase_buildFiles: files.map{ $0.serialize(to: serializer) },
+            PIFKey_BuildPhase_buildFiles: files.map { $0.serialize(to: serializer) },
         ]
     }
 }
 
-extension PIF.CopyFilesBuildPhase : PIFRepresentable {
+extension PIF.CopyFilesBuildPhase: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
             PIFKey_type: "com.apple.buildphase.copy-files",
             PIFKey_guid: id,
-            PIFKey_BuildPhase_buildFiles: files.map{ $0.serialize(to: serializer) },
+            PIFKey_BuildPhase_buildFiles: files.map { $0.serialize(to: serializer) },
             PIFKey_BuildPhase_destinationSubfolder: destinationSubfolder.pathString,
             PIFKey_BuildPhase_destinationSubpath: destinationSubpath,
             PIFKey_BuildPhase_runOnlyForDeploymentPostprocessing: (runOnlyForDeploymentPostprocessing ? "true" : "false"),
@@ -200,7 +198,7 @@ extension PIF.CopyFilesBuildPhase : PIFRepresentable {
     }
 }
 
-extension PIF.ShellScriptBuildPhase : PIFRepresentable {
+extension PIF.ShellScriptBuildPhase: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
@@ -209,14 +207,14 @@ extension PIF.ShellScriptBuildPhase : PIFRepresentable {
             PIFKey_BuildPhase_name: name,
             PIFKey_BuildPhase_shellPath: shellPath,
             PIFKey_BuildPhase_scriptContents: scriptContents,
-            PIFKey_BuildPhase_buildFiles: files.map{ $0.serialize(to: serializer) },
+            PIFKey_BuildPhase_buildFiles: files.map { $0.serialize(to: serializer) },
             PIFKey_BuildPhase_inputFilePaths: inputPaths,
             PIFKey_BuildPhase_outputFilePaths: outputPaths,
             PIFKey_BuildPhase_emitEnvironment: emitEnvironment ? "true" : "false",
             PIFKey_BuildPhase_sandboxingOverride: sandboxingOverride.valueForPIF,
             PIFKey_BuildPhase_alwaysOutOfDate: alwaysOutOfDate ? "true" : "false",
             PIFKey_BuildPhase_runOnlyForDeploymentPostprocessing: runOnlyForDeploymentPostprocessing ? "true" : "false",
-            PIFKey_BuildPhase_originalObjectID: originalObjectID
+            PIFKey_BuildPhase_originalObjectID: originalObjectID,
         ]
     }
 }
@@ -226,12 +224,12 @@ extension PIF.CopyBundleResourcesBuildPhase: PIFRepresentable {
         return [
             PIFKey_type: "com.apple.buildphase.resources",
             PIFKey_guid: id,
-            PIFKey_BuildPhase_buildFiles: files.map{ $0.serialize(to: serializer) },
+            PIFKey_BuildPhase_buildFiles: files.map { $0.serialize(to: serializer) },
         ]
     }
 }
 
-extension PIF.BuildRule : PIFRepresentable {
+extension PIF.BuildRule: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         var dict = PIFDict()
@@ -294,7 +292,7 @@ extension PIF.CustomTask: PIFRepresentable {
     }
 }
 
-extension PIF.BuildFile : PIFRepresentable {
+extension PIF.BuildFile: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         switch self.ref {
@@ -303,7 +301,7 @@ extension PIF.BuildFile : PIFRepresentable {
             dict[PIFKey_guid] = id
             dict[PIFKey_BuildFile_fileReference] = refId
             dict[PIFKey_BuildFile_headerVisibility] = headerVisibility?.rawValue
-            dict[PIFKey_platformFilters] = platformFilters.map{ $0.serialize(to: serializer) }
+            dict[PIFKey_platformFilters] = platformFilters.map { $0.serialize(to: serializer) }
 
             dict[PIFKey_BuildFile_codeSignOnCopy] = codeSignOnCopy ? "true" : "false"
             dict[PIFKey_BuildFile_removeHeadersOnCopy] = removeHeadersOnCopy ? "true" : "false"
@@ -331,13 +329,13 @@ extension PIF.BuildFile : PIFRepresentable {
             return [
                 PIFKey_guid: id,
                 PIFKey_BuildFile_targetReference: refId,
-                PIFKey_platformFilters: platformFilters.map{ $0.serialize(to: serializer) }
+                PIFKey_platformFilters: platformFilters.map { $0.serialize(to: serializer) },
             ]
         }
     }
 }
 
-extension PIF.BuildConfig : PIFRepresentable {
+extension PIF.BuildConfig: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
@@ -349,16 +347,16 @@ extension PIF.BuildConfig : PIFRepresentable {
     }
 }
 
-extension PIF.ImpartedBuildProperties : PIFRepresentable {
+extension PIF.ImpartedBuildProperties: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         return [
-            PIFKey_BuildConfiguration_buildSettings: settings.serialize(to: serializer),
+            PIFKey_BuildConfiguration_buildSettings: settings.serialize(to: serializer)
         ]
     }
 }
 
-extension PIF.BuildSettings : PIFRepresentable {
+extension PIF.BuildSettings: PIFRepresentable {
 
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         // Borderline hacky, but the main thing is that adding or changing a build setting does not require any changes to the property list representation code.  Using a hand-coded serializer might be more efficient but not even remotely as robust, and robustness is the key factor for this use case, as there aren't going to be millions of BuildSettings structs.

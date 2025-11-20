@@ -53,7 +53,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     // Other files
                     TestFile("External.framework"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -67,7 +68,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 // App target
@@ -75,22 +77,26 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Application.swift",
+                            "Application.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "MergedFwkTarget.framework",
+                            "MergedFwkTarget.framework"
                         ]),
                         // Embed
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
-                            TestBuildFile("FwkTarget1.framework", codeSignOnCopy: true),
-                            TestBuildFile("FwkTarget2.framework", codeSignOnCopy: true),
-                            TestBuildFile("libDylibTarget1.dylib", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
+                                TestBuildFile("FwkTarget1.framework", codeSignOnCopy: true),
+                                TestBuildFile("FwkTarget2.framework", codeSignOnCopy: true),
+                                TestBuildFile("libDylibTarget1.dylib", codeSignOnCopy: true),
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: ["MergedFwkTarget"]
                 ),
@@ -99,10 +105,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "MergedFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGED_BINARY_TYPE": "automatic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGED_BINARY_TYPE": "automatic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -124,45 +132,43 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "FwkTarget1",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
                 TestStandardTarget(
                     "FwkTarget2",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassTwo.swift",
+                            "ClassTwo.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
                 TestStandardTarget(
                     "DylibTarget1",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassThree.swift",
+                            "ClassThree.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let runDestination = RunDestinationInfo.iOS
@@ -178,21 +184,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             "MkDir",
             "CreateBuildDirectory",
             "ClangStatCache",
-            "LinkAssetCatalogSignature"
+            "LinkAssetCatalogSignature",
         ]
 
         // Test a debug build.  This will just build the merged framework to reexport the frameworks it links against.
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                "GCC_OPTIMIZATION_LEVEL": "0",
-                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                    "GCC_OPTIMIZATION_LEVEL": "0",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                ]
+            )
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
@@ -205,12 +214,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     results.checkTarget(targetName) { target in
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                            task.checkCommandLineContains([
-                                ["clang"],
-                                supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
-                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                            ].reduce([], +))
-                            task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
+                            task.checkCommandLineContains(
+                                [
+                                    ["clang"],
+                                    supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],  // Only passed in debug builds
+                                    ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                                ].reduce([], +)
+                            )
+                            task.checkCommandLineDoesNotContain("-make_mergeable")  // Not passed in debug builds
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
 
@@ -229,12 +240,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     let FULL_PRODUCT_NAME = "\(targetName).dylib"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],  // Only passed in debug builds
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-make_mergeable")  // Not passed in debug builds
                     }
 
                     // Even though we aren't building to be mergeable, the re-exporting dance still means we need our custom bundle lookup class.
@@ -253,16 +266,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-rpath", "-Xlinker", "@loader_path/\(reexportedBinariesDirectoryName)"],
-                            ["-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget1",
-                             "-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget2",
-                             "-Xlinker", "-no_merge-lDylibTarget1",
-                             "-framework", "External",
-                            ],
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-rpath", "-Xlinker", "@loader_path/\(reexportedBinariesDirectoryName)"],
+                                [
+                                    "-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget1",
+                                    "-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget2",
+                                    "-Xlinker", "-no_merge-lDylibTarget1",
+                                    "-framework", "External",
+                                ],
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-merge_framework")
                         task.checkCommandLineDoesNotContain("-merge-lDylibTarget1")
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget1"), .matchRuleType("Ld")])
@@ -274,19 +290,22 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
                             task.checkRuleInfo(["Copy", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)"])
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)",
-                                 "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
-                                 "-include_only_subpath", "Info.plist",
-                                ],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)"],
-                            ].reduce([], +))
-                            let numberOfIncludeOnlySubpath = task.commandLineAsStrings.filter({ $0 == "-include_only_subpath" } ).count
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    [
+                                        "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)",
+                                        "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
+                                        "-include_only_subpath", "Info.plist",
+                                    ],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)"],
+                                ].reduce([], +)
+                            )
+                            let numberOfIncludeOnlySubpath = task.commandLineAsStrings.filter({ $0 == "-include_only_subpath" }).count
                             #expect(numberOfIncludeOnlySubpath == 3, "Expected 3 -include_only_subpath, found \(numberOfIncludeOnlySubpath): \(Array(task.commandLineAsStrings))")
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             task.checkRuleInfo(["CodeSign", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)/\(signedDir)"])
                             task.checkCommandLineContains(["/usr/bin/codesign", "--preserve-metadata=identifier,entitlements,flags", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)/\(signedDir)"])
@@ -320,11 +339,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     let FULL_PRODUCT_NAME = "\(targetName).app"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "MergedFwkTarget"],
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "MergedFwkTarget"],
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Ld")])
                     }
 
@@ -332,14 +353,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     for fwkTargetName in ["FwkTarget1", "FwkTarget2"] {
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             // --generate-pre-encrypt-hashes is added dynamically in CodeSignTaskAction and is checked in MergeableLibrariesBuildOperationTests.testAutomaticMergedFrameworkCreation()
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
@@ -353,7 +376,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             task.checkCommandLineDoesNotContain("-exclude_subpath")
                             results.checkTaskFollows(task, [.matchTargetName(mergedTargetName), .matchRuleType("Touch"), .matchRuleItemBasename("MergedFwkTarget.framework")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
                         }
@@ -381,15 +404,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
@@ -403,12 +429,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let INSTALL_PATH = "/Library/Frameworks"
                     results.checkTarget(targetName) { target in
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                            task.checkCommandLineContains([
-                                ["clang"],
-                                ["-Xlinker", "-make_mergeable"],
-                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                            ].reduce([], +))
-                            task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                            task.checkCommandLineContains(
+                                [
+                                    ["clang"],
+                                    ["-Xlinker", "-make_mergeable"],
+                                    ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                                ].reduce([], +)
+                            )
+                            task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                         }
                         // Don't generate an intermediate .tbd file for eager linking when we're making the binary mergeable.
                         results.checkNoTask(.matchTarget(target), .matchRuleType("GenerateTAPI"))
@@ -431,12 +459,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).dylib"
                     let INSTALL_PATH = "/usr/local/lib"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-make_mergeable"],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-make_mergeable"],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                         task.checkCommandLineDoesNotContain(reexportedBinariesDirectoryName)
                     }
                     // Mergeable products should not be stripped.
@@ -459,15 +489,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     let INSTALL_PATH = "/Library/Frameworks"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget1",
-                             "-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget2",
-                             "-Xlinker", "-merge-lDylibTarget1",
-                             "-framework", "External",
-                            ],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                [
+                                    "-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget1",
+                                    "-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget2",
+                                    "-Xlinker", "-merge-lDylibTarget1",
+                                    "-framework", "External",
+                                ],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-no_merge_framework")
                         task.checkCommandLineDoesNotContain("-no_merge-lDylibTarget1")
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget1"), .matchRuleType("Ld")])
@@ -494,11 +527,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).app"
                     let INSTALL_PATH = "/Applications"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "MergedFwkTarget"],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "MergedFwkTarget"],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Ld")])
                     }
 
@@ -506,14 +541,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     for fwkTargetName in ["FwkTarget1", "FwkTarget2"] {
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             // --generate-pre-encrypt-hashes is added dynamically in CodeSignTaskAction and is checked in MergeableLibrariesBuildOperationTests.testAutomaticMergedFrameworkCreation()
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
@@ -525,14 +562,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let fwkTargetName = "MergedFwkTarget"
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-exclude_subpath")
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
                         }
@@ -571,7 +610,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     // Mergeable framework and library sources
                     TestFile("ClassOne.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -585,7 +625,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 // App target
@@ -593,20 +634,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Application.swift",
+                            "Application.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "MergedFwkTarget.framework",
+                            "MergedFwkTarget.framework"
                         ]),
                         // Embed
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
-                            TestBuildFile("FwkTarget1.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
+                                TestBuildFile("FwkTarget1.framework", codeSignOnCopy: true),
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: ["MergedFwkTarget"]
                 ),
@@ -615,17 +660,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "MergedFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGED_BINARY_TYPE": "automatic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGED_BINARY_TYPE": "automatic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             // There are intentionally no sources for this target, since a common mode is to have a merged framework which does nothing but merge several other frameworks together.
                         ]),
                         TestFrameworksBuildPhase([
-                            "FwkTarget1.framework",
+                            "FwkTarget1.framework"
                         ]),
                     ],
                     // We want to test both explicit and implicit dependencies so not all targets are listed here.
@@ -636,17 +683,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "FwkTarget1",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let runDestination = RunDestinationInfo.macOS
@@ -660,14 +707,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                "GCC_OPTIMIZATION_LEVEL": "0",
-                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                    "GCC_OPTIMIZATION_LEVEL": "0",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                ]
+            )
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
@@ -681,12 +731,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     results.checkTarget(targetName) { target in
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                            task.checkCommandLineContains([
-                                ["clang"],
-                                supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
-                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                            ].reduce([], +))
-                            task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
+                            task.checkCommandLineContains(
+                                [
+                                    ["clang"],
+                                    supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],  // Only passed in debug builds
+                                    ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                                ].reduce([], +)
+                            )
+                            task.checkCommandLineDoesNotContain("-make_mergeable")  // Not passed in debug builds
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
 
@@ -699,12 +751,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-rpath", "-Xlinker", "@loader_path/\(reexportedBinariesDirectoryName)"],
-                            ["-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget1"],
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-rpath", "-Xlinker", "@loader_path/\(reexportedBinariesDirectoryName)"],
+                                ["-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget1"],
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-merge_framework")
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget1"), .matchRuleType("Ld")])
                     }
@@ -715,21 +769,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
                             task.checkRuleInfo(["Copy", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)"])
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)",
-                                 "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
-                                 "-include_only_subpath", "Versions/A/Resources/Info.plist",
-                                 "-include_only_subpath", fwkTargetName,
-                                 "-include_only_subpath", "Versions/Current",
-                                ],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)"],
-                            ].reduce([], +))
-                            let numberOfIncludeOnlySubpath = task.commandLineAsStrings.filter({ $0 == "-include_only_subpath" } ).count
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    [
+                                        "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)",
+                                        "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
+                                        "-include_only_subpath", "Versions/A/Resources/Info.plist",
+                                        "-include_only_subpath", fwkTargetName,
+                                        "-include_only_subpath", "Versions/Current",
+                                    ],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)"],
+                                ].reduce([], +)
+                            )
+                            let numberOfIncludeOnlySubpath = task.commandLineAsStrings.filter({ $0 == "-include_only_subpath" }).count
                             #expect(numberOfIncludeOnlySubpath == 5, "Expected 5 -include_only_subpath, found \(numberOfIncludeOnlySubpath): \(Array(task.commandLineAsStrings))")
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             task.checkRuleInfo(["CodeSign", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)/\(signedDir)"])
                             task.checkCommandLineContains(["/usr/bin/codesign", "--preserve-metadata=identifier,entitlements,flags", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(reexportedBinariesDirectoryName)/\(signedDir)"])
@@ -745,11 +802,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     let FULL_PRODUCT_NAME = "\(targetName).app"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "MergedFwkTarget"],
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "MergedFwkTarget"],
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Ld")])
                     }
 
@@ -758,14 +817,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let fwkTargetName = "FwkTarget1"
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             // --generate-pre-encrypt-hashes is added dynamically in CodeSignTaskAction and is checked in MergeableLibrariesBuildOperationTests.testAutomaticMergedFrameworkCreation()
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
@@ -778,7 +839,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             task.checkCommandLineDoesNotContain("-exclude_subpath")
                             results.checkTaskFollows(task, [.matchTargetName(mergedTargetName), .matchRuleType("Touch"), .matchRuleItemBasename("MergedFwkTarget.framework")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
                         }
@@ -799,15 +860,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
@@ -822,12 +886,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let INSTALL_PATH = "/Library/Frameworks"
                     results.checkTarget(targetName) { target in
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                            task.checkCommandLineContains([
-                                ["clang"],
-                                ["-Xlinker", "-make_mergeable"],
-                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                            ].reduce([], +))
-                            task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                            task.checkCommandLineContains(
+                                [
+                                    ["clang"],
+                                    ["-Xlinker", "-make_mergeable"],
+                                    ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                                ].reduce([], +)
+                            )
+                            task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                         }
                         // Don't generate an intermediate .tbd file for eager linking when we're making the binary mergeable.
                         results.checkNoTask(.matchTarget(target), .matchRuleType("GenerateTAPI"))
@@ -844,11 +910,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     let INSTALL_PATH = "/Library/Frameworks"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget1"],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget1"],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-no_merge_framework")
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget1"), .matchRuleType("Ld")])
                     }
@@ -868,11 +936,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).app"
                     let INSTALL_PATH = "/Applications"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "MergedFwkTarget"],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "MergedFwkTarget"],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Ld")])
                     }
 
@@ -881,14 +951,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let fwkTargetName = "FwkTarget1"
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkTargetName)"],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             // --generate-pre-encrypt-hashes is added dynamically in CodeSignTaskAction and is checked in MergeableLibrariesBuildOperationTests.testAutomaticMergedFrameworkCreation()
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
@@ -898,14 +970,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let fwkTargetName = "MergedFwkTarget"
                         let FWK_FULL_PRODUCT_NAME = "\(fwkTargetName).framework"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(FWK_FULL_PRODUCT_NAME)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-exclude_subpath")
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
-                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())       // Chop off the trailing '/'
+                        let signedDir = String("\(FWK_FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)".dropLast())  // Chop off the trailing '/'
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(signedDir))) { task in
                             results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(FWK_FULL_PRODUCT_NAME)])
                         }
@@ -941,7 +1015,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                             // Merged framework sources
                             TestFile("FwkTarget.framework", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
-                        ]),
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Config",
@@ -956,7 +1031,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
                                 "TAPI_EXEC": tapiToolPath.str,
-                            ]),
+                            ]
+                        )
                     ],
                     targets: [
                         // App target
@@ -964,23 +1040,29 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             "AppTarget",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Config",
-                                                       buildSettings: [
-                                                        "SKIP_INSTALL": "NO",
-                                                       ]),
+                                TestBuildConfiguration(
+                                    "Config",
+                                    buildSettings: [
+                                        "SKIP_INSTALL": "NO"
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    "Application.swift",
+                                    "Application.swift"
                                 ]),
                                 TestFrameworksBuildPhase([
-                                    "MergedFwkTarget.framework",
+                                    "MergedFwkTarget.framework"
                                 ]),
                                 // Embed
-                                TestCopyFilesBuildPhase([
-                                    TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
-                                    TestBuildFile(.file("FwkTarget.framework"), codeSignOnCopy: true),
-                                ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        TestBuildFile("MergedFwkTarget.framework", codeSignOnCopy: true),
+                                        TestBuildFile(.file("FwkTarget.framework"), codeSignOnCopy: true),
+                                    ],
+                                    destinationSubfolder: .frameworks,
+                                    onlyForDeployment: false
+                                ),
                             ],
                             dependencies: ["MergedFwkTarget"]
                         ),
@@ -989,29 +1071,33 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             "MergedFwkTarget",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Config",
-                                                       buildSettings: [
-                                                        "MERGED_BINARY_TYPE": "automatic",
-                                                       ]),
+                                TestBuildConfiguration(
+                                    "Config",
+                                    buildSettings: [
+                                        "MERGED_BINARY_TYPE": "automatic"
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase([
                                     // There are intentionally no sources for this target, since a common mode is to have a merged framework which does nothing but merge several other frameworks together.
                                 ]),
                                 TestFrameworksBuildPhase([
-                                    TestBuildFile(.file("FwkTarget.framework")),
+                                    TestBuildFile(.file("FwkTarget.framework"))
                                 ]),
                             ]
                         ),
-                    ]),
+                    ]
+                ),
                 TestProject(
                     "FwkProject",
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
                             // Mergeable framework sources
-                            TestFile("ClassOne.swift"),
-                        ]),
+                            TestFile("ClassOne.swift")
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Config",
@@ -1026,7 +1112,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                                 "SWIFT_EXEC": swiftCompilerPath.str,
                                 "SWIFT_VERSION": swiftVersion,
                                 "TAPI_EXEC": tapiToolPath.str,
-                            ]),
+                            ]
+                        )
                     ],
                     targets: [
                         // Mergeable framework and library targets
@@ -1034,18 +1121,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             "FwkTarget",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Config"),
+                                TestBuildConfiguration("Config")
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    "ClassOne.swift",
+                                    "ClassOne.swift"
                                 ]),
-                                TestFrameworksBuildPhase([
-                                ]),
+                                TestFrameworksBuildPhase([]),
                             ]
-                        ),
-                    ]),
-            ])
+                        )
+                    ]
+                ),
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testWorkspace)
         let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
@@ -1054,14 +1142,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                "GCC_OPTIMIZATION_LEVEL": "0",
-                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Config",
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                    "GCC_OPTIMIZATION_LEVEL": "0",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                ]
+            )
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -1073,12 +1164,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
-                            ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],  // Only passed in debug builds
+                                ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-make_mergeable")  // Not passed in debug builds
                     }
 
                     results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
@@ -1089,12 +1182,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-rpath", "-Xlinker", "@loader_path/\(reexportedBinariesDirectoryName)"],
-                            ["-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget"],
-                            ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-rpath", "-Xlinker", "@loader_path/\(reexportedBinariesDirectoryName)"],
+                                ["-Xlinker", "-no_merge_framework", "-Xlinker", "FwkTarget"],
+                                ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-merge_framework")
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget"), .matchRuleType("Ld")])
                     }
@@ -1102,13 +1197,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     // Check that we're copy-and-resigning the mergeable framework.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("FwkTarget.framework")) { task in
                         task.checkRuleInfo(["Copy", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(reexportedBinariesDirectoryName)/FwkTarget.framework", "\(SYMROOT)/Config-iphoneos/FwkTarget.framework"])
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-include_only_subpath", "FwkTarget",
-                             "-include_only_subpath", "_CodeSignature",
-                            ],
-                            ["\(SYMROOT)/Config-iphoneos/FwkTarget.framework", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(reexportedBinariesDirectoryName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                [
+                                    "-include_only_subpath", "FwkTarget",
+                                    "-include_only_subpath", "_CodeSignature",
+                                ],
+                                ["\(SYMROOT)/Config-iphoneos/FwkTarget.framework", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(reexportedBinariesDirectoryName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget"), .matchRuleType("Touch")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("FwkTarget.framework")) { task in
@@ -1125,21 +1223,25 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "MergedFwkTarget"],
-                            ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "MergedFwkTarget"],
+                                ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Ld")])
                     }
 
                     // Check that we are removing the binary from the mergeable framework (because it got merged into the merged framework), and that we're not doing anything special to the merged framework.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("FwkTarget.framework")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-exclude_subpath", "FwkTarget"],
-                            ["\(SYMROOT)/Config-iphoneos/FwkTarget.framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["-exclude_subpath", "FwkTarget"],
+                                ["\(SYMROOT)/Config-iphoneos/FwkTarget.framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget"), .matchRuleType("Touch")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("FwkTarget.framework")) { task in
@@ -1147,10 +1249,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("FwkTarget.framework")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("MergedFwkTarget.framework")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["\(SYMROOT)/Config-iphoneos/MergedFwkTarget.framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["\(SYMROOT)/Config-iphoneos/MergedFwkTarget.framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-exclude_subpath")
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Touch")])
                     }
@@ -1173,15 +1277,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Config",
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -1193,12 +1300,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-make_mergeable"],
-                            ["-o", "\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-make_mergeable"],
+                                ["-o", "\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                     }
                     // Don't generate an intermediate .tbd file for eager linking when we're making the binary mergeable.
                     results.checkNoTask(.matchTarget(target), .matchRuleType("GenerateTAPI"))
@@ -1213,11 +1322,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget"],
-                            ["-o", "\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget"],
+                                ["-o", "\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-no_merge_framework")
                         task.checkCommandLineDoesNotContain(reexportedBinariesDirectoryName)
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget"), .matchRuleType("Ld")])
@@ -1236,21 +1347,25 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "MergedFwkTarget"],
-                            ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "MergedFwkTarget"],
+                                ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Ld")])
                     }
 
                     // Check that we are removing the binary from the mergeable framework (because it got merged into the merged framework), and that we're not doing anything special to the merged framework.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("FwkTarget.framework")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-exclude_subpath", "FwkTarget"],
-                            ["\(SYMROOT)/Config-iphoneos/FwkTarget.framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["-exclude_subpath", "FwkTarget"],
+                                ["\(SYMROOT)/Config-iphoneos/FwkTarget.framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("FwkTarget"), .matchRuleType("Touch")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("FwkTarget.framework")) { task in
@@ -1258,10 +1373,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         results.checkTaskFollows(task, [.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("FwkTarget.framework")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("MergedFwkTarget.framework")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["\(SYMROOT)/Config-iphoneos/MergedFwkTarget.framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["\(SYMROOT)/Config-iphoneos/MergedFwkTarget.framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-exclude_subpath")
                         results.checkTaskFollows(task, [.matchTargetName("MergedFwkTarget"), .matchRuleType("Touch")])
                     }
@@ -1296,19 +1413,23 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     TestFile("file.c"),
                     TestFile("Framework.xcframework"),
                     TestFile("Dylib.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration(CONFIGURATION, buildSettings: [
-                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "COPY_PHASE_STRIP": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "MERGE_LINKED_LIBRARIES": "$(APP_MERGE_LINKED_LIBRARIES)",      // Builds below can override APP_MERGE_LINKED_LIBRARIES to NO to disable merging.
-                    "APP_MERGE_LINKED_LIBRARIES": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "auto",
-                ]),
+                TestBuildConfiguration(
+                    CONFIGURATION,
+                    buildSettings: [
+                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "COPY_PHASE_STRIP": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "MERGE_LINKED_LIBRARIES": "$(APP_MERGE_LINKED_LIBRARIES)",  // Builds below can override APP_MERGE_LINKED_LIBRARIES to NO to disable merging.
+                        "APP_MERGE_LINKED_LIBRARIES": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -1316,7 +1437,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration(CONFIGURATION),
+                        TestBuildConfiguration(CONFIGURATION)
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -1324,14 +1445,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             "Framework.xcframework",
                             "Dylib.xcframework",
                         ]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
-                            TestBuildFile("Dylib.xcframework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
+                                TestBuildFile("Dylib.xcframework", codeSignOnCopy: true),
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1347,20 +1473,26 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
         let fwkBaseName = "Framework"
         let fwkFullProductName = "\(fwkBaseName).framework"
-        let fwkXCFramework = try XCFramework(version: XCFramework.mergeableMetadataVersion, libraries: [
-            XCFramework.Library(libraryIdentifier: iosLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(fwkFullProductName), binaryPath: Path("\(fwkFullProductName)/\(fwkBaseName)"), headersPath: nil, mergeableMetadata: true),
-            XCFramework.Library(libraryIdentifier: iossimLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: "simulator", libraryPath: Path(fwkFullProductName), binaryPath: Path("\(fwkFullProductName)/\(fwkBaseName)"), headersPath: nil),
-        ])
+        let fwkXCFramework = try XCFramework(
+            version: XCFramework.mergeableMetadataVersion,
+            libraries: [
+                XCFramework.Library(libraryIdentifier: iosLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(fwkFullProductName), binaryPath: Path("\(fwkFullProductName)/\(fwkBaseName)"), headersPath: nil, mergeableMetadata: true),
+                XCFramework.Library(libraryIdentifier: iossimLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: "simulator", libraryPath: Path(fwkFullProductName), binaryPath: Path("\(fwkFullProductName)/\(fwkBaseName)"), headersPath: nil),
+            ]
+        )
         let fwkXCFrameworkPath = Path(SRCROOT).join("\(fwkBaseName).xcframework")
         try fs.createDirectory(fwkXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(fwkXCFramework, fs: fs, path: fwkXCFrameworkPath, infoLookup: infoLookup)
 
         let libBaseName = "Dylib"
         let libFullProductName = "lib\(libBaseName).dylib"
-        let libXCFramework = try XCFramework(version: XCFramework.mergeableMetadataVersion, libraries: [
-            XCFramework.Library(libraryIdentifier: iosLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(libFullProductName), binaryPath: Path("\(libFullProductName)"), headersPath: nil, mergeableMetadata: true),
-            XCFramework.Library(libraryIdentifier: iossimLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: "simulator", libraryPath: Path(libFullProductName), binaryPath: Path("\(libFullProductName)"), headersPath: nil),
-        ])
+        let libXCFramework = try XCFramework(
+            version: XCFramework.mergeableMetadataVersion,
+            libraries: [
+                XCFramework.Library(libraryIdentifier: iosLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(libFullProductName), binaryPath: Path("\(libFullProductName)"), headersPath: nil, mergeableMetadata: true),
+                XCFramework.Library(libraryIdentifier: iossimLibraryIdentifier, supportedPlatform: "ios", supportedArchitectures: ["arm64"], platformVariant: "simulator", libraryPath: Path(libFullProductName), binaryPath: Path("\(libFullProductName)"), headersPath: nil),
+            ]
+        )
         let libXCFrameworkPath = Path(SRCROOT).join("\(libBaseName).xcframework")
         try fs.createDirectory(libXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(libXCFramework, fs: fs, path: libXCFrameworkPath, infoLookup: infoLookup)
@@ -1370,7 +1502,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             "MkDir",
             "CreateBuildDirectory",
             "ClangStatCache",
-            "LinkAssetCatalogSignature"
+            "LinkAssetCatalogSignature",
         ]
 
         // Check a debug build for iOS device, where we reexport the XCFrameworks.
@@ -1378,15 +1510,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOS
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "ARCHS": "arm64",
-                "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                "GCC_OPTIMIZATION_LEVEL": "0",
-                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "ARCHS": "arm64",
+                    "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                    "GCC_OPTIMIZATION_LEVEL": "0",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                ]
+            )
             let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
             let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
             let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
@@ -1410,20 +1545,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-no_merge_framework", "-Xlinker", "\(fwkBaseName)"],
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-no_merge_framework", "-Xlinker", "\(fwkBaseName)"],
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                     }
 
                     // Check that we're copying the framework twice, once with its binary and once without.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks/\(fwkFullProductName)")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
-                            ["\(fwkXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
+                                ["\(fwkXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks/\(fwkFullProductName)")) { task in
@@ -1431,15 +1570,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries/\(fwkFullProductName)")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)",
-                             "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
-                             "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)Info.plist",
-                            ],
-                            ["-strip_subpath", "\(fwkFullProductName)/\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
-                            ["\(BUILT_PRODUCTS_DIR)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                [
+                                    "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)",
+                                    "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
+                                    "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)Info.plist",
+                                ],
+                                ["-strip_subpath", "\(fwkFullProductName)/\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
+                                ["\(BUILT_PRODUCTS_DIR)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries/\(fwkFullProductName)")) { task in
@@ -1451,11 +1593,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     // Check that we're copying the library only once.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(libFullProductName)) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-strip_subpath", "\(libFullProductName)"],
-                            ["\(BUILT_PRODUCTS_DIR)/\(libFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["-strip_subpath", "\(libFullProductName)"],
+                                ["\(BUILT_PRODUCTS_DIR)/\(libFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-exclude_subpath")
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
                     }
@@ -1476,15 +1620,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOSSimulator
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "ARCHS": "arm64",
-                "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                "GCC_OPTIMIZATION_LEVEL": "0",
-                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "ARCHS": "arm64",
+                    "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                    "GCC_OPTIMIZATION_LEVEL": "0",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                ]
+            )
             //let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
             let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
             let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
@@ -1508,19 +1655,23 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-no_merge_framework")
                     }
 
                     // Check that we're copying the framework and library once each.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(fwkFullProductName)) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["\(fwkXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["\(fwkXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-exclude_subpath")
                         task.checkCommandLineDoesNotContain("-include_only_subpath")
                         task.checkCommandLineDoesNotContain("-strip_subpath")
@@ -1531,10 +1682,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(libFullProductName)) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["\(libXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(libFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["\(libXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(libFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-exclude_subpath")
                         task.checkCommandLineDoesNotContain("-include_only_subpath")
                         task.checkCommandLineDoesNotContain("-strip_subpath")
@@ -1556,16 +1709,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOS
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "ARCHS": "arm64",
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "ARCHS": "arm64",
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
             let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
             let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
@@ -1590,20 +1746,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let INSTALL_PATH = "/Applications"
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-merge_framework", "-Xlinker", "\(fwkBaseName)"],
-                            ["-Xlinker", "-merge-l\(libBaseName)"],
-                            ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-merge_framework", "-Xlinker", "\(fwkBaseName)"],
+                                ["-Xlinker", "-merge-l\(libBaseName)"],
+                                ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
 
                         // Check that we're copying the framework appropriately.
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(fwkFullProductName)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
-                                ["\(fwkXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
+                                    ["\(fwkXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-strip_subpath")
                             results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         }
@@ -1628,17 +1788,20 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOS
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "ARCHS": "arm64",
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                "APP_MERGE_LINKED_LIBRARIES": "NO",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "ARCHS": "arm64",
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                    "APP_MERGE_LINKED_LIBRARIES": "NO",
+                ]
+            )
             let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
             let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
             let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
@@ -1663,20 +1826,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let INSTALL_PATH = "/Applications"
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "\(fwkBaseName)"],
-                            ["-l\(libBaseName)"],
-                            ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "\(fwkBaseName)"],
+                                ["-l\(libBaseName)"],
+                                ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
 
                         // Check that we're copying both the framework and the library appropriately.
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(fwkFullProductName)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-strip_subpath", "\(fwkFullProductName)/\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
-                                ["\(fwkXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-strip_subpath", "\(fwkFullProductName)/\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
+                                    ["\(fwkXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-exclude_subpath")
                             results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         }
@@ -1685,11 +1852,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         }
 
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(libFullProductName)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-strip_subpath", "\(libFullProductName)"],
-                                ["\(libXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(libFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-strip_subpath", "\(libFullProductName)"],
+                                    ["\(libXCFrameworkPath.str)/\(iosLibraryIdentifier)/\(libFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(libFullProductName))) { task in
@@ -1709,16 +1878,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.iOSSimulator
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "ARCHS": "arm64",
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "ARCHS": "arm64",
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             //let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
             let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
             let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
@@ -1744,20 +1916,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-framework", "\(fwkBaseName)"],
-                            ["-l\(libBaseName)"],
-                            ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-framework", "\(fwkBaseName)"],
+                                ["-l\(libBaseName)"],
+                                ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                     }
 
                     // Check that we're copying both the framework and the library appropriately.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(fwkFullProductName)) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["\(fwkXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["\(fwkXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-exclude_subpath")
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                     }
@@ -1766,10 +1942,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(libFullProductName)) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["\(libXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(libFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["\(libXCFrameworkPath.str)/\(iossimLibraryIdentifier)/\(libFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix(libFullProductName))) { task in
@@ -1797,17 +1975,21 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     TestFile("file.c"),
                     TestFile("Framework.xcframework"),
                     TestFile("Dylib.xcframework"),
-                    TestFile("Info.plist")
-                ]),
+                    TestFile("Info.plist"),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration(CONFIGURATION, buildSettings: [
-                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "MERGE_LINKED_LIBRARIES": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "auto",
-                ]),
+                TestBuildConfiguration(
+                    CONFIGURATION,
+                    buildSettings: [
+                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "MERGE_LINKED_LIBRARIES": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "auto",
+                    ]
+                )
             ],
             targets: [
                 // Test building an app which links and embeds an xcframework.
@@ -1815,7 +1997,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration(CONFIGURATION),
+                        TestBuildConfiguration(CONFIGURATION)
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["file.c"]),
@@ -1823,14 +2005,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             "Framework.xcframework",
                             "Dylib.xcframework",
                         ]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
-                            TestBuildFile("Dylib.xcframework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("Framework.xcframework", codeSignOnCopy: true),
+                                TestBuildFile("Dylib.xcframework", codeSignOnCopy: true),
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: []
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1845,18 +2032,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
         let fwkBaseName = "Framework"
         let fwkFullProductName = "\(fwkBaseName).framework"
-        let fwkXCFramework = try XCFramework(version: XCFramework.mergeableMetadataVersion, libraries: [
-            XCFramework.Library(libraryIdentifier: macosLibraryIdentifier, supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(fwkFullProductName), binaryPath: Path("\(fwkFullProductName)/Versions/A/\(fwkBaseName)"), headersPath: nil, mergeableMetadata: true),
-        ])
+        let fwkXCFramework = try XCFramework(
+            version: XCFramework.mergeableMetadataVersion,
+            libraries: [
+                XCFramework.Library(libraryIdentifier: macosLibraryIdentifier, supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(fwkFullProductName), binaryPath: Path("\(fwkFullProductName)/Versions/A/\(fwkBaseName)"), headersPath: nil, mergeableMetadata: true)
+            ]
+        )
         let fwkXCFrameworkPath = Path(SRCROOT).join("\(fwkBaseName).xcframework")
         try fs.createDirectory(fwkXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(fwkXCFramework, fs: fs, path: fwkXCFrameworkPath, infoLookup: infoLookup)
 
         let libBaseName = "Dylib"
         let libFullProductName = "lib\(libBaseName).dylib"
-        let libXCFramework = try XCFramework(version: XCFramework.mergeableMetadataVersion, libraries: [
-            XCFramework.Library(libraryIdentifier: macosLibraryIdentifier, supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(libFullProductName), binaryPath: Path("\(libFullProductName)"), headersPath: nil, mergeableMetadata: true),
-        ])
+        let libXCFramework = try XCFramework(
+            version: XCFramework.mergeableMetadataVersion,
+            libraries: [
+                XCFramework.Library(libraryIdentifier: macosLibraryIdentifier, supportedPlatform: "macos", supportedArchitectures: ["arm64"], platformVariant: nil, libraryPath: Path(libFullProductName), binaryPath: Path("\(libFullProductName)"), headersPath: nil, mergeableMetadata: true)
+            ]
+        )
         let libXCFrameworkPath = Path(SRCROOT).join("\(libBaseName).xcframework")
         try fs.createDirectory(libXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(libXCFramework, fs: fs, path: libXCFrameworkPath, infoLookup: infoLookup)
@@ -1866,15 +2059,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.macOS
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "ARCHS": "arm64",
-                "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                "GCC_OPTIMIZATION_LEVEL": "0",
-                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "ARCHS": "arm64",
+                    "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                    "GCC_OPTIMIZATION_LEVEL": "0",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                ]
+            )
             let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
             let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
             let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
@@ -1898,20 +2094,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-no_merge_framework", "-Xlinker", "\(fwkBaseName)"],
-                            ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-no_merge_framework", "-Xlinker", "\(fwkBaseName)"],
+                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
                     }
 
                     // Check that we're copying the framework twice, once with its binary and once without.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks/\(fwkFullProductName)")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
-                            ["\(fwkXCFrameworkPath.str)/\(macosLibraryIdentifier)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
+                                ["\(fwkXCFrameworkPath.str)/\(macosLibraryIdentifier)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks/\(fwkFullProductName)")) { task in
@@ -1919,17 +2119,20 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     }
 
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries/\(fwkFullProductName)")) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)",
-                             "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
-                             "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)Info.plist",
-                             "-include_only_subpath", "\(fwkBaseName)",
-                             "-include_only_subpath", "Versions/Current",
-                            ],
-                            ["-strip_subpath", "\(fwkFullProductName)/\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
-                            ["\(BUILT_PRODUCTS_DIR)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                [
+                                    "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)",
+                                    "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)_CodeSignature",
+                                    "-include_only_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)Info.plist",
+                                    "-include_only_subpath", "\(fwkBaseName)",
+                                    "-include_only_subpath", "Versions/Current",
+                                ],
+                                ["-strip_subpath", "\(fwkFullProductName)/\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
+                                ["\(BUILT_PRODUCTS_DIR)/\(fwkFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItem("\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries/\(fwkFullProductName)")) { task in
@@ -1941,11 +2144,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     // Check that we're copying the library only once.
                     results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(libFullProductName)) { task in
-                        task.checkCommandLineContains([
-                            ["builtin-copy"],
-                            ["-strip_subpath", "\(libFullProductName)"],
-                            ["\(BUILT_PRODUCTS_DIR)/\(libFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"]
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["builtin-copy"],
+                                ["-strip_subpath", "\(libFullProductName)"],
+                                ["\(BUILT_PRODUCTS_DIR)/\(libFullProductName)", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)ReexportedBinaries"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-exclude_subpath")
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
                     }
@@ -1963,16 +2168,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let runDestination = RunDestinationInfo.macOS
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "ARCHS": "arm64",
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "ARCHS": "arm64",
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             let FWK_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Versions/A/" : ""
             let APP_CONTENTS_DIR_SUBPATH = runDestination == .macOS ? "Contents/" : ""
             let APP_EXEC_DIR_SUBPATH = runDestination == .macOS ? "\(APP_CONTENTS_DIR_SUBPATH)MacOS/" : ""
@@ -1997,20 +2205,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         let INSTALL_PATH = "/Applications"
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(libBaseName).xcframework")])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-merge_framework", "-Xlinker", "\(fwkBaseName)"],
-                            ["-Xlinker", "-merge-l\(libBaseName)"],
-                            ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-merge_framework", "-Xlinker", "\(fwkBaseName)"],
+                                ["-Xlinker", "-merge-l\(libBaseName)"],
+                                ["-o", "\(DSTROOT)/Applications/\(FULL_PRODUCT_NAME)/\(APP_EXEC_DIR_SUBPATH)\(targetName)"],
+                            ].reduce([], +)
+                        )
 
                         // Check that we're copying the framework appropriately.
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename(fwkFullProductName)) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
-                                ["\(fwkXCFrameworkPath.str)/\(macosLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", "\(FWK_CONTENTS_DIR_SUBPATH)\(fwkBaseName)"],
+                                    ["\(fwkXCFrameworkPath.str)/\(macosLibraryIdentifier)/\(fwkFullProductName)", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(APP_CONTENTS_DIR_SUBPATH)Frameworks"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-strip_subpath")
                             results.checkTaskFollows(task, [.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("\(fwkBaseName).xcframework")])
                         }
@@ -2044,7 +2256,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     // Mergeable framework and library sources
                     TestFile("ClassOne.swift"),
                     TestFile("ClassTwo.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -2058,7 +2271,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 // App target
@@ -2066,24 +2280,30 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGED_BINARY_TYPE": "manual",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGED_BINARY_TYPE": "manual"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Application.swift",
+                            "Application.swift"
                         ]),
                         TestFrameworksBuildPhase([
                             "MergeableFwkTarget.framework",
                             "NormalFwkTarget.framework",
                         ]),
                         // Embed
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("MergeableFwkTarget.framework", codeSignOnCopy: true),
-                            TestBuildFile("NormalFwkTarget.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("MergeableFwkTarget.framework", codeSignOnCopy: true),
+                                TestBuildFile("NormalFwkTarget.framework", codeSignOnCopy: true),
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ]
                 ),
                 // Mergeable framework target
@@ -2091,17 +2311,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "MergeableFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGEABLE_LIBRARY": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGEABLE_LIBRARY": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
                 // Not-mergeable framework target
@@ -2109,17 +2330,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "NormalFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassTwo.swift",
+                            "ClassTwo.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let supportsMergeableDebugHook = try await linkerSupportsMergeableDebugHook()
@@ -2129,21 +2350,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             "MkDir",
             "CreateBuildDirectory",
             "ClangStatCache",
-            "LinkAssetCatalogSignature"
+            "LinkAssetCatalogSignature",
         ]
 
         // Test a debug build.  This will reexport the mergeable framework and not the normal framework.
         do {
             let buildType = "Debug"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                "GCC_OPTIMIZATION_LEVEL": "0",
-                "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Config",
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                    "GCC_OPTIMIZATION_LEVEL": "0",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                ]
+            )
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -2155,12 +2379,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
-                            ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],  // Only passed in debug builds
+                                ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-make_mergeable")  // Not passed in debug builds
 
                         results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
                             XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
@@ -2177,12 +2403,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-make_mergeable")              // Not passed to this target
-                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Not passed to this target
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-make_mergeable")  // Not passed to this target
+                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Not passed to this target
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
 
@@ -2199,13 +2427,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-no_merge_framework", "-Xlinker", "MergeableFwkTarget",
-                             "-framework", "NormalFwkTarget",
-                            ],
-                            ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                [
+                                    "-Xlinker", "-no_merge_framework", "-Xlinker", "MergeableFwkTarget",
+                                    "-framework", "NormalFwkTarget",
+                                ],
+                                ["-o", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-merge_framework")
                         results.checkTaskFollows(task, [.matchTargetName("MergeableFwkTarget"), .matchRuleType("Ld")])
                         results.checkTaskFollows(task, [.matchTargetName("NormalFwkTarget"), .matchRuleType("Ld")])
@@ -2218,10 +2449,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                         // Check embedding the binary-less framework.
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemPattern(.suffix("Frameworks/\(fwkTargetName).framework"))) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix("Frameworks/\(fwkTargetName).framework"))) { task in
@@ -2231,13 +2464,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         // Check embedding the binary-only framework.
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemPattern(.suffix("\(reexportedBinariesDirectoryName)/\(fwkTargetName).framework"))) { task in
                             task.checkRuleInfo(["Copy", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(reexportedBinariesDirectoryName)/\(fwkTargetName).framework", "\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework"])
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-include_only_subpath", fwkTargetName,
-                                 "-include_only_subpath", "_CodeSignature",
-                                ],
-                                ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(reexportedBinariesDirectoryName)"],
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    [
+                                        "-include_only_subpath", fwkTargetName,
+                                        "-include_only_subpath", "_CodeSignature",
+                                    ],
+                                    ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/\(reexportedBinariesDirectoryName)"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemPattern(.suffix("\(reexportedBinariesDirectoryName)/\(fwkTargetName).framework"))) { task in
@@ -2249,10 +2485,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     do {
                         let fwkTargetName = "NormalFwkTarget"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(SYMROOT)/Config-iphoneos/\(targetName).app/Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
@@ -2280,15 +2518,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
         do {
             let buildType = "Release"
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-            let parameters = BuildParameters(configuration: "Config", overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Config",
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -2300,12 +2541,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(DSTROOT)/Library/Frameworks/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-make_mergeable"],
-                            ["-o", "\(DSTROOT)/Library/Frameworks/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-make_mergeable"],
+                                ["-o", "\(DSTROOT)/Library/Frameworks/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                     }
                     // Don't generate an intermediate .tbd file for eager linking when we're making the binary mergeable.
                     results.checkNoTask(.matchTarget(target), .matchRuleType("GenerateTAPI"))
@@ -2325,10 +2568,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(DSTROOT)/Library/Frameworks/\(targetName).framework/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-o", "\(DSTROOT)/Library/Frameworks/\(targetName).framework/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-o", "\(DSTROOT)/Library/Frameworks/\(targetName).framework/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-make_mergeable")
                         task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")
                     }
@@ -2349,13 +2594,16 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let targetName = target.target.name
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)", "normal"])
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-merge_framework", "-Xlinker", "MergeableFwkTarget",
-                             "-framework", "NormalFwkTarget",
-                            ],
-                            ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                [
+                                    "-Xlinker", "-merge_framework", "-Xlinker", "MergeableFwkTarget",
+                                    "-framework", "NormalFwkTarget",
+                                ],
+                                ["-o", "\(DSTROOT)/Applications/\(targetName).app/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-no_merge_framework")
                         results.checkTaskFollows(task, [.matchTargetName("MergeableFwkTarget"), .matchRuleType("Ld")])
                         results.checkTaskFollows(task, [.matchTargetName("NormalFwkTarget"), .matchRuleType("Ld")])
@@ -2365,11 +2613,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     do {
                         let fwkTargetName = "MergeableFwkTarget"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", fwkTargetName],
-                                ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", fwkTargetName],
+                                    ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
@@ -2380,10 +2630,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     do {
                         let fwkTargetName = "NormalFwkTarget"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["\(SYMROOT)/Config-iphoneos/\(fwkTargetName).framework", "\(DSTROOT)/Applications/\(targetName).app/Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                             task.checkCommandLineDoesNotContain("-exclude_subpath")
                         }
@@ -2425,7 +2677,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
 
                     // Mergeable framework sources
                     TestFile("ClassOne.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -2439,7 +2692,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 // App target
@@ -2447,22 +2701,28 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGED_BINARY_TYPE": "automatic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGED_BINARY_TYPE": "automatic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Application.swift",
+                            "Application.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "MergeableFwkTarget.framework",
+                            "MergeableFwkTarget.framework"
                         ]),
                         // Embed
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("MergeableFwkTarget.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("MergeableFwkTarget.framework", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ]
                 ),
                 // Mergeable framework target
@@ -2470,17 +2730,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "MergeableFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -2491,17 +2751,20 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let CONFIGURATION = "Config"
             let buildVariants = ["normal", "profile"]
             let runDestination = RunDestinationInfo.iOS
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-                "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                    "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                    "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                ]
+            )
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
             let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
@@ -2517,20 +2780,24 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     for variant in buildVariants {
                         let variantSuffix = (variant == "normal" ? "" : "_\(variant)")
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItem(variant)) { task in
-                            task.checkCommandLineContains([
-                                ["clang"],
-                                ["-Xlinker", "-make_mergeable"],
-                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
-                            ].reduce([], +))
-                            task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                            task.checkCommandLineContains(
+                                [
+                                    ["clang"],
+                                    ["-Xlinker", "-make_mergeable"],
+                                    ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
+                                ].reduce([], +)
+                            )
+                            task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                         }
 
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("\(targetName)\(variantSuffix)")) { task in
-                            task.checkCommandLineContains([
-                                ["dsymutil"],
-                                ["\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
-                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME).dSYM"],
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["dsymutil"],
+                                    ["\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
+                                    ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME).dSYM"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-D")
                         }
                     }
@@ -2546,24 +2813,28 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     for variant in buildVariants {
                         let variantSuffix = (variant == "normal" ? "" : "_\(variant)")
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItem(variant)) { task in
-                            task.checkCommandLineContains([
-                                ["clang"],
-                                ["-Xlinker", "-merge_framework", "-Xlinker", "MergeableFwkTarget"],
-                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["clang"],
+                                    ["-Xlinker", "-merge_framework", "-Xlinker", "MergeableFwkTarget"],
+                                    ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
+                                ].reduce([], +)
+                            )
                             task.checkCommandLineDoesNotContain("-no_merge_framework")
                             results.checkTaskFollows(task, [.matchTargetName("MergeableFwkTarget"), .matchRuleType("Ld"), .matchRuleItem(variant)])
                         }
 
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("\(targetName)\(variantSuffix)")) { task in
-                            task.checkCommandLineContains([
-                                ["dsymutil"],
-                                // This test basically exists to check that the next two options being passed as appropriate.
-                                (variant == "normal" ? [] : ["-build-variant-suffix=\(variantSuffix)"]),
-                                ["-D", "\(BUILT_PRODUCTS_DIR)"],
-                                ["\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
-                                ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME).dSYM"],
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["dsymutil"],
+                                    // This test basically exists to check that the next two options being passed as appropriate.
+                                    (variant == "normal" ? [] : ["-build-variant-suffix=\(variantSuffix)"]),
+                                    ["-D", "\(BUILT_PRODUCTS_DIR)"],
+                                    ["\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)\(variantSuffix)"],
+                                    ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME).dSYM"],
+                                ].reduce([], +)
+                            )
                         }
                     }
 
@@ -2594,7 +2865,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     // Framework sources
                     TestFile("ClassOne.swift"),
                     TestFile("ClassTwo.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -2608,7 +2880,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 // App target, which automatically builds its dependencies as mergeable and then merges them.
@@ -2616,23 +2889,29 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGED_BINARY_TYPE": "automatic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGED_BINARY_TYPE": "automatic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Application.swift",
+                            "Application.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "MergeableFwkTarget.framework",
+                            "MergeableFwkTarget.framework"
                         ]),
                         // Embed
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("MergeableFwkTarget.framework", codeSignOnCopy: true),
-                            TestBuildFile("NormalFwkTarget.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("MergeableFwkTarget.framework", codeSignOnCopy: true),
+                                TestBuildFile("NormalFwkTarget.framework", codeSignOnCopy: true),
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ]
                 ),
                 // Mergeable framework target which is merged into the app target.
@@ -2640,14 +2919,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "MergeableFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "NormalFwkTarget.framework",
+                            "NormalFwkTarget.framework"
                         ]),
                     ]
                 ),
@@ -2656,17 +2935,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "NormalFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassTwo.swift",
+                            "ClassTwo.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -2675,7 +2954,7 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             "MkDir",
             "CreateBuildDirectory",
             "ClangStatCache",
-            "LinkAssetCatalogSignature"
+            "LinkAssetCatalogSignature",
         ]
 
         // Test a release build.
@@ -2684,15 +2963,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
             let CONFIGURATION = "Config"
             let runDestination = RunDestinationInfo.iOS
-            let parameters = BuildParameters(configuration: CONFIGURATION, overrides: [
-                "SYMROOT": SYMROOT,
-                "OBJROOT": OBJROOT,
-                "DSTROOT": DSTROOT,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-                "GCC_OPTIMIZATION_LEVEL": "s",
-                "SWIFT_OPTIMIZATION_LEVEL": "-O",
-            ])
+            let parameters = BuildParameters(
+                configuration: CONFIGURATION,
+                overrides: [
+                    "SYMROOT": SYMROOT,
+                    "OBJROOT": OBJROOT,
+                    "DSTROOT": DSTROOT,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                    "GCC_OPTIMIZATION_LEVEL": "s",
+                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                ]
+            )
             let BUILT_PRODUCTS_DIR = "\(SYMROOT)/\(CONFIGURATION)" + (runDestination != .macOS ? "-\(runDestination.platform)" : "")
             let targets = [BuildRequest.BuildTargetInfo(parameters: parameters, target: tester.workspace.projects[0].targets[0])]
             let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -2705,10 +2987,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let INSTALL_PATH = "/Library/Frameworks"
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         task.checkCommandLineDoesNotContain("-make_mergeable")
                         task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")
                     }
@@ -2727,13 +3011,15 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let INSTALL_PATH = "/Library/Frameworks"
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-make_mergeable"],
-                            ["-framework", "NormalFwkTarget"],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)"],
-                        ].reduce([], +))
-                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-make_mergeable"],
+                                ["-framework", "NormalFwkTarget"],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)"],
+                            ].reduce([], +)
+                        )
+                        task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                     }
 
                     results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
@@ -2752,11 +3038,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let INSTALL_PATH = "/Applications"
                     let FULL_PRODUCT_NAME = "\(targetName).app"
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                        task.checkCommandLineContains([
-                            ["clang"],
-                            ["-Xlinker", "-merge_framework", "-Xlinker", "MergeableFwkTarget"],
-                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)"],
-                        ].reduce([], +))
+                        task.checkCommandLineContains(
+                            [
+                                ["clang"],
+                                ["-Xlinker", "-merge_framework", "-Xlinker", "MergeableFwkTarget"],
+                                ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(targetName)"],
+                            ].reduce([], +)
+                        )
                         results.checkTaskFollows(task, [.matchTargetName("MergeableFwkTarget"), .matchRuleType("Ld")])
                     }
 
@@ -2764,11 +3052,13 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     do {
                         let fwkTargetName = "MergeableFwkTarget"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["-exclude_subpath", fwkTargetName],
-                                ["\(BUILT_PRODUCTS_DIR)/\(fwkTargetName).framework", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["-exclude_subpath", fwkTargetName],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(fwkTargetName).framework", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
@@ -2781,10 +3071,12 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     do {
                         let fwkTargetName = "NormalFwkTarget"
                         results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("\(fwkTargetName).framework")) { task in
-                            task.checkCommandLineContains([
-                                ["builtin-copy"],
-                                ["\(BUILT_PRODUCTS_DIR)/\(fwkTargetName).framework", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/Frameworks"]
-                            ].reduce([], +))
+                            task.checkCommandLineContains(
+                                [
+                                    ["builtin-copy"],
+                                    ["\(BUILT_PRODUCTS_DIR)/\(fwkTargetName).framework", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/Frameworks"],
+                                ].reduce([], +)
+                            )
                             results.checkTaskFollows(task, [.matchTargetName(fwkTargetName), .matchRuleType("Touch")])
                             task.checkCommandLineDoesNotContain("-exclude_subpath")
                         }
@@ -2821,8 +3113,9 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 "SomeFiles",
                 children: [
                     // Mergeable framework sources
-                    TestFile("ClassOne.swift"),
-                ]),
+                    TestFile("ClassOne.swift")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -2837,7 +3130,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 // Merged framework target
@@ -2845,17 +3139,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "MergedFwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGED_BINARY_TYPE": "automatic",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGED_BINARY_TYPE": "automatic"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             // Intentionally empty
                         ]),
                         TestFrameworksBuildPhase([
-                            "FwkTarget1.framework",
+                            "FwkTarget1.framework"
                         ]),
                     ],
                     // We want to test both explicit and implicit dependencies so not all targets are listed here.
@@ -2866,17 +3162,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "FwkTarget1",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let runDestination = RunDestinationInfo.iOS
@@ -2888,15 +3184,19 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             for action: BuildAction in [.install, .installHeaders, .installAPI] {
                 let buildType = "Release"
                 let (SYMROOT, OBJROOT, DSTROOT) = buildDirs(in: Path("/tmp/buildDir"), for: buildType)
-                let parameters = BuildParameters(action: action, configuration: CONFIGURATION, overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                    "GCC_OPTIMIZATION_LEVEL": "s",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                ])
+                let parameters = BuildParameters(
+                    action: action,
+                    configuration: CONFIGURATION,
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                    ]
+                )
                 // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -2911,12 +3211,14 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             let INSTALL_PATH = "/Library/Frameworks"
                             results.checkTarget(targetName) { target in
                                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                                    task.checkCommandLineContains([
-                                        ["clang"],
-                                        ["-Xlinker", "-make_mergeable"],
-                                        ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                                    ].reduce([], +))
-                                    task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                                    task.checkCommandLineContains(
+                                        [
+                                            ["clang"],
+                                            ["-Xlinker", "-make_mergeable"],
+                                            ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                                        ].reduce([], +)
+                                    )
+                                    task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")  // Only passed in debug builds
                                 }
 
                                 results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
@@ -2929,12 +3231,15 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                             let FULL_PRODUCT_NAME = "\(targetName).framework"
                             let INSTALL_PATH = "/Library/Frameworks"
                             results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                                task.checkCommandLineContains([
-                                    ["clang"],
-                                    ["-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget1",
-                                    ],
-                                    ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
-                                ].reduce([], +))
+                                task.checkCommandLineContains(
+                                    [
+                                        ["clang"],
+                                        [
+                                            "-Xlinker", "-merge_framework", "-Xlinker", "FwkTarget1",
+                                        ],
+                                        ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
+                                    ].reduce([], +)
+                                )
                                 task.checkCommandLineDoesNotContain("-no_merge_framework")
                                 results.checkTaskFollows(task, [.matchTargetName("FwkTarget1"), .matchRuleType("Ld")])
                             }
@@ -3002,7 +3307,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     TestFile("ManualApp.swift"),
                     TestFile("ClassOne.swift"),
                     TestFile("ClassTwo.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Config",
@@ -3019,7 +3325,8 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 // Automatic merged framework target
@@ -3027,22 +3334,28 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "AutomaticApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "AUTOMATICALLY_MERGE_DEPENDENCIES": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "AUTOMATICALLY_MERGE_DEPENDENCIES": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "AutomaticApp.swift",
+                            "AutomaticApp.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "AutomaticMergeableFwk.framework",
+                            "AutomaticMergeableFwk.framework"
                         ]),
                         // Embed
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("AutomaticMergeableFwk.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("AutomaticMergeableFwk.framework", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     // We want to test both explicit and implicit dependencies so not all targets are listed here.
                     dependencies: ["AutomaticMergeableFwk"]
@@ -3052,18 +3365,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "AutomaticMergeableFwk",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "SKIP_INSTALL": "YES",
-                                               ]
-                                              ),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
                 // Manual merged framework target
@@ -3071,22 +3384,28 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "ManualApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGE_LINKED_LIBRARIES": "YES",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGE_LINKED_LIBRARIES": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ManualApp.swift",
+                            "ManualApp.swift"
                         ]),
                         TestFrameworksBuildPhase([
-                            "ManualMergeableFwk.framework",
+                            "ManualMergeableFwk.framework"
                         ]),
                         // Embed
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("ManualMergeableFwk.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("ManualMergeableFwk.framework", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                     ],
                     // We want to test both explicit and implicit dependencies so not all targets are listed here.
                     dependencies: ["ManualMergeableFwk"]
@@ -3096,22 +3415,23 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "ManualMergeableFwk",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config",
-                                               buildSettings: [
-                                                "MERGEABLE_LIBRARY": "YES",
-                                                "SKIP_INSTALL": "YES",
-                                               ]
-                                              ),
+                        TestBuildConfiguration(
+                            "Config",
+                            buildSettings: [
+                                "MERGEABLE_LIBRARY": "YES",
+                                "SKIP_INSTALL": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassTwo.swift",
+                            "ClassTwo.swift"
                         ]),
-                        TestFrameworksBuildPhase([
-                        ]),
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let project = tester.workspace.projects[0]
@@ -3123,14 +3443,17 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Test a debug build
             do {
                 let (SYMROOT, OBJROOT, DSTROOT) = ("/tmp/buildDir/\(runDestination.platform)/sym", "/tmp/buildDir/\(runDestination.platform)/obj", "/tmp/buildDir/\(runDestination.platform)/dst")
-                let parameters = BuildParameters(configuration: "Config", overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEBUG_INFORMATION_FORMAT": "dwarf",        // No dSYM for debug builds
-                    "GCC_OPTIMIZATION_LEVEL": "0",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Config",
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEBUG_INFORMATION_FORMAT": "dwarf",  // No dSYM for debug builds
+                        "GCC_OPTIMIZATION_LEVEL": "0",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
+                    ]
+                )
                 // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
@@ -3151,15 +3474,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
             // Test a release build
             do {
                 let (SYMROOT, OBJROOT, DSTROOT) = ("/tmp/buildDir/\(runDestination.platform)/sym", "/tmp/buildDir/\(runDestination.platform)/obj", "/tmp/buildDir/\(runDestination.platform)/dst")
-                let parameters = BuildParameters(configuration: "Config", overrides: [
-                    "SYMROOT": SYMROOT,
-                    "OBJROOT": OBJROOT,
-                    "DSTROOT": DSTROOT,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                    "GCC_OPTIMIZATION_LEVEL": "s",
-                    "SWIFT_OPTIMIZATION_LEVEL": "-O",
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Config",
+                    overrides: [
+                        "SYMROOT": SYMROOT,
+                        "OBJROOT": OBJROOT,
+                        "DSTROOT": DSTROOT,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                        "GCC_OPTIMIZATION_LEVEL": "s",
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                    ]
+                )
                 // Add all the targets as top-level targets as this can shake out certain kinds of target dependency resolution bugs.
                 let targets = tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) })
                 let request = BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)

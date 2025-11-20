@@ -37,7 +37,8 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
                     // Test target sources
                     TestFile("TestOne.swift"),
                     TestFile("UnitTestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -56,29 +57,32 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
                         "SYMROOT[sdk=iphonesimulator*]": "$(REDIRECT_CONFIG_BUILD_DIR)/$(PROJECT)/$(IOS_CONFIG_BUILD_DIR)",
                         "SYMROOT[sdk=iphoneos*]": "$(REDIRECT_CONFIG_BUILD_DIR)/$(PROJECT)/$(IOS_CONFIG_BUILD_DIR)",
                         "CONFIGURATION_BUILD_DIR": "$(SYMROOT)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "UnitTestTarget",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist",
-                                                // We need to use this value - rather than the commented-out value below which is the default value from the target template - in order to get this to work when redirecting TARGET_BUILD_DIR.
-                                                "TEST_HOST": "$(REDIRECT_OUT_DIR)/$(PROJECT_NAME)/AppTarget.app/AppTarget",
-                                                //                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
-                                                "BUNDLE_LOADER": "$(TEST_HOST)",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                                                // Settings to redirect TARGET_BUILD_DIR.
-                                                "TARGET_BUILD_DIR": "$(REDIRECT_OUT_DIR)/$(PROJECT_NAME)/AppTarget.app/PlugIns",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist",
+                                // We need to use this value - rather than the commented-out value below which is the default value from the target template - in order to get this to work when redirecting TARGET_BUILD_DIR.
+                                "TEST_HOST": "$(REDIRECT_OUT_DIR)/$(PROJECT_NAME)/AppTarget.app/AppTarget",
+                                //                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
+                                // Settings to redirect TARGET_BUILD_DIR.
+                                "TARGET_BUILD_DIR": "$(REDIRECT_OUT_DIR)/$(PROJECT_NAME)/AppTarget.app/PlugIns",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
-                        ]),
+                            "TestOne.swift"
+                        ])
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -86,20 +90,23 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "AppTarget-Info.plist",
-                                                // Settings to redirect TARGET_BUILD_DIR.
-                                                "TARGET_BUILD_DIR": "$(REDIRECT_OUT_DIR)/$(PROJECT_NAME)",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "AppTarget-Info.plist",
+                                // Settings to redirect TARGET_BUILD_DIR.
+                                "TARGET_BUILD_DIR": "$(REDIRECT_OUT_DIR)/$(PROJECT_NAME)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
-                        ]),
+                            "ClassOne.swift"
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -216,8 +223,9 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("foo.c"),
-                ]),
+                    TestFile("foo.c")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -225,23 +233,27 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "EXCLUDED_SOURCE_FILE_NAMES": "*",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "foo.c",
-                        ]),
+                            "foo.c"
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .iOS) { results in
             results.checkNoDiagnostics()
         }
@@ -255,8 +267,9 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("foo.c"),
-                ]),
+                    TestFile("foo.c")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -264,23 +277,27 @@ fileprivate struct UnsupportedBehaviorTaskConstructionTests: CoreBasedTests {
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "PRODUCT_TYPE": "com.apple.product-type.tool",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .xpcService,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [:]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "foo.c",
-                        ]),
+                            "foo.c"
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 

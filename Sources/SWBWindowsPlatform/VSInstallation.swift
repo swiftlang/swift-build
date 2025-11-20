@@ -65,10 +65,12 @@ public struct VSInstallation: Decodable, Sendable {
     private static func vswherePath(fs: any FSProxy) throws -> Path? {
         var paths: [Path] = []
         if let path = getEnvironmentVariable(.path) {
-            paths.append(contentsOf: path.split(separator: Path.pathEnvironmentSeparator).map(Path.init).filter {
-                // PATH may contain unexpanded shell variable references
-                $0.isAbsolute
-            })
+            paths.append(
+                contentsOf: path.split(separator: Path.pathEnvironmentSeparator).map(Path.init).filter {
+                    // PATH may contain unexpanded shell variable references
+                    $0.isAbsolute
+                }
+            )
         }
         if let programFilesX86 = URL.programFilesX86?.appending(components: "Microsoft Visual Studio", "Installer") {
             // This is a fixed location that will be maintained, according to the vswhere documentation.

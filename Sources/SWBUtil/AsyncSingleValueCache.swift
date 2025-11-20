@@ -13,7 +13,7 @@
 public struct AsyncSingleValueCache<Value: Sendable, E: Error>: ~Copyable, Sendable {
     private let value = AsyncLockedValue<Value?>(nil)
 
-    public init() { }
+    public init() {}
 
     public func value(body: sending () async throws(E) -> sending Value) async throws(E) -> sending Value {
         try await value.withLock { value throws(E) in

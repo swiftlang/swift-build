@@ -45,7 +45,7 @@ private struct GetSpecsDumpMsg: MessageHandler {
         let conformingTo: String?
         if let idx = message.commandLine.firstIndex(of: "--conforms-to"), idx + 1 < message.commandLine.count {
             conformingTo = message.commandLine[idx + 1]
-        }  else {
+        } else {
             conformingTo = nil
         }
         return StringResponse(try request.session(for: message).core.getSpecsDump(conformingTo: conformingTo))
@@ -289,13 +289,15 @@ private struct SetSessionUserPreferencesMsg: MessageHandler {
             throw MsgParserError.missingWorkspaceContext
         }
 
-        workspaceContext.updateUserPreferences(UserPreferences(
-            enableDebugActivityLogs: message.enableDebugActivityLogs,
-            enableBuildDebugging: message.enableBuildDebugging,
-            enableBuildSystemCaching: message.enableBuildSystemCaching,
-            activityTextShorteningLevel: message.activityTextShorteningLevel,
-            usePerConfigurationBuildLocations: message.usePerConfigurationBuildLocations,
-            allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue)
+        workspaceContext.updateUserPreferences(
+            UserPreferences(
+                enableDebugActivityLogs: message.enableDebugActivityLogs,
+                enableBuildDebugging: message.enableBuildDebugging,
+                enableBuildSystemCaching: message.enableBuildSystemCaching,
+                activityTextShorteningLevel: message.activityTextShorteningLevel,
+                usePerConfigurationBuildLocations: message.usePerConfigurationBuildLocations,
+                allowsExternalToolExecution: message.allowsExternalToolExecution ?? UserPreferences.allowsExternalToolExecutionDefaultValue
+            )
         )
 
         return VoidResponse()
@@ -328,7 +330,7 @@ private struct TransferSessionPIFMsg: MessageHandler {
             throw StubError.error("incremental PIF transfer did not produce the right contents. Diff: \(diff)")
 
         case .incomplete(let missingObjects):
-            return TransferSessionPIFResponse(missingObjects: missingObjects.map{ TransferSessionPIFResponse.MissingObject(type: $0.type, signature: $0.signature) })
+            return TransferSessionPIFResponse(missingObjects: missingObjects.map { TransferSessionPIFResponse.MissingObject(type: $0.type, signature: $0.signature) })
         }
     }
 
@@ -463,11 +465,16 @@ private struct WorkspaceInfoMsg: MessageHandler {
             throw MsgParserError.missingWorkspaceContext
         }
 
-        return WorkspaceInfoResponse(sessionHandle: session.UID, workspaceInfo: .init(targetInfos: workspaceContext.workspace.projects.flatMap { project in
-            return project.targets.map { target in
-                return .init(guid: target.guid, targetName: target.name, projectName: project.name, dynamicTargetVariantGuid: target.dynamicTargetVariantGuid)
-            }
-        }))
+        return WorkspaceInfoResponse(
+            sessionHandle: session.UID,
+            workspaceInfo: .init(
+                targetInfos: workspaceContext.workspace.projects.flatMap { project in
+                    return project.targets.map { target in
+                        return .init(guid: target.guid, targetName: target.name, projectName: project.name, dynamicTargetVariantGuid: target.dynamicTargetVariantGuid)
+                    }
+                }
+            )
+        )
     }
 }
 
@@ -516,9 +523,9 @@ private struct BuildCancelRequestMsg: MessageHandler {
 
 package class InfoOperation {
     private var isCancelled: LockedValue<Bool> = .init(false)
-    package var cancelled: Bool { return isCancelled.withLock{$0} }
+    package var cancelled: Bool { return isCancelled.withLock { $0 } }
     package func cancel() {
-        isCancelled.withLock{$0 = true}
+        isCancelled.withLock { $0 = true }
         tasks.withLock {
             for task in $0 {
                 task.cancel()
@@ -554,18 +561,18 @@ final class IndexingOperation: InfoOperation, BuildDescriptionConstructionDelega
         .init(_diagnosticsEngine)
     }
 
-    var diagnostics: [ConfiguredTarget? : [Diagnostic]] {
+    var diagnostics: [ConfiguredTarget?: [Diagnostic]] {
         [nil: _diagnosticsEngine.diagnostics]
     }
 
-    package func updateProgress(statusMessage: String, showInLog: Bool) { }
+    package func updateProgress(statusMessage: String, showInLog: Bool) {}
 
     package func beginActivity(ruleInfo: String, executionDescription: String, signature: ByteString, target: ConfiguredTarget?, parentActivity: ActivityID?) -> ActivityID { .init(rawValue: -1) }
-    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) { }
-    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) { }
-    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) { }
+    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) {}
+    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) {}
+    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) {}
 
-    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) { }
+    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) {}
 
     // We don't care about the individual diagnostics here, only if there was at least one error.
     package private(set) var hadErrors = false
@@ -601,11 +608,11 @@ private struct GetIndexingFileSettingsMsg: MessageHandler {
 
     func handle(request: Request, message: IndexingFileSettingsRequest) async throws -> VoidResponse {
         try await handleIndexingInfoRequest(serializationQueue: Self.serializationQueue, request: request, message: message) { message, workspaceContext, buildRequest, buildRequestContext, buildDescription, target, elapsedTimer in
-#if DEBUG
-            // We record the source files we see and report if a particular source file
-            // is encountered more than once.
-            var seenPaths = Set<Path>()
-#endif
+            #if DEBUG
+                // We record the source files we see and report if a particular source file
+                // is encountered more than once.
+                var seenPaths = Set<Path>()
+            #endif
 
             // Collect and return the indexing info.  The indexing info is sent as a property list defined by the SourceFileIndexingInfo object, so there is presently no need for client-side changes to handle this info (and thus little change of revlock issues between the client and the service).  In the future we hope to provide strong typing for this data.
 
@@ -616,19 +623,24 @@ private struct GetIndexingFileSettingsMsg: MessageHandler {
                         let path = info.path
                         let indexingInfo = info.indexingInfo
 
-#if DEBUG
-                        if !seenPaths.insert(path).inserted {
-                            log("Duplicate source file for indexing \(path)")
-                        }
-#endif
+                        #if DEBUG
+                            if !seenPaths.insert(path).inserted {
+                                log("Duplicate source file for indexing \(path)")
+                            }
+                        #endif
 
                         guard case .plDict(let indexingInfoDict) = indexingInfo.propertyListItem else {
                             throw StubError.error("Internal error: expected plDict from \(indexingInfo)")
                         }
 
-                        return try .plDict(indexingInfoDict.merging(["sourceFilePath": .plString(path.str)], uniquingKeysWith: { _, _ in
-                            throw StubError.error("Internal error: unexpected sourceFilePath key in \(indexingInfo)")
-                        }))
+                        return try .plDict(
+                            indexingInfoDict.merging(
+                                ["sourceFilePath": .plString(path.str)],
+                                uniquingKeysWith: { _, _ in
+                                    throw StubError.error("Internal error: unexpected sourceFilePath key in \(indexingInfo)")
+                                }
+                            )
+                        )
                     }
                 }
 
@@ -645,7 +657,7 @@ private struct GetIndexingFileSettingsMsg: MessageHandler {
                             "seconds": .plDouble(duration.seconds),
                             "nanoseconds": .plDouble(Double(duration.nanoseconds)),
                         ]),
-                        "data": .plArray(resultArray)
+                        "data": .plArray(resultArray),
                     ])
 
                     try workspaceContext.fs.write(payloadsDirectory.join("\(dateString).json"), contents: obj.asJSONFragment())
@@ -672,10 +684,12 @@ private struct GetIndexingHeaderInfoMsg: MessageHandler {
             }
 
             let productName = buildRequestContext.getCachedSettings(target.parameters, target: target.target).globalScope.evaluate(BuiltinMacros.PRODUCT_NAME)
-            let copiedHeaders = Dictionary(uniqueKeysWithValues: allTargetOutputPaths.intersection(buildDescription.copiedPathMap.keys).compactMap { path -> (String, String)? in
-                guard let copiedPath = buildDescription.copiedPathMap[path], ProjectHeaderInfo.headerFileExtensions.contains(Path(copiedPath).fileExtension) else { return nil }
-                return (path, copiedPath)
-            })
+            let copiedHeaders = Dictionary(
+                uniqueKeysWithValues: allTargetOutputPaths.intersection(buildDescription.copiedPathMap.keys).compactMap { path -> (String, String)? in
+                    guard let copiedPath = buildDescription.copiedPathMap[path], ProjectHeaderInfo.headerFileExtensions.contains(Path(copiedPath).fileExtension) else { return nil }
+                    return (path, copiedPath)
+                }
+            )
 
             return IndexingHeaderInfoResponse(targetID: message.targetID, productName: productName, copiedPathMap: copiedHeaders)
         }
@@ -813,20 +827,20 @@ private final class DocumentationOperation: InfoOperation, DocumentationInfoDele
         .init(_diagnosticsEngine)
     }
 
-    var diagnostics: [ConfiguredTarget? : [Diagnostic]] {
+    var diagnostics: [ConfiguredTarget?: [Diagnostic]] {
         [nil: _diagnosticsEngine.diagnostics]
     }
 
     let clientDelegate: any ClientDelegate
 
-    package func updateProgress(statusMessage: String, showInLog: Bool) { }
+    package func updateProgress(statusMessage: String, showInLog: Bool) {}
 
     package func beginActivity(ruleInfo: String, executionDescription: String, signature: ByteString, target: ConfiguredTarget?, parentActivity: ActivityID?) -> ActivityID { .init(rawValue: -1) }
-    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) { }
-    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) { }
-    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) { }
+    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) {}
+    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) {}
+    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) {}
 
-    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) { }
+    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) {}
 
     package init(clientDelegate: any ClientDelegate, workspace: SWBCore.Workspace) {
         self.clientDelegate = clientDelegate
@@ -850,7 +864,7 @@ private final class LocalizationOperation: InfoOperation, LocalizationInfoDelega
         .init(_diagnosticsEngine)
     }
 
-    var diagnostics: [ConfiguredTarget? : [Diagnostic]] {
+    var diagnostics: [ConfiguredTarget?: [Diagnostic]] {
         [nil: _diagnosticsEngine.diagnostics]
     }
 
@@ -858,14 +872,14 @@ private final class LocalizationOperation: InfoOperation, LocalizationInfoDelega
 
     // We don't care about most of these messages.
 
-    package func updateProgress(statusMessage: String, showInLog: Bool) { }
+    package func updateProgress(statusMessage: String, showInLog: Bool) {}
 
     package func beginActivity(ruleInfo: String, executionDescription: String, signature: ByteString, target: ConfiguredTarget?, parentActivity: ActivityID?) -> ActivityID { .init(rawValue: -1) }
-    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) { }
-    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) { }
-    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) { }
+    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) {}
+    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) {}
+    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) {}
 
-    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) { }
+    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) {}
 
     package init(clientDelegate: any ClientDelegate, workspace: SWBCore.Workspace) {
         self.clientDelegate = clientDelegate
@@ -902,15 +916,17 @@ private struct GetLocalizationInfoMsg: MessageHandler {
                 let input = TaskGenerateLocalizationInfoInput(targetIdentifiers: message.targetIdentifiers)
                 let output = try await session.buildDescriptionManager.generateLocalizationInfo(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: operation, input: input)
 
-                let response = LocalizationInfoResponse(targetInfos: output.map({ infoOutput in
-                    var stringsdataPaths = [LocalizationInfoBuildPortion: Set<Path>]()
-                    for (buildPortion, paths) in infoOutput.producedStringsdataPaths {
-                        stringsdataPaths[LocalizationInfoBuildPortion(effectivePlatformName: buildPortion.effectivePlatformName, variant: buildPortion.variant, architecture: buildPortion.architecture)] = paths
-                    }
-                    var payload = LocalizationInfoMessagePayload(targetIdentifier: infoOutput.targetIdentifier, compilableXCStringsPaths: infoOutput.compilableXCStringsPaths, producedStringsdataPaths: stringsdataPaths, effectivePlatformName: infoOutput.effectivePlatformName)
-                    payload.generatedSymbolFilesByXCStringsPath = infoOutput.generatedSymbolFilesByXCStringsPath
-                    return payload
-                }))
+                let response = LocalizationInfoResponse(
+                    targetInfos: output.map({ infoOutput in
+                        var stringsdataPaths = [LocalizationInfoBuildPortion: Set<Path>]()
+                        for (buildPortion, paths) in infoOutput.producedStringsdataPaths {
+                            stringsdataPaths[LocalizationInfoBuildPortion(effectivePlatformName: buildPortion.effectivePlatformName, variant: buildPortion.variant, architecture: buildPortion.architecture)] = paths
+                        }
+                        var payload = LocalizationInfoMessagePayload(targetIdentifier: infoOutput.targetIdentifier, compilableXCStringsPaths: infoOutput.compilableXCStringsPaths, producedStringsdataPaths: stringsdataPaths, effectivePlatformName: infoOutput.effectivePlatformName)
+                        payload.generatedSymbolFilesByXCStringsPath = infoOutput.generatedSymbolFilesByXCStringsPath
+                        return payload
+                    })
+                )
                 return response
             } catch {
                 return ErrorResponse("could not generate localization info: \(error)")
@@ -949,7 +965,7 @@ private struct BuildDescriptionTargetInfoMsg: MessageHandler {
                 let targets = buildDescription.allConfiguredTargets.reduce(into: Set<SWBCore.Target>()) { set, configuredTarget in
                     set.insert(configuredTarget.target)
                 }
-                return StringListResponse(targets.map{$0.guid})
+                return StringListResponse(targets.map { $0.guid })
             case .failed(let msg):
                 return msg
             }
@@ -966,7 +982,7 @@ private final class PreviewingOperation: InfoOperation, PreviewInfoDelegate {
         .init(_diagnosticsEngine)
     }
 
-    var diagnostics: [ConfiguredTarget? : [Diagnostic]] {
+    var diagnostics: [ConfiguredTarget?: [Diagnostic]] {
         [nil: _diagnosticsEngine.diagnostics]
     }
 
@@ -976,14 +992,14 @@ private final class PreviewingOperation: InfoOperation, PreviewInfoDelegate {
 
     package var hadErrors: Bool { !errorDiagnostics.isEmpty }
 
-    package func updateProgress(statusMessage: String, showInLog: Bool) { }
+    package func updateProgress(statusMessage: String, showInLog: Bool) {}
 
     package func beginActivity(ruleInfo: String, executionDescription: String, signature: ByteString, target: ConfiguredTarget?, parentActivity: ActivityID?) -> ActivityID { .init(rawValue: -1) }
-    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) { }
-    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) { }
-    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) { }
+    package func endActivity(id: ActivityID, signature: ByteString, status: BuildOperationTaskEnded.Status) {}
+    package func emit(data: [UInt8], for activity: ActivityID, signature: ByteString) {}
+    package func emit(diagnostic: Diagnostic, for activity: ActivityID, signature: ByteString) {}
 
-    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) { }
+    package func buildDescriptionCreated(_ buildDescriptionID: BuildDescriptionID) {}
 
     package init(clientDelegate: any ClientDelegate, workspace: SWBCore.Workspace) {
         self.clientDelegate = clientDelegate
@@ -1057,7 +1073,7 @@ extension MessageHandler {
                     targetIDs: message.targetIDs,
                     input: message.generatePreviewInfoInput
                 )
-                responses.append(contentsOf: output.map{ $0.asMessagePayload() })
+                responses.append(contentsOf: output.map { $0.asMessagePayload() })
 
                 return PreviewInfoResponse(
                     targetIDs: message.targetIDs,
@@ -1065,7 +1081,7 @@ extension MessageHandler {
                 )
             } catch {
                 if operation.hadErrors {
-                    let errorStrings = operation.errorDiagnostics.map{$0.formatLocalizedDescription(.debug)}
+                    let errorStrings = operation.errorDiagnostics.map { $0.formatLocalizedDescription(.debug) }
                     return ErrorResponse("could not generate preview info: \(error)\ndiagnostics:\n\(errorStrings.joined(separator: "\n"))")
                 } else {
                     return ErrorResponse("could not generate preview info: \(error)")
@@ -1221,7 +1237,6 @@ private struct DeveloperPathHandler: MessageHandler {
     }
 }
 
-
 final package class BuildDependencyInfoOperation: InfoOperation, TargetDependencyResolverDelegate {
     private let _diagnosticsEngine = DiagnosticsEngine()
 
@@ -1229,11 +1244,11 @@ final package class BuildDependencyInfoOperation: InfoOperation, TargetDependenc
         .init(_diagnosticsEngine)
     }
 
-    var diagnostics: [ConfiguredTarget? : [Diagnostic]] {
+    var diagnostics: [ConfiguredTarget?: [Diagnostic]] {
         [nil: _diagnosticsEngine.diagnostics]
     }
 
-    package func updateProgress(statusMessage: String, showInLog: Bool) { }
+    package func updateProgress(statusMessage: String, showInLog: Bool) {}
 
     // We don't care about the individual diagnostics here, only if there was at least one error.
     package private(set) var hadErrors = false
@@ -1268,8 +1283,7 @@ private struct DumpBuildDependencyInfoMsg: MessageHandler {
             let buildDependencyInfo: BuildDependencyInfo
             do {
                 buildDependencyInfo = try await BuildDependencyInfo(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, operation: operation)
-            }
-            catch {
+            } catch {
                 return ErrorResponse(error.localizedDescription)
             }
 
@@ -1285,15 +1299,13 @@ private struct DumpBuildDependencyInfoMsg: MessageHandler {
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
                 jsonData = try encoder.encode(buildDependencyInfo)
-            }
-            catch {
+            } catch {
                 return ErrorResponse("Unable to serialize build dependency info: \(error.localizedDescription)")
             }
             do {
                 try localFS.createDirectory(outputPath.dirname, recursive: true)
                 try localFS.write(outputPath, contents: ByteString(jsonData))
-            }
-            catch {
+            } catch {
                 return ErrorResponse("Unable to write build dependency info: \(error.localizedDescription)")
             }
 
@@ -1304,9 +1316,7 @@ private struct DumpBuildDependencyInfoMsg: MessageHandler {
     }
 }
 
-
 // MARK: Evaluating macros
-
 
 /// Returns a `Settings` object for a `MacroEvaluationRequestContext` (creating it if necessary) for a `MacroEvaluationRequestLevel` and `BuildParameters`.
 private func getSettings(for session: Session, workspaceContext: WorkspaceContext, level: MacroEvaluationRequestLevel, buildParameters: BuildParameters, purpose: SettingsPurpose) throws -> Settings {
@@ -1367,11 +1377,12 @@ private struct MacroEvaluationMsg: MessageHandler {
                 }
                 return result
             }()
-            lookup = lookupOverrides.count > 0 ? { macro in
-                return lookupOverrides[macro]
-            } : nil
-        }
-        else {
+            lookup =
+                lookupOverrides.count > 0
+                ? { macro in
+                    return lookupOverrides[macro]
+                } : nil
+        } else {
             lookup = nil
         }
 
@@ -1395,8 +1406,7 @@ private struct MacroEvaluationMsg: MessageHandler {
                 } else if let macroDefn = macroDefn as? PathListMacroDeclaration {
                     let result: [String] = scope.evaluate(macroDefn, lookup: lookup)
                     return MacroEvaluationResponse(result: .stringList(result))
-                }
-                else {
+                } else {
                     // This is not a macro string list definition, so evaluate it as a string and return it as a single-element array.
                     let result: String = scope.evaluateAsString(macroDefn, lookup: lookup)
                     return MacroEvaluationResponse(result: .stringList([result]))
@@ -1473,7 +1483,6 @@ private struct BuildSettingsEditorInfoMsg: MessageHandler {
     }
 }
 
-
 // MARK: Testing & Debugging Commands
 
 private struct ExecuteCommandLineToolMsg: MessageHandler {
@@ -1495,11 +1504,17 @@ private struct ExecuteCommandLineToolMsg: MessageHandler {
                     request.service.send(message.replyChannel, BoolResponse(false))
                     return
                 }
-                let result = await executeInternalTool(core: core, commandLine: message.commandLine, workingDirectory: message.workingDirectory, stdoutHandler: {
-                    request.service.send(message.replyChannel, StringResponse($0))
-                }, stderrHandler: {
-                    request.service.send(message.replyChannel, ErrorResponse($0))
-                })
+                let result = await executeInternalTool(
+                    core: core,
+                    commandLine: message.commandLine,
+                    workingDirectory: message.workingDirectory,
+                    stdoutHandler: {
+                        request.service.send(message.replyChannel, StringResponse($0))
+                    },
+                    stderrHandler: {
+                        request.service.send(message.replyChannel, ErrorResponse($0))
+                    }
+                )
                 request.service.send(message.replyChannel, BoolResponse(result))
             }
         }
@@ -1668,12 +1683,14 @@ extension Session {
 
     fileprivate func withInfoOperation(operation: InfoOperation, qos: SWBQoS, requestForReply: Request, lock: ActorLock, _ work: @escaping @Sendable () async -> any Message) {
         registerInfoOperation(operation)
-        operation.addTask(_Concurrency.Task<Void, Never>(priority: .init(buildRequestQoS: qos)) {
-            await lock.withLock {
-                let message = await work()
-                unregisterInfoOperation(operation)
-                requestForReply.reply(message)
+        operation.addTask(
+            _Concurrency.Task<Void, Never>(priority: .init(buildRequestQoS: qos)) {
+                await lock.withLock {
+                    let message = await work()
+                    unregisterInfoOperation(operation)
+                    requestForReply.reply(message)
+                }
             }
-        })
+        )
     }
 }

@@ -22,7 +22,8 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
     @Test(
         .requireSDKs(.wasi),
         .skipXcodeToolchain,
-        arguments: ["wasm32"], [true, false]
+        arguments: ["wasm32"],
+        [true, false]
     )
     func wasiCommandWithSwift(arch: String, enableTestability: Bool) async throws {
         let sdkroot = try await #require(getCore().loadSDK(llvmTargetTripleSys: "wasi")).path.str
@@ -36,18 +37,22 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                     children: [
                         TestFile("main.swift"),
                         TestFile("static.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": arch,
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": sdkroot,
-                        "SWIFT_VERSION": "6.0",
-                        "SUPPORTED_PLATFORMS": "webassembly",
-                        "ENABLE_TESTABILITY": enableTestability ? "YES" : "NO"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": arch,
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": sdkroot,
+                            "SWIFT_VERSION": "6.0",
+                            "SUPPORTED_PLATFORMS": "webassembly",
+                            "ENABLE_TESTABILITY": enableTestability ? "YES" : "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -59,27 +64,31 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                         buildPhases: [
                             TestSourcesBuildPhase(["main.swift"]),
                             TestFrameworksBuildPhase([
-                                TestBuildFile(.target("staticlib")),
-                            ])
+                                TestBuildFile(.target("staticlib"))
+                            ]),
                         ],
                         dependencies: [
-                            "staticlib",
+                            "staticlib"
                         ]
                     ),
                     TestStandardTarget(
                         "staticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib"
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.swift"]),
+                            TestSourcesBuildPhase(["static.swift"])
                         ]
                     ),
-                ])
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -124,7 +133,7 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                         "-resource-dir", .suffix("usr/lib/swift_static/clang"),
                         .suffix("usr/lib/swift_static/wasi/static-executable-args.lnk"),
                         "-lstaticlib",
-                        "-o", .path(tmpDir.join("build/Debug-webassembly/tool"))
+                        "-o", .path(tmpDir.join("build/Debug-webassembly/tool")),
                     ])
                 }
             }
@@ -145,17 +154,21 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                         TestFile("main.c"),
                         TestFile("static1.c"),
                         TestFile("static2.cpp"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": arch,
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": sdkroot,
-                        "SWIFT_VERSION": "6.0",
-                        "SUPPORTED_PLATFORMS": "webassembly",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": arch,
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": sdkroot,
+                            "SWIFT_VERSION": "6.0",
+                            "SUPPORTED_PLATFORMS": "webassembly",
+                        ]
+                    )
                 ],
                 targets: [
                     // FIXME: C-based executable targets are not yet supported due to
@@ -183,16 +196,20 @@ fileprivate struct SWBWebAssemblyPlatformTests: CoreBasedTests {
                         "Cstaticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib"
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static1.c", "static2.cpp"]),
+                            TestSourcesBuildPhase(["static1.c", "static2.cpp"])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 

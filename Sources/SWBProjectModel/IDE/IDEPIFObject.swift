@@ -12,9 +12,8 @@
 
 import Foundation
 
-
 /// Protocol describing top-level PIF objects.
-public protocol IDEPIFObject : IDEPIFGenerating {
+public protocol IDEPIFObject: IDEPIFGenerating {
     /// The name of the PIF object type (workspace, project, or target).
     static var pifObjectTypeName: String { get }
     /// Returns the list of subobjects.

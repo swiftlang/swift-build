@@ -24,15 +24,23 @@ fileprivate struct PlannedNodeTests {
         #expect(MakePlannedPathNode(Path("/tmp")).path == Path("/tmp"))
 
         // Check reference==value equality
-        #expect(MakePlannedPathNode(Path("/tmp"))
-                === MakePlannedPathNode(Path("/tmp")))
+        #expect(
+            MakePlannedPathNode(Path("/tmp"))
+                === MakePlannedPathNode(Path("/tmp"))
+        )
 
         // Check expected normalization
-        #expect(MakePlannedPathNode(Path("/tmp/a/"))
-                === MakePlannedPathNode(Path("/tmp/a")))
-        #expect(MakePlannedPathNode(Path("/tmp/a/../b"))
-                === MakePlannedPathNode(Path("/tmp/b")))
-        #expect(MakePlannedPathNode(Path("/tmp/a/."))
-                === MakePlannedPathNode(Path("/tmp/a")))
+        #expect(
+            MakePlannedPathNode(Path("/tmp/a/"))
+                === MakePlannedPathNode(Path("/tmp/a"))
+        )
+        #expect(
+            MakePlannedPathNode(Path("/tmp/a/../b"))
+                === MakePlannedPathNode(Path("/tmp/b"))
+        )
+        #expect(
+            MakePlannedPathNode(Path("/tmp/a/."))
+                === MakePlannedPathNode(Path("/tmp/a"))
+        )
     }
 }

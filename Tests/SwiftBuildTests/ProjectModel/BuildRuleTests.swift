@@ -47,5 +47,3 @@ extension ProjectModel.BuildRule {
     )
 
 }
-
-

@@ -94,12 +94,14 @@ public final class BuildRequestContext: Sendable {
             "XCTest",
             "XCTestCore",
             "XCUIAutomation",
-            "XCUnit"
+            "XCUnit",
         ]
 
-        suffixes.append(contentsOf: frameworkNames.flatMap { name in
-            [Path("\(name).framework/\(name)"), Path("/\(name).framework/Versions/A/\(name)")]
-        })
+        suffixes.append(
+            contentsOf: frameworkNames.flatMap { name in
+                [Path("\(name).framework/\(name)"), Path("/\(name).framework/Versions/A/\(name)")]
+            }
+        )
 
         for platformExtension in workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
             suffixes.append(contentsOf: platformExtension.additionalKnownTestLibraryPathSuffixes())
@@ -110,7 +112,7 @@ public final class BuildRequestContext: Sendable {
 
 extension BuildRequestContext {
     /// Certain file types allow multiple files with the same name, in which case we unique the output file.
-    private static let fileTypesWhichUseUniquing = [ "sourcecode.c.c", "sourcecode.c.objc", "sourcecode.cpp.cpp", "sourcecode.cpp.objcpp", "sourcecode.asm" ]
+    private static let fileTypesWhichUseUniquing = ["sourcecode.c.c", "sourcecode.c.objc", "sourcecode.cpp.cpp", "sourcecode.cpp.objcpp", "sourcecode.asm"]
 
     private func computeOutputParameters(for input: FileToBuild, command: BuildCommand, settings: Settings, lookup: @escaping (MacroDeclaration) -> (MacroExpression?)) -> (Path, String) {
         let outputDir = settings.globalScope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR, lookup: lookup)
@@ -150,7 +152,7 @@ extension BuildRequestContext {
         let currentPlatformFilter = PlatformFilter(settings.globalScope)
 
         // FIXME: It is a bit unfortunate that we need to compute all this for the `uniquingSuffix` behavior.
-        var sourceCodeFileToBuildableReference = [Path:Reference]()
+        var sourceCodeFileToBuildableReference = [Path: Reference]()
         if let target = target.target as? StandardTarget {
             if let buildableReferences = try! target.sourcesBuildPhase?.buildFiles.compactMap({ (buildFile) -> Reference? in
                 guard currentPlatformFilter.matches(buildFile.platformFilters) else { return nil }
@@ -196,8 +198,9 @@ extension BuildRequestContext {
         }
         func platformAndSDKVariant(for target: ConfiguredTarget) -> PlatformAndSDKVariant {
             if hasEnabledIndexBuildArena,
-               let activeRunDestination = target.parameters.activeRunDestination,
-               let platform = workspaceContext.core.platformRegistry.lookup(name: activeRunDestination.platform) {
+                let activeRunDestination = target.parameters.activeRunDestination,
+                let platform = workspaceContext.core.platformRegistry.lookup(name: activeRunDestination.platform)
+            {
                 // Configured targets include their platform in parameters, we can use it directly and avoid the expense of `getCachedSettings()` calls.
                 // If in future `ConfiguredTarget` carries along an instance of its Settings, we can avoid this check and go back to using `Settings` without the cost of `getCachedSettings`.
                 return PlatformAndSDKVariant(platform: platform, sdkVariant: activeRunDestination.sdkVariant)

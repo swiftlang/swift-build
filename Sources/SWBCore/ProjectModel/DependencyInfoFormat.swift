@@ -24,7 +24,6 @@ public enum DependencyInfoFormat: Sendable {
     case makefiles([MacroStringExpression])
 }
 
-
 extension DependencyInfoFormat {
     public static func fromPIF(_ dependencyInfo: SWBProtocol.DependencyInfo?, pifLoader: PIFLoader) -> DependencyInfoFormat? {
         guard let dependencyInfo else {
@@ -37,7 +36,7 @@ extension DependencyInfoFormat {
         case .makefile(let path):
             return .makefile(pifLoader.userNamespace.parseString(path))
         case .makefiles(let paths):
-            return .makefiles(paths.map{ pifLoader.userNamespace.parseString($0) })
+            return .makefiles(paths.map { pifLoader.userNamespace.parseString($0) })
         }
     }
 }

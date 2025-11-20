@@ -104,8 +104,7 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
 
                         return (library, outputDirectory)
                     }
-                }
-                catch {
+                } catch {
                     context.error(error.localizedDescription)
                 }
             }
@@ -130,8 +129,7 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
                 let expectedSignatures: [String]?
                 if let expectedSignature = config.expectedSignature {
                     expectedSignatures = [expectedSignature]
-                }
-                else {
+                } else {
                     expectedSignatures = nil
                 }
 

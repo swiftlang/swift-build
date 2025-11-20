@@ -16,8 +16,10 @@ import SWBUtil
 
 @Suite(.skipHostOS(.windows))
 fileprivate struct XcodeCommandsTests {
-    @Test(.skipHostOS(.windows), // PTY not supported on Windows
-        .requireHostOS(.macOS)) // something with terminal echo is different on macOS vs Linux
+    @Test(
+        .skipHostOS(.windows),  // PTY not supported on Windows
+        .requireHostOS(.macOS)
+    )  // something with terminal echo is different on macOS vs Linux
     func XcodeCommands() async throws {
         try await withCLIConnection { cli in
             // Send the test commands.
@@ -29,7 +31,7 @@ fileprivate struct XcodeCommandsTests {
                 "showSDKs",
                 "showSpecs",
                 "showToolchains",
-                "quit"
+                "quit",
             ]
             for command in commands {
                 try cli.send(command: command)

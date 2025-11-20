@@ -18,7 +18,6 @@ public import protocol Foundation.LocalizedError
 
 // MARK: Serializer and Deserializer protocols
 
-
 /// A `Serializer` is used to create a serialized `ByteString` representation of a collection of objects or other data, suitable for writing as a single file or otherwise transporting as a single piece of data.  Classes or structs to be serialized by adopt either the `Serializable` or `PolymorphicSerializable` protocols.  Many common built-in types already adopt `Serializable` through extensions.
 ///
 /// An element is serialized by invoking the serializer like so:
@@ -42,8 +41,7 @@ public import protocol Foundation.LocalizedError
 ///     serializer.endAggregate()
 ///
 /// A `Serializer` can be instantiated with a `SerializerDelegate` object to provide custom behavior or record information during serialization.
-public protocol Serializer
-{
+public protocol Serializer {
     init(delegate: (any SerializerDelegate)?)
 
     /// The `ByteString` containing the serialized data.
@@ -101,45 +99,38 @@ public protocol Serializer
     func endAggregate()
 }
 
-public extension Serializer
-{
+public extension Serializer {
     /// Convenience function for serializing a single value to bytes.
-    static func serialize<T: Serializable>(_ value: T, delegate: (any SerializerDelegate)? = nil) -> ByteString
-    {
+    static func serialize<T: Serializable>(_ value: T, delegate: (any SerializerDelegate)? = nil) -> ByteString {
         let serializer = Self.init(delegate: delegate)
         value.serialize(to: serializer)
         return serializer.byteString
     }
 
     /// Serialize an optional `Serializable` scalar element.
-    func serialize<T: Serializable>(_ optional: T?)
-    {
+    func serialize<T: Serializable>(_ optional: T?) {
         guard let element = optional else { self.serializeNil(); return }
         self.serialize(element)
     }
 
     /// Serialize an optional array of bytes.
-    func serialize(_ optional: [UInt8]?)
-    {
+    func serialize(_ optional: [UInt8]?) {
         guard let element = optional else { self.serializeNil(); return }
         self.serialize(element)
     }
 
     // Serialize a date.
-    func serialize(_ date: Date)
-    {
+    func serialize(_ date: Date) {
         self.serialize(date.timeIntervalSinceReferenceDate)
     }
 
     /// Serialize an optional `Array` whose elements are `Serializable`.
-    func serialize<T: Serializable>(_ optional: [T]?)
-    {
+    func serialize<T: Serializable>(_ optional: [T]?) {
         guard let array = optional else { self.serializeNil(); return }
         self.serialize(array)
     }
 
-    func serialize<T: Serializable>(_ array: [[T]])
-    {
+    func serialize<T: Serializable>(_ array: [[T]]) {
         self.serializeAggregate(2) {
             self.serialize(array.count as Int)
             self.serializeAggregate(array.count) {
@@ -151,44 +142,37 @@ public extension Serializer
     }
 
     /// Serialize an optional `Dictionary` whose keys and values are `Serializable`.
-    func serialize<Tk: Serializable & Comparable, Tv: Serializable>(_ optional: [Tk: Tv]?)
-    {
+    func serialize<Tk: Serializable & Comparable, Tv: Serializable>(_ optional: [Tk: Tv]?) {
         guard let dict = optional else { self.serializeNil(); return }
         self.serialize(dict)
     }
 
     /// Serialize a `PolymorphicSerializable` element.
-    func serialize<T: PolymorphicSerializable>(_ object: T)
-    {
+    func serialize<T: PolymorphicSerializable>(_ object: T) {
         let wrappedElement = PolymorphicSerializableWrapper<T>(object)
         self.serialize(wrappedElement)
     }
 
     /// Serialize an `Array` whose elements are `PolymorphicSerializable`.
-    func serialize<T: PolymorphicSerializable>(_ array: [T])
-    {
+    func serialize<T: PolymorphicSerializable>(_ array: [T]) {
         let wrappedElements = array.map { PolymorphicSerializableWrapper<T>($0) }
         self.serialize(wrappedElements)
     }
 
     /// Serialize a `Dictionary` whose keys are `Serializable` and whose values are `PolymorphicSerializable`.
-    func serialize<Tk: Serializable & Comparable, Tv: PolymorphicSerializable>(_ dict: [Tk: Tv])
-    {
+    func serialize<Tk: Serializable & Comparable, Tv: PolymorphicSerializable>(_ dict: [Tk: Tv]) {
         var wrappedDict = [Tk: PolymorphicSerializableWrapper<Tv>](minimumCapacity: dict.count)
-        for (key, value) in dict.sorted(byKey: <)
-        {
+        for (key, value) in dict.sorted(byKey: <) {
             wrappedDict[key] = PolymorphicSerializableWrapper<Tv>(value)
         }
         self.serialize(wrappedDict)
     }
 
     /// Serialize a `Dictionary` whose keys are `PolymorphicSerializable` and whose values are `Serializable`.
-    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: Serializable>(_ dict: [Tk: Tv])
-    {
+    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: Serializable>(_ dict: [Tk: Tv]) {
         // In order to do this, we serialize the dictionary as a sequence of key-value pairs, so that we don't need to make PolymorphicSerializableWrapper<Tk> conform to Hashable and Equatable.
         self.beginAggregate(dict.count)
-        for (key, value) in dict.sorted(byKey: <)
-        {
+        for (key, value) in dict.sorted(byKey: <) {
             // Each pair is encoded as a 2-element sequence.
             self.beginAggregate(2)
             self.serialize(key)
@@ -199,12 +183,10 @@ public extension Serializer
     }
 
     /// Serialize a `Dictionary` whose keys and values are `PolymorphicSerializable`.
-    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: PolymorphicSerializable>(_ dict: [Tk: Tv])
-    {
+    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: PolymorphicSerializable>(_ dict: [Tk: Tv]) {
         // In order to do this, we serialize the dictionary as a sequence of key-value pairs, so that we don't need to make PolymorphicSerializableWrapper<Tk> conform to Hashable and Equatable.
         self.beginAggregate(dict.count)
-        for (key, value) in dict.sorted(byKey: <)
-        {
+        for (key, value) in dict.sorted(byKey: <) {
             // Each pair is encoded as a 2-element sequence.
             self.beginAggregate(2)
             self.serialize(key)
@@ -215,37 +197,31 @@ public extension Serializer
     }
 
     /// Serialize an optional `PolymorphicSerializable` element.
-    func serialize<T: PolymorphicSerializable>(_ optional: T?)
-    {
+    func serialize<T: PolymorphicSerializable>(_ optional: T?) {
         guard let element = optional else { self.serializeNil(); return }
         self.serialize(element)
     }
 
     /// Serialize an optional `Array` whose elements are `PolymorphicSerializable`.
-    func serialize<T: PolymorphicSerializable>(_ optional: [T]?)
-    {
+    func serialize<T: PolymorphicSerializable>(_ optional: [T]?) {
         guard let array = optional else { self.serializeNil(); return }
         self.serialize(array)
     }
 
     /// Serialize an optional `Dictionary` whose keys are `Serializable` and whose values are `PolymorphicSerializable`.
-    func serialize<Tk: Serializable & Comparable, Tv: PolymorphicSerializable>(_ optional: [Tk: Tv]?)
-    {
+    func serialize<Tk: Serializable & Comparable, Tv: PolymorphicSerializable>(_ optional: [Tk: Tv]?) {
         guard let dict = optional else { self.serializeNil(); return }
         self.serialize(dict)
     }
 
-
     /// Serialize an optional `Dictionary` whose keys are `PolymorphicSerializable` and whose values are `Serializable`.
-    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: Serializable>(_ optional: [Tk: Tv]?)
-    {
+    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: Serializable>(_ optional: [Tk: Tv]?) {
         guard let dict = optional else { self.serializeNil(); return }
         self.serialize(dict)
     }
 
     /// Serialize an optional `Dictionary` whose keys and values are `PolymorphicSerializable`.
-    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: PolymorphicSerializable>(_ optional: [Tk: Tv]?)
-    {
+    func serialize<Tk: PolymorphicSerializable & Comparable, Tv: PolymorphicSerializable>(_ optional: [Tk: Tv]?) {
         guard let dict = optional else { self.serializeNil(); return }
         self.serialize(dict)
     }
@@ -274,10 +250,8 @@ public extension Serializer
 ///     guard var delegate = serializer.delegate as? ConcreteSerializerDelegate else { fatalError("delegate must be a ConcreteSerializerDelegate") }
 ///
 /// `let` may be used instead of `var` if the object is not modifying the content of the delegate.
-public protocol SerializerDelegate: AnyObject
-{
+public protocol SerializerDelegate: AnyObject {
 }
-
 
 /// A `Deserializer` is used to unpack a serialized `ByteString` representation of a collection of objects or other data which was serialized with a corresponding `Serializer`.
 ///
@@ -306,8 +280,7 @@ public protocol SerializerDelegate: AnyObject
 ///     try super.init(from: deserializer)
 ///
 /// A `Deserializer` can be instantiated with a `DeserializerDelegate` object to provide custom behavior or record information during deserialization.
-public protocol Deserializer
-{
+public protocol Deserializer {
     init(_ bytes: ArraySlice<UInt8>, delegate: (any DeserializerDelegate)?)
 
     var delegate: (any DeserializerDelegate)? { get }
@@ -371,47 +344,38 @@ public protocol Deserializer
     func beginAggregate() throws -> Int
 }
 
-
-public extension Deserializer
-{
+public extension Deserializer {
     /// Convenience function for serializing a single value from bytes.
-    static func deserialize<T: Serializable>(_ bytes: ByteString, delegate: (any DeserializerDelegate)? = nil) throws -> T
-    {
+    static func deserialize<T: Serializable>(_ bytes: ByteString, delegate: (any DeserializerDelegate)? = nil) throws -> T {
         let deserializer = Self.init(bytes, delegate: delegate)
         return try deserializer.deserialize()
     }
 
-    init(_ byteString: ByteString, delegate: (any DeserializerDelegate)? = nil)
-    {
+    init(_ byteString: ByteString, delegate: (any DeserializerDelegate)? = nil) {
         self.init(ArraySlice(byteString.bytes), delegate: delegate)
     }
 
     /// Deserialize an optional `Serializable` scalar element.
-    func deserialize<T: Serializable>() throws -> T?
-    {
+    func deserialize<T: Serializable>() throws -> T? {
         return self.deserializeNil() ? nil : (try self.deserialize() as T)
     }
 
     /// Deserialize an optional array of bytes.
-    func deserialize() throws -> [UInt8]?
-    {
+    func deserialize() throws -> [UInt8]? {
         return self.deserializeNil() ? nil : (try self.deserialize() as [UInt8])
     }
 
     /// Deserialize a date.
-    func deserialize() throws -> Date
-    {
+    func deserialize() throws -> Date {
         return try Date(timeIntervalSinceReferenceDate: self.deserialize())
     }
 
     /// Deserialize an optional `Array`.  Throws if the next item to be deserialized is not nil or an `Array`, or if the array could not be read.
-    func deserialize<T: Serializable>() throws -> [T]?
-    {
+    func deserialize<T: Serializable>() throws -> [T]? {
         return self.deserializeNil() ? nil : (try self.deserialize() as [T])
     }
 
-    func deserialize<T: Serializable>() throws -> [[T]]
-    {
+    func deserialize<T: Serializable>() throws -> [[T]] {
         try beginAggregate(2)
         let count = try deserialize() as Int
         guard count >= 0 else { throw DeserializerError.unexpectedValue("Expected array count >= 0") }
@@ -420,7 +384,7 @@ public extension Deserializer
         var result = [[T]]()
         result.reserveCapacity(count)
 
-        for _ in 0 ..< count {
+        for _ in 0..<count {
             result.append(try deserialize())
         }
 
@@ -428,46 +392,39 @@ public extension Deserializer
     }
 
     /// Deserialize an optional `Dictionary` whose keys and values are `Serializable`.  Throws if the next item to be deserialized is not nil or a `Dictionary`, or if the dictionary could not be read.
-    func deserialize<Tk: Serializable, Tv: Serializable>() throws -> [Tk: Tv]?
-    {
+    func deserialize<Tk: Serializable, Tv: Serializable>() throws -> [Tk: Tv]? {
         return self.deserializeNil() ? nil : (try self.deserialize() as [Tk: Tv])
     }
 
     /// Deserialize a `PolymorphicSerializable` element.
-    func deserialize<T: PolymorphicSerializable>() throws -> T
-    {
+    func deserialize<T: PolymorphicSerializable>() throws -> T {
         let wrappedElement: PolymorphicSerializableWrapper<T> = try self.deserialize()
         return wrappedElement.value
     }
 
     /// Deserialize an `Array` whose elements are `PolymorphicSerializable`.
-    func deserialize<T: PolymorphicSerializable>() throws -> [T]
-    {
+    func deserialize<T: PolymorphicSerializable>() throws -> [T] {
         let wrappedElements: [PolymorphicSerializableWrapper<T>] = try self.deserialize()
         return wrappedElements.map { $0.value }
     }
 
     /// Deserialize a `Dictionary` whose keys are `Serializable` and whose values are `PolymorphicSerializable`.
-    func deserialize<Tk: Serializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv]
-    {
+    func deserialize<Tk: Serializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv] {
         let wrappedDict: [Tk: PolymorphicSerializableWrapper<Tv>] = try self.deserialize()
         var dict = [Tk: Tv](minimumCapacity: wrappedDict.count)
-        for (key, wrappedValue) in wrappedDict
-        {
+        for (key, wrappedValue) in wrappedDict {
             dict[key] = wrappedValue.value
         }
         return dict
     }
 
     /// Deserialize a `Dictionary` whose keys are `PolymorphicSerializable` and whose values are `Serializable`.
-    func deserialize<Tk: PolymorphicSerializable, Tv: Serializable>() throws -> [Tk: Tv]
-    {
+    func deserialize<Tk: PolymorphicSerializable, Tv: Serializable>() throws -> [Tk: Tv] {
         // The dictionary is serialized as a sequence of key-value pairs.
         let count = try self.beginAggregate()
         guard count > 0 else { return [:] }
         var dict = [Tk: Tv](minimumCapacity: count)
-        for _ in 1...count
-        {
+        for _ in 1...count {
             // Each pair is encoded as a 2-element sequence.
             try self.beginAggregate(2)
             let key: PolymorphicSerializableWrapper<Tk> = try self.deserialize()
@@ -478,14 +435,12 @@ public extension Deserializer
     }
 
     /// Deserialize a `Dictionary` whose keys and values are `PolymorphicSerializable`.
-    func deserialize<Tk: PolymorphicSerializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv]
-    {
+    func deserialize<Tk: PolymorphicSerializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv] {
         // The dictionary is serialized as a sequence of key-value pairs.
         let count = try self.beginAggregate()
         guard count > 0 else { return [:] }
         var dict = [Tk: Tv](minimumCapacity: count)
-        for _ in 1...count
-        {
+        for _ in 1...count {
             // Each pair is encoded as a 2-element sequence.
             try self.beginAggregate(2)
             let key: PolymorphicSerializableWrapper<Tk> = try self.deserialize()
@@ -496,32 +451,27 @@ public extension Deserializer
     }
 
     /// Deserialize an optional `PolymorphicSerializable` element.
-    func deserialize<T: PolymorphicSerializable>() throws -> T?
-    {
+    func deserialize<T: PolymorphicSerializable>() throws -> T? {
         return self.deserializeNil() ? nil : (try self.deserialize() as T)
     }
 
     /// Deserialize an optional `Array` whose elements are `PolymorphicSerializable`.
-    func deserialize<T: PolymorphicSerializable>() throws -> [T]?
-    {
+    func deserialize<T: PolymorphicSerializable>() throws -> [T]? {
         return self.deserializeNil() ? nil : (try self.deserialize() as [T])
     }
 
     /// Deserialize an optional `Dictionary` whose keys are `Serializable` and whose values are `PolymorphicSerializable`.
-    func deserialize<Tk: Serializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv]?
-    {
+    func deserialize<Tk: Serializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv]? {
         return self.deserializeNil() ? nil : (try self.deserialize() as [Tk: Tv])
     }
 
     /// Deserialize an optional `Dictionary` whose keys are `PolymorphicSerializable` and whose values are `Serializable`.
-    func deserialize<Tk: PolymorphicSerializable, Tv: Serializable>() throws -> [Tk: Tv]?
-    {
+    func deserialize<Tk: PolymorphicSerializable, Tv: Serializable>() throws -> [Tk: Tv]? {
         return self.deserializeNil() ? nil : (try self.deserialize() as [Tk: Tv])
     }
 
     /// Deserialize an optional `Dictionary` whose keys and values are `PolymorphicSerializable`.
-    func deserialize<Tk: PolymorphicSerializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv]?
-    {
+    func deserialize<Tk: PolymorphicSerializable, Tv: PolymorphicSerializable>() throws -> [Tk: Tv]? {
         return self.deserializeNil() ? nil : (try self.deserialize() as [Tk: Tv])
     }
 
@@ -540,7 +490,6 @@ public extension Deserializer
     }
 }
 
-
 /// Protocol for a delegate to be used by an instance of a `Deserializer`.
 ///
 /// Such a delegate typically has two purposes:
@@ -553,13 +502,10 @@ public extension Deserializer
 ///     guard var delegate = deserializer.delegate as? ConcreteDeserializerDelegate else { throw DeserializerError.invalidDelegate("delegate must be a ConcreteDeserializerDelegate") }
 ///
 /// `let` may be used instead of `var` if the object is not modifying the content of the delegate.
-public protocol DeserializerDelegate
-{
+public protocol DeserializerDelegate {
 }
 
-
-public enum DeserializerError: Swift.Error, LocalizedError, CustomStringConvertible
-{
+public enum DeserializerError: Swift.Error, LocalizedError, CustomStringConvertible {
     /// A class' `init(from:)` method can throw this error if it does not get the type of `DeserializerDelegate` it expects.
     case invalidDelegate(String)
     /// This error is thrown if the type of the next item to be deserialized is not of the expected type.
@@ -584,27 +530,23 @@ public enum DeserializerError: Swift.Error, LocalizedError, CustomStringConverti
 
     public var errorDescription: String? { description }
 
-    public var errorString: String
-    {
+    public var errorString: String {
         switch self
         {
-            case .invalidDelegate(let str): return str
-            case .incorrectType(let str): return str
-            case .unexpectedValue(let str): return str
-            case .deserializationFailed(let str): return str
+        case .invalidDelegate(let str): return str
+        case .incorrectType(let str): return str
+        case .unexpectedValue(let str): return str
+        case .deserializationFailed(let str): return str
         }
     }
 }
 
-
 // MARK: Serializable protocol
-
 
 /// Protocol for simple types which can be serialized.
 ///
 /// Class hierarchies should adopt `PolymorphicSerializable` instead.
-public protocol Serializable
-{
+public protocol Serializable {
     /// Serialize the receiver.
     func serialize<T: Serializer>(to serializer: T)
 
@@ -621,7 +563,7 @@ public protocol SerializableCodable: Serializable, Codable {
 }
 
 extension SerializableCodable {
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         try! serializer.serialize(Array(JSONEncoder(outputFormatting: [.sortedKeys, .withoutEscapingSlashes]).encode(self)))
     }
 
@@ -649,12 +591,12 @@ extension SerializableCodable {
 
 /// May be used to migrate a Serializable type to SerializableCodable without requiring an updated client immediately. Types conforming to this protocol will still use legacy serialization, but support legacy or codable deserialization. Once client versions in use all support deserializing the codable representation, these types can switch to `SerializableCodable`.
 public protocol PendingSerializableCodable: Serializable, Codable {
-    func legacySerialize<T>(to serializer: T) where T : Serializer
+    func legacySerialize<T>(to serializer: T) where T: Serializer
     init(fromLegacy deserializer: any Deserializer) throws
 }
 
 extension PendingSerializableCodable {
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         legacySerialize(to: serializer)
     }
 
@@ -678,14 +620,12 @@ extension PendingSerializableCodable {
 
 // MARK: PolymorphicSerializable protocol.
 
-
 /// Protocol for types which can be serialized as polymorphic elements, where the type of each element is read during deserialization so the correct class or struct can be instantiated.  The top-level class typically will implement `classForCode()` to return the class to be instantiated based on the code it is passed by the deserializer, while all classes will implement the other methods.  Each class should return a unique value for `serializableTypeCode`, although this is not enforced.
 ///
 /// Elements of these types will be wrapped in a `PolymorphicSerializableWrapper` struct to be serialized.  They should never be serialized directly (which is why this protocol does not adopt `Serializable`).
 ///
 /// `PolymorphicSerializable` does not support serializing multiple types of a given protocol, because deserialization cannot infer the type to instantiate if all it has to work with is the protocol.  A class hierarchy should be used instead.
-public protocol PolymorphicSerializable
-{
+public protocol PolymorphicSerializable {
     /// Serialize the receiver.
     func serialize<T: Serializer>(to serializer: T)
 
@@ -717,22 +657,18 @@ extension PolymorphicSerializable {
 
 public typealias SerializableTypeCode = UInt
 
-
 /// A wrapper for a user-defined type which can be serialized as aggregate elements.
-fileprivate struct PolymorphicSerializableWrapper<T: PolymorphicSerializable>: Serializable
-{
+fileprivate struct PolymorphicSerializableWrapper<T: PolymorphicSerializable>: Serializable {
     /// The element being wrapped.
     let value: T
 
     /// Wrap the element for serialization.
-    init(_ value: T)
-    {
+    init(_ value: T) {
         self.value = value
     }
 
     /// Serialize the wrapper - including the type code for the element - and the element.
-    func serialize<S: Serializer>(to serializer: S)
-    {
+    func serialize<S: Serializer>(to serializer: S) {
         serializer.beginAggregate(2)
         type(of: self.value).serializableTypeCode.serialize(to: serializer)
         self.value.serialize(to: serializer)
@@ -740,8 +676,7 @@ fileprivate struct PolymorphicSerializableWrapper<T: PolymorphicSerializable>: S
     }
 
     /// Create a new instance of the wrapper with an instance of the wrapped element inside it.
-    init(from deserializer: any Deserializer) throws
-    {
+    init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         let code: SerializableTypeCode = try deserializer.deserialize()
         guard let classType = T.classForCode(code) else { throw DeserializerError.incorrectType("Unexpected serializable type code for concrete '\(type(of: T.self))': \(code)") }
@@ -749,144 +684,112 @@ fileprivate struct PolymorphicSerializableWrapper<T: PolymorphicSerializable>: S
     }
 }
 
-
 // MARK: Serialization for built-in types
 
-
-extension Int: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension Int: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         self = try deserializer.deserialize()
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(self)
     }
 }
 
-extension UInt: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension UInt: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         self = try deserializer.deserialize()
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(self)
     }
 }
 
-extension Int32: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension Int32: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         // We use `truncatingBitPattern` here because we encode 32-bit values as normal UInts. It is up to the client to never use this in a way which could lose bits.
         self = Int32(try deserializer.deserialize() as Int)
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(Int(self))
     }
 }
 
-extension UInt32: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension UInt32: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         // We use `truncatingBitPattern` here because we encode 32-bit values as normal UInts. It is up to the client to never use this in a way which could lose bits.
         self = UInt32(truncatingIfNeeded: try deserializer.deserialize() as UInt)
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(UInt(self))
     }
 }
 
-extension Int64: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension Int64: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         // We assume that this is a lossless conversion which should have no type checks.
         self = Int64(try deserializer.deserialize() as Int)
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         // Despite the name here, we expect UInt to always be 64-bits and thus this does not truncate.
         assert(Int64(Int(truncatingIfNeeded: self)) == self)
         serializer.serialize(Int(truncatingIfNeeded: self))
     }
 }
 
-extension UInt64: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension UInt64: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         // We assume that this is a lossless conversion which should have no type checks.
         self = UInt64(try deserializer.deserialize() as UInt)
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         // Despite the name here, we expect UInt to always be 64-bits and thus this does not truncate.
         assert(UInt64(UInt(truncatingIfNeeded: self)) == self)
         serializer.serialize(UInt(truncatingIfNeeded: self))
     }
 }
 
-extension Bool: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension Bool: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         self = try deserializer.deserialize()
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(self)
     }
 }
 
-extension Float32: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension Float32: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         self = try deserializer.deserialize()
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(self)
     }
 }
 
-extension Float64: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension Float64: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         self = try deserializer.deserialize()
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(self)
     }
 }
 
-extension String: Serializable
-{
-    public init(from deserializer: any Deserializer) throws
-    {
+extension String: Serializable {
+    public init(from deserializer: any Deserializer) throws {
         self = try deserializer.deserialize()
     }
 
-    public func serialize<T: Serializer>(to serializer: T)
-    {
+    public func serialize<T: Serializer>(to serializer: T) {
         serializer.serialize(self)
     }
 }
@@ -917,7 +820,7 @@ extension Set: Serializable where Element: Serializable & Comparable {
 }
 
 extension OrderedSet: Serializable where Element: Serializable {
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serialize(elements)
     }
 
@@ -928,9 +831,7 @@ extension OrderedSet: Serializable where Element: Serializable {
 
 // MARK: Encoder and Decoder protocols
 
-
-protocol Encoder: AnyObject
-{
+protocol Encoder: AnyObject {
     /// The byte array containing the encoded data.
     var bytes: [UInt8] { get }
 
@@ -977,9 +878,7 @@ protocol Encoder: AnyObject
     func endArray()
 }
 
-
-protocol Decoder: AnyObject
-{
+protocol Decoder: AnyObject {
     /// Decode an `Int64` from the encoded bytes and consume that item.  Returns nil and does not consume the next item if it is not an `Int64`.
     func readInt64() -> Int64?
 

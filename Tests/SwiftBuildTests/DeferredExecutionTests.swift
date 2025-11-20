@@ -29,29 +29,34 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "Sources", children: [
+                    "Sources",
+                    children: [
                         TestFile("assets.xcassets"),
                         TestFile("foo.c"),
                         TestFile("foo.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
-                        "ALWAYS_SEARCH_USER_PATHS": "NO",
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "ONLY_ACTIVE_ARCH": "YES",
-                        "SDKROOT": "macosx",
-                        "SWIFT_VERSION": "5.0",
-                        // Disable explicit modules here so we generate a consistent number of swift-frontend invocations that doesn't depend on the structure of the SDK
-                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                        "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS": "NO",
+                            "ALWAYS_SEARCH_USER_PATHS": "NO",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "ONLY_ACTIVE_ARCH": "YES",
+                            "SDKROOT": "macosx",
+                            "SWIFT_VERSION": "5.0",
+                            // Disable explicit modules here so we generate a consistent number of swift-frontend invocations that doesn't depend on the structure of the SDK
+                            "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                            "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
 
-                        // TAPI can't read the "world's smallest dylib", so don't run that
-                        "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
-                        // Since we don't get the linker's SDK imports output here, skip it.
-                        "ENABLE_SDK_IMPORTS": "NO",
-                    ])
+                            // TAPI can't read the "world's smallest dylib", so don't run that
+                            "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+                            // Since we don't get the linker's SDK imports output here, skip it.
+                            "ENABLE_SDK_IMPORTS": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -66,8 +71,10 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                                 "foo.c",
                                 "foo.swift",
                             ])
-                        ]),
-                ])
+                        ]
+                    )
+                ]
+            )
 
             let SRCROOT = tmpDir.str
 
@@ -98,15 +105,17 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                     }
 
                     func provisioningTaskInputs(targetGUID: String, provisioningSourceData: SWBProvisioningTaskInputsSourceData) async -> SWBProvisioningTaskInputs {
-                        let signedEntitlements = provisioningSourceData.entitlementsDestination == "Signature"
-                        ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-                        : [:]
+                        let signedEntitlements =
+                            provisioningSourceData.entitlementsDestination == "Signature"
+                            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+                            : [:]
 
-                        let simulatedEntitlements = provisioningSourceData.entitlementsDestination == "__entitlements"
-                        ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-                        : [:]
+                        let simulatedEntitlements =
+                            provisioningSourceData.entitlementsDestination == "__entitlements"
+                            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+                            : [:]
 
-                        return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new  in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: false, keychainPath: nil, errors: [], warnings: [])
+                        return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: false, keychainPath: nil, errors: [], warnings: [])
                     }
 
                     func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> SWBExternalToolResult {
@@ -118,9 +127,9 @@ fileprivate struct DeferredExecutionTests: CoreBasedTests {
                         case "codesign":
                             defer { codeSignExpectation.confirm() }
                             return .result(status: .exit(0), stdout: Data(), stderr: Data())
-                        case "clang" where commandLine.dropFirst().first == "-v": // version info
+                        case "clang" where commandLine.dropFirst().first == "-v":  // version info
                             break
-                        case "clang" where !commandLine.contains("-c"): // linker-as-clang
+                        case "clang" where !commandLine.contains("-c"):  // linker-as-clang
                             defer { linkerExpectation.confirm() }
 
                             let outputBinary = try #require(commandLine.last.map(Path.init))
@@ -202,11 +211,11 @@ fileprivate func withConfirmations(invert: Bool, _ body: (_ assetCatalogExpectat
 }
 
 fileprivate let smallestMachoBytes: [UInt8] = [
-    0xcf, 0xfa, 0xed, 0xfe, // magic
-    0x00, 0x00, 0x00, 0x00, // cputype
-    0x00, 0x00, 0x00, 0x00, // cpusubtype
-    0x06, 0x00, 0x00, 0x00, // filetype
-    0x00, 0x00, 0x00, 0x00, // ncmds
-    0x00, 0x00, 0x00, 0x00, // sizeofcmds
-    0x00, 0x00, 0x00, 0x00, // flags
+    0xcf, 0xfa, 0xed, 0xfe,  // magic
+    0x00, 0x00, 0x00, 0x00,  // cputype
+    0x00, 0x00, 0x00, 0x00,  // cpusubtype
+    0x06, 0x00, 0x00, 0x00,  // filetype
+    0x00, 0x00, 0x00, 0x00,  // ncmds
+    0x00, 0x00, 0x00, 0x00,  // sizeofcmds
+    0x00, 0x00, 0x00, 0x00,  // flags
 ]

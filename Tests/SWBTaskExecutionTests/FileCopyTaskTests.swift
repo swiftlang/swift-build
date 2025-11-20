@@ -123,9 +123,9 @@ fileprivate struct FileCopyTaskTests {
 
             // Examine the error messages.
             #if canImport(Darwin)
-            XCTAssertMatch(outputDelegate.errors, [.suffix("The file “MissingFile.bogus” couldn’t be opened because there is no such file.")])
+                XCTAssertMatch(outputDelegate.errors, [.suffix("The file “MissingFile.bogus” couldn’t be opened because there is no such file.")])
             #else
-            XCTAssertMatch(outputDelegate.errors, [.suffix("The operation could not be completed. The file doesn’t exist.")])
+                XCTAssertMatch(outputDelegate.errors, [.suffix("The operation could not be completed. The file doesn’t exist.")])
             #endif
         }
     }

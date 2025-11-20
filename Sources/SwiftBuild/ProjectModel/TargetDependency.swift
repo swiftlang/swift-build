@@ -46,4 +46,3 @@ extension ProjectModel.TargetDependency: Codable {
         case platformFilters
     }
 }
-

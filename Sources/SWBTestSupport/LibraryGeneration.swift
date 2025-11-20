@@ -64,7 +64,7 @@ extension InstalledXcode {
         let linkerArgs = linkerOptions.map({ $0.args }).reduce([], +)
         if buildLibraryForDistribution {
             distributionArgs = ["-enable-library-evolution"]
-            _ = try await xcrun(["-sdk", platform.sdkName, "swiftc", "-target", target] + targetVariantArgs + distributionArgs as [String] + ["-emit-module-interface", "-emit-module-interface-path", swiftModuleDir.join("\(name).swiftinterface").str, "-c",  sourcePath.str], workingDirectory: workingDirectory)
+            _ = try await xcrun(["-sdk", platform.sdkName, "swiftc", "-target", target] + targetVariantArgs + distributionArgs as [String] + ["-emit-module-interface", "-emit-module-interface-path", swiftModuleDir.join("\(name).swiftinterface").str, "-c", sourcePath.str], workingDirectory: workingDirectory)
         } else {
             distributionArgs = []
         }
@@ -147,8 +147,7 @@ extension InstalledXcode {
                 let macho = try await compileSwiftFile(name: name, platform: platform, infoLookup: infoLookup, platformVariant: platformVariant, arch: arch, sourcePath: sourcePath, buildDir: buildDir, swiftModuleDir: swiftModuleDir, buildLibraryForDistribution: buildLibraryForDistribution, static: `static`, linkerOptions: linkerOptions, workingDirectory: basePath, fs: fs, object: object, needSigned: needSigned)
                 machos.append(macho)
             }
-        }
-        else {
+        } else {
             let sourcePath = srcDir.join("source.c")
             let sourceContents = sourceContents ?? "int favorite() { return 0; }\n"
             try fs.write(sourcePath, contents: ByteString(encodingAsUTF8: sourceContents))
@@ -232,10 +231,12 @@ extension InstalledXcode {
         }
 
         let machoPath = basePath.join(baseName)
-        _ = try await xcrun(["-sdk", platform.sdkName, "lipo"]
-                        .appending(contentsOf: hideARM64 ? ["-hideARM64"] : [])
-                        .appending(contentsOf: ["-create"] + machos)
-                        .appending(contentsOf: ["-output", machoPath.str]))
+        _ = try await xcrun(
+            ["-sdk", platform.sdkName, "lipo"]
+                .appending(contentsOf: hideARM64 ? ["-hideARM64"] : [])
+                .appending(contentsOf: ["-create"] + machos)
+                .appending(contentsOf: ["-output", machoPath.str])
+        )
 
         return machoPath
     }
@@ -263,8 +264,7 @@ extension InstalledXcode {
                 let macho = try await compileSwiftFile(name: baseName, platform: platform, infoLookup: infoLookup, platformVariant: platformVariant, arch: arch, sourcePath: sourcePath, buildDir: buildDir, swiftModuleDir: swiftModuleDir, buildLibraryForDistribution: buildLibraryForDistribution, static: false, linkerOptions: linkerOptions, workingDirectory: basePath, fs: fs, object: false, needSigned: false)
                 machos.append(macho.str)
             }
-        }
-        else {
+        } else {
             let sourcePath = srcDir.join("source.c")
             let sourceContents = sourceContents ?? "int favorite() { return 0; }\n"
             try fs.write(sourcePath, contents: ByteString(encodingAsUTF8: sourceContents))
@@ -321,8 +321,7 @@ extension InstalledXcode {
 
         if useSwift {
             fatalError("generated Swift static libraries is not currently supported")
-        }
-        else {
+        } else {
             // Write out a basic header.
             let headersDir = buildDir.join("include")
             try fs.createDirectory(headersDir, recursive: true)

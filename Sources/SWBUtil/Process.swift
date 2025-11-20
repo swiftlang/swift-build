@@ -14,53 +14,53 @@ public import Foundation
 import SWBLibc
 
 #if os(Windows)
-public typealias pid_t = Int32
+    public typealias pid_t = Int32
 #endif
 
 #if !canImport(Darwin)
-extension ProcessInfo {
-    public var isMacCatalystApp: Bool {
-        false
+    extension ProcessInfo {
+        public var isMacCatalystApp: Bool {
+            false
+        }
     }
-}
 #endif
 
 #if (!canImport(Foundation.NSTask) || targetEnvironment(macCatalyst)) && canImport(Darwin)
-public final class Process: @unchecked Sendable {
-    public enum TerminationReason: Int, Sendable {
-        case exit = 1
-        case uncaughtSignal = 2
-    }
+    public final class Process: @unchecked Sendable {
+        public enum TerminationReason: Int, Sendable {
+            case exit = 1
+            case uncaughtSignal = 2
+        }
 
-    public var currentDirectoryURL: URL?
-    public var executableURL: URL?
-    public var arguments: [String]?
-    public var environment: [String: String]?
-    public var processIdentifier: Int32 { -1 }
-    public var standardError: Any?
-    public var standardInput: Any?
-    public var standardOutput: Any?
-    public var isRunning: Bool { false }
-    public var terminationStatus: Int32 { -1 }
-    public var terminationReason: TerminationReason { .exit }
-    public var terminationHandler: ((Process) -> Void)?
-    public var qualityOfService: QualityOfService = .default
+        public var currentDirectoryURL: URL?
+        public var executableURL: URL?
+        public var arguments: [String]?
+        public var environment: [String: String]?
+        public var processIdentifier: Int32 { -1 }
+        public var standardError: Any?
+        public var standardInput: Any?
+        public var standardOutput: Any?
+        public var isRunning: Bool { false }
+        public var terminationStatus: Int32 { -1 }
+        public var terminationReason: TerminationReason { .exit }
+        public var terminationHandler: ((Process) -> Void)?
+        public var qualityOfService: QualityOfService = .default
 
-    public init() {
-    }
+        public init() {
+        }
 
-    public func terminate() {
-    }
+        public func terminate() {
+        }
 
-    public func waitUntilExit() {
-    }
+        public func waitUntilExit() {
+        }
 
-    public func run() throws {
-        throw StubError.error("Process spawning is unavailable")
+        public func run() throws {
+            throw StubError.error("Process spawning is unavailable")
+        }
     }
-}
 #else
-public typealias Process = Foundation.Process
+    public typealias Process = Foundation.Process
 #endif
 
 extension Process {
@@ -186,10 +186,10 @@ extension Process {
         let output = try await outputTask
 
         #if !canImport(Darwin)
-        // Clear the pipes to prevent file descriptor leaks on platforms using swift-corelibs-foundation
-        // This asserts on Darwin
-        process.standardOutputPipe = nil
-        process.standardErrorPipe = nil
+            // Clear the pipes to prevent file descriptor leaks on platforms using swift-corelibs-foundation
+            // This asserts on Darwin
+            process.standardOutputPipe = nil
+            process.standardErrorPipe = nil
         #endif
 
         return try (.init(process), output)
@@ -223,57 +223,58 @@ public enum Processes: Sendable {
 
         public init?(rawValue: Int32) {
             #if os(Windows)
-            let dwExitCode = DWORD(bitPattern: rawValue)
-            // Do the same thing as swift-corelibs-foundation (the input value is the GetExitCodeProcess return value)
-            if (dwExitCode & 0xF0000000) == 0x80000000     // HRESULT
-                || (dwExitCode & 0xF0000000) == 0xC0000000 // NTSTATUS
-                || (dwExitCode & 0xF0000000) == 0xE0000000 // NTSTATUS (Customer)
-                || dwExitCode == 3 {
-                self = .uncaughtSignal(Int32(dwExitCode & 0x3FFFFFFF))
-            } else {
-                self = .exit(Int32(bitPattern: UInt32(dwExitCode)))
-            }
+                let dwExitCode = DWORD(bitPattern: rawValue)
+                // Do the same thing as swift-corelibs-foundation (the input value is the GetExitCodeProcess return value)
+                if (dwExitCode & 0xF0000000) == 0x80000000  // HRESULT
+                    || (dwExitCode & 0xF0000000) == 0xC0000000  // NTSTATUS
+                    || (dwExitCode & 0xF0000000) == 0xE0000000  // NTSTATUS (Customer)
+                    || dwExitCode == 3
+                {
+                    self = .uncaughtSignal(Int32(dwExitCode & 0x3FFFFFFF))
+                } else {
+                    self = .exit(Int32(bitPattern: UInt32(dwExitCode)))
+                }
             #else
-            func WSTOPSIG(_ status: Int32) -> Int32 {
-                return status >> 8
-            }
+                func WSTOPSIG(_ status: Int32) -> Int32 {
+                    return status >> 8
+                }
 
-            func WIFCONTINUED(_ status: Int32) -> Bool {
-                return _WSTATUS(status) == 0x7f && WSTOPSIG(status) == 0x13
-            }
+                func WIFCONTINUED(_ status: Int32) -> Bool {
+                    return _WSTATUS(status) == 0x7f && WSTOPSIG(status) == 0x13
+                }
 
-            func WIFSTOPPED(_ status: Int32) -> Bool {
-                return _WSTATUS(status) == 0x7f && WSTOPSIG(status) != 0x13
-            }
+                func WIFSTOPPED(_ status: Int32) -> Bool {
+                    return _WSTATUS(status) == 0x7f && WSTOPSIG(status) != 0x13
+                }
 
-            func WIFEXITED(_ status: Int32) -> Bool {
-                return _WSTATUS(status) == 0
-            }
+                func WIFEXITED(_ status: Int32) -> Bool {
+                    return _WSTATUS(status) == 0
+                }
 
-            func _WSTATUS(_ status: Int32) -> Int32 {
-                return status & 0x7f
-            }
+                func _WSTATUS(_ status: Int32) -> Int32 {
+                    return status & 0x7f
+                }
 
-            func WIFSIGNALED(_ status: Int32) -> Bool {
-                return (_WSTATUS(status) != 0) && (_WSTATUS(status) != 0x7f)
-            }
+                func WIFSIGNALED(_ status: Int32) -> Bool {
+                    return (_WSTATUS(status) != 0) && (_WSTATUS(status) != 0x7f)
+                }
 
-            func WEXITSTATUS(_ status: Int32) -> Int32 {
-                return (status >> 8) & 0xff
-            }
+                func WEXITSTATUS(_ status: Int32) -> Int32 {
+                    return (status >> 8) & 0xff
+                }
 
-            func WTERMSIG(_ status: Int32) -> Int32 {
-                return status & 0x7f
-            }
+                func WTERMSIG(_ status: Int32) -> Int32 {
+                    return status & 0x7f
+                }
 
-            if WIFSIGNALED(rawValue) {
-                self = .uncaughtSignal(WTERMSIG(rawValue))
-            } else if WIFEXITED(rawValue) {
-                self = .exit(WEXITSTATUS(rawValue))
-            } else {
-                assert(WIFCONTINUED(rawValue) || WIFSTOPPED(rawValue))
-                return nil
-            }
+                if WIFSIGNALED(rawValue) {
+                    self = .uncaughtSignal(WTERMSIG(rawValue))
+                } else if WIFEXITED(rawValue) {
+                    self = .exit(WEXITSTATUS(rawValue))
+                } else {
+                    assert(WIFCONTINUED(rawValue) || WIFSTOPPED(rawValue))
+                    return nil
+                }
             #endif
         }
 
@@ -302,10 +303,10 @@ public enum Processes: Sendable {
                 return false
             case let .uncaughtSignal(signal):
                 #if os(Windows)
-                // Windows doesn't support the concept of signals, so just always return false for now.
-                return false
+                    // Windows doesn't support the concept of signals, so just always return false for now.
+                    return false
                 #else
-                return signal == SIGINT || signal == SIGKILL
+                    return signal == SIGINT || signal == SIGKILL
                 #endif
             }
         }
@@ -320,10 +321,10 @@ extension Processes.ExitStatus {
             self = .exit(process.terminationStatus)
         case .uncaughtSignal:
             self = .uncaughtSignal(process.terminationStatus)
-#if canImport(Foundation.NSTask) || !canImport(Darwin)
-        @unknown default:
-            throw StubError.error("Process terminated with unknown termination reason value: \(process.terminationReason)")
-#endif
+        #if canImport(Foundation.NSTask) || !canImport(Darwin)
+            @unknown default:
+                throw StubError.error("Process terminated with unknown termination reason value: \(process.terminationReason)")
+        #endif
         }
     }
 }
@@ -444,10 +445,11 @@ extension RunProcessNonZeroExitError: CustomStringConvertible, LocalizedError {
         let message = "\(commandIdentityPrefixString) \(status)."
         switch output {
         case let .separate(stdout, stderr) where !stdout.isEmpty || !stderr.isEmpty:
-            return message + [
-                !stdout.isEmpty ? " The command's standard output was:\n\n\(stdout.asString)" : nil,
-                !stderr.isEmpty ? " The command's standard error was:\n\n\(stderr.asString)" : nil,
-            ].compactMap { $0 }.joined(separator: "\n\n")
+            return message
+                + [
+                    !stdout.isEmpty ? " The command's standard output was:\n\n\(stdout.asString)" : nil,
+                    !stderr.isEmpty ? " The command's standard error was:\n\n\(stderr.asString)" : nil,
+                ].compactMap { $0 }.joined(separator: "\n\n")
         case let .merged(output) where !output.isEmpty:
             return message + " The command's output was:\n\n\(output.asString)"
         default:

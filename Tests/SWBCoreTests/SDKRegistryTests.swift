@@ -20,7 +20,7 @@ import SWBMacro
 @Suite fileprivate struct SDKRegistryTests: CoreBasedTests {
 
     /// Delegate for testing loading SDKs in a registry.
-    final class TestDataDelegate : SDKRegistryDelegate {
+    final class TestDataDelegate: SDKRegistryDelegate {
         let namespace = MacroNamespace()
         let pluginManager: any PluginManager
         private let _diagnosticsEngine = DiagnosticsEngine()
@@ -50,10 +50,12 @@ import SWBMacro
     ///
     /// - parameter inputs: A list of test inputs, in the form (name, testData). These inputs will be written to files in a temporary directory for testing.
     /// - parameter perform: A block to run with the registry that results from scanning the inputs, as well as the list of warnings and errors. Each warning and error is a pair of the path basename and the diagnostic message.
-    private func withRegistryForTestInputs(_ inputs: [(String, PropertyListItem?)],
-                                           registryType: SDKRegistry.SDKRegistryType = .builtin,
-                                           sourceLocation: SourceLocation = #_sourceLocation,
-                                           perform: (SDKRegistry, TestDataDelegate, Path) async throws -> Void) async throws {
+    private func withRegistryForTestInputs(
+        _ inputs: [(String, PropertyListItem?)],
+        registryType: SDKRegistry.SDKRegistryType = .builtin,
+        sourceLocation: SourceLocation = #_sourceLocation,
+        perform: (SDKRegistry, TestDataDelegate, Path) async throws -> Void
+    ) async throws {
         try await withTemporaryDirectory { tmpDirPath in
             for (name, dataOpt) in inputs {
                 let itemPath = tmpDirPath.join(name).join("SDKSettings.plist")
@@ -83,8 +85,7 @@ import SWBMacro
             do {
                 components = try SDK.parseSDKName(sdkName, registry: try await getCore().sdkRegistry)
                 errorString = nil
-            }
-            catch {
+            } catch {
                 components = nil
                 errorString = "\(error)"
             }
@@ -153,12 +154,15 @@ import SWBMacro
             #expect(dSDK?.canonicalName == "d")
             #expect(dSDK?.defaultSettings["NAME"] == .plString("VALUE"))
 
-            XCTAssertMatch(delegate.errors, [
-                .contains("a.sdk: unable to load SDK: 'SDKSettings.plist' was malformed"),
-                .contains("b.sdk: unexpected SDK data"),
-                .contains("c.sdk: invalid or missing 'CanonicalName' field"),
-                .contains("e.sdk: SDK 'd' already registered")
-            ])
+            XCTAssertMatch(
+                delegate.errors,
+                [
+                    .contains("a.sdk: unable to load SDK: 'SDKSettings.plist' was malformed"),
+                    .contains("b.sdk: unexpected SDK data"),
+                    .contains("c.sdk: invalid or missing 'CanonicalName' field"),
+                    .contains("e.sdk: SDK 'd' already registered"),
+                ]
+            )
             #expect(delegate.warnings == [])
         }
     }
@@ -177,8 +181,12 @@ import SWBMacro
         ]) { registry, delegate, tmpDir in
 
             // Check the canonical names all defined SDKs to make sure we have a reasonable baseline.
-            #expect(Set(registry.allSDKs.map({ $0.canonicalName })) == Set([
-                "macosx", "toastos1.0", "toastos2.0", "toastos2.0.1", "toastosextra1.0", "driverkit.toastos2.0"]))
+            #expect(
+                Set(registry.allSDKs.map({ $0.canonicalName }))
+                    == Set([
+                        "macosx", "toastos1.0", "toastos2.0", "toastos2.0.1", "toastosextra1.0", "driverkit.toastos2.0",
+                    ])
+            )
 
             // Look up the boot SDK (macosx) by name and make sure it has the expected properties.
             let bootSDK = try #require(registry.lookup("macosx"))
@@ -248,7 +256,7 @@ import SWBMacro
     @Test
     func externalSDKs() async throws {
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx"]),
+            ("boot.sdk", ["CanonicalName": "macosx"])
         ]) { coreSDKRegistry, delegate, _ in
 
             // Create an external SDK.
@@ -284,23 +292,27 @@ import SWBMacro
     @Test
     func customBuildSettings() async throws {
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx"]),
+            ("boot.sdk", ["CanonicalName": "macosx"])
         ]) { coreSDKRegistry, delegate, _ in
 
             // Create an SDK with custom build settings.
             try await withTemporaryDirectory { sdksDirPath in
                 let sdkPath = sdksDirPath.join("TestSDK.sdk")
                 let sdkIdentifier = "com.apple.sdk.1.0"
-                try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
-                    "CanonicalName": .plString(sdkIdentifier),
-                    "IsBaseSDK": "NO",
-                    "DefaultProperties": [
-                        "SOME_CUSTOM_SETTING": "foo"
-                    ],
-                    "CustomProperties": [
-                        "SOME_CUSTOM_SETTING": "$(inherited) SOME_CUSTOM_SETTING"
-                    ],
-                ])
+                try await writeSDK(
+                    name: sdkPath.basename,
+                    parentDir: sdksDirPath,
+                    settings: [
+                        "CanonicalName": .plString(sdkIdentifier),
+                        "IsBaseSDK": "NO",
+                        "DefaultProperties": [
+                            "SOME_CUSTOM_SETTING": "foo"
+                        ],
+                        "CustomProperties": [
+                            "SOME_CUSTOM_SETTING": "$(inherited) SOME_CUSTOM_SETTING"
+                        ],
+                    ]
+                )
                 let userNamespace = MacroNamespace()
                 let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
 
@@ -316,23 +328,27 @@ import SWBMacro
     @Test
     func invalidCustomBuildSettings() async throws {
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx"]),
+            ("boot.sdk", ["CanonicalName": "macosx"])
         ]) { coreSDKRegistry, delegate, _ in
 
             // Create an SDK with custom build settings.
             try await withTemporaryDirectory { sdksDirPath in
                 let sdkPath = sdksDirPath.join("TestSDK.sdk")
                 let sdkIdentifier = "com.apple.sdk.1.0"
-                try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
-                    "CanonicalName": .plString(sdkIdentifier),
-                    "IsBaseSDK": "NO",
-                    "DefaultProperties": [
-                        "CODE_SIGNING_REQUIRED": true
-                    ],
-                    "CustomProperties": [
-                        "CODE_SIGNING_REQUIRED": true
-                    ],
-                ])
+                try await writeSDK(
+                    name: sdkPath.basename,
+                    parentDir: sdksDirPath,
+                    settings: [
+                        "CanonicalName": .plString(sdkIdentifier),
+                        "IsBaseSDK": "NO",
+                        "DefaultProperties": [
+                            "CODE_SIGNING_REQUIRED": true
+                        ],
+                        "CustomProperties": [
+                            "CODE_SIGNING_REQUIRED": true
+                        ],
+                    ]
+                )
                 let userNamespace = MacroNamespace()
                 let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
 
@@ -348,73 +364,79 @@ import SWBMacro
     @Test
     func SDKVariants() async throws {
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx"]),
+            ("boot.sdk", ["CanonicalName": "macosx"])
         ]) { coreSDKRegistry, delegate, _ in
 
             // Create an SDK with variants.
             try await withTemporaryDirectory { sdksDirPath in
                 let sdkPath = sdksDirPath.join("TestSDK.sdk")
                 let sdkIdentifier = "com.apple.sdk.1.0"
-                try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
-                    "CanonicalName": .plString(sdkIdentifier),
-                    "Version": "1.0",
-                    "IsBaseSDK": "YES",
-                    "DefaultProperties": [
-                        "SOME_CUSTOM_SETTING": "foo"
-                    ],
-                    "CustomProperties": [
-                        "SOME_CUSTOM_SETTING": "$(inherited) SOME_CUSTOM_SETTING"
-                    ],
-                    "Variants": [
-                        [   "Name": "iosmac",
-                            "BuildSettings": [
-                                "SOME_CUSTOM_SETTING": "$(inherited) S",
-                            ],
-                        ] as PropertyListItem,
-                        [   "Name": "macos",
-                            "BuildSettings": [
-                                "SOME_CUSTOM_SETTING": "$(inherited) V",
-                            ],
-                        ] as PropertyListItem
-                    ],
-                    "SupportedTargets": [
-                        "iosmac": [
-                            "Archs": [ "x86_64", "x86_64h" ],
-                            "BuildVersionPlatformID": "6",
-                            "MinimumDeploymentTarget": "13.0",
-                            "MaximumDeploymentTarget": "13.0.99",
-                            "DefaultDeploymentTarget": "13.0",
-                            "ValidDeploymentTargets": [ "13.0" ],
-                            "LLVMTargetTripleVendor": "apple",
-                            "LLVMTargetTripleSys": "ios",
-                            "LLVMTargetTripleEnvironment": "macabi",
-                        ] as PropertyListItem,
-                        // Test the fact that the macOS variant's name is 'macos' but the target name is 'macosx', and we want to standardize on the platform name.
-                        "macosx": [
-                            "Archs": [ "x86_64" ],
-                            "BuildVersionPlatformID": "1",
-                            "MinimumDeploymentTarget": "10.12",
-                            "DefaultDeploymentTarget": "10.15",
-                            "ValidDeploymentTargets": [ "10.12", "10.13", "10.14", "10.15" ],
-                            "LLVMTargetTripleVendor": "apple",
-                            "LLVMTargetTripleSys": "macos",
-                            "LLVMTargetTripleEnvironment": "",
-                        ] as PropertyListItem,
-                        // Test an externally defined platform target that we don't know about
-                        "toastos": [
-                            "Archs": [ "x86_64" ],
-                            "BuildVersionPlatformID": "99",
-                            "MinimumDeploymentTarget": "99.99",
-                            "DeploymentTargetSettingName": "TOASTOS_DEPLOYMENT_TARGET",
-                            "DefaultDeploymentTarget": "99.99",
-                            "ValidDeploymentTargets": [ "99.99" ],
-                            "LLVMTargetTripleVendor": "apple",
-                            "LLVMTargetTripleSys": "toastos",
-                            "PlatformFamilyName": "toastOS",
-                        ] as PropertyListItem,
-                    ],
-                    "DefaultVariant": "macos"
-                ])
+                try await writeSDK(
+                    name: sdkPath.basename,
+                    parentDir: sdksDirPath,
+                    settings: [
+                        "CanonicalName": .plString(sdkIdentifier),
+                        "Version": "1.0",
+                        "IsBaseSDK": "YES",
+                        "DefaultProperties": [
+                            "SOME_CUSTOM_SETTING": "foo"
+                        ],
+                        "CustomProperties": [
+                            "SOME_CUSTOM_SETTING": "$(inherited) SOME_CUSTOM_SETTING"
+                        ],
+                        "Variants": [
+                            [
+                                "Name": "iosmac",
+                                "BuildSettings": [
+                                    "SOME_CUSTOM_SETTING": "$(inherited) S"
+                                ],
+                            ] as PropertyListItem,
+                            [
+                                "Name": "macos",
+                                "BuildSettings": [
+                                    "SOME_CUSTOM_SETTING": "$(inherited) V"
+                                ],
+                            ] as PropertyListItem,
+                        ],
+                        "SupportedTargets": [
+                            "iosmac": [
+                                "Archs": ["x86_64", "x86_64h"],
+                                "BuildVersionPlatformID": "6",
+                                "MinimumDeploymentTarget": "13.0",
+                                "MaximumDeploymentTarget": "13.0.99",
+                                "DefaultDeploymentTarget": "13.0",
+                                "ValidDeploymentTargets": ["13.0"],
+                                "LLVMTargetTripleVendor": "apple",
+                                "LLVMTargetTripleSys": "ios",
+                                "LLVMTargetTripleEnvironment": "macabi",
+                            ] as PropertyListItem,
+                            // Test the fact that the macOS variant's name is 'macos' but the target name is 'macosx', and we want to standardize on the platform name.
+                            "macosx": [
+                                "Archs": ["x86_64"],
+                                "BuildVersionPlatformID": "1",
+                                "MinimumDeploymentTarget": "10.12",
+                                "DefaultDeploymentTarget": "10.15",
+                                "ValidDeploymentTargets": ["10.12", "10.13", "10.14", "10.15"],
+                                "LLVMTargetTripleVendor": "apple",
+                                "LLVMTargetTripleSys": "macos",
+                                "LLVMTargetTripleEnvironment": "",
+                            ] as PropertyListItem,
+                            // Test an externally defined platform target that we don't know about
+                            "toastos": [
+                                "Archs": ["x86_64"],
+                                "BuildVersionPlatformID": "99",
+                                "MinimumDeploymentTarget": "99.99",
+                                "DeploymentTargetSettingName": "TOASTOS_DEPLOYMENT_TARGET",
+                                "DefaultDeploymentTarget": "99.99",
+                                "ValidDeploymentTargets": ["99.99"],
+                                "LLVMTargetTripleVendor": "apple",
+                                "LLVMTargetTripleSys": "toastos",
+                                "PlatformFamilyName": "toastOS",
+                            ] as PropertyListItem,
+                        ],
+                        "DefaultVariant": "macos",
+                    ]
+                )
                 let userNamespace = MacroNamespace()
                 let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
 
@@ -429,11 +451,14 @@ import SWBMacro
                 #expect(sdk.variants.count == 3)
                 let macCatalystVariant = try #require(sdk.variants[MacCatalystInfo.sdkVariantName])
                 #expect(macCatalystVariant.name == MacCatalystInfo.sdkVariantName)
-                #expect(Set(macCatalystVariant.settings.keys) == Set([
-                    "IS_MACCATALYST",
-                    "SDK_VARIANT",
-                    "SOME_CUSTOM_SETTING",
-                ]))
+                #expect(
+                    Set(macCatalystVariant.settings.keys)
+                        == Set([
+                            "IS_MACCATALYST",
+                            "SDK_VARIANT",
+                            "SOME_CUSTOM_SETTING",
+                        ])
+                )
                 #expect(macCatalystVariant.settings["IS_MACCATALYST"]?.stringValue == "YES")
                 #expect(macCatalystVariant.settings["SDK_VARIANT"]?.stringValue == MacCatalystInfo.sdkVariantName)
                 #expect(macCatalystVariant.settings["SOME_CUSTOM_SETTING"]?.stringValue == "$(inherited) S")
@@ -442,11 +467,14 @@ import SWBMacro
                     return
                 }
                 #expect(macosVariant.name == "macos")
-                #expect(Set(macCatalystVariant.settings.keys) == Set([
-                    "IS_MACCATALYST",
-                    "SDK_VARIANT",
-                    "SOME_CUSTOM_SETTING",
-                ]))
+                #expect(
+                    Set(macCatalystVariant.settings.keys)
+                        == Set([
+                            "IS_MACCATALYST",
+                            "SDK_VARIANT",
+                            "SOME_CUSTOM_SETTING",
+                        ])
+                )
                 #expect(macosVariant.settings["IS_MACCATALYST"]?.stringValue == "NO")
                 #expect(macosVariant.settings["SDK_VARIANT"]?.stringValue == "macos")
                 #expect(macosVariant.settings["SOME_CUSTOM_SETTING"]?.stringValue == "$(inherited) V")
@@ -455,21 +483,21 @@ import SWBMacro
                 #expect(sdk.defaultVariant === macosVariant)
 
                 // Check the other properties.
-                #expect(macCatalystVariant.archs == [ "x86_64", "x86_64h" ])
+                #expect(macCatalystVariant.archs == ["x86_64", "x86_64h"])
                 #expect(macCatalystVariant.buildVersionPlatformID == 6)
                 #expect(macCatalystVariant.minimumDeploymentTarget == Version(13, 0))
                 #expect(macCatalystVariant.maximumDeploymentTarget == Version(13, 0, 99))
                 #expect(macCatalystVariant.defaultDeploymentTarget == Version(13, 0))
-                #expect(macCatalystVariant.validDeploymentTargets == [ Version(13, 0) ])
+                #expect(macCatalystVariant.validDeploymentTargets == [Version(13, 0)])
                 #expect(macCatalystVariant.llvmTargetTripleVendor == "apple")
                 #expect(macCatalystVariant.llvmTargetTripleSys == "ios")
                 #expect(macCatalystVariant.llvmTargetTripleEnvironment == "macabi")
-                #expect(macosVariant.archs == [ "x86_64" ])
+                #expect(macosVariant.archs == ["x86_64"])
                 #expect(macosVariant.buildVersionPlatformID == 1)
                 #expect(macosVariant.minimumDeploymentTarget == Version(10, 12))
                 #expect(macosVariant.maximumDeploymentTarget == nil)
                 #expect(macosVariant.defaultDeploymentTarget == Version(10, 15))
-                #expect(macosVariant.validDeploymentTargets == [ Version(10, 12), Version(10, 13), Version(10, 14), Version(10, 15) ])
+                #expect(macosVariant.validDeploymentTargets == [Version(10, 12), Version(10, 13), Version(10, 14), Version(10, 15)])
                 #expect(macosVariant.llvmTargetTripleVendor == "apple")
                 #expect(macosVariant.llvmTargetTripleSys == "macos")
                 #expect(macosVariant.llvmTargetTripleEnvironment == "")
@@ -490,7 +518,8 @@ import SWBMacro
                 }
 
                 if let toastPlatform = sdk.targetBuildVersionPlatform(sdkVariant: toastosVariant),
-                   let infoProvider = Lookup(toastosVariant).lookupPlatformInfo(platform: toastPlatform) {
+                    let infoProvider = Lookup(toastosVariant).lookupPlatformInfo(platform: toastPlatform)
+                {
                     #expect(infoProvider.buildVersionPlatformID == 99)
                     #expect(infoProvider.defaultDeploymentTarget == Version(99, 99))
                     #expect(infoProvider.deploymentTargetSettingName == "TOASTOS_DEPLOYMENT_TARGET")
@@ -512,35 +541,43 @@ import SWBMacro
     @Test
     func SDKVariantsEvaluatedTargetedDeviceFamilyIdentifierSkipping() async throws {
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx"]),
+            ("boot.sdk", ["CanonicalName": "macosx"])
         ]) { coreSDKRegistry, delegate, _ in
 
             // Create an SDK with variants.
             try await withTemporaryDirectory { sdksDirPath in
                 let toastSDKPath = sdksDirPath.join("ToastOS1.0.sdk")
-                try await writeSDK(name: toastSDKPath.basename, parentDir: sdksDirPath, settings: [
-                    "CanonicalName": "toastos",
-                    "IsBaseSDK": "YES",
-                    "SupportedTargets": [
-                        "toastos": [
-                            "BuildVersionPlatformID": "11",
-                            "DeviceFamilies": [
-                                [ "DisplayName": "iPhone", "Identifier": "1", "Name": "phone" ],
-                                [ "DisplayName": "iPad", "Identifier": "2", "Name": "pad" ],
-                                [ "DisplayName": "Toaster", "Identifier": "7", "Name": "toaster" ],
-                            ]
-                        ] as PropertyListItem
+                try await writeSDK(
+                    name: toastSDKPath.basename,
+                    parentDir: sdksDirPath,
+                    settings: [
+                        "CanonicalName": "toastos",
+                        "IsBaseSDK": "YES",
+                        "SupportedTargets": [
+                            "toastos": [
+                                "BuildVersionPlatformID": "11",
+                                "DeviceFamilies": [
+                                    ["DisplayName": "iPhone", "Identifier": "1", "Name": "phone"],
+                                    ["DisplayName": "iPad", "Identifier": "2", "Name": "pad"],
+                                    ["DisplayName": "Toaster", "Identifier": "7", "Name": "toaster"],
+                                ],
+                            ] as PropertyListItem
+                        ],
                     ]
-                ])
+                )
 
                 let macosBorkSDKPath = sdksDirPath.join("MacOSBork.sdk")
-                try await writeSDK(name: macosBorkSDKPath.basename, parentDir: sdksDirPath, settings: [
-                    "CanonicalName": "macosbork",
-                    "IsBaseSDK": "YES",
-                    "SupportedTargets": [
-                        "iosmac": [] as PropertyListItem
+                try await writeSDK(
+                    name: macosBorkSDKPath.basename,
+                    parentDir: sdksDirPath,
+                    settings: [
+                        "CanonicalName": "macosbork",
+                        "IsBaseSDK": "YES",
+                        "SupportedTargets": [
+                            "iosmac": [] as PropertyListItem
+                        ],
                     ]
-                ])
+                )
 
                 let core = try await self.getCore()
                 let userNamespace = MacroNamespace()
@@ -566,8 +603,8 @@ import SWBMacro
                 #expect(scope.evaluate(BuiltinMacros.TARGETED_DEVICE_FAMILY) == "1,2")
 
                 var (filteredIds, effectiveIds, _, _) = toastVariant.evaluateTargetedDeviceFamilyBuildSetting(scope, toastAppSpec)
-                #expect(filteredIds == Set([1,2]))
-                #expect(effectiveIds == Set([1,2]))
+                #expect(filteredIds == Set([1, 2]))
+                #expect(effectiveIds == Set([1, 2]))
 
                 table.push(BuiltinMacros.TARGETED_DEVICE_FAMILY, literal: "7")
                 scope = MacroEvaluationScope(table: table)
@@ -597,21 +634,21 @@ import SWBMacro
                 scope = MacroEvaluationScope(table: table)
                 (filteredIds, effectiveIds, _, _) = iosmacVariant.evaluateTargetedDeviceFamilyBuildSetting(scope, macAppSpec)
                 #expect(filteredIds == Set())
-                #expect(effectiveIds == Set([2,6]))
+                #expect(effectiveIds == Set([2, 6]))
 
                 table.push(BuiltinMacros.TARGETED_DEVICE_FAMILY, literal: "")
                 scope = MacroEvaluationScope(table: table)
                 (filteredIds, effectiveIds, _, _) = iosmacVariant.evaluateTargetedDeviceFamilyBuildSetting(scope, macAppSpec)
                 #expect(filteredIds == Set())
-                #expect(effectiveIds == Set([2,6]))
+                #expect(effectiveIds == Set([2, 6]))
 
                 // deployment target 13.0 keeps both devices
                 table.push(BuiltinMacros.TARGETED_DEVICE_FAMILY, literal: "2,6")
                 table.push(BuiltinMacros.IPHONEOS_DEPLOYMENT_TARGET, literal: "13.0")
                 scope = MacroEvaluationScope(table: table)
                 (filteredIds, effectiveIds, _, _) = iosmacVariant.evaluateTargetedDeviceFamilyBuildSetting(scope, macAppSpec)
-                #expect(filteredIds == Set([2,6]))
-                #expect(effectiveIds == Set([2,6]))
+                #expect(filteredIds == Set([2, 6]))
+                #expect(effectiveIds == Set([2, 6]))
 
                 // deployment target >= 14.0 skips ipad and only includes iosmac
                 table.push(BuiltinMacros.IPHONEOS_DEPLOYMENT_TARGET, literal: "15.0")
@@ -648,7 +685,7 @@ import SWBMacro
                 ],
                 "CustomProperties": [
                     "MACOSX_DEPLOYMENT_TARGET": "10.11",
-                    "SOME_OTHER_SETTING": "foo"
+                    "SOME_OTHER_SETTING": "foo",
                 ],
             ]
             try await writeSDK(name: sdkPath.basename, parentDir: sdkPath.dirname, settings: settings)
@@ -716,7 +753,7 @@ import SWBMacro
             let sym2Path = sdksDir.join(sym2Name + ".sdk")
 
             let sdkSettings: PropertyListItem = .plDict([
-                "CanonicalName": .plString("iphoneos11.0"),
+                "CanonicalName": .plString("iphoneos11.0")
             ])
 
             try localFS.createDirectory(dirPath)
@@ -726,7 +763,7 @@ import SWBMacro
             try localFS.symlink(sym2Path, target: Path(dirPath.basename))
 
             let registry: SDKRegistry = try await {
-                final class TestDataDelegate : SDKRegistryDelegate {
+                final class TestDataDelegate: SDKRegistryDelegate {
                     let namespace = MacroNamespace()
                     let pluginManager: any PluginManager
 
@@ -765,29 +802,33 @@ import SWBMacro
     @Test
     func versionMap() async throws {
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx"]),
+            ("boot.sdk", ["CanonicalName": "macosx"])
         ]) { coreSDKRegistry, delegate, _ in
 
             // Create an SDK with custom build settings.
             try await withTemporaryDirectory { sdksDirPath in
                 let sdkPath = sdksDirPath.join("TestSDK.sdk")
                 let sdkIdentifier = "com.apple.sdk.1.0"
-                try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
-                    "CanonicalName": .plString(sdkIdentifier),
-                    "IsBaseSDK": "NO",
-                    "VersionMap": [
-                        "iOSMac_macOS": [
-                            "13.0": "10.15",
-                            "14.0": "11.0",
+                try await writeSDK(
+                    name: sdkPath.basename,
+                    parentDir: sdksDirPath,
+                    settings: [
+                        "CanonicalName": .plString(sdkIdentifier),
+                        "IsBaseSDK": "NO",
+                        "VersionMap": [
+                            "iOSMac_macOS": [
+                                "13.0": "10.15",
+                                "14.0": "11.0",
+                            ],
+                            "macOS_iOSMac": [
+                                "10.15": "13.0"
+                            ],
+                            "f_x": [
+                                "1": "3.4.2"
+                            ],
                         ],
-                        "macOS_iOSMac": [
-                            "10.15": "13.0"
-                        ],
-                        "f_x": [
-                            "1": "3.4.2"
-                        ]
                     ]
-                ])
+                )
                 let userNamespace = MacroNamespace()
                 let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
 
@@ -795,17 +836,17 @@ import SWBMacro
                 let sdk = registry.lookup(sdkPath)
                 #expect(sdk?.canonicalName == sdkIdentifier)
 
-                let expected: [String:[Version:Version]] = [
+                let expected: [String: [Version: Version]] = [
                     "iOSMac_macOS": [
                         Version(13, 0): Version(10, 15),
                         Version(14, 0): Version(11, 0),
                     ],
                     "macOS_iOSMac": [
-                        Version(10, 15): Version(13),
+                        Version(10, 15): Version(13)
                     ],
                     "f_x": [
-                        Version(1): Version(3, 4, 2),
-                    ]
+                        Version(1): Version(3, 4, 2)
+                    ],
                 ]
 
                 #expect(sdk?.versionMap == expected)
@@ -819,17 +860,21 @@ import SWBMacro
     @Test
     func noVersionMap() async throws {
         try await withRegistryForTestInputs([
-            ("boot.sdk", ["CanonicalName": "macosx"]),
+            ("boot.sdk", ["CanonicalName": "macosx"])
         ]) { coreSDKRegistry, delegate, _ in
 
             // Create an SDK with custom build settings.
             try await withTemporaryDirectory { sdksDirPath in
                 let sdkPath = sdksDirPath.join("TestSDK.sdk")
                 let sdkIdentifier = "com.apple.sdk.1.0"
-                try await writeSDK(name: sdkPath.basename, parentDir: sdksDirPath, settings: [
-                    "CanonicalName": .plString(sdkIdentifier),
-                    "IsBaseSDK": "NO",
-                ])
+                try await writeSDK(
+                    name: sdkPath.basename,
+                    parentDir: sdksDirPath,
+                    settings: [
+                        "CanonicalName": .plString(sdkIdentifier),
+                        "IsBaseSDK": "NO",
+                    ]
+                )
                 let userNamespace = MacroNamespace()
                 let registry = WorkspaceContextSDKRegistry(coreSDKRegistry: coreSDKRegistry, delegate: delegate, userNamespace: userNamespace, overridingSDKsDir: nil)
 
@@ -889,7 +934,6 @@ import SWBMacro
         #expect(realRegistry.lookup("xros")?.targetBuildVersionPlatform() == .xrOS)
         #expect(realRegistry.lookup("xrsimulator")?.targetBuildVersionPlatform() == .xrOSSimulator)
     }
-
 
     /// Tests that the DriverKit SDK knows which Mach-O platform it's targeting.
     @Test(.requireSDKs(.driverKit))

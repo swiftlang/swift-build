@@ -37,8 +37,9 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
         return fileTypes.flatMap { fileType in
             buildFiles.compactMap { buildFile in
                 guard let resolvedBuildFileInfo = try? self.context.resolveBuildFileReference(buildFile),
-                      !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
-                      resolvedBuildFileInfo.fileType.conformsTo(fileType) else {
+                    !buildFilesProcessingContext.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters),
+                    resolvedBuildFileInfo.fileType.conformsTo(fileType)
+                else {
                     return nil
                 }
 
@@ -69,8 +70,9 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
                 let dependencies = transitiveClosure([configuredTarget], successors: self.targetContext.globalProductPlan.dependencies(of:))
                 for dependency in dependencies.0 {
                     if let standardTarget = dependency.target as? StandardTarget,
-                       let bundleProductType = self.context.getSpec(standardTarget.productTypeIdentifier),
-                       bundleProductType.conformsTo(identifier: "com.apple.product-type.bundle") {
+                        let bundleProductType = self.context.getSpec(standardTarget.productTypeIdentifier),
+                        bundleProductType.conformsTo(identifier: "com.apple.product-type.bundle")
+                    {
                         let targetScope = self.targetContext.globalProductPlan.getTargetSettings(dependency).globalScope
                         let dependencyMetadataPath = targetScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
                             .join(targetScope.evaluate(BuiltinMacros.UNLOCALIZED_RESOURCES_FOLDER_PATH))
@@ -80,7 +82,7 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
                     }
                     let targetScope = self.targetContext.globalProductPlan.getTargetSettings(dependency).globalScope
                     let machOType = targetScope.evaluate(BuiltinMacros.MACH_O_TYPE)
-                    if  machOType == "staticlib" || machOType == "mh_object" {
+                    if machOType == "staticlib" || machOType == "mh_object" {
                         let dependencyMetadataPath = targetScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR)
                             .join(targetScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME) + ".appintents")
                             .join("Metadata.appintents/extract.actionsdata")
@@ -141,7 +143,6 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
 
             let cbc = CommandBuildContext(producer: self.context, scope: scope, inputs: swiftSources + constMetadataFilesToBuild + appShortcutStringsSources, resourcesDir: buildFilesProcessingContext.resourcesDir)
 
-
             let assistantIntentsStringsSources: [FileToBuild] = self.filterBuildFiles(buildPhaseTarget.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { ["AssistantIntents.strings", "AssistantIntents.xcstrings"].contains($0.absolutePath.basename) }
             await self.appendGeneratedTasks(&deferredTasks) { delegate in
                 let shouldConstructAppIntentsMetadataTask = self.context.appIntentsMetadataCompilerSpec.shouldConstructAppIntentsMetadataTask(cbc)
@@ -156,10 +157,7 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
 
                 // Only construct SSU task by default for public SDK clients. Internal default behavior should skip SSU task construction.
                 let isSSUEnabled = scope.evaluate(BuiltinMacros.APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING)
-                if isSSUEnabled &&
-                    self.context.settings.platform?.familyName == "iOS" &&
-                    self.context.productType?.hasInfoPlist == true &&
-                    ((!scope.effectiveInputInfoPlistPath().isEmpty && shouldConstructAppIntentsMetadataTask) || isInstallLoc) {
+                if isSSUEnabled && self.context.settings.platform?.familyName == "iOS" && self.context.productType?.hasInfoPlist == true && ((!scope.effectiveInputInfoPlistPath().isEmpty && shouldConstructAppIntentsMetadataTask) || isInstallLoc) {
                     var infoPlistSources: [FileToBuild]
                     if isInstallLoc {
                         infoPlistSources = self.filterBuildFiles(buildPhaseTarget.resourcesBuildPhase?.buildFiles, identifiers: ["text.plist.strings", "text.json.xcstrings"], buildFilesProcessingContext: buildFilesProcessingContext).filter { $0.absolutePath.basename.hasSuffix("InfoPlist.strings") || $0.absolutePath.basename.hasSuffix("InfoPlist.xcstrings") }

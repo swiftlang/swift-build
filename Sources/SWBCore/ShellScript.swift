@@ -136,7 +136,8 @@ public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationS
         BuiltinMacros.INSTALL_OWNER, BuiltinMacros.INSTALL_GROUP,
         BuiltinMacros.INSTALL_MODE_FLAG,
         BuiltinMacros.DEVELOPMENT_LANGUAGE,
-        BuiltinMacros.FRAMEWORK_VERSION]
+        BuiltinMacros.FRAMEWORK_VERSION,
+    ]
     for macro in alwaysPresentStringMacros {
         result[macro.name] = scope.evaluate(macro)
     }
@@ -149,7 +150,8 @@ public func computeScriptEnvironment(_ type: ScriptType, scope: MacroEvaluationS
         BuiltinMacros.TEMP_FILE_DIR,
         BuiltinMacros.DERIVED_FILES_DIR,
         BuiltinMacros.TARGET_BUILD_DIR,
-        BuiltinMacros.BUILT_PRODUCTS_DIR]
+        BuiltinMacros.BUILT_PRODUCTS_DIR,
+    ]
     for macro in alwaysPresentPathMacros {
         result[macro.name] = scope.evaluate(macro).str
     }

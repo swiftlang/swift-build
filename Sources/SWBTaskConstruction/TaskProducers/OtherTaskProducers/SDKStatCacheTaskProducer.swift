@@ -31,16 +31,23 @@ final class SDKStatCacheTaskProducer: StandardTaskProducer, TaskProducer {
             var toolPath: Path
         }
 
-        let cacheDescriptors = await Dictionary(targetContexts.asyncFilter {
-            await $0.shouldUseSDKStatCache()
-        }.map {
-            (CacheDescriptor(sdkRoot: $0.settings.globalScope.evaluate(BuiltinMacros.SDKROOT).str,
-                            cachePath: Path($0.settings.globalScope.evaluate(BuiltinMacros.SDK_STAT_CACHE_PATH)).normalize(),
-                            toolPath: $0.executableSearchPaths.lookup(Path("clang-stat-cache"))?.normalize() ?? Path("clang-stat-cache")),
-                            $0.settings.globalScope.evaluate(BuiltinMacros.SDK_STAT_CACHE_VERBOSE_LOGGING))
-        }, uniquingKeysWith: {
-            $0 || $1
-        })
+        let cacheDescriptors = await Dictionary(
+            targetContexts.asyncFilter {
+                await $0.shouldUseSDKStatCache()
+            }.map {
+                (
+                    CacheDescriptor(
+                        sdkRoot: $0.settings.globalScope.evaluate(BuiltinMacros.SDKROOT).str,
+                        cachePath: Path($0.settings.globalScope.evaluate(BuiltinMacros.SDK_STAT_CACHE_PATH)).normalize(),
+                        toolPath: $0.executableSearchPaths.lookup(Path("clang-stat-cache"))?.normalize() ?? Path("clang-stat-cache")
+                    ),
+                    $0.settings.globalScope.evaluate(BuiltinMacros.SDK_STAT_CACHE_VERBOSE_LOGGING)
+                )
+            },
+            uniquingKeysWith: {
+                $0 || $1
+            }
+        )
 
         await appendGeneratedTasks(&tasks) { delegate in
             for (cacheDescriptor, verbose) in cacheDescriptors {

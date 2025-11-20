@@ -14,19 +14,19 @@ import SWBLibc
 import SWBUtil
 
 #if canImport(System)
-public import System
+    public import System
 #else
-public import SystemPackage
+    public import SystemPackage
 #endif
 
 extension Service {
     public static func main(_ setupFileDescriptors: (_ inputFD: FileDescriptor, _ outputFD: FileDescriptor) async throws -> Void) async throws {
         #if os(macOS)
-        do {
-            try await Debugger.waitForXcodeAutoAttachIfEnabled()
-        } catch {
-            throw StubError.error("Failed to attach debugger: \(error)")
-        }
+            do {
+                try await Debugger.waitForXcodeAutoAttachIfEnabled()
+            } catch {
+                throw StubError.error("Failed to attach debugger: \(error)")
+            }
         #endif
 
         // When launched as a subprocess, we expect our standard input and output to be the message stream, and standard error to be a console output stream.

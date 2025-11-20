@@ -33,16 +33,22 @@ import SWBUtil
             try await runProcess(["/bin/chmod", "100", tmpDirPath.join("inaccessible").str])
 
             let (paths, warnings) = resolver.expandedPaths(for: tmpDirPath, relativeTo: tmpDirPath)
-            #expect(paths.map{ $0.str } == [
-                ".",
-                // This directory can be seen, but not traversed.
-                "inaccessible",
-                "other",
-                "subdir",
-                "subdir/subsubdir"])
-            XCTAssertMatch(warnings, [
-                .regex(#/unable to expand children of '.*/inaccessible'/#),
-            ])
+            #expect(
+                paths.map { $0.str } == [
+                    ".",
+                    // This directory can be seen, but not traversed.
+                    "inaccessible",
+                    "other",
+                    "subdir",
+                    "subdir/subsubdir",
+                ]
+            )
+            XCTAssertMatch(
+                warnings,
+                [
+                    .regex(#/unable to expand children of '.*/inaccessible'/#)
+                ]
+            )
 
             // Allow the inaccessible path to be removed.
             try await runProcess(["/bin/chmod", "755", tmpDirPath.join("inaccessible").str])
@@ -56,7 +62,7 @@ import SWBUtil
         let resolver = RecursiveSearchPathResolver(fs: fs)
         try fs.createDirectory(Path.root.join("a/b"), recursive: true)
         let (paths, _) = resolver.expandedPaths(for: Path.root.join("a"), relativeTo: .root)
-        #expect(paths.map{ $0.str } == ["a", "a/b"])
+        #expect(paths.map { $0.str } == ["a", "a/b"])
     }
 
     /// Check the resolver honors the entry limit.
@@ -65,7 +71,7 @@ import SWBUtil
         let fs = PseudoFS()
         let resolver = RecursiveSearchPathResolver(fs: fs)
         let N = 10000
-        for i in 0 ..< N {
+        for i in 0..<N {
             try fs.createDirectory(Path.root.join("dir-\(i)"), recursive: false)
         }
         let (paths, _) = resolver.expandedPaths(for: .root, relativeTo: .root)
@@ -84,7 +90,7 @@ import SWBUtil
 
             let (paths, warnings) = resolver.expandedPaths(for: .root, relativeTo: .root, excludedPatterns: excluded, includedPatterns: included)
             #expect(warnings == [])
-            #expect(paths.map{ $0.str } == expected)
+            #expect(paths.map { $0.str } == expected)
         }
 
         try check(files: [.root.join("a"), .root.join("aa"), .root.join("b"), .root.join("c")], excluded: ["a*"], included: ["aa"], expected: [".", "aa", "b", "c"])

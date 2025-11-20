@@ -21,7 +21,6 @@ fileprivate struct TargetDependencyTests {
     }
 }
 
-
 extension ProjectModel.TargetDependency {
     static var example: Self {
         return ProjectModel.TargetDependency(

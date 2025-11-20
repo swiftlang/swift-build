@@ -35,13 +35,15 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                             children: [
                                 TestFile("foo.c"),
                                 TestFile("bar.c"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -49,22 +51,27 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
-                                ]),
+                                        "foo.c"
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetBar",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "bar.c",
+                                        "bar.c"
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "TargetFoo.framework"
-                                    ])
-                                ], dependencies: ["TargetFoo"]),
-                        ])
-                ])
+                                    ]),
+                                ],
+                                dependencies: ["TargetFoo"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
             let parameters = BuildParameters(configuration: "Debug")
@@ -73,16 +80,14 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int foo(void) {
                         return 1;
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/bar.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int bar(void) {
                         return 2;
                     }
@@ -102,8 +107,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int foo2(void) {
                         return 42;
                     }
@@ -113,53 +117,68 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
-                        "<category='ruleHadInvalidValue' description='file '\(SRCROOT.join("Sources/foo.c").str)' changed'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleHadInvalidValue' description='file '\(SRCROOT.join("Sources/foo.c").str)' changed'>",
+                        ]
+                    )
                 }
                 results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("Ld")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed'>",
-                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/EagerLinkingTBDs/Debug/TargetFoo.framework/Versions/A/TargetFoo.tbd' ran'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Generate TBD TargetFoo' changed'>",
-                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/Debug/TargetFoo.framework/Versions/A/TargetFoo' ran'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Link TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
-                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/foo.o' ran'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
-                        "<category='ruleHadInvalidValue' description='file '\(SRCROOT.str)/Sources/foo.c' changed'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/EagerLinkingTBDs/Debug/TargetFoo.framework/Versions/A/TargetFoo.tbd' ran'>",
+                            "<category='ruleInputRebuilt' description='an input of 'Generate TBD TargetFoo' changed'>",
+                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/Debug/TargetFoo.framework/Versions/A/TargetFoo' ran'>",
+                            "<category='ruleInputRebuilt' description='an input of 'Link TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/foo.o' ran'>",
+                            "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleHadInvalidValue' description='file '\(SRCROOT.str)/Sources/foo.c' changed'>",
+                        ]
+                    )
                 }
             }
 
-            let modifiedParameters = BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "MY_DEF",])
+            let modifiedParameters = BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "MY_DEF"])
             let modifiedBuildRequest = BuildRequest(parameters: modifiedParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: modifiedParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             try await tester.checkBuild(runDestination: .macOS, buildRequest: modifiedBuildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
-                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
-                        "<category='ruleSignatureChanged' description='arguments, environment, or working directory of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (\(results.runDestinationTargetArchitecture))' changed'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
+                            "<category='ruleSignatureChanged' description='arguments, environment, or working directory of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (\(results.runDestinationTargetArchitecture))' changed'>",
+                        ]
+                    )
                 }
                 if tester.fs.fileSystemMode == .checksumOnly {
                     results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("CompileC")) { task in
-                        results.checkBacktrace(task, [
-                            "<category='ruleSignatureChanged' description='signature of 'Compile bar.c (\(results.runDestinationTargetArchitecture))' changed'>"
-                        ])
+                        results.checkBacktrace(
+                            task,
+                            [
+                                "<category='ruleSignatureChanged' description='signature of 'Compile bar.c (\(results.runDestinationTargetArchitecture))' changed'>"
+                            ]
+                        )
                     }
                     // Ensure "Ld" is not executed, because contents of "bar.o" are unchanged
                     results.checkNoTask()
                 } else {
                     results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("Ld")) { task in
-                        results.checkBacktrace(task, [
-                            "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed'>",
-                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/\(results.runDestinationTargetArchitecture)/bar.o' ran'>",
-                            "<category='ruleInputRebuilt' description='an input of 'Compile bar.c (\(results.runDestinationTargetArchitecture))' changed'>",
-                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
-                            "<category='ruleSignatureChanged' description='arguments, environment, or working directory of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (\(results.runDestinationTargetArchitecture))' changed'>"
-                        ])
+                        results.checkBacktrace(
+                            task,
+                            [
+                                "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed'>",
+                                "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/\(results.runDestinationTargetArchitecture)/bar.o' ran'>",
+                                "<category='ruleInputRebuilt' description='an input of 'Compile bar.c (\(results.runDestinationTargetArchitecture))' changed'>",
+                                "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
+                                "<category='ruleSignatureChanged' description='arguments, environment, or working directory of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (\(results.runDestinationTargetArchitecture))' changed'>",
+                            ]
+                        )
                     }
                 }
             }
@@ -179,15 +198,17 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("foo.swift"),
-                            ]),
+                                TestFile("foo.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "SWIFT_VERSION": swiftVersion
-                                ])
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -195,11 +216,14 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.swift",
-                                    ]),
-                                ])
-                        ])
-                ])
+                                        "foo.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
             let parameters = BuildParameters(configuration: "Debug")
@@ -208,8 +232,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     func foo() {}
                     """
             }
@@ -217,24 +240,29 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftEmitModule")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='dynamicTaskRegistration' description=''>",
-                        "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleNeverBuilt' description=''Compile TargetFoo (\(results.runDestinationTargetArchitecture))' had never run'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='dynamicTaskRegistration' description=''>",
+                            "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
+                            "<category='ruleNeverBuilt' description=''Compile TargetFoo (\(results.runDestinationTargetArchitecture))' had never run'>",
+                        ]
+                    )
                 }
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftCompile")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='dynamicTaskRegistration' description=''>",
-                        "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleNeverBuilt' description=''Compile TargetFoo (\(results.runDestinationTargetArchitecture))' had never run'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='dynamicTaskRegistration' description=''>",
+                            "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
+                            "<category='ruleNeverBuilt' description=''Compile TargetFoo (\(results.runDestinationTargetArchitecture))' had never run'>",
+                        ]
+                    )
                 }
             }
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.swift")) { file in
-                file <<<
-                    """
+                file <<< """
                     func foo() {}
 
                     func bar() {}
@@ -244,20 +272,26 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftEmitModule")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='dynamicTaskRegistration' description=''>",
-                        "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
-                        "<category='ruleHadInvalidValue' description='file '\(tmpDirPath.str)/Test/aProject/Sources/foo.swift' changed'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='dynamicTaskRegistration' description=''>",
+                            "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
+                            "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleHadInvalidValue' description='file '\(tmpDirPath.str)/Test/aProject/Sources/foo.swift' changed'>",
+                        ]
+                    )
                 }
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftCompile")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='dynamicTaskRegistration' description=''>",
-                        "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
-                        "<category='ruleHadInvalidValue' description='file '\(tmpDirPath.str)/Test/aProject/Sources/foo.swift' changed'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='dynamicTaskRegistration' description=''>",
+                            "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
+                            "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleHadInvalidValue' description='file '\(tmpDirPath.str)/Test/aProject/Sources/foo.swift' changed'>",
+                        ]
+                    )
                 }
             }
         }
@@ -276,14 +310,16 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -291,11 +327,14 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
-                                ])
-                        ])
-                ])
+                                        "foo.c"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
             let parameters = BuildParameters(configuration: "Debug")
@@ -304,8 +343,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int foo(void) { return 42; }
                     """
             }
@@ -319,9 +357,12 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='ruleHadInvalidValue' description='outputs of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' were missing or modified'>",
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='ruleHadInvalidValue' description='outputs of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' were missing or modified'>"
+                        ]
+                    )
                 }
             }
         }
@@ -339,23 +380,28 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources",
                             path: "Sources",
-                            children: []),
+                            children: []
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
                                 "TargetFoo",
                                 type: .framework,
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "Script", originalObjectID: "X", contents: "true", alwaysOutOfDate: true),
-                                ])
-                        ])
-                ])
+                                    TestShellScriptBuildPhase(name: "Script", originalObjectID: "X", contents: "true", alwaysOutOfDate: true)
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
             let parameters = BuildParameters(configuration: "Debug")
@@ -364,18 +410,24 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("PhaseScriptExecution")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='ruleNeverBuilt' description=''Run custom shell script 'Script'' had never run'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='ruleNeverBuilt' description=''Run custom shell script 'Script'' had never run'>"
+                        ]
+                    )
                 }
             }
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("PhaseScriptExecution")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='ruleHadInvalidValue' description=''Run custom shell script 'Script'' was configured to run in every incremental build'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='ruleHadInvalidValue' description=''Run custom shell script 'Script'' was configured to run in every incremental build'>"
+                        ]
+                    )
                 }
             }
         }
@@ -394,8 +446,9 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("foo.c"),
-                            ]),
+                                TestFile("foo.c")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -406,8 +459,9 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                                     "GENERATE_INFOPLIST_FILE": "YES",
                                     "INSTALL_GROUP": "",
                                     "INSTALL_OWNER": "",
-                                    "DSTROOT": tmpDirPath.join("DSTROOT").str
-                                ])
+                                    "DSTROOT": tmpDirPath.join("DSTROOT").str,
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -415,11 +469,14 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                                 type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "foo.c"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
             let parameters = BuildParameters(action: .install, configuration: "Debug")
@@ -429,8 +486,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int main() {}
                     int foo(void) {
                         return 1;
@@ -445,8 +501,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int main() {}
                     int foo2(void) {
                         return 42;
@@ -457,16 +512,19 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("RegisterWithLaunchServices")) { task in
-                    results.checkBacktrace(task, [
-                        "<category='ruleInputRebuilt' description='an input of 'Register TargetFoo.app' changed'>",
-                        "<category='ruleInputRebuilt' description=''Validate TargetFoo.app' mutated '\(tmpDirPath.join("DSTROOT").str)/Applications/TargetFoo.app''>",
-                        "<category='ruleInputRebuilt' description='an input of 'Validate TargetFoo.app' changed'>",
-                        "<category='ruleInputRebuilt' description=''Sign TargetFoo.app' mutated '\(tmpDirPath.join("DSTROOT").str)/Applications/TargetFoo.app' and '\(tmpDirPath.join("DSTROOT").str)/Applications/TargetFoo.app/Contents/MacOS/TargetFoo''>",
-                        "<category='ruleInputRebuilt' description='an input of 'Sign TargetFoo.app' changed'>",
-                        "<category='ruleInputRebuilt' description='an input of file '\(SRCROOT.str)/Sources/foo.c/' changed'>",
-                        "<category='ruleInputRebuilt' description='an input of signature of directory tree at '\(SRCROOT.str)/Sources/foo.c' changed'>",
-                        "<category='ruleHadInvalidValue' description='contents of '\(SRCROOT.str)/Sources/foo.c' changed'>"
-                    ])
+                    results.checkBacktrace(
+                        task,
+                        [
+                            "<category='ruleInputRebuilt' description='an input of 'Register TargetFoo.app' changed'>",
+                            "<category='ruleInputRebuilt' description=''Validate TargetFoo.app' mutated '\(tmpDirPath.join("DSTROOT").str)/Applications/TargetFoo.app''>",
+                            "<category='ruleInputRebuilt' description='an input of 'Validate TargetFoo.app' changed'>",
+                            "<category='ruleInputRebuilt' description=''Sign TargetFoo.app' mutated '\(tmpDirPath.join("DSTROOT").str)/Applications/TargetFoo.app' and '\(tmpDirPath.join("DSTROOT").str)/Applications/TargetFoo.app/Contents/MacOS/TargetFoo''>",
+                            "<category='ruleInputRebuilt' description='an input of 'Sign TargetFoo.app' changed'>",
+                            "<category='ruleInputRebuilt' description='an input of file '\(SRCROOT.str)/Sources/foo.c/' changed'>",
+                            "<category='ruleInputRebuilt' description='an input of signature of directory tree at '\(SRCROOT.str)/Sources/foo.c' changed'>",
+                            "<category='ruleHadInvalidValue' description='contents of '\(SRCROOT.str)/Sources/foo.c' changed'>",
+                        ]
+                    )
                 }
             }
         }
@@ -487,13 +545,15 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                             children: [
                                 TestFile("foo.c"),
                                 TestFile("bar.c"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                ])
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -501,22 +561,27 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "foo.c",
-                                    ]),
-                                ]),
+                                        "foo.c"
+                                    ])
+                                ]
+                            ),
                             TestStandardTarget(
                                 "TargetBar",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "bar.c",
+                                        "bar.c"
                                     ]),
                                     TestFrameworksBuildPhase([
                                         "TargetFoo.framework"
-                                    ])
-                                ], dependencies: ["TargetFoo"]),
-                        ])
-                ])
+                                    ]),
+                                ],
+                                dependencies: ["TargetFoo"]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
             let parameters = BuildParameters(configuration: "Debug")
@@ -525,16 +590,14 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
 
             // Create the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int foo(void) {
                         return 1;
                     }
                     """
             }
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/bar.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int bar(void) {
                         return 2;
                     }
@@ -548,8 +611,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkNullBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true)
 
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
-                file <<<
-                    """
+                file <<< """
                     int foo2(void) {
                         return 42;
                     }
@@ -559,17 +621,20 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("Ld")) { task in
-                    results.checkTextualBacktrace(task, """
-                    #0: an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed
-                    #1: the task producing file '\(SRCROOT.str)/build/EagerLinkingTBDs/Debug/TargetFoo.framework/Versions/A/TargetFoo.tbd' ran
-                    #2: an input of 'Generate TBD TargetFoo' changed
-                    #3: the task producing file '\(SRCROOT.str)/build/Debug/TargetFoo.framework/Versions/A/TargetFoo' ran
-                    #4: an input of 'Link TargetFoo (\(results.runDestinationTargetArchitecture))' changed
-                    #5: the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/foo.o' ran
-                    #6: an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed
-                    #7: file '\(SRCROOT.str)/Sources/foo.c' changed
+                    results.checkTextualBacktrace(
+                        task,
+                        """
+                        #0: an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed
+                        #1: the task producing file '\(SRCROOT.str)/build/EagerLinkingTBDs/Debug/TargetFoo.framework/Versions/A/TargetFoo.tbd' ran
+                        #2: an input of 'Generate TBD TargetFoo' changed
+                        #3: the task producing file '\(SRCROOT.str)/build/Debug/TargetFoo.framework/Versions/A/TargetFoo' ran
+                        #4: an input of 'Link TargetFoo (\(results.runDestinationTargetArchitecture))' changed
+                        #5: the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/foo.o' ran
+                        #6: an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed
+                        #7: file '\(SRCROOT.str)/Sources/foo.c' changed
 
-                    """)
+                        """
+                    )
                 }
             }
         }

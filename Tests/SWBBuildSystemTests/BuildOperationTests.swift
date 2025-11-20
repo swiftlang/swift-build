@@ -42,37 +42,44 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         TestFile("main.swift"),
                         TestFile("dynamic library.swift"),
                         TestFile("static library.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                        "LINKER_DRIVER": linkerDriver,
-                        "SWIFT_OPTIMIZATION_LEVEL": optimizationLevel,
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "LINKER_DRIVER": linkerDriver,
+                            "SWIFT_OPTIMIZATION_LEVEL": optimizationLevel,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "tool",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "@loader_path/"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["main.swift"]),
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("dynamiclib")),
                                 TestBuildFile(.target("staticlib")),
-                            ])
+                            ]),
                         ],
                         dependencies: [
                             "dynamiclib",
@@ -83,34 +90,41 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "dynamiclib",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
-                                "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                    "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic library.swift"]),
+                            TestSourcesBuildPhase(["dynamic library.swift"])
                         ]
                     ),
                     TestStandardTarget(
                         "staticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static library.swift"]),
+                            TestSourcesBuildPhase(["static library.swift"])
                         ]
                     ),
-                ])
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -138,7 +152,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             let provisioningInputs = [
                 "dynamiclib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
                 "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
-                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
             ]
 
             let destination: RunDestinationInfo = .host
@@ -166,20 +180,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("main.swift"),
-                    ]),
+                        TestFile("main.swift")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -189,10 +207,11 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["main.swift"]),
+                            TestSourcesBuildPhase(["main.swift"])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -228,36 +247,43 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         TestFile("main.swift"),
                         TestFile("dynamic.swift"),
                         TestFile("static.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "tool",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "@loader_path/"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["main.swift"]),
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("dynamiclib")),
                                 TestBuildFile(.target("staticlib")),
-                            ])
+                            ]),
                         ],
                         dependencies: [
                             "dynamiclib",
@@ -268,34 +294,41 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "dynamiclib",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
-                                "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                    "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic.swift"]),
+                            TestSourcesBuildPhase(["dynamic.swift"])
                         ]
                     ),
                     TestStandardTarget(
                         "staticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.swift"]),
+                            TestSourcesBuildPhase(["static.swift"])
                         ]
                     ),
-                ])
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -323,7 +356,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             let provisioningInputs = [
                 "dynamiclib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
                 "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
-                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
             ]
 
             let destination: RunDestinationInfo = .host
@@ -371,36 +404,43 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         TestFile("main.swift"),
                         TestFile("dynamic.swift"),
                         TestFile("static.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                        "DEFINES_MODULE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                            "DEFINES_MODULE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "tool",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "@loader_path/"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["main.swift"]),
                             TestFrameworksBuildPhase([
                                 TestBuildFile(.target("dynamiclib")),
                                 TestBuildFile(.target("staticlib")),
-                            ])
+                            ]),
                         ],
                         dependencies: [
                             "dynamiclib",
@@ -411,34 +451,41 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "dynamiclib",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
-                                "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                    "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic.swift"]),
+                            TestSourcesBuildPhase(["dynamic.swift"])
                         ]
                     ),
                     TestStandardTarget(
                         "staticlib",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.swift"]),
+                            TestSourcesBuildPhase(["static.swift"])
                         ]
                     ),
-                ])
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
 
@@ -466,7 +513,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             let provisioningInputs = [
                 "dynamiclib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
                 "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
-                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
             ]
 
             let destination: RunDestinationInfo = .host
@@ -485,34 +532,42 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 groupTree: TestGroup(
                     "SomeFiles",
                     children: [
-                        TestFile("test.swift"),
-                    ]),
+                        TestFile("test.swift")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
-                        "LINKER_DRIVER": "swiftc"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                            "LINKER_DRIVER": "swiftc",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "MyTests",
                         type: .unitTest,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_TEST_ENTRYPOINTS_FOR_BUNDLES": "YES"
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_TEST_ENTRYPOINTS_FOR_BUNDLES": "YES"
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["test.swift"]),
+                            TestSourcesBuildPhase(["test.swift"])
                         ],
-                    ),
-                ])
+                    )
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
             try localFS.createDirectory(tmpDir.join("index"))
@@ -520,20 +575,20 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
                 stream <<< """
-                    import Testing
-                    import XCTest
-                    @Suite struct MySuite {
-                        @Test func myTest() {
-                            #expect(42 == 42)
+                        import Testing
+                        import XCTest
+                        @Suite struct MySuite {
+                            @Test func myTest() {
+                                #expect(42 == 42)
+                            }
                         }
-                    }
 
-                    final class MYXCTests: XCTestCase {
-                        func testFoo() {
-                            XCTAssertTrue(true)
+                        final class MYXCTests: XCTestCase {
+                            func testFoo() {
+                                XCTAssertTrue(true)
+                            }
                         }
-                    }
-                """
+                    """
             }
 
             let destination: RunDestinationInfo = .host
@@ -557,33 +612,40 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     children: [
                         TestFile("library.swift"),
                         TestFile("test.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
-                        "LINKER_DRIVER": "swiftc"
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                            "LINKER_DRIVER": "swiftc",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "UnitTestRunner",
                         type: .swiftpmTestRunner,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(),
                             TestFrameworksBuildPhase([
                                 "MyTests.so"
-                            ])
+                            ]),
                         ],
                         dependencies: ["MyTests"]
                     ),
@@ -591,17 +653,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "MyTests",
                         type: .unitTest,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "MyTests.so"
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                    "LD_DYLIB_INSTALL_NAME": "MyTests.so",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["test.swift"]),
                             TestFrameworksBuildPhase([
-                                TestBuildFile(.target("library")),
-                            ])
-                        ], dependencies: [
+                                TestBuildFile(.target("library"))
+                            ]),
+                        ],
+                        dependencies: [
                             "library"
                         ],
                         productReferenceName: "MyTests.so"
@@ -610,20 +676,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "library",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                    "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["library.swift"]),
+                            TestSourcesBuildPhase(["library.swift"])
                         ],
-                    )
-                ])
+                    ),
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
             try localFS.createDirectory(tmpDir.join("index"))
@@ -635,21 +705,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
                 stream <<< """
-                    import Testing
-                    import XCTest
-                    import library
-                    @Suite struct MySuite {
-                        @Test func myTest() {
-                            #expect(foo() == 42)
+                        import Testing
+                        import XCTest
+                        import library
+                        @Suite struct MySuite {
+                            @Test func myTest() {
+                                #expect(foo() == 42)
+                            }
                         }
-                    }
 
-                    final class MYXCTests: XCTestCase {
-                        func testFoo() {
-                            XCTAssertTrue(true)
+                        final class MYXCTests: XCTestCase {
+                            func testFoo() {
+                                XCTAssertTrue(true)
+                            }
                         }
-                    }
-                """
+                    """
             }
 
             let destination: RunDestinationInfo = .host
@@ -681,35 +751,42 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     children: [
                         TestFile("library.swift"),
                         TestFile("test.swift"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "ARCHS": "$(ARCHS_STANDARD)",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SDKROOT": "$(HOST_PLATFORM)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
-                        "SWIFT_VERSION": swiftVersion,
-                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
-                        "LINKER_DRIVER": "swiftc",
-                        "ENABLE_TESTABILITY": "NO",
-                        "SWIFT_ENABLE_TESTABILITY": "NO",
-                    ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "ARCHS": "$(ARCHS_STANDARD)",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "SDKROOT": "$(HOST_PLATFORM)",
+                            "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                            "SWIFT_VERSION": swiftVersion,
+                            "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                            "LINKER_DRIVER": "swiftc",
+                            "ENABLE_TESTABILITY": "NO",
+                            "SWIFT_ENABLE_TESTABILITY": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "UnitTestRunner",
                         type: .swiftpmTestRunner,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                            ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)"
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(),
                             TestFrameworksBuildPhase([
                                 "MyTests.so"
-                            ])
+                            ]),
                         ],
                         dependencies: ["MyTests"]
                     ),
@@ -717,17 +794,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "MyTests",
                         type: .unitTest,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "MyTests.so"
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                    "LD_DYLIB_INSTALL_NAME": "MyTests.so",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["test.swift"]),
                             TestFrameworksBuildPhase([
-                                TestBuildFile(.target("library")),
-                            ])
-                        ], dependencies: [
+                                TestBuildFile(.target("library"))
+                            ]),
+                        ],
+                        dependencies: [
                             "library"
                         ],
                         productReferenceName: "MyTests.so"
@@ -736,20 +817,24 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "library",
                         type: .dynamicLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                    "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
 
-                                // FIXME: Find a way to make these default
-                                "EXECUTABLE_PREFIX": "lib",
-                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
-                            ])
+                                    // FIXME: Find a way to make these default
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["library.swift"]),
+                            TestSourcesBuildPhase(["library.swift"])
                         ],
-                    )
-                ])
+                    ),
+                ]
+            )
             let core = try await getCore()
             let tester = try await BuildOperationTester(core, testProject, simulated: false)
             try localFS.createDirectory(tmpDir.join("index"))
@@ -761,21 +846,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
                 stream <<< """
-                    import Testing
-                    import XCTest
-                    import library
-                    @Suite struct MySuite {
-                        @Test func myTest() {
-                            #expect(foo() == 42)
+                        import Testing
+                        import XCTest
+                        import library
+                        @Suite struct MySuite {
+                            @Test func myTest() {
+                                #expect(foo() == 42)
+                            }
                         }
-                    }
 
-                    final class MYXCTests: XCTestCase {
-                        func testFoo() {
-                            XCTAssertTrue(true)
+                        final class MYXCTests: XCTestCase {
+                            func testFoo() {
+                                XCTAssertTrue(true)
+                            }
                         }
-                    }
-                """
+                    """
             }
 
             let destination: RunDestinationInfo = .host
@@ -808,36 +893,45 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", children: [
-                                TestFile("Foo.y")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "USE_HEADERMAP": "NO",
-                                "YACC": tmpDirPath.join("yacc-script").str,
-                            ])],
+                            "Sources",
+                            children: [
+                                TestFile("Foo.y")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "USE_HEADERMAP": "NO",
+                                    "YACC": tmpDirPath.join("yacc-script").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Foo", type: .staticLibrary,
+                                "Foo",
+                                type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["Foo.y"]),
-                                ]),
-                        ])
-                ])
+                                    TestSourcesBuildPhase(["Foo.y"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Foo.y")) { stream in
-                stream <<<
-                """
-                %{
-                static int yylex() { return 0; }
-                static int yyerror(const char *format) { return 0; }
-                %}
-                %%
-                list:
-                ;
-                %%
-                """
+                stream <<< """
+                    %{
+                    static int yylex() { return 0; }
+                    static int yyerror(const char *format) { return 0; }
+                    %}
+                    %%
+                    list:
+                    ;
+                    %%
+                    """
             }
 
             guard let yaccPath = tester.findExecutable(basename: "yacc") else {
@@ -854,8 +948,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             }
             try tester.fs.setFilePermissions(tmpDirPath.join("yacc-script"), permissions: 0o755)
 
-            tester.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [
-                "ENV_KEY": "ENV_VALUE"])
+            tester.userInfo = UserInfo(
+                user: "exampleUser",
+                group: "exampleGroup",
+                uid: 1234,
+                gid: 12345,
+                home: Path("/Users/exampleUser"),
+                environment: [
+                    "ENV_KEY": "ENV_VALUE"
+                ]
+            )
 
             try await tester.checkBuild(runDestination: .host) { results in
                 // We expect one task with one line of output.
@@ -871,7 +973,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
     // MARK: Simulated Project Builds
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows)) // FIXME: Windows: Need to implement /usr/bin/true support for skipped tasks in tests
+    @Test(.requireSDKs(.host), .skipHostOS(.windows))  // FIXME: Windows: Need to implement /usr/bin/true support for skipped tasks in tests
     func simulatedEmptyTarget() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = TestWorkspace(
@@ -884,9 +986,12 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         targets: [
                             TestAggregateTarget(
                                 "mock",
-                                buildPhases: [])
-                        ])
-                ])
+                                buildPhases: []
+                            )
+                        ]
+                    )
+                ]
+            )
 
             try await BuildOperationTester(getCore(), testWorkspace, simulated: true).checkBuild(runDestination: .host) { results in
                 // Check that the delegate was passed build started and build ended events in the right place.
@@ -907,35 +1012,49 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)"
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
                         ],
                         targets: [
                             TestAggregateTarget(
                                 "combo",
                                 buildPhases: [],
-                                dependencies: ["agg1", "agg2", "agg3"]),
+                                dependencies: ["agg1", "agg2", "agg3"]
+                            ),
                             TestAggregateTarget(
                                 "agg1",
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
-                                        name: "Script1", originalObjectID: "Script1", contents: "echo Script1", inputs: [],
+                                        name: "Script1",
+                                        originalObjectID: "Script1",
+                                        contents: "echo Script1",
+                                        inputs: [],
                                         outputs: [
                                             "/tmp/script-output"
-                                        ])
-                                ]),
+                                        ]
+                                    )
+                                ]
+                            ),
                             TestAggregateTarget(
                                 "agg2",
                                 buildPhases: [
                                     TestShellScriptBuildPhase(
-                                        name: "Script2", originalObjectID: "Script2", contents: "echo Script2", inputs: [],
+                                        name: "Script2",
+                                        originalObjectID: "Script2",
+                                        contents: "echo Script2",
+                                        inputs: [],
                                         outputs: [
                                             "/tmp/script-output",
                                             "/tmp/script-output2",
-                                        ])
-                                ]),
+                                        ]
+                                    )
+                                ]
+                            ),
                             TestStandardTarget(
                                 "agg3",
                                 type: .application,
@@ -947,9 +1066,12 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                                 ],
                                 buildRules: [
                                     TestBuildRule(filePattern: "*.c", script: "cp $INPUT_FILE_PATH /tmp/b", outputs: ["/tmp/b"])
-                                ])
-                        ])
-                ])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -958,17 +1080,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 results.checkWarning(.contains("duplicate output file '/tmp/script-output'"))
                 results.checkNoWarnings()
 
-                results.checkError("""
-Multiple commands produce \'/tmp/b\'
-Target \'agg3\' (project \'aProject\') has custom build rule with input \'\(tmpDirPath.str)/Test/aProject/foo.c\'
-Target \'agg3\' (project \'aProject\') has custom build rule with input \'\(tmpDirPath.str)/Test/aProject/foo.c\'
-Consider making this custom build rule architecture-neutral by unchecking \'Run once per architecture\' in Build Rules, or ensure that it produces distinct output file paths for each architecture and variant combination.
-""")
-                results.checkError("""
-Multiple commands produce '/tmp/script-output'
-That command depends on command in Target 'agg1' (project \'aProject\'): script phase “Script1”
-That command depends on command in Target 'agg2' (project \'aProject\'): script phase “Script2”
-""")
+                results.checkError(
+                    """
+                    Multiple commands produce \'/tmp/b\'
+                    Target \'agg3\' (project \'aProject\') has custom build rule with input \'\(tmpDirPath.str)/Test/aProject/foo.c\'
+                    Target \'agg3\' (project \'aProject\') has custom build rule with input \'\(tmpDirPath.str)/Test/aProject/foo.c\'
+                    Consider making this custom build rule architecture-neutral by unchecking \'Run once per architecture\' in Build Rules, or ensure that it produces distinct output file paths for each architecture and variant combination.
+                    """
+                )
+                results.checkError(
+                    """
+                    Multiple commands produce '/tmp/script-output'
+                    That command depends on command in Target 'agg1' (project \'aProject\'): script phase “Script1”
+                    That command depends on command in Target 'agg2' (project \'aProject\'): script phase “Script2”
+                    """
+                )
                 results.checkNoErrors()
 
                 // Find the two script tasks.
@@ -991,35 +1117,43 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", children: [
+                            "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
                                 TestFile("Thing.swift"),
                                 TestFile("Info.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "INFOPLIST_FILE": "Info.plist",
-                                "DEFINES_MODULE": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "SWIFT_VERSION": swiftVersion,
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "DEFINES_MODULE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m", "Thing.swift"]),
                                     TestFrameworksBuildPhase([]),
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ])
-                        ])
-                ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             // FIXME: For now, we cannot actually use simulation here because the symlink tasks don't go through the VFS: <rdar://problem/24976205> [Swift Build] Add llbuild+Swift Build VFS support for missing symlink
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -1070,36 +1204,44 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", children: [
+                            "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
                                 TestFile("Thing.swift"),
                                 TestFile("Info.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "INFOPLIST_FILE": "Info.plist",
-                                "DEFINES_MODULE": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "MODULEMAP_FILE": "module.modulemap",
-                                "SWIFT_VERSION": swiftVersion,
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "DEFINES_MODULE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "MODULEMAP_FILE": "module.modulemap",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m", "Thing.swift"]),
                                     TestFrameworksBuildPhase([]),
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ])
-                        ])
-                ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -1160,11 +1302,19 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             TestAggregateTarget(
                                 "Target",
                                 buildPhases: [
-                                    TestShellScriptBuildPhase(name: "Script", originalObjectID: "X", contents: "true",
-                                                              inputs: ["missing-input-file.txt"], alwaysOutOfDate: true),
-                                ])
-                        ])
-                ])
+                                    TestShellScriptBuildPhase(
+                                        name: "Script",
+                                        originalObjectID: "X",
+                                        contents: "true",
+                                        inputs: ["missing-input-file.txt"],
+                                        alwaysOutOfDate: true
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
             try await tester.checkBuild(runDestination: .host) { results in
@@ -1206,16 +1356,21 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             TestAggregateTarget(
                                 "C",
                                 buildPhases: [TestShellScriptBuildPhase(name: "C", originalObjectID: "C", contents: "true", alwaysOutOfDate: true)],
-                                dependencies: ["B"]),
+                                dependencies: ["B"]
+                            ),
                             TestAggregateTarget(
                                 "B",
                                 buildPhases: [TestShellScriptBuildPhase(name: "B", originalObjectID: "B", contents: "true", alwaysOutOfDate: true)],
-                                dependencies: ["A"]),
+                                dependencies: ["A"]
+                            ),
                             TestAggregateTarget(
                                 "A",
-                                buildPhases: [TestShellScriptBuildPhase(name: "A", originalObjectID: "A", contents: "true", alwaysOutOfDate: true)]),
-                        ])
-                ])
+                                buildPhases: [TestShellScriptBuildPhase(name: "A", originalObjectID: "A", contents: "true", alwaysOutOfDate: true)]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
             let targetD = tester.workspace.projects[0].targets[0]
             let targetC = tester.workspace.projects[0].targets[1]
@@ -1232,7 +1387,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 //
                 // NOTE: This test isn't completely deterministic, it could report a false negative, but in practice this is very unlikely. It should never have a false positive.
                 results.checkCapstoneEvents()
-                for (first,second) in [("A", "B"), ("B", "C"), ("C", "D")] {
+                for (first, second) in [("A", "B"), ("B", "C"), ("C", "D")] {
                     // Check the order of the gate tasks.
                     let firstTask = try findScript(first)
                     let secondTask = try findScript(second)
@@ -1266,8 +1421,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             TestAggregateTarget("B", buildPhases: [TestShellScriptBuildPhase(name: "B", originalObjectID: "B", contents: "true", alwaysOutOfDate: true)]),
                             TestAggregateTarget("C", buildPhases: [TestShellScriptBuildPhase(name: "C", originalObjectID: "C", contents: "true", alwaysOutOfDate: true)]),
                             TestAggregateTarget("D", buildPhases: [TestShellScriptBuildPhase(name: "D", originalObjectID: "D", contents: "true", alwaysOutOfDate: true)]),
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
             let parameters = BuildParameters(configuration: "Debug", overrides: ["DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES"])
@@ -1282,7 +1439,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 //
                 // NOTE: This test isn't completely deterministic, it could report a false negative, but in practice this is very unlikely. It should never have a false positive.
                 results.checkCapstoneEvents()
-                for (first,second) in [("A", "B"), ("B", "C"), ("C", "D")] {
+                for (first, second) in [("A", "B"), ("B", "C"), ("C", "D")] {
                     // Check the order of the gate tasks.
                     let firstTask = try findScript(first)
                     let secondTask = try findScript(second)
@@ -1311,9 +1468,12 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestShellScriptBuildPhase(name: "B", originalObjectID: "B", contents: "true", alwaysOutOfDate: true),
                                     TestShellScriptBuildPhase(name: "C", originalObjectID: "C", contents: "true", alwaysOutOfDate: true),
                                     TestShellScriptBuildPhase(name: "D", originalObjectID: "D", contents: "true", alwaysOutOfDate: true),
-                                ]),
-                        ])
-                ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: true)
 
             try await tester.checkBuild(runDestination: .host) { results in
@@ -1325,7 +1485,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 // Verify the targets were built in order.
                 //
                 // NOTE: This test isn't completely deterministic, it could report a false negative, but in practice this is very unlikely. It should never have a false positive.
-                for (first,second) in [("A", "B"), ("B", "C"), ("C", "D")] {
+                for (first, second) in [("A", "B"), ("B", "C"), ("C", "D")] {
                     let firstEnd = try findScript(first)
                     let secondBegin = try findScript(second)
                     results.check(event: .taskHadEvent(firstEnd, event: .completed), precedes: .taskHadEvent(secondBegin, event: .started))
@@ -1354,60 +1514,76 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
                                 TestFile("Swifty.swift"),
                                 TestFile("Info.plist"),
                                 TestFile("Settings.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "DEFINES_MODULE": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "SWIFT_VERSION": swiftVersion,
-                                "INFOPLIST_FILE": "Sources/Info.plist",
-                                // Use this to introduce a file the linker depends on that we don't otherwise see.
-                                "OTHER_LDFLAGS": "-exported_symbols_list $(SRCROOT)/Sources/CoreFoo.exports",
-
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": GetCurrentUserGroupName()!,
-                                "INSTALL_MODE_FLAG": "+w",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "DEFINES_MODULE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "INFOPLIST_FILE": "Sources/Info.plist",
+                                    // Use this to introduce a file the linker depends on that we don't otherwise see.
+                                    "OTHER_LDFLAGS": "-exported_symbols_list $(SRCROOT)/Sources/CoreFoo.exports",
+
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": GetCurrentUserGroupName()!,
+                                    "INSTALL_MODE_FLAG": "+w",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase(["CoreFoo.m", "Swifty.swift"]),
                                     TestResourcesBuildPhase(["Settings.plist"]),
                                     TestFrameworksBuildPhase([]),
                                     // This shell script validates we honor the specified working directory.
-                                    TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "Mock", contents: {
-                                        let stream = OutputByteStream()
-                                        stream <<< "echo \"DIRECTORY: $(basename ${PWD})\"\n"
-                                        stream <<< "echo \"TARGET_NAME: ${TARGET_NAME}\"\n"
-                                        stream <<< "exit 0\n"
-                                        return stream.bytes.asString }(),
-                                                              outputs: ["/tmp/mock.txt"]
-                                                             ),
-                                ])
-                        ])
-                ])
+                                    TestShellScriptBuildPhase(
+                                        name: "Run Script",
+                                        originalObjectID: "Mock",
+                                        contents: {
+                                            let stream = OutputByteStream()
+                                            stream <<< "echo \"DIRECTORY: $(basename ${PWD})\"\n"
+                                            stream <<< "echo \"TARGET_NAME: ${TARGET_NAME}\"\n"
+                                            stream <<< "exit 0\n"
+                                            return stream.bytes.asString
+                                        }(),
+                                        outputs: ["/tmp/mock.txt"]
+                                    ),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             // Write the Info.plist file.
-            try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Sources/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.exports")) { contents in
@@ -1426,17 +1602,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try tester.fs.write(SRCROOT.join("Sources/Settings.plist"), contents: settingsContents)
 
             // We enable deployment postprocessing explicitly, to check the full range of basic behaviors.
-            let parameters = BuildParameters(action: .install, configuration: "Debug", overrides: [
-                "DSTROOT": tmpDirPath.join("dst").str,
-            ])
+            let parameters = BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                overrides: [
+                    "DSTROOT": tmpDirPath.join("dst").str
+                ]
+            )
 
             // Check the initial build.
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Check that the module session validation file was written.
                 if let moduleSessionFilePath = results.buildDescription.moduleSessionFilePath {
                     #expect(tester.fs.exists(moduleSessionFilePath))
-                }
-                else {
+                } else {
                     Issue.record("No module session validation file path was computed")
                 }
 
@@ -1463,13 +1642,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 // Check that we get the expected target names in the progress report.
-                let targetNamesInProgressEvents = results.events.reduce(Set<String>(), { (result, event) in
-                    var result = result
-                    if case .totalProgressChanged(let targetName?, _, _) = event {
-                        result.insert(targetName)
+                let targetNamesInProgressEvents = results.events.reduce(
+                    Set<String>(),
+                    { (result, event) in
+                        var result = result
+                        if case .totalProgressChanged(let targetName?, _, _) = event {
+                            result.insert(targetName)
+                        }
+                        return result
                     }
-                    return result
-                })
+                )
                 #expect(targetNamesInProgressEvents == ["CoreFoo"])
 
                 let events = results.events.filter {
@@ -1664,7 +1846,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Replace Swift compiler version string in manifest.
             let xcbuildDataDir = SRCROOT.join("build/XCBuildData")
-             for item in try tester.fs.listdir(xcbuildDataDir) {
+            for item in try tester.fs.listdir(xcbuildDataDir) {
                 let path = xcbuildDataDir.join(item)
                 if path.basename.hasSuffix("-manifest.xcbuild") {
                     let contents = try tester.fs.read(path).asString
@@ -1711,85 +1893,130 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         TestProject(
                             "aProject",
                             groupTree: TestGroup(
-                                "Sources", path: "Sources", children: [
-                                    TestGroup("Foo", path: "Foo", children: [
-                                        TestFile("Foo.m"),
-                                    ]),
-                                    TestGroup("CoreFoo", path: "CoreFoo", children: [
-                                        TestGroup("Internal", path: "Internal", children: [
-                                            TestFile("CoreFoo_Internal.h", guid: "FR_CoreFoo_Internal1")
-                                        ]),
-                                        TestFile("CoreFoo.h", guid: "FR_CoreFoo1"),
-                                        // We have to hide this in a subdirectory in order to hide it from local header search from CoreFoo.h
-                                        TestGroup("Public", path: "Public", children: [
-                                            TestFile("CoreFoo_Thing.h"),
-                                        ]),
-                                        TestFile("CoreFoo.m"),
-                                    ]),
-                                    TestGroup("StaticFoo", path: "StaticFoo", children: [
-                                        TestFile("StaticFoo.h"),
-                                        TestFile("StaticFoo_Internal.h"),
-                                        TestFile("StaticFoo.m"),
-                                    ]),
-                                    TestGroup("Hidden", path: "Hidden", children: [
-                                        hiddensCoreFoo,
-                                        hiddensCoreFooInternal
-                                    ]),
-                                ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                    "CLANG_ENABLE_MODULES": "\(enableModules)",
+                                "Sources",
+                                path: "Sources",
+                                children: [
+                                    TestGroup(
+                                        "Foo",
+                                        path: "Foo",
+                                        children: [
+                                            TestFile("Foo.m")
+                                        ]
+                                    ),
+                                    TestGroup(
+                                        "CoreFoo",
+                                        path: "CoreFoo",
+                                        children: [
+                                            TestGroup(
+                                                "Internal",
+                                                path: "Internal",
+                                                children: [
+                                                    TestFile("CoreFoo_Internal.h", guid: "FR_CoreFoo_Internal1")
+                                                ]
+                                            ),
+                                            TestFile("CoreFoo.h", guid: "FR_CoreFoo1"),
+                                            // We have to hide this in a subdirectory in order to hide it from local header search from CoreFoo.h
+                                            TestGroup(
+                                                "Public",
+                                                path: "Public",
+                                                children: [
+                                                    TestFile("CoreFoo_Thing.h")
+                                                ]
+                                            ),
+                                            TestFile("CoreFoo.m"),
+                                        ]
+                                    ),
+                                    TestGroup(
+                                        "StaticFoo",
+                                        path: "StaticFoo",
+                                        children: [
+                                            TestFile("StaticFoo.h"),
+                                            TestFile("StaticFoo_Internal.h"),
+                                            TestFile("StaticFoo.m"),
+                                        ]
+                                    ),
+                                    TestGroup(
+                                        "Hidden",
+                                        path: "Hidden",
+                                        children: [
+                                            hiddensCoreFoo,
+                                            hiddensCoreFooInternal,
+                                        ]
+                                    ),
                                 ]
-                            )],
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                        "CLANG_ENABLE_MODULES": "\(enableModules)",
+                                    ]
+                                )
+                            ],
                             targets: [
                                 // Main app, which depends on a framework, and the framework depends on a static library.
                                 TestStandardTarget(
-                                    "Foo", type: .staticLibrary,
+                                    "Foo",
+                                    type: .staticLibrary,
                                     buildPhases: [
                                         TestSourcesBuildPhase(["Foo.m"]),
                                         TestHeadersBuildPhase([]),
                                     ],
                                     // FIXME: Reverse this when rdar://problem/28138044 is fixed.
-                                    dependencies: ["StaticFoo"]),
+                                    dependencies: ["StaticFoo"]
+                                ),
                                 TestStandardTarget(
-                                    "CoreFoo", type: .framework,
+                                    "CoreFoo",
+                                    type: .framework,
                                     buildConfigurations: [
-                                        TestBuildConfiguration("Debug",
-                                                               buildSettings: [
-                                                                "DEFINES_MODULE": "YES"])],
+                                        TestBuildConfiguration(
+                                            "Debug",
+                                            buildSettings: [
+                                                "DEFINES_MODULE": "YES"
+                                            ]
+                                        )
+                                    ],
                                     buildPhases: [
                                         TestSourcesBuildPhase(["CoreFoo.m"]),
                                         TestHeadersBuildPhase([
                                             TestBuildFile("CoreFoo.h", headerVisibility: .public),
                                             TestBuildFile("CoreFoo_Thing.h", headerVisibility: .public),
                                             TestBuildFile("CoreFoo_Internal.h"),
-                                        ])],
+                                        ]),
+                                    ],
                                     // FIXME: Reverse this when rdar://problem/28138044 is fixed.
-                                    dependencies: []),
+                                    dependencies: []
+                                ),
                                 TestStandardTarget(
-                                    "StaticFoo", type: .staticLibrary,
+                                    "StaticFoo",
+                                    type: .staticLibrary,
                                     buildPhases: [
                                         TestSourcesBuildPhase(["StaticFoo.m"]),
                                         TestHeadersBuildPhase([
                                             TestBuildFile("StaticFoo.h", headerVisibility: .public),
                                             TestBuildFile("StaticFoo_Internal.h"),
-                                        ])],
+                                        ]),
+                                    ],
                                     // FIXME: Reverse this when rdar://problem/28138044 is fixed.
-                                    dependencies: ["CoreFoo"]),
+                                    dependencies: ["CoreFoo"]
+                                ),
                                 // Add another target with "duplicate" CoreFoo.h headers, to verify that we pick the right product name in the project headers map.
                                 TestStandardTarget(
-                                    "Hidden", type: .framework,
+                                    "Hidden",
+                                    type: .framework,
                                     buildPhases: [
                                         TestHeadersBuildPhase([
                                             TestBuildFile(hiddensCoreFoo),
                                             TestBuildFile(hiddensCoreFooInternal),
-                                        ]),
-                                    ]),
-                            ])
-                    ])
+                                        ])
+                                    ]
+                                ),
+                            ]
+                        )
+                    ]
+                )
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
                 // Write the source files.
@@ -1920,22 +2147,34 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("Assets.xcassets"),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)"
-                            ])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Assets.xcassets")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Empty", type: .application,
+                                "Empty",
+                                type: .application,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
-                                    TestResourcesBuildPhase(["Assets.xcassets"]),
-                                ])])])
+                                    TestResourcesBuildPhase(["Assets.xcassets"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -2012,8 +2251,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check that tasks don't interfere with incremental builds across platforms.
-    @Test(.requireSDKs(.iOS, .tvOS),
-          .skipDeveloperDirectoryWithEqualSign) // mig will fail on mounts due to rdar://137363780 (env can't handle commands with = signs in the filename)
+    @Test(
+        .requireSDKs(.iOS, .tvOS),
+        .skipDeveloperDirectoryWithEqualSign
+    )  // mig will fail on mounts due to rdar://137363780 (env can't handle commands with = signs in the filename)
     func incrementalRebuildAcrossPlatforms() async throws {
 
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
@@ -2024,27 +2265,34 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("foo.applescript"),
-                            TestFile("foo.defs"),
-                            TestFile("foo.iconset"),
-                            TestFile("foo.fake-customrule")
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "ARCHS": "arm64e",
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            ])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("foo.applescript"),
+                                TestFile("foo.defs"),
+                                TestFile("foo.iconset"),
+                                TestFile("foo.fake-customrule"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": "arm64e",
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Empty", type: .dynamicLibrary,
+                                "Empty",
+                                type: .dynamicLibrary,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestAppleScriptBuildPhase([
-                                        TestBuildFile("foo.applescript"),
+                                        TestBuildFile("foo.applescript")
                                     ]),
                                     TestSourcesBuildPhase([
                                         TestBuildFile("foo.defs", migCodegenFiles: .both),
@@ -2052,15 +2300,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     ]),
                                     TestResourcesBuildPhase([
                                         //TestBuildFile("foo.iconset"),
-                                    ])
+                                    ]),
                                 ],
                                 buildRules: [
-                                    TestBuildRule(filePattern: "*.fake-customrule", script: "touch \"${SCRIPT_OUTPUT_FILE_0}\"", outputs: ["$(DERIVED_FILE_DIR)/foo.fake-customruleout"]),
+                                    TestBuildRule(filePattern: "*.fake-customrule", script: "touch \"${SCRIPT_OUTPUT_FILE_0}\"", outputs: ["$(DERIVED_FILE_DIR)/foo.fake-customruleout"])
                                 ]
                             )
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -2101,34 +2350,44 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources"),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
-                            TestAggregateTarget("Empty",
-                                                buildPhases: [
-                                                    TestShellScriptBuildPhase(
-                                                        name: "Produce Magic File",
-                                                        originalObjectID: "S1",
-                                                        contents:
+                            TestAggregateTarget(
+                                "Empty",
+                                buildPhases: [
+                                    TestShellScriptBuildPhase(
+                                        name: "Produce Magic File",
+                                        originalObjectID: "S1",
+                                        contents:
                                             #"""
                                             echo "magic string" > "$SCRIPT_OUTPUT_FILE_0"
                                             """#,
-                                                        inputs: [],
-                                                        outputs: ["$FAKE_PATH_OUT"]),
-                                                    TestShellScriptBuildPhase(
-                                                        name: "Extract First Word",
-                                                        originalObjectID: "S2",
-                                                        contents:
+                                        inputs: [],
+                                        outputs: ["$FAKE_PATH_OUT"]
+                                    ),
+                                    TestShellScriptBuildPhase(
+                                        name: "Extract First Word",
+                                        originalObjectID: "S2",
+                                        contents:
                                             #"""
                                             cat "$SCRIPT_INPUT_FILE_0" | awk '{print $1;}' > "$SCRIPT_OUTPUT_FILE_0"
                                             """#,
-                                                        inputs: ["$FAKE_PATH_OUT"],
-                                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/first-word.txt"]),
-                                                ]
-                                               )])])
+                                        inputs: ["$FAKE_PATH_OUT"],
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/first-word.txt"]
+                                    ),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly))
 
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -2137,10 +2396,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "magic string\n"
             }
 
-            let overriddenParameters = BuildParameters(configuration: "Debug", overrides: [
-                "FUSE_BUILD_SCRIPT_PHASES": "NO",
-                "FAKE_PATH_OUT": Path(SRCROOT).join("aProject/magic.txt").str
-            ])
+            let overriddenParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "FUSE_BUILD_SCRIPT_PHASES": "NO",
+                    "FAKE_PATH_OUT": Path(SRCROOT).join("aProject/magic.txt").str,
+                ]
+            )
 
             // Check the initial build.
             try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
@@ -2248,12 +2510,15 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources"),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "ALL",
@@ -2271,7 +2536,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                             set -e; cat "${SCRIPT_INPUT_FILE_0}" > "$SCRIPT_OUTPUT_FILE_0"
                                             """#,
                                         inputs: ["$FAKE_PATH_IN"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/magic.txt"])
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/magic.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -2287,7 +2553,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                             set -e; cat "$SCRIPT_INPUT_FILE_0" | awk '{print $1;}' > "$SCRIPT_OUTPUT_FILE_0"
                                             """#,
                                         inputs: ["$(SHARED_DERIVED_FILE_DIR)/magic.txt"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/first-word.txt"]),
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/first-word.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -2303,11 +2570,15 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                             set -e; cat "$SCRIPT_INPUT_FILE_0" | tr a-z A-Z > "$SCRIPT_OUTPUT_FILE_0"
                                             """#,
                                         inputs: ["$(SHARED_DERIVED_FILE_DIR)/first-word.txt"],
-                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/final.txt"])
+                                        outputs: ["$(SHARED_DERIVED_FILE_DIR)/final.txt"]
+                                    )
                                 ],
                                 dependencies: ["Other"]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: createFS(simulated: false, fileSystemMode: .checksumOnly))
 
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -2316,10 +2587,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 stream <<< "magic string\n"
             }
 
-            let overriddenParameters = BuildParameters(configuration: "Debug", overrides: [
-                "FAKE_PATH_IN": Path(SRCROOT).join("aProject/magic.txt").str,
-                "FUSE_BUILD_SCRIPT_PHASES": "NO"
-            ])
+            let overriddenParameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "FAKE_PATH_IN": Path(SRCROOT).join("aProject/magic.txt").str,
+                    "FUSE_BUILD_SCRIPT_PHASES": "NO",
+                ]
+            )
 
             // Check the initial build.
             try await tester.checkBuild(parameters: overriddenParameters, runDestination: .macOS, persistent: true) { results in
@@ -2414,21 +2688,33 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("Empty.c"),
-                            TestFile("Test.txt"),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Empty.c"),
+                                TestFile("Test.txt"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Empty", type: .framework,
+                                "Empty",
+                                type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestCopyFilesBuildPhase(["Test.txt"], destinationSubfolder: .frameworks, onlyForDeployment: false),
                                     TestSourcesBuildPhase(["Empty.c"]),
-                                ])])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -2456,26 +2742,38 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("Empty.c"),
-                            TestFile("Empty.swift"),
-                            TestFile("Test.txt"),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "DONT_GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                            ])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Empty.c"),
+                                TestFile("Empty.swift"),
+                                TestFile("Test.txt"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DONT_GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Empty", type: .framework,
+                                "Empty",
+                                type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestCopyFilesBuildPhase(["Test.txt"], destinationSubfolder: .frameworks, onlyForDeployment: false),
                                     TestSourcesBuildPhase(["Empty.c", "Empty.swift"]),
-                                ])])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -2488,7 +2786,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             // Touch a file inside the directory.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/build/Debug/Empty.framework/Versions/a.txt")) { stream in }
-
 
             try await tester.checkNullBuild(parameters: BuildParameters(configuration: "Debug", commandLineOverrides: ["OTHER_CFLAGS": "-fcolor-diagnostics"]), runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"])
 
@@ -2532,30 +2829,38 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", children: [
+                            "Sources",
+                            children: [
                                 TestFile("CoreFoo.m"),
                                 TestFile("Info.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "INFOPLIST_FILE": "Info.plist",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "CODE_SIGN_IDENTITY": "-",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["CoreFoo.m"]),
-                                ])
-                        ])
-                ])
+                                    TestSourcesBuildPhase(["CoreFoo.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -2563,7 +2868,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             let initialPlDict: [String: PropertyListItem] = [
                 "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
+                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
             ]
             let infoPlistPath = testWorkspace.sourceRoot.join("aProject/Info.plist")
             try await tester.fs.writePlist(infoPlistPath, .plDict(initialPlDict))
@@ -2596,20 +2901,29 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("Source.swift"),
-                        ]),
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Source.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "SWIFT_VERSION": swiftVersion]),
                             TestBuildConfiguration("Release", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)", "SWIFT_VERSION": swiftVersion]),
                         ],
                         targets: [
                             TestStandardTarget(
-                                "Foo", type: .framework,
+                                "Foo",
+                                type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug"), TestBuildConfiguration("Release")],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["Source.swift"]),
-                                ])])])
+                                    TestSourcesBuildPhase(["Source.swift"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -2642,7 +2956,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         TestFile("watchosApp/Interface.storyboard"),
                         TestFile("watchosApp/Assets.xcassets"),
                         TestFile("watchosApp/Info.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -2651,37 +2966,44 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             "CODE_SIGNING_ALLOWED": "NO",
                             "SDKROOT": "iphoneos",
                             "WATCHOS_DEPLOYMENT_TARGET": "6.0",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Watchable WatchKit App",
                         type: .watchKitApp,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug",
-                                                   buildSettings: [
-                                                    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                                                    "INFOPLIST_FILE": "watchosApp/Info.plist",
-                                                    "SDKROOT": "watchos",
-                                                    "SKIP_INSTALL": "YES",
-                                                    "TARGETED_DEVICE_FAMILY": "4",
-                                                   ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                                    "INFOPLIST_FILE": "watchosApp/Info.plist",
+                                    "SDKROOT": "watchos",
+                                    "SKIP_INSTALL": "YES",
+                                    "TARGETED_DEVICE_FAMILY": "4",
+                                ]
+                            )
                         ],
                         buildPhases: [
                             TestResourcesBuildPhase([
                                 "watchosApp/Interface.storyboard",
                                 "watchosApp/Assets.xcassets",
-                            ]),
+                            ])
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let SRCROOT = tmpDirPath
 
-            try await tester.fs.writePlist(SRCROOT.join("watchosApp/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("watchosApp/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             try await tester.fs.writeAssetCatalog(SRCROOT.join("watchosApp/Assets.xcassets"), .root, .appIcon("AppIcon"))
 
@@ -2707,14 +3029,21 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         "aProject",
                         groupTree: TestGroup("Sources"),
                         targets: [
-                            TestAggregateTarget("Empty",
-                                                buildPhases: [
-                                                    TestShellScriptBuildPhase(
-                                                        name: "Run Script",
-                                                        originalObjectID: "S1",
-                                                        contents: "echo ��� | xxd",
-                                                        alwaysOutOfDate: true
-                                                    )])])])
+                            TestAggregateTarget(
+                                "Empty",
+                                buildPhases: [
+                                    TestShellScriptBuildPhase(
+                                        name: "Run Script",
+                                        originalObjectID: "S1",
+                                        contents: "echo ��� | xxd",
+                                        alwaysOutOfDate: true
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -2741,14 +3070,21 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         "aProject",
                         groupTree: TestGroup("Sources"),
                         targets: [
-                            TestAggregateTarget("Empty",
-                                                buildPhases: [
-                                                    TestShellScriptBuildPhase(
-                                                        name: "Run Script",
-                                                        originalObjectID: "S1",
-                                                        contents: "which metal\nwhich clang\n",
-                                                        alwaysOutOfDate: true
-                                                    )])])])
+                            TestAggregateTarget(
+                                "Empty",
+                                buildPhases: [
+                                    TestShellScriptBuildPhase(
+                                        name: "Run Script",
+                                        originalObjectID: "S1",
+                                        contents: "which metal\nwhich clang\n",
+                                        alwaysOutOfDate: true
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -2777,21 +3113,47 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         "aProject",
                         groupTree: TestGroup("Sources"),
                         targets: [
-                            TestAggregateTarget("Empty",
-                                                buildPhases: [
-                                                    TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "S1", contents: {
-                                                        let stream = OutputByteStream()
-                                                        stream <<< "true"
-                                                        return stream.bytes.asString }()),
-                                                    TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "S2", contents: {
-                                                        let stream = OutputByteStream()
-                                                        stream <<< "echo 'run-once' > \(tmpDirPath.str)/var/s2-output"
-                                                        return stream.bytes.asString }(), inputs: ["\(tmpDirPath.str)/var/s2-input"], outputs: ["\(tmpDirPath.str)/var/s2-output"]),
-                                                    TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "S3", contents: {
-                                                        let stream = OutputByteStream()
-                                                        stream <<< "echo 'always run' > \(tmpDirPath.str)/var/s3-output"
-                                                        return stream.bytes.asString }(), inputs: ["\(tmpDirPath.str)/var/s3-input"], outputs: ["\(tmpDirPath.str)/var/s3-output"], alwaysOutOfDate: true),
-                                                ])])])
+                            TestAggregateTarget(
+                                "Empty",
+                                buildPhases: [
+                                    TestShellScriptBuildPhase(
+                                        name: "Run Script",
+                                        originalObjectID: "S1",
+                                        contents: {
+                                            let stream = OutputByteStream()
+                                            stream <<< "true"
+                                            return stream.bytes.asString
+                                        }()
+                                    ),
+                                    TestShellScriptBuildPhase(
+                                        name: "Run Script",
+                                        originalObjectID: "S2",
+                                        contents: {
+                                            let stream = OutputByteStream()
+                                            stream <<< "echo 'run-once' > \(tmpDirPath.str)/var/s2-output"
+                                            return stream.bytes.asString
+                                        }(),
+                                        inputs: ["\(tmpDirPath.str)/var/s2-input"],
+                                        outputs: ["\(tmpDirPath.str)/var/s2-output"]
+                                    ),
+                                    TestShellScriptBuildPhase(
+                                        name: "Run Script",
+                                        originalObjectID: "S3",
+                                        contents: {
+                                            let stream = OutputByteStream()
+                                            stream <<< "echo 'always run' > \(tmpDirPath.str)/var/s3-output"
+                                            return stream.bytes.asString
+                                        }(),
+                                        inputs: ["\(tmpDirPath.str)/var/s3-input"],
+                                        outputs: ["\(tmpDirPath.str)/var/s3-output"],
+                                        alwaysOutOfDate: true
+                                    ),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("\(tmpDirPath.str)/var/s1-input")) { stream in
@@ -2847,23 +3209,35 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("main.c")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": groupName,
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("main.c")
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": groupName,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .commandLineTool,
+                                "Tool",
+                                type: .commandLineTool,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["main.c"]),
-                                ])])])
+                                    TestSourcesBuildPhase(["main.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the file data.
@@ -2872,10 +3246,15 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Check the initial build.
-            let parameters = BuildParameters(action: .install, configuration: "Debug", activeRunDestination: .host, overrides: [
-                "DSTROOT": tmpDirPath.join("dst").str,
-                "STRIP_INSTALLED_PRODUCT": "NO",
-            ])
+            let parameters = BuildParameters(
+                action: .install,
+                configuration: "Debug",
+                activeRunDestination: .host,
+                overrides: [
+                    "DSTROOT": tmpDirPath.join("dst").str,
+                    "STRIP_INSTALLED_PRODUCT": "NO",
+                ]
+            )
             try await tester.checkBuild(parameters: parameters, runDestination: .host, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["Gate", "Copy", "WriteAuxiliaryFile", "SymLink", "CreateBuildDirectory", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"])
                 results.checkTask(.matchRuleType("CompileC")) { _ in }
@@ -2903,36 +3282,45 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         TestProject(
                             "aProject",
                             groupTree: TestGroup(
-                                "Sources", path: "Sources", children: [
+                                "Sources",
+                                path: "Sources",
+                                children: [
                                     TestFile("Source.c"),
                                     TestFile("Info.plist"),
-                                ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "CODE_SIGNING_ALLOWED": enableSigning ? "YES" : "NO",
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                    "CLANG_ENABLE_MODULES": "YES",
-                                    "USE_HEADERMAP": "NO",
-                                    "SKIP_INSTALL": "NO",
-                                    "INFOPLIST_FILE": "Sources/Info.plist",
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "CODE_SIGNING_ALLOWED": enableSigning ? "YES" : "NO",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                        "CLANG_ENABLE_MODULES": "YES",
+                                        "USE_HEADERMAP": "NO",
+                                        "SKIP_INSTALL": "NO",
+                                        "INFOPLIST_FILE": "Sources/Info.plist",
 
-                                    // Force stripping and file attribute changes off by default.
-                                    "INSTALL_OWNER": "",
-                                    "INSTALL_GROUP": "",
-                                    "INSTALL_MODE_FLAG": "",
-                                    "STRIP_INSTALLED_PRODUCT": "NO",
-                                ].addingContents(of: settings)
-                            )],
+                                        // Force stripping and file attribute changes off by default.
+                                        "INSTALL_OWNER": "",
+                                        "INSTALL_GROUP": "",
+                                        "INSTALL_MODE_FLAG": "",
+                                        "STRIP_INSTALLED_PRODUCT": "NO",
+                                    ].addingContents(of: settings)
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
-                                    targetName, type: targetType,
+                                    targetName,
+                                    type: targetType,
                                     buildPhases: [
-                                        TestSourcesBuildPhase([TestBuildFile("Source.c")]),
-                                    ])
-                            ])
-                    ])
+                                        TestSourcesBuildPhase([TestBuildFile("Source.c")])
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                )
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
                 let SRCROOT = testWorkspace.sourceRoot.join("aProject")
                 let signableTargets: Set<String> = enableSigning ? [targetName] : []
@@ -2946,10 +3334,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                 if targetType == .framework {
                     // Write the Info.plist file.
-                    try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                        "CFBundleDevelopmentRegion": .plString("en"),
-                        "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-                    ]))
+                    try await tester.fs.writePlist(
+                        SRCROOT.join("Sources/Info.plist"),
+                        .plDict([
+                            "CFBundleDevelopmentRegion": .plString("en"),
+                            "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                        ])
+                    )
                 }
 
                 // Write the source files.
@@ -2965,11 +3356,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
 
                 // We enable deployment postprocessing explicitly, to check the full range of basic behaviors.
-                let parameters = BuildParameters(configuration: "Debug", overrides: [
-                    "DSTROOT": tmpDirPath.join("dst").str,
-                    "DEPLOYMENT_POSTPROCESSING": "YES",
-                    "DEPLOYMENT_LOCATION": "YES",
-                ])
+                let parameters = BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "DSTROOT": tmpDirPath.join("dst").str,
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEPLOYMENT_LOCATION": "YES",
+                    ]
+                )
 
                 // Check the initial build.
                 try await tester.checkBuild(parameters: parameters, runDestination: generic ? .anyMac : .macOS, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
@@ -2998,7 +3392,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }
                 try await tester.checkBuild(parameters: parameters, runDestination: generic ? .anyMac : .macOS, persistent: true, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs) { results in
 
-
                     // We don't expect to rerun any `ProcessProductPackaging` tasks if we just change the source.
                     let expectedTasksSansProcessProductPackaging = Array(expectedTasks.drop(while: { $0 == "ProcessProductPackaging" }))
 
@@ -3018,22 +3411,38 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
 
         // Check the behavior of chown/chmod.
-        try await checkScenario("Tool File Attributes", expectedTasks: ["ScanDependencies", "CompileC", "Ld", "SetGroup", "SetMode"], settings: [
-            "INSTALL_GROUP": GetCurrentUserGroupName()!,
-            "INSTALL_MODE_FLAG": "+w"])
+        try await checkScenario(
+            "Tool File Attributes",
+            expectedTasks: ["ScanDependencies", "CompileC", "Ld", "SetGroup", "SetMode"],
+            settings: [
+                "INSTALL_GROUP": GetCurrentUserGroupName()!,
+                "INSTALL_MODE_FLAG": "+w",
+            ]
+        )
 
         // Check the behavior of strip.
-        try await checkScenario("Tool Stripping", expectedTasks: ["ScanDependencies", "CompileC", "Ld", "Strip"], settings: [
-            "STRIP_INSTALLED_PRODUCT": "YES"])
+        try await checkScenario(
+            "Tool Stripping",
+            expectedTasks: ["ScanDependencies", "CompileC", "Ld", "Strip"],
+            settings: [
+                "STRIP_INSTALLED_PRODUCT": "YES"
+            ]
+        )
 
         // Check the behavior of signing.
         try await checkScenario("Tool Code Signing", expectedTasks: ["ScanDependencies", "CompileC", "Ld", "CodeSign"], enableSigning: true)
 
         // Check the behavior of mutation of a universal binary.
-        try await checkScenario("Universal Tool Mutation", expectedTasks: ["ScanDependencies", "ScanDependencies", "CompileC", "CompileC", "CreateUniversalBinary", "Ld", "Ld", "Strip"], generic: true, settings: [
-            "STRIP_INSTALLED_PRODUCT": "YES",
-            "ARCHS": "x86_64 x86_64h",
-            "VALID_ARCHS[sdk=macosx*]": "$(inherited) x86_64h"])
+        try await checkScenario(
+            "Universal Tool Mutation",
+            expectedTasks: ["ScanDependencies", "ScanDependencies", "CompileC", "CompileC", "CreateUniversalBinary", "Ld", "Ld", "Strip"],
+            generic: true,
+            settings: [
+                "STRIP_INSTALLED_PRODUCT": "YES",
+                "ARCHS": "x86_64 x86_64h",
+                "VALID_ARCHS[sdk=macosx*]": "$(inherited) x86_64h",
+            ]
+        )
 
         // Check the behavior of signing a framework.
         try await checkScenario("Framework Code Signing", expectedTasks: ["ScanDependencies", "CompileC", "Ld", "GenerateTAPI", "CodeSign"], enableSigning: true, targetType: .framework)
@@ -3050,36 +3459,49 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
-                                TestFile("Input-1.txt"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "USE_HEADERMAP": "NO",
-                                "INFOPLIST_FILE": "Sources/Info.plist",
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("Input-1.txt")
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "USE_HEADERMAP": "NO",
+                                    "INFOPLIST_FILE": "Sources/Info.plist",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "Dest",
-                                buildPhases: [TestCopyFilesBuildPhase(["SourceBundle.bundle"], destinationSubfolder: .frameworks, destinationSubpath: "Dest", onlyForDeployment: false)]),
+                                buildPhases: [TestCopyFilesBuildPhase(["SourceBundle.bundle"], destinationSubfolder: .frameworks, destinationSubpath: "Dest", onlyForDeployment: false)]
+                            ),
                             TestStandardTarget(
-                                "SourceBundle", type: .bundle,
-                                buildPhases: [TestCopyFilesBuildPhase(["Input-1.txt"], destinationSubfolder: .frameworks, onlyForDeployment: false)]),
-                        ])
-                ])
+                                "SourceBundle",
+                                type: .bundle,
+                                buildPhases: [TestCopyFilesBuildPhase(["Input-1.txt"], destinationSubfolder: .frameworks, onlyForDeployment: false)]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             let signableTargets: Set<String> = ["App"]
 
             // Write the Info.plist file.
-            try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Sources/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Input-1.txt")) { contents in
@@ -3157,55 +3579,72 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("File.c"),
                                 TestFile("Info.plist"),
-                                TestVariantGroup("Localizable.strings", children: [
-                                    TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
-                                ]),
+                                TestVariantGroup(
+                                    "Localizable.strings",
+                                    children: [
+                                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja")
+                                    ]
+                                ),
                                 TestFile("AResource.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
-                                "COPY_PHASE_STRIP": "NO",
-                                "SDKROOT": "macosx",
-                                "INSTALLLOC_LANGUAGE": "ja",
-                                "DSTROOT": tmpDirPath.join("DSTROOT").str
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    "SDKROOT": "macosx",
+                                    "INSTALLLOC_LANGUAGE": "ja",
+                                    "DSTROOT": tmpDirPath.join("DSTROOT").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "App", type: .application,
+                                "App",
+                                type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         TestBuildFile("File.c")
                                     ]),
                                     TestFrameworksBuildPhase([
-                                        TestBuildFile("AFwk.framework"),
+                                        TestBuildFile("AFwk.framework")
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        TestBuildFile("AFwk.framework", codeSignOnCopy: true, removeHeadersOnCopy: true),
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false),
-                                ]),
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            TestBuildFile("AFwk.framework", codeSignOnCopy: true, removeHeadersOnCopy: true)
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
+                                ]
+                            ),
                             TestStandardTarget(
-                                "AFwk", type: .framework,
+                                "AFwk",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         TestBuildFile("File.c")
                                     ]),
                                     TestResourcesBuildPhase([
                                         TestBuildFile("Localizable.strings")
-                                    ])
+                                    ]),
                                 ]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
             let core = try await self.getCore()
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
@@ -3259,17 +3698,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 XCTAssertEqualSequences(delta.right, [])
 
                 // Check that all the non-localized content has been pruned.
-                XCTAssertEqualSequences(delta.left.sorted(), [
-                    "AFwk",
-                    "Headers",
-                    "Resources",
-                    "Versions/A/AFwk",
-                    "Versions/A/Headers",
-                    "Versions/A/Headers/AFwk.h",
-                    "Versions/A/Resources/AResource.plist",
-                    "Versions/A/Resources/Info.plist",
-                    "Versions/Current",
-                ])
+                XCTAssertEqualSequences(
+                    delta.left.sorted(),
+                    [
+                        "AFwk",
+                        "Headers",
+                        "Resources",
+                        "Versions/A/AFwk",
+                        "Versions/A/Headers",
+                        "Versions/A/Headers/AFwk.h",
+                        "Versions/A/Resources/AResource.plist",
+                        "Versions/A/Resources/Info.plist",
+                        "Versions/Current",
+                    ]
+                )
             }
         }
     }
@@ -3285,30 +3727,36 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("App.c"),
                                 TestFile("Info.plist"),
                                 TestFile("ADynamicFwk.framework", path: tmpDirPath.join("ADynamicFwk.framework").str, sourceTree: .absolute),
-                                TestFile("AStaticFwk.framework", path: tmpDirPath.join("AStaticFwk.framework").str, sourceTree: .absolute)
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
-                                "COPY_PHASE_STRIP": "NO",
-                                // Stripping bitcode varies by platform, and since it's not what we're testing here, we just turn it off.
-                                "STRIP_BITCODE_FROM_COPIED_FILES": "NO",
-                                "SDKROOT": runDestination.sdk,
-                                "SUPPORTS_MACCATALYST": runDestination.sdkVariant == MacCatalystInfo.sdkVariantName ? "YES" : "NO"
+                                TestFile("AStaticFwk.framework", path: tmpDirPath.join("AStaticFwk.framework").str, sourceTree: .absolute),
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "FRAMEWORK_SEARCH_PATHS": "$(inherited) \(tmpDirPath.str)",
+                                    "COPY_PHASE_STRIP": "NO",
+                                    // Stripping bitcode varies by platform, and since it's not what we're testing here, we just turn it off.
+                                    "STRIP_BITCODE_FROM_COPIED_FILES": "NO",
+                                    "SDKROOT": runDestination.sdk,
+                                    "SUPPORTS_MACCATALYST": runDestination.sdkVariant == MacCatalystInfo.sdkVariantName ? "YES" : "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "App", type: .application,
+                                "App",
+                                type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         TestBuildFile("App.c")
@@ -3317,13 +3765,19 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                         TestBuildFile("ADynamicFwk.framework"),
                                         TestBuildFile("AStaticFwk.framework"),
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        TestBuildFile("ADynamicFwk.framework", codeSignOnCopy: true, removeHeadersOnCopy: true),
-                                        TestBuildFile("AStaticFwk.framework", codeSignOnCopy: true, removeHeadersOnCopy: true),
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false),
-                                ]),
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            TestBuildFile("ADynamicFwk.framework", codeSignOnCopy: true, removeHeadersOnCopy: true),
+                                            TestBuildFile("AStaticFwk.framework", codeSignOnCopy: true, removeHeadersOnCopy: true),
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
+                                ]
+                            ),
                             TestStandardTarget(
-                                "App2", type: .application,
+                                "App2",
+                                type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         TestBuildFile("App.c")
@@ -3332,13 +3786,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                         TestBuildFile("ADynamicFwk.framework"),
                                         TestBuildFile("AStaticFwk.framework"),
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        TestBuildFile("ADynamicFwk.framework", codeSignOnCopy: false, removeHeadersOnCopy: true),
-                                        TestBuildFile("AStaticFwk.framework", codeSignOnCopy: false, removeHeadersOnCopy: true),
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false),
-                                ]),
-                        ])
-                ])
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            TestBuildFile("ADynamicFwk.framework", codeSignOnCopy: false, removeHeadersOnCopy: true),
+                                            TestBuildFile("AStaticFwk.framework", codeSignOnCopy: false, removeHeadersOnCopy: true),
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let core = try await self.getCore()
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
@@ -3348,35 +3809,44 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFramework(sourceDynamicFrameworkPath, archs: runDestination.platform == "macosx" ? ["arm64", "x86_64"] : ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: false) { _, _, headersDir, resourcesDir in
                 try await tester.fs.writeFileContents(headersDir.join("ADynamicFwk.h")) { $0 <<< "" }
                 try await tester.fs.writePlist(resourcesDir.join("ADynamicResource.plist"), .plDict([:]))
-                try await tester.fs.writePlist(resourcesDir.join("Info.plist"), .plDict([
-                    "CFBundleIdentifier": "com.apple.ADynamicFwk",
-                ]))
+                try await tester.fs.writePlist(
+                    resourcesDir.join("Info.plist"),
+                    .plDict([
+                        "CFBundleIdentifier": "com.apple.ADynamicFwk"
+                    ])
+                )
             }
 
             let sourceDynamicFrameworkFiles = try tester.fs.traverse(sourceDynamicFrameworkPath, { $0.relativeSubpath(from: sourceDynamicFrameworkPath) }).sorted().filter { !$0.contains("_CodeSignature") }
             if runDestination.platform == "macosx" {
-                XCTAssertEqualSequences(sourceDynamicFrameworkFiles, [
-                    "ADynamicFwk",
-                    "Headers",
-                    "Resources",
-                    "Versions",
-                    "Versions/A",
-                    "Versions/A/ADynamicFwk",
-                    "Versions/A/Headers",
-                    "Versions/A/Headers/ADynamicFwk.h",
-                    "Versions/A/Resources",
-                    "Versions/A/Resources/ADynamicResource.plist",
-                    "Versions/A/Resources/Info.plist",
-                    "Versions/Current",
-                ])
+                XCTAssertEqualSequences(
+                    sourceDynamicFrameworkFiles,
+                    [
+                        "ADynamicFwk",
+                        "Headers",
+                        "Resources",
+                        "Versions",
+                        "Versions/A",
+                        "Versions/A/ADynamicFwk",
+                        "Versions/A/Headers",
+                        "Versions/A/Headers/ADynamicFwk.h",
+                        "Versions/A/Resources",
+                        "Versions/A/Resources/ADynamicResource.plist",
+                        "Versions/A/Resources/Info.plist",
+                        "Versions/Current",
+                    ]
+                )
             } else {
-                XCTAssertEqualSequences(sourceDynamicFrameworkFiles, [
-                    "ADynamicFwk",
-                    "ADynamicResource.plist",
-                    "Headers",
-                    "Headers/ADynamicFwk.h",
-                    "Info.plist",
-                ])
+                XCTAssertEqualSequences(
+                    sourceDynamicFrameworkFiles,
+                    [
+                        "ADynamicFwk",
+                        "ADynamicResource.plist",
+                        "Headers",
+                        "Headers/ADynamicFwk.h",
+                        "Info.plist",
+                    ]
+                )
             }
 
             let platform = core.platformRegistry.lookup(name: runDestination.platform)
@@ -3386,39 +3856,48 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFramework(sourceStaticFrameworkPath, archs: runDestination.platform == "macosx" ? ["arm64", "x86_64"] : ["arm64"], platform: #require(runDestination.buildVersionPlatform(core)), infoLookup: core, static: true) { _, _, headersDir, resourcesDir in
                 try await tester.fs.writeFileContents(headersDir.join("AStaticFwk.h")) { $0 <<< "" }
                 try await tester.fs.writePlist(resourcesDir.join("AStaticResource.plist"), .plDict([:]))
-                try await tester.fs.writePlist(resourcesDir.join("Info.plist"), .plDict([
-                    "OSMinimumDriverKitVersion": "11.0",
-                    "LSMinimumSystemVersion": "11.0",
-                    "MinimumOSVersion": "11.0",
-                    "CFBundleSupportedPlatforms": bundleSupportedPlatforms,
-                    "CFBundleIdentifier": "com.apple.AStaticFwk",
-                ]))
+                try await tester.fs.writePlist(
+                    resourcesDir.join("Info.plist"),
+                    .plDict([
+                        "OSMinimumDriverKitVersion": "11.0",
+                        "LSMinimumSystemVersion": "11.0",
+                        "MinimumOSVersion": "11.0",
+                        "CFBundleSupportedPlatforms": bundleSupportedPlatforms,
+                        "CFBundleIdentifier": "com.apple.AStaticFwk",
+                    ])
+                )
             }
 
             let sourceStaticFrameworkFiles = try tester.fs.traverse(sourceStaticFrameworkPath, { $0.relativeSubpath(from: sourceStaticFrameworkPath) }).sorted().filter { !$0.contains("_CodeSignature") }
             if runDestination.platform == "macosx" {
-                XCTAssertEqualSequences(sourceStaticFrameworkFiles, [
-                    "AStaticFwk",
-                    "Headers",
-                    "Resources",
-                    "Versions",
-                    "Versions/A",
-                    "Versions/A/AStaticFwk",
-                    "Versions/A/Headers",
-                    "Versions/A/Headers/AStaticFwk.h",
-                    "Versions/A/Resources",
-                    "Versions/A/Resources/AStaticResource.plist",
-                    "Versions/A/Resources/Info.plist",
-                    "Versions/Current",
-                ])
+                XCTAssertEqualSequences(
+                    sourceStaticFrameworkFiles,
+                    [
+                        "AStaticFwk",
+                        "Headers",
+                        "Resources",
+                        "Versions",
+                        "Versions/A",
+                        "Versions/A/AStaticFwk",
+                        "Versions/A/Headers",
+                        "Versions/A/Headers/AStaticFwk.h",
+                        "Versions/A/Resources",
+                        "Versions/A/Resources/AStaticResource.plist",
+                        "Versions/A/Resources/Info.plist",
+                        "Versions/Current",
+                    ]
+                )
             } else {
-                XCTAssertEqualSequences(sourceStaticFrameworkFiles, [
-                    "AStaticFwk",
-                    "AStaticResource.plist",
-                    "Headers",
-                    "Headers/AStaticFwk.h",
-                    "Info.plist",
-                ])
+                XCTAssertEqualSequences(
+                    sourceStaticFrameworkFiles,
+                    [
+                        "AStaticFwk",
+                        "AStaticResource.plist",
+                        "Headers",
+                        "Headers/AStaticFwk.h",
+                        "Info.plist",
+                    ]
+                )
             }
 
             // Write the source files.
@@ -3471,21 +3950,27 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-exclude", "Headers", "-exclude", "PrivateHeaders", "-exclude", "Modules", "-exclude", "*.tbd", "-resolve-src-symlinks"] + (keepStaticBinary ? [] : ["-remove-static-executable"]) + ["\(tmpDirPath.str)/ADynamicFwk.framework", frameworkDestinationDir])
 
                             let destDynamicFrameworkPath = Path("\(frameworkDestinationDir)/ADynamicFwk.framework")
-                            let delta = try Set(sourceDynamicFrameworkFiles).diff(against: tester.fs.traverse(destDynamicFrameworkPath, { $0.relativeSubpath(from: destDynamicFrameworkPath) }).filter{ !$0.contains("_CodeSignature") })
+                            let delta = try Set(sourceDynamicFrameworkFiles).diff(against: tester.fs.traverse(destDynamicFrameworkPath, { $0.relativeSubpath(from: destDynamicFrameworkPath) }).filter { !$0.contains("_CodeSignature") })
                             XCTAssertEqualSequences(delta.right, [])
 
                             // Check that we removed all the headers
                             if runDestination.platform == "macosx" {
-                                XCTAssertEqualSequences(delta.left.sorted(), [
-                                    "Headers",
-                                    "Versions/A/Headers",
-                                    "Versions/A/Headers/ADynamicFwk.h",
-                                ])
+                                XCTAssertEqualSequences(
+                                    delta.left.sorted(),
+                                    [
+                                        "Headers",
+                                        "Versions/A/Headers",
+                                        "Versions/A/Headers/ADynamicFwk.h",
+                                    ]
+                                )
                             } else {
-                                XCTAssertEqualSequences(delta.left.sorted(), [
-                                    "Headers",
-                                    "Headers/ADynamicFwk.h",
-                                ])
+                                XCTAssertEqualSequences(
+                                    delta.left.sorted(),
+                                    [
+                                        "Headers",
+                                        "Headers/ADynamicFwk.h",
+                                    ]
+                                )
                             }
                         }
 
@@ -3493,35 +3978,47 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-exclude", "Headers", "-exclude", "PrivateHeaders", "-exclude", "Modules", "-exclude", "*.tbd", "-resolve-src-symlinks"] + (keepStaticBinary ? [] : ["-remove-static-executable"]) + ["\(tmpDirPath.str)/AStaticFwk.framework", frameworkDestinationDir])
 
                             let destStaticFrameworkPath = Path("\(frameworkDestinationDir)/AStaticFwk.framework")
-                            let delta = try Set(sourceStaticFrameworkFiles).diff(against: tester.fs.traverse(destStaticFrameworkPath, { $0.relativeSubpath(from: destStaticFrameworkPath) }).filter{ !$0.contains("_CodeSignature") })
+                            let delta = try Set(sourceStaticFrameworkFiles).diff(against: tester.fs.traverse(destStaticFrameworkPath, { $0.relativeSubpath(from: destStaticFrameworkPath) }).filter { !$0.contains("_CodeSignature") })
                             XCTAssertEqualSequences(delta.right, [])
 
                             // Check that we removed all the headers, as well as the binary (since it is static), if configured
                             if runDestination.platform == "macosx" {
                                 if keepStaticBinary {
-                                    XCTAssertEqualSequences(delta.left.sorted(), [
-                                        "Headers",
-                                        "Versions/A/Headers",
-                                        "Versions/A/Headers/AStaticFwk.h",
-                                    ])
+                                    XCTAssertEqualSequences(
+                                        delta.left.sorted(),
+                                        [
+                                            "Headers",
+                                            "Versions/A/Headers",
+                                            "Versions/A/Headers/AStaticFwk.h",
+                                        ]
+                                    )
                                 }
                             } else {
                                 if keepStaticBinary {
-                                    XCTAssertEqualSequences(delta.left.sorted(), [
-                                        "Headers",
-                                        "Headers/AStaticFwk.h",
-                                    ])
+                                    XCTAssertEqualSequences(
+                                        delta.left.sorted(),
+                                        [
+                                            "Headers",
+                                            "Headers/AStaticFwk.h",
+                                        ]
+                                    )
                                 } else if useAppStoreCodelessFrameworksWorkaround {
-                                    XCTAssertEqualSequences(delta.left.sorted(), [
-                                        "Headers",
-                                        "Headers/AStaticFwk.h",
-                                    ])
+                                    XCTAssertEqualSequences(
+                                        delta.left.sorted(),
+                                        [
+                                            "Headers",
+                                            "Headers/AStaticFwk.h",
+                                        ]
+                                    )
                                 } else {
-                                    XCTAssertEqualSequences(delta.left.sorted(), [
-                                        "AStaticFwk",
-                                        "Headers",
-                                        "Headers/AStaticFwk.h",
-                                    ])
+                                    XCTAssertEqualSequences(
+                                        delta.left.sorted(),
+                                        [
+                                            "AStaticFwk",
+                                            "Headers",
+                                            "Headers/AStaticFwk.h",
+                                        ]
+                                    )
                                 }
                             }
 
@@ -3578,52 +4075,67 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("App.c"),
                                 TestFile("Fwk.c"),
                                 TestFile("Info.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "USE_HEADERMAP": "NO",
-                                "SKIP_INSTALL": "NO",
-                                "INFOPLIST_FILE": "Sources/Info.plist",
-
-                                // Force stripping and file attribute changes off by default.
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": "",
-                                "INSTALL_MODE_FLAG": "",
-                                "STRIP_INSTALLED_PRODUCT": "NO",
-                                "SDK_STAT_CACHE_ENABLE": "NO"
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "USE_HEADERMAP": "NO",
+                                    "SKIP_INSTALL": "NO",
+                                    "INFOPLIST_FILE": "Sources/Info.plist",
+
+                                    // Force stripping and file attribute changes off by default.
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": "",
+                                    "INSTALL_MODE_FLAG": "",
+                                    "STRIP_INSTALLED_PRODUCT": "NO",
+                                    "SDK_STAT_CACHE_ENABLE": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "App", type: .application,
+                                "App",
+                                type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([TestBuildFile("App.c")]),
                                     TestCopyFilesBuildPhase([TestBuildFile("Fwk.framework", codeSignOnCopy: true)], destinationSubfolder: .frameworks),
-                                ], dependencies: ["Fwk"]),
+                                ],
+                                dependencies: ["Fwk"]
+                            ),
                             TestStandardTarget(
-                                "Fwk", type: .framework,
+                                "Fwk",
+                                type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase([TestBuildFile("Fwk.c")]),
-                                ]),
-                        ])
-                ])
+                                    TestSourcesBuildPhase([TestBuildFile("Fwk.c")])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
             let signableTargets: Set<String> = ["App"]
 
             // Write the Info.plist file.
-            try await tester.fs.writePlist(SRCROOT.join("Sources/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                SRCROOT.join("Sources/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Write the source files.
             try await tester.fs.writeFileContents(SRCROOT.join("Sources/Fwk.c")) { contents in
@@ -3637,11 +4149,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // We enable deployment postprocessing explicitly, to check the full range of basic behaviors.
-            let parameters = BuildParameters(configuration: "Debug", overrides: [
-                "DSTROOT": tmpDirPath.join("dst").str,
-                "DEPLOYMENT_POSTPROCESSING": "YES",
-                "DEPLOYMENT_LOCATION": "YES",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "DSTROOT": tmpDirPath.join("dst").str,
+                    "DEPLOYMENT_POSTPROCESSING": "YES",
+                    "DEPLOYMENT_LOCATION": "YES",
+                ]
+            )
 
             // Check the initial build.
             let taskTypesToExclude = Set(["Gate", "MkDir", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "RegisterWithLaunchServices", "SymLink", "Touch", "WriteAuxiliaryFile", "CreateBuildDirectory", "ClangStatCache", "ProcessSDKImports"])
@@ -3754,30 +4269,38 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
-                                TestFile("App.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-
-                                // we don't actually want to change rights here, so we fake that
-                                "CHOWN": "true",
-
-                                "DSTROOT": tmpDirPath.join("dstroot").str,
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("App.c")
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+
+                                    // we don't actually want to change rights here, so we fake that
+                                    "CHOWN": "true",
+
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "App",
                                 type: .application,
                                 buildPhases: [
-                                    TestSourcesBuildPhase([TestBuildFile("App.c")]),
-                                ]),
-                        ])
-                ])
+                                    TestSourcesBuildPhase([TestBuildFile("App.c")])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             if let enableBuildSystemCaching {
                 tester.userPreferences = tester.userPreferences.with(enableBuildSystemCaching: enableBuildSystemCaching)
@@ -3821,7 +4344,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
         }
     }
-
 
     @Test(.requireSDKs(.macOS), .requireXcode26())
     func copySwiftLibs_preSwiftOS_macos() async throws {
@@ -3924,9 +4446,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestBuildConfiguration(
                                         "Debug",
                                         buildSettings: [
-                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES"
                                         ]
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -3935,12 +4457,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestFrameworksBuildPhase([
                                         "Framework.framework"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "Framework.framework",
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "Framework.framework"
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: [
-                                    "Framework",
+                                    "Framework"
                                 ]
                             ),
                             TestStandardTarget(
@@ -3949,7 +4475,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -3958,12 +4484,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestFrameworksBuildPhase([
                                         "SubFramework.framework"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SubFramework.framework",
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SubFramework.framework"
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: [
-                                    "SubFramework",
+                                    "SubFramework"
                                 ]
                             ),
                             TestStandardTarget(
@@ -3972,7 +4502,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug"
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -3987,14 +4517,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestBuildConfiguration(
                                         "Debug",
                                         buildSettings: [
-                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES"
                                         ]
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "AppMain.c"
-                                    ]),
+                                    ])
                                 ]
                             ),
                             TestStandardTarget(
@@ -4004,17 +4534,21 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestBuildConfiguration(
                                         "Debug",
                                         buildSettings: [
-                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES"
                                         ]
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "AppMain.c"
                                     ]),
-                                    TestCopyFilesBuildPhase([
-                                        "SystemExtension.systemextension",
-                                    ], destinationSubfolder: .frameworks, onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase(
+                                        [
+                                            "SystemExtension.systemextension"
+                                        ],
+                                        destinationSubfolder: .frameworks,
+                                        onlyForDeployment: false
+                                    ),
                                 ],
                                 dependencies: [
                                     "SystemExtension"
@@ -4031,7 +4565,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "SysExMain.swift"
-                                    ]),
+                                    ])
                                 ]
                             ),
                             TestStandardTarget(
@@ -4049,12 +4583,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "Test.swift"
-                                    ]),
+                                    ])
                                 ]
-                            )
+                            ),
                         ]
                     )
-                ])
+                ]
+            )
 
             // Create a tester for driving the build.
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
@@ -4101,27 +4636,30 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Write a barebones Info.plist file.
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             // Read and return the UUIDs out of a Mach-O.  There could be more than one in case there are multiple architectures.
-            func uuids(_ p : Path) throws -> Set<UUID> {
-                return  Set(try MachO(data: tester.fs.read(p)).slices().map{ try $0.uuid()! })
+            func uuids(_ p: Path) throws -> Set<UUID> {
+                return Set(try MachO(data: tester.fs.read(p)).slices().map { try $0.uuid()! })
             }
             let toolchain = try #require(core.toolchainRegistry.defaultToolchain)
 
             // Get the UUID for the libswiftFoundation.dylib in the toolchain.
             let libSwiftFoundationName = "libswiftFoundation.dylib"
-            func libSwiftFoundationPath(_ t : Toolchain) throws -> Path {
+            func libSwiftFoundationPath(_ t: Toolchain) throws -> Path {
                 return t.path.join(Path("usr/lib/swift-5.0/macosx/\(libSwiftFoundationName)"))
             }
             let toolchainLibSwiftFoundationUUIDs = shouldFilterSwiftLibs ? [] : try uuids(libSwiftFoundationPath(toolchain))
 
             // Get the UUID for libswiftCoreLocation.dylib in the toolchain.  We'll use it later.
             let libSwiftCoreLocationName = "libswiftCoreLocation.dylib"
-            func libSwiftCoreLocationPath(_ t : Toolchain) throws -> Path {
+            func libSwiftCoreLocationPath(_ t: Toolchain) throws -> Path {
                 return t.path.join(Path("usr/lib/swift-5.0/macosx/\(libSwiftCoreLocationName)"))
             }
 
@@ -4143,8 +4681,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     do {
                         let embeddedLibUUIDs = shouldFilterSwiftLibs ? [] : try uuids(embeddedLibSwiftFoundationPath)
                         #expect(toolchainLibSwiftFoundationUUIDs == embeddedLibUUIDs)
-                    }
-                    catch {
+                    } catch {
                         Issue.record("\(error)")
                     }
                     let embeddedLibSwiftCoreLocationPath = buildDir.join(Path("App.app/Contents/Frameworks/\(libSwiftCoreLocationName)"))
@@ -4154,7 +4691,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     let swiftDepsPath = tmpDirPath.join(Path("Test/TestProject/build/TestProject.build/Debug/App.build/SwiftStdLibToolInputDependencies.dep"))
                     let dependencyInfo = try DependencyInfo(bytes: tester.fs.read(swiftDepsPath).bytes)
 
-                    let expectedDependencyInfo =  DependencyInfo(
+                    let expectedDependencyInfo = DependencyInfo(
                         version: "swift-stdlib-tool",
                         inputs: ([
                             buildDir.join("App.app/Contents/Frameworks/Framework.framework/Framework").str,
@@ -4165,7 +4702,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             buildDir.join("Framework.framework/Framework").str,
                             buildDir.join("Framework.framework/Versions/A/Framework").str,
                             buildDir.join("Framework.framework/Versions/A/Frameworks/SubFramework.framework/SubFramework").str,
-                            buildDir.join("Framework.framework/Versions/A/Frameworks/SubFramework.framework/Versions/A/SubFramework").str
+                            buildDir.join("Framework.framework/Versions/A/Frameworks/SubFramework.framework/Versions/A/SubFramework").str,
                         ]).sorted(),
                         missing: [],
                         outputs: []
@@ -4231,7 +4768,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/macosx/libswiftFoundation.dylib").str) == !shouldFilterSwiftLibs)
                         #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("UnitTests.xctest/Contents/Frameworks/libswiftCore.dylib").str) == !shouldFilterSwiftLibs)
                         #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("UnitTests.xctest/Contents/Frameworks/libswiftFoundation.dylib").str) == !shouldFilterSwiftLibs)
-
 
                         #expect(unitTestsDependencyInfo.inputs.contains(core.developerPath.path.join("Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
                         #expect(unitTestsDependencyInfo.outputs.contains(buildDir.join("SwiftlessApp.app/Contents/Frameworks/libswift_Concurrency.dylib").str) == shouldBackDeploySwiftConcurrency)
@@ -4313,7 +4849,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             TestAggregateTarget(
                                 "All",
                                 dependencies: [
-                                    "App",
+                                    "App"
                                 ]
                             ),
                             TestStandardTarget(
@@ -4327,7 +4863,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "FrameworkSource.swift"
-                                    ]),
+                                    ])
                                 ]
                             ),
                             TestStandardTarget(
@@ -4337,9 +4873,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestBuildConfiguration(
                                         "Debug",
                                         buildSettings: [
-                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES"
                                         ]
-                                    ),
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -4350,10 +4886,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     ]),
                                 ],
                                 dependencies: ["Framework"]
-                            )
+                            ),
                         ]
                     )
-                ])
+                ]
+            )
 
             // Create a tester for driving the build.
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
@@ -4383,10 +4920,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // Write a barebones Info.plist file.
-            try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Info.plist"), .plDict([
-                "CFBundleDevelopmentRegion": .plString("en"),
-                "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")
-            ]))
+            try await tester.fs.writePlist(
+                testWorkspace.sourceRoot.join("TestProject/Info.plist"),
+                .plDict([
+                    "CFBundleDevelopmentRegion": .plString("en"),
+                    "CFBundleExecutable": .plString("$(EXECUTABLE_NAME)"),
+                ])
+            )
 
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("TestProject/Entitlements.plist"), .plDict([:]))
 
@@ -4441,16 +4981,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         projectName,
                         groupTree: TestGroup("Sources"),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "DSTROOT": dstroot
-                            ])
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "DSTROOT": dstroot
+                                ]
+                            )
                         ],
                         targets: [
                             TestExternalTarget("mock", toolPath: "echo", arguments: "TARGET = $(TARGET_NAME) $(ALL_SETTINGS)")
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             let srcroot = testWorkspace.sourceRoot.join(projectName).str
@@ -4495,36 +5039,47 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("Prefix.h"),
-                            TestFile("lib.c"),
-                            TestFile("main.c")
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "GCC_PREFIX_HEADER": "Sources/Prefix.h",
-                                "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
-                                "INDEX_ENABLE_DATA_STORE": "YES",
-                                "COMPILER_INDEX_STORE_ENABLE": "YES",
-                                "CLANG_INDEX_STORE_PATH": "\(tmpDirPath.str)/something"
-                            ])
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("Prefix.h"),
+                                TestFile("lib.c"),
+                                TestFile("main.c"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "GCC_PREFIX_HEADER": "Sources/Prefix.h",
+                                    "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                                    "INDEX_ENABLE_DATA_STORE": "YES",
+                                    "COMPILER_INDEX_STORE_ENABLE": "YES",
+                                    "CLANG_INDEX_STORE_PATH": "\(tmpDirPath.str)/something",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .staticLibrary,
+                                "Tool",
+                                type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["main.c"]),
+                                    TestSourcesBuildPhase(["main.c"])
                                 ],
-                                dependencies: ["Library"]),
+                                dependencies: ["Library"]
+                            ),
                             TestStandardTarget(
-                                "Library", type: .staticLibrary,
+                                "Library",
+                                type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["lib.c"]),
-                                ]),
-                        ])
-                ])
+                                    TestSourcesBuildPhase(["lib.c"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Sources/Prefix.h")) { stream in
@@ -4591,7 +5146,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
-
     /// Check that we don't have an explicit dependency on build-context dependent headermap or VFS contents.
     ///
     /// While this is a build consistency problem, in practice having this dependency leads to rebuilds on situations which are very important (such as switching schemes in Xcode).
@@ -4599,38 +5153,54 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     func buildContextDependentHeadermapNonDependency() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let mainTarget = TestStandardTarget(
-                "MainTarget", type: .framework,
+                "MainTarget",
+                type: .framework,
                 buildConfigurations: [TestBuildConfiguration("Debug")],
                 buildPhases: [
-                    TestSourcesBuildPhase(["MainTarget.c"]),
-                ])
+                    TestSourcesBuildPhase(["MainTarget.c"])
+                ]
+            )
             let otherTarget = TestStandardTarget(
-                "OtherTarget", type: .framework,
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug")],
+                "OtherTarget",
+                type: .framework,
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug"
+                    )
+                ],
                 buildPhases: [
                     TestSourcesBuildPhase(["OtherTarget.c"]),
-                    TestHeadersBuildPhase(["OtherTarget.h"])
-                ])
+                    TestHeadersBuildPhase(["OtherTarget.h"]),
+                ]
+            )
             let testWorkspace = TestWorkspace(
                 "Test",
                 sourceRoot: tmpDirPath.join("Test"),
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("MainTarget.c"),
-                            TestFile("OtherTarget.c"),
-                            TestFile("OtherTarget.h")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "USE_HEADERMAP": "YES",
-                                "CLANG_ENABLE_MODULES": "YES",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("MainTarget.c"),
+                                TestFile("OtherTarget.c"),
+                                TestFile("OtherTarget.h"),
                             ]
-                        )],
-                        targets: [mainTarget, otherTarget])])
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "USE_HEADERMAP": "YES",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                ]
+                            )
+                        ],
+                        targets: [mainTarget, otherTarget]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the test files.
@@ -4694,18 +5264,25 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources"),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CODE_SIGN_IDENTITY": "-",
-                            ]
-                        )],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .commandLineTool,
-                                buildPhases: [
-                                ])])])
+                                "Tool",
+                                type: .commandLineTool,
+                                buildPhases: []
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             let parameters = BuildParameters(action: .build, configuration: "Debug")
@@ -4728,25 +5305,33 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     TestProject(
                         "aProject",
                         groupTree: TestGroup("Sources", children: [TestFile("main.c")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "EXECUTABLE_EXTENSION": "dylib",
-                                "EXECUTABLE_PREFIX": "lib",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "CODE_SIGNING_ALLOWED": "YES",
-                                "LD_DYLIB_INSTALL_NAME": "@rpath/libTool.dylib",
-                                "MACH_O_TYPE": "mh_dylib",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SUPPORTS_TEXT_BASED_API": "YES",
-                            ]
-                        )],
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "EXECUTABLE_EXTENSION": "dylib",
+                                    "EXECUTABLE_PREFIX": "lib",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "CODE_SIGNING_ALLOWED": "YES",
+                                    "LD_DYLIB_INSTALL_NAME": "@rpath/libTool.dylib",
+                                    "MACH_O_TYPE": "mh_dylib",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SUPPORTS_TEXT_BASED_API": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .staticLibrary,
+                                "Tool",
+                                type: .staticLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["main.c"])
-                                ])])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c"), body: { $0 <<< "" })
@@ -4773,29 +5358,32 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             "SomeFiles",
                             children: [
                                 // App sources
-                                TestFile("main.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "INFOPLIST_FILE": "Info.plist",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "SDKROOT": "macosx"
+                                TestFile("main.c")
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "SDKROOT": "macosx",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "App",
                                 type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "main.c",
+                                        "main.c"
                                     ]),
-                                    TestFrameworksBuildPhase([
-                                    ]),
+                                    TestFrameworksBuildPhase([]),
                                 ]
-                            )]
+                            )
+                        ]
                     )
                 ]
             )
@@ -4851,33 +5439,43 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         groupTree: TestGroup(
                             "Sources",
                             children: [
-                                TestFile("yacc.ym"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)"])],
+                                TestFile("yacc.ym")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .staticLibrary,
+                                "Tool",
+                                type: .staticLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "yacc.ym",
-                                    ])])])
-                ])
+                                        "yacc.ym"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the file data.
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/yacc.ym")) { stream in
-                stream <<<
-                """
-                %{
-                int yylex(void);
-                void yyerror(const char *s);
-                %}
-                %%
-                null : ;
-                """
+                stream <<< """
+                    %{
+                    int yylex(void);
+                    void yyerror(const char *s);
+                    %}
+                    %%
+                    null : ;
+                    """
             }
 
             // Perform the initial for-launch build.
@@ -4918,14 +5516,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 TestFile("file2.swift"),
                                 TestFile("file3.swift"),
                                 TestFile("file4.swift"),
-                            ]),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -4937,10 +5537,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                         "file2.swift",
                                         "file3.swift",
                                         "file4.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
@@ -4970,9 +5573,12 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             // We expect there will be only one subtask reported for the entire module when using WMO.
-            let parameters = BuildParameters(configuration: "Debug", overrides: [
-                "SWIFT_WHOLE_MODULE_OPTIMIZATION": "true",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "SWIFT_WHOLE_MODULE_OPTIMIZATION": "true"
+                ]
+            )
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Integrated Swift driver doesn't record jobs as subtasks.
                 results.check(notContains: .subtaskDidReportProgress(.scanning, count: 1))
@@ -4996,8 +5602,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("file.swift"),
-                            ]),
+                                TestFile("file.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -5005,7 +5612,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "SWIFT_VERSION": swiftVersion,
                                     "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                                ])
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -5014,10 +5622,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "file.swift"
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             // Ensure build system caching is enabled.
@@ -5067,8 +5678,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 }.max()
             }
 
-            #expect(try #require(build2HighestMaxTaskCount) <= #require(build1HighestMaxTaskCount),
-                          "Using a cached build system, the second build reported a higher max task count (\(String(describing: build2HighestMaxTaskCount))) compared to the initial failing build (\(String(describing: build1HighestMaxTaskCount)))!")
+            #expect(
+                try #require(build2HighestMaxTaskCount) <= #require(build1HighestMaxTaskCount),
+                "Using a cached build system, the second build reported a higher max task count (\(String(describing: build2HighestMaxTaskCount))) compared to the initial failing build (\(String(describing: build1HighestMaxTaskCount)))!"
+            )
         }
     }
     /// Check that TBD files can be generated and signed, end-to-end, for both Objective-C and Swift.
@@ -5076,35 +5689,47 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
             let useFramework = productType == .framework || productType == .staticFramework
             let target = try await TestStandardTarget(
-                "Core", type: productType,
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "INFOPLIST_FILE": useFramework ? "Info.plist" : "",
-                        "SUPPORTS_TEXT_BASED_API": useStubify ? "NO" : "YES",
-                        "GENERATE_TEXT_BASED_STUBS": useStubify ? "YES" : "NO",
-                        "CODE_SIGN_IDENTITY": "-",
-                        "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                        "TAPI_EXEC": tapiToolPath.str,
-                        "BUILD_VARIANTS": buildVariants.joined(separator: " "),
-                    ])],
+                "Core",
+                type: productType,
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "INFOPLIST_FILE": useFramework ? "Info.plist" : "",
+                            "SUPPORTS_TEXT_BASED_API": useStubify ? "NO" : "YES",
+                            "GENERATE_TEXT_BASED_STUBS": useStubify ? "YES" : "NO",
+                            "CODE_SIGN_IDENTITY": "-",
+                            "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                            "TAPI_EXEC": tapiToolPath.str,
+                            "BUILD_VARIANTS": buildVariants.joined(separator: " "),
+                        ]
+                    )
+                ],
                 buildPhases: [
                     TestSourcesBuildPhase(["Core.c"]),
-                    TestHeadersBuildPhase([.init("Core.h", headerVisibility: .public)])
-                ])
+                    TestHeadersBuildPhase([.init("Core.h", headerVisibility: .public)]),
+                ]
+            )
             let testProject = TestProject(
                 "aProject",
-                groupTree: TestGroup("Sources", children: [
-                    TestFile("Core.c"),
-                    TestFile("Core.h")]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CLANG_ENABLE_MODULES": "YES",
+                groupTree: TestGroup(
+                    "Sources",
+                    children: [
+                        TestFile("Core.c"),
+                        TestFile("Core.h"),
                     ]
-                )],
-                targets: [target])
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CLANG_ENABLE_MODULES": "YES",
+                        ]
+                    )
+                ],
+                targets: [target]
+            )
             let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDirPath.join("Test"), projects: [testProject])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -5235,30 +5860,42 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     func incrementalFwkTAPI() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let target = TestStandardTarget(
-                "Core", type: .framework,
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "DEFINES_MODULE": "YES",
-                        "SUPPORTS_TEXT_BASED_API": "YES",
-                    ])],
+                "Core",
+                type: .framework,
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "DEFINES_MODULE": "YES",
+                            "SUPPORTS_TEXT_BASED_API": "YES",
+                        ]
+                    )
+                ],
                 buildPhases: [
                     TestSourcesBuildPhase(["Core.c"]),
                     TestHeadersBuildPhase([TestBuildFile("Core.h", headerVisibility: .public)]),
-                ])
+                ]
+            )
             let testProject = TestProject(
                 "aProject",
-                groupTree: TestGroup("Sources", children: [
-                    TestFile("Core.c"),
-                    TestFile("Core.h")]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "CLANG_ENABLE_MODULES": "YES",
+                groupTree: TestGroup(
+                    "Sources",
+                    children: [
+                        TestFile("Core.c"),
+                        TestFile("Core.h"),
                     ]
-                )],
-                targets: [target])
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CLANG_ENABLE_MODULES": "YES",
+                        ]
+                    )
+                ],
+                targets: [target]
+            )
             let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDirPath.join("Test"), projects: [testProject])
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -5298,22 +5935,36 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("File.c"),
-                            TestFile("File.swift"),
-                            TestFile("File.m"),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "SWIFT_VERSION": swiftVersion])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("File.c"),
+                                TestFile("File.swift"),
+                                TestFile("File.m"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "aFramework", type: .framework,
+                                "aFramework",
+                                type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
-                                ])])])
+                                    TestSourcesBuildPhase(["File.c", "File.swift", "File.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.
@@ -5321,7 +5972,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.fs.writeFileContents(cFile) { stream in }
             let objcFile = testWorkspace.sourceRoot.join("aProject/File.m")
             try await tester.fs.writeFileContents(objcFile) { stream in }
-
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
@@ -5353,24 +6003,28 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     children: [
                         TestFile("shared.c"),
                         TestFile("main.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "DEBUG_INFORMATION_FORMAT": "dwarf",
-                        "CODE_SIGNING_ALLOWED": "NO",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "DSTROOT": "$(SRCROOT)/installable",
-                        // Disable the SetOwnerAndGroup action by setting them to empty values.
-                        "INSTALL_GROUP": "",
-                        "INSTALL_OWNER": "",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "DEBUG_INFORMATION_FORMAT": "dwarf",
+                            "CODE_SIGNING_ALLOWED": "NO",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "DSTROOT": "$(SRCROOT)/installable",
+                            // Disable the SetOwnerAndGroup action by setting them to empty values.
+                            "INSTALL_GROUP": "",
+                            "INSTALL_OWNER": "",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Tool",
                         type: .commandLineTool,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["main.c"]),
@@ -5382,13 +6036,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         "Shared",
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["shared.c"]),
+                            TestSourcesBuildPhase(["shared.c"])
                         ]
                     ),
-                ])
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let mainFile = SRCROOT.join("main.c")
@@ -5431,12 +6086,17 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "SomeFiles",
                     children: [
                         TestFile("myext.xcappextensionpoints")
-                    ]),
-                buildConfigurations: [TestBuildConfiguration(
-                    "Debug",
-                    buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)"])],
+                    ]
+                ),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        ]
+                    )
+                ],
                 targets: [
                     TestStandardTarget(
                         "Foo",
@@ -5444,9 +6104,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         buildConfigurations: [TestBuildConfiguration("Debug")],
                         buildPhases: [
                             TestResourcesBuildPhase([
-                                "myext.xcappextensionpoints",
+                                "myext.xcappextensionpoints"
                             ])
-                        ]),
+                        ]
+                    )
                 ]
             )
 
@@ -5497,21 +6158,26 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 TestFile("lex.l"),
                                 TestFile("mig.defs"),
                                 TestFile("yacc.y"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "ARCHS": "x86_64 x86_64h",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "BUILD_VARIANTS": "normal debug profile",
-                                "VALID_ARCHS": "$(inherited) x86_64h",
-                                "CLANG_WARN_IMPLICIT_FALLTHROUGH": "NO",
-                                "SDK_STAT_CACHE_ENABLE": "NO",
-                                "CLANG_USE_RESPONSE_FILE": "NO",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": "x86_64 x86_64h",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "BUILD_VARIANTS": "normal debug profile",
+                                    "VALID_ARCHS": "$(inherited) x86_64h",
+                                    "CLANG_WARN_IMPLICIT_FALLTHROUGH": "NO",
+                                    "SDK_STAT_CACHE_ENABLE": "NO",
+                                    "CLANG_USE_RESPONSE_FILE": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .staticLibrary,
+                                "Tool",
+                                type: .staticLibrary,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "dtrace.d",
@@ -5519,8 +6185,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                         "lex.l",
                                         "mig.defs",
                                         "yacc.y",
-                                    ])])])
-                ])
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.str
             let buildDirectory = testWorkspace.sourceRoot.str
@@ -5542,17 +6213,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/yacc.y")) { stream in
-                stream <<<
-                """
-                %{
-                static int yylex() { return 0; }
-                static int yyerror(const char *format) { return 0; }
-                %}
-                %%
-                list:
-                ;
-                %%
-                """
+                stream <<< """
+                    %{
+                    static int yylex() { return 0; }
+                    static int yyerror(const char *format) { return 0; }
+                    %}
+                    %%
+                    list:
+                    ;
+                    %%
+                    """
             }
 
             let iigPath = try await self.iigPath
@@ -5627,20 +6297,30 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         "aProject",
                         groupTree: TestGroup(
                             "Sources",
-                            children: [TestFile("main.c")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "ARCHS": "",
-                                "VALID_ARCHS": "none",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                            children: [TestFile("main.c")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS": "",
+                                    "VALID_ARCHS": "none",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .staticLibrary,
+                                "Tool",
+                                type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["main.c"])])])
-                ])
+                                    TestSourcesBuildPhase(["main.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             // Disable the memory cache by setting its limit to zero, to make sure we're actually going to reload the build description from disk.
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, buildDescriptionMaxCacheSize: (0, 1))
@@ -5673,13 +6353,17 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 TestFile("tool.c"),
                                 TestFile("lib.c"),
                                 TestFile("deeplib.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Tool",
@@ -5688,7 +6372,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestSourcesBuildPhase(["tool.c"]),
                                     TestFrameworksBuildPhase(["libLib.a"]),
                                 ],
-                                dependencies: ["Lib"]),
+                                dependencies: ["Lib"]
+                            ),
                             TestStandardTarget(
                                 "Lib",
                                 type: .staticLibrary,
@@ -5696,14 +6381,19 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestSourcesBuildPhase(["lib.c"]),
                                     TestFrameworksBuildPhase(["libDeepLib.a"]),
                                 ],
-                                dependencies: ["DeepLib"]),
+                                dependencies: ["DeepLib"]
+                            ),
                             TestStandardTarget(
                                 "DeepLib",
                                 type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["deeplib.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["deeplib.c"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -5742,13 +6432,19 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                 // Verify that the dependency info indeed has the libraries we expected.
                 let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat")).bytes)
-                #expect(actual.inputs.sorted() == [
-                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
-                    "\(buildDirectory)/Debug/libDeepLib.a"
-                ].sorted())
-                #expect(actual.outputs.sorted() == [
-                    "\(buildDirectory)/Debug/libLib.a"
-                ].sorted())
+                #expect(
+                    actual.inputs.sorted()
+                        == [
+                            "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
+                            "\(buildDirectory)/Debug/libDeepLib.a",
+                        ].sorted()
+                )
+                #expect(
+                    actual.outputs.sorted()
+                        == [
+                            "\(buildDirectory)/Debug/libLib.a"
+                        ].sorted()
+                )
             }
 
             // Validate a null build.
@@ -5796,15 +6492,19 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 TestFile("tool.c"),
                                 TestFile("lib.c"),
                                 TestFile("deeplib.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "INSTALL_OWNER": "",
-                                "INSTALL_GROUP": GetCurrentUserGroupName()!,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "INSTALL_OWNER": "",
+                                    "INSTALL_GROUP": GetCurrentUserGroupName()!,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Tool",
@@ -5814,7 +6514,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestSourcesBuildPhase(["tool.c"]),
                                     TestFrameworksBuildPhase(["libLib.a"]),
                                 ],
-                                dependencies: ["Lib"]),
+                                dependencies: ["Lib"]
+                            ),
                             TestStandardTarget(
                                 "Lib",
                                 type: .staticLibrary,
@@ -5823,15 +6524,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestSourcesBuildPhase(["lib.c"]),
                                     TestFrameworksBuildPhase(["libDeepLib.a"]),
                                 ],
-                                dependencies: ["DeepLib"]),
+                                dependencies: ["DeepLib"]
+                            ),
                             TestStandardTarget(
                                 "DeepLib",
                                 type: .staticLibrary,
                                 buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SKIP_INSTALL": "YES"])],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["deeplib.c"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["deeplib.c"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -5873,14 +6579,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                 // Verify that the dependency info indeed has the libraries we expected.
                 let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat")).bytes)
-                #expect(actual.inputs.sorted() == [
-                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
-                    "\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a",
-                    "\(buildDirectory)/Debug/libDeepLib.a",
-                ].sorted())
-                #expect(actual.outputs.sorted() == [
-                    "\(buildDirectory)/UninstalledProducts/macosx/libLib.a"
-                ].sorted())
+                #expect(
+                    actual.inputs.sorted()
+                        == [
+                            "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
+                            "\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a",
+                            "\(buildDirectory)/Debug/libDeepLib.a",
+                        ].sorted()
+                )
+                #expect(
+                    actual.outputs.sorted()
+                        == [
+                            "\(buildDirectory)/UninstalledProducts/macosx/libLib.a"
+                        ].sorted()
+                )
             }
 
             // Validate a null build.
@@ -5924,19 +6636,29 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         "aProject",
                         groupTree: TestGroup(
                             "Sources",
-                            children: [TestFile("main.c")]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/cache"
-                            ])],
+                            children: [TestFile("main.c")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/cache",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool", type: .staticLibrary,
+                                "Tool",
+                                type: .staticLibrary,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["main.c"])])])
-                ])
+                                    TestSourcesBuildPhase(["main.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -5964,33 +6686,51 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             children: [
                                 TestFile("tool1.c"),
                                 TestFile("tool2.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)"
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Tool1", type: .staticLibrary,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/tool1_ignored",
-                                    ])],
+                                "Tool1",
+                                type: .staticLibrary,
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/tool1_ignored"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["tool1.c"])]),
+                                    TestSourcesBuildPhase(["tool1.c"])
+                                ]
+                            ),
                             TestStandardTarget(
-                                "Tool2", type: .staticLibrary,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/tool2_ignored",
-                                    ])],
+                                "Tool2",
+                                type: .staticLibrary,
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/tool2_ignored"
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["tool2.c"])])
-                        ])
-                ])
+                                    TestSourcesBuildPhase(["tool2.c"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -6005,9 +6745,12 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 #expect("\(tmpDirPath.str)/Test/aProject/build/XCBuildData" == results.buildDescription.dir.str)
             }
 
-            let parameters = BuildParameters(configuration: "Debug", overrides: [
-                "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/cache",
-            ])
+            let parameters = BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "BUILD_DESCRIPTION_CACHE_DIR": "\(tmpDirPath.str)/cache"
+                ]
+            )
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS) { results in
                 #expect("\(tmpDirPath.str)/cache/XCBuildData" == results.buildDescription.dir.str)
             }
@@ -6024,25 +6767,39 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("SwiftFile.swift"),
-                            TestFile("Metal.metal"),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "CODE_SIGN_IDENTITY": "-",
-                                            "INFOPLIST_FILE": "Info.plist",
-                                            "CODESIGN": "/usr/bin/true",
-                                            "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
-                                            "SWIFT_VERSION": swiftVersion])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("SwiftFile.swift"),
+                                TestFile("Metal.metal"),
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "CODESIGN": "/usr/bin/true",
+                                    "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "aFramework", type: .framework,
+                                "aFramework",
+                                type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["SwiftFile.swift", "Metal.metal"]),
-                                ])])])
+                                    TestSourcesBuildPhase(["SwiftFile.swift", "Metal.metal"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: localFS)
             let signableTargets: Set<String> = ["aFramework"]
 
@@ -6097,30 +6854,43 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "Test",
                 sourceRoot: tmpDir.join("Test"),
                 projects: [
-                    TestProject("aProject",
-                                groupTree: TestGroup("Sources",
-                                                     children: [TestFile("main.swift")]),
-                                buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                             buildSettings: [
-                                                                                "CODE_SIGNING_ALLOWED": "NO",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SWIFT_VERSION": swiftVersion,
-                                                                                "LD_DEPENDENCY_INFO_FILE": tmpDir.join("foo/bar/baz").str
-                                                                             ])],
-                                targets: [TestStandardTarget("Tool", type: .commandLineTool,
-                                                             buildConfigurations: [TestBuildConfiguration("Debug")],
-                                                             buildPhases: [TestSourcesBuildPhase(["main.swift"])])])
-                ])
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [TestFile("main.swift")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "LD_DEPENDENCY_INFO_FILE": tmpDir.join("foo/bar/baz").str,
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool",
+                                type: .commandLineTool,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [TestSourcesBuildPhase(["main.swift"])]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
 
             // create the files
             let projectDir = testWorkspace.sourceRoot.join("aProject")
             try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
-                stream <<<
-                """
-                struct Foo { }
-                """
+                stream <<< """
+                    struct Foo { }
+                    """
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
@@ -6158,19 +6928,23 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 // For Script Phase: Run Me (FileLists)
                                 TestFile("in3.xcfilelist"),
                                 TestFile("out3.xcfilelist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "INFOPLIST_FILE": "Info.plist",
-                                "CODESIGN": "/usr/bin/true",
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "CODESIGN": "/usr/bin/true",
 
-                                // NOTE: THIS IS THE IMPORTANT SETTING! Ensure that opt-in is on, regardless of the default value.
-                                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
-                                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
-                            ])],
+                                    // NOTE: THIS IS THE IMPORTANT SETTING! Ensure that opt-in is on, regardless of the default value.
+                                    "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
+                                    "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Tool",
@@ -6184,7 +6958,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestShellScriptBuildPhase(name: "Run Me (Outputs)", shellPath: "/bin/bash", originalObjectID: "RunMe2", contents: #"cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}""#, inputs: ["$(SRCROOT)/input2.txt"], outputs: ["$(TARGET_BUILD_DIR)/Tool.app/Contents/Resources/out2.txt"]),
                                     TestShellScriptBuildPhase(name: "Run Me (FileList)", shellPath: "/bin/bash", originalObjectID: "RunMe3", contents: #"cat "${SCRIPT_INPUT_FILE_LIST_0}" | xargs cat > "$TARGET_BUILD_DIR/Tool.app/Contents/Resources/out3.txt""#, inputs: [], inputFileLists: ["$(SRCROOT)/in3.xcfilelist"], outputs: [], outputFileLists: ["$(SRCROOT)/out3.xcfilelist"]),
                                     TestCopyFilesBuildPhase([TestBuildFile("Other.framework", codeSignOnCopy: true)], destinationSubfolder: .plugins, onlyForDeployment: false),
-                                    TestShellScriptBuildPhase(name: "Cycle Creator", shellPath: "/bin/bash", originalObjectID: "CycleMe", contents: "mkdir -p $BUILT_PRODUCTS_DIR/Tool.app/Contents/TestDir", inputs: [], outputs: ["$(BUILT_PRODUCTS_DIR)/Tool.app/Contents/TestDir"])
+                                    TestShellScriptBuildPhase(name: "Cycle Creator", shellPath: "/bin/bash", originalObjectID: "CycleMe", contents: "mkdir -p $BUILT_PRODUCTS_DIR/Tool.app/Contents/TestDir", inputs: [], outputs: ["$(BUILT_PRODUCTS_DIR)/Tool.app/Contents/TestDir"]),
                                 ],
                                 dependencies: ["Other"]
                             ),
@@ -6195,7 +6969,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestSourcesBuildPhase(["other.c"])
                                 ]
                             ),
-                        ])])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -6400,22 +7177,26 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 // For Script Phase: Run Me (FileLists)
                                 TestFile("in3.xcfilelist"),
                                 TestFile("out3.xcfilelist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "ARCHS[sdk=iphoneos*]": "arm64",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CODE_SIGN_IDENTITY": "Apple Developer",
-                                "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                                "CODESIGN": "/usr/bin/true",   // Codesign will otherwise fail; the only important part is that the task is run.
-                                "INFOPLIST_FILE": "Info.plist",
-                                "SDKROOT": "iphoneos",
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS[sdk=iphoneos*]": "arm64",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "Apple Developer",
+                                    "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                                    "CODESIGN": "/usr/bin/true",  // Codesign will otherwise fail; the only important part is that the task is run.
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "SDKROOT": "iphoneos",
 
-                                // NOTE: THIS IS THE IMPORTANT SETTING! Ensure that opt-in is on, regardless of the default value.
-                                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
-                                "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
-                            ])],
+                                    // NOTE: THIS IS THE IMPORTANT SETTING! Ensure that opt-in is on, regardless of the default value.
+                                    "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
+                                    "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "Tool",
@@ -6428,8 +7209,12 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestShellScriptBuildPhase(name: "Run Me", shellPath: "/bin/bash", originalObjectID: "RunMe1", contents: #"cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}""#, inputs: ["$(SRCROOT)/input1.txt"], outputs: ["$(DERIVED_FILE_DIR)/out1"]),
                                     TestShellScriptBuildPhase(name: "Run Me (Outputs)", shellPath: "/bin/bash", originalObjectID: "RunMe2", contents: #"cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}""#, inputs: ["$(SRCROOT)/input2.txt"], outputs: ["$(TARGET_BUILD_DIR)/Tool.app/out2.txt"]),
                                     TestShellScriptBuildPhase(name: "Run Me (FileList)", shellPath: "/bin/bash", originalObjectID: "RunMe3", contents: #"cat "${SCRIPT_INPUT_FILE_LIST_0}" | xargs cat > "$TARGET_BUILD_DIR/Tool.app/out3.txt""#, inputs: [], inputFileLists: ["$(SRCROOT)/in3.xcfilelist"], outputs: [], outputFileLists: ["$(SRCROOT)/out3.xcfilelist"]),
-                                ]),
-                        ])])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -6477,7 +7262,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let excludedTasks: Set<String> = ["CreateBuildDirectory", "MkDir", "WriteAuxiliaryFile", "ProcessInfoPlistFile", "Validate", "RegisterWithLaunchServices", "Touch", "Gate", "RegisterExecutionPolicyException", "ClangStatCache", "ProcessSDKImports"]
 
             let provisioningInputs = [
-                "Tool": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing"),
+                "Tool": ProvisioningTaskInputs(identityHash: "Apple Development", identityName: "Dev Signing")
             ]
 
             try await tester.checkBuild(runDestination: .iOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
@@ -6609,25 +7394,31 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 TestFile("in3.xcfilelist"),
                                 TestFile("out3.xcfilelist"),
                                 TestFile("out3_no.xcfilelist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "INFOPLIST_FILE": "Info.plist",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget("All", dependencies: ["Tool", "NoTool"]),
                             TestStandardTarget(
                                 "Tool",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug",
-                                                           buildSettings: [
-                                                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
-                                                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
-                                                           ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "YES",
+                                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING_FOR_SCRIPT_OUTPUTS": "YES",
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["tool.c"]),
@@ -6637,15 +7428,18 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestShellScriptBuildPhase(name: "Run Me", shellPath: "/bin/bash", originalObjectID: "RunMe1", contents: #"cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}""#, inputs: ["$(SRCROOT)/input1.txt"], outputs: ["$(DERIVED_FILE_DIR)/out1"]),
                                     TestShellScriptBuildPhase(name: "Run Me (Outputs)", shellPath: "/bin/bash", originalObjectID: "RunMe2", contents: #"cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}""#, inputs: ["$(SRCROOT)/input2.txt"], outputs: ["$(TARGET_BUILD_DIR)/Tool.app/Contents/Resources/out2.txt"]),
                                     TestShellScriptBuildPhase(name: "Run Me (FileList)", shellPath: "/bin/bash", originalObjectID: "RunMe3", contents: #"cat "${SCRIPT_INPUT_FILE_LIST_0}" | xargs cat > "$TARGET_BUILD_DIR/Tool.app/Contents/Resources/out3.txt""#, inputs: [], inputFileLists: ["$(SRCROOT)/in3.xcfilelist"], outputs: [], outputFileLists: ["$(SRCROOT)/out3.xcfilelist"]),
-                                ]),
+                                ]
+                            ),
                             TestStandardTarget(
                                 "NoTool",
                                 type: .application,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug",
-                                                           buildSettings: [
-                                                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "NO",
-                                                           ])
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING": "NO"
+                                        ]
+                                    )
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["tool.c"]),
@@ -6655,8 +7449,12 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     TestShellScriptBuildPhase(name: "Run Me", shellPath: "/bin/bash", originalObjectID: "RunMe1", contents: #"cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}""#, inputs: ["$(SRCROOT)/input1.txt"], outputs: ["$(DERIVED_FILE_DIR)/out1"]),
                                     TestShellScriptBuildPhase(name: "Run Me (Outputs)", shellPath: "/bin/bash", originalObjectID: "RunMe2", contents: #"cat "${SCRIPT_INPUT_FILE_0}" > "${SCRIPT_OUTPUT_FILE_0}""#, inputs: ["$(SRCROOT)/input2.txt"], outputs: ["$(TARGET_BUILD_DIR)/NoTool.app/Contents/Resources/out2.txt"]),
                                     TestShellScriptBuildPhase(name: "Run Me (FileList)", shellPath: "/bin/bash", originalObjectID: "RunMe3", contents: #"cat "${SCRIPT_INPUT_FILE_LIST_0}" | xargs cat > "$TARGET_BUILD_DIR/NoTool.app/Contents/Resources/out3.txt""#, inputs: [], inputFileLists: ["$(SRCROOT)/in3.xcfilelist"], outputs: [], outputFileLists: ["$(SRCROOT)/out3_no.xcfilelist"]),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -6912,29 +7710,38 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 TestFile("resource.txt"),
                                 TestFile("other.txt"),
                                 TestFile("Info.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CODE_SIGN_IDENTITY": "-",
-                                "INFOPLIST_FILE": "Info.plist",
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestAggregateTarget(
                                 "Embed",
                                 buildPhases: [
-                                    TestCopyFilesBuildPhase(["other.txt"], destinationSubfolder: .builtProductsDir, destinationSubpath: "Tool.app/Contents", onlyForDeployment: false),
+                                    TestCopyFilesBuildPhase(["other.txt"], destinationSubfolder: .builtProductsDir, destinationSubpath: "Tool.app/Contents", onlyForDeployment: false)
                                 ],
-                                dependencies: ["Tool"]),
+                                dependencies: ["Tool"]
+                            ),
                             TestStandardTarget(
                                 "Tool",
                                 type: .application,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["tool.c"]),
                                     TestCopyFilesBuildPhase(["resource.txt"], destinationSubfolder: .resources, onlyForDeployment: false),
-                                ]),
-                        ])])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -6994,26 +7801,38 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     projects: [
                         TestProject(
                             "aProject",
-                            groupTree: TestGroup("Sources", children: [
-                                TestFile("File.c"),
-                                TestFile("File.swift"),
-                                TestFile("File.m"),
-                            ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "SDKROOT": "iphoneos",
-                                    "DONT_GENERATE_INFOPLIST_FILE": "YES",
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "SWIFT_VERSION": swiftVersion,
-                                ])],
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("File.c"),
+                                    TestFile("File.swift"),
+                                    TestFile("File.m"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "iphoneos",
+                                        "DONT_GENERATE_INFOPLIST_FILE": "YES",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SWIFT_VERSION": swiftVersion,
+                                    ]
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
-                                    "aFramework", type: .framework,
+                                    "aFramework",
+                                    type: .framework,
                                     buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
-                                    ])])])
+                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"])
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -7058,33 +7877,46 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     projects: [
                         TestProject(
                             "aProject",
-                            groupTree: TestGroup("Sources", children: [
-                                TestFile("File.c"),
-                                TestFile("File.swift"),
-                                TestFile("File.m"),
-                            ]),
-                            buildConfigurations: [TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: [
-                                    "SDKROOT": "macosx",
-                                    "DONT_GENERATE_INFOPLIST_FILE": "YES",
-                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                    "SWIFT_VERSION": swiftVersion,
-                                ])],
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("File.c"),
+                                    TestFile("File.swift"),
+                                    TestFile("File.m"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "macosx",
+                                        "DONT_GENERATE_INFOPLIST_FILE": "YES",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "SWIFT_VERSION": swiftVersion,
+                                    ]
+                                )
+                            ],
                             targets: [
                                 TestStandardTarget(
-                                    "aFramework", type: .framework,
+                                    "aFramework",
+                                    type: .framework,
                                     buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
-                                    ]),
+                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"])
+                                    ]
+                                ),
                                 TestStandardTarget(
-                                    "anApp", type: .application,
+                                    "anApp",
+                                    type: .application,
                                     buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
                                     buildPhases: [
-                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
-                                    ])
-                            ])])
+                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"])
+                                    ]
+                                ),
+                            ]
+                        )
+                    ]
+                )
 
                 let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -7096,7 +7928,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
                 try await tester.checkBuild(runDestination: .anyMac) { results -> Void in
                     results.checkNoErrors()
-
 
                     for arch in expectedArchs {
                         results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("File.c")), .matchRuleItem(arch)) { _ in }
@@ -7127,10 +7958,13 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("File.swift"),
-                            TestFile("Model.xcdatamodel"),
-                        ]),
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("File.swift"),
+                                TestFile("Model.xcdatamodel"),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -7144,17 +7978,20 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         ],
                         targets: [
                             TestStandardTarget(
-                                "aFramework", type: .framework,
+                                "aFramework",
+                                type: .framework,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["File.swift", "Model.xcdatamodel"]),
+                                    TestSourcesBuildPhase(["File.swift", "Model.xcdatamodel"])
                                 ],
                                 buildRules: [
                                     TestBuildRule(fileTypeIdentifier: "wrapper.xcdatamodel", script: "echo \"should run!\"", outputs: ["$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).mom"])
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
 
@@ -7167,7 +8004,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 results.checkNoDiagnostics()
                 results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemPattern(.suffix("DerivedSources/Model.mom"))) { _ in }
             }
-
 
             // Verify null build.
             try await tester.checkNullBuild(runDestination: .macOS, persistent: true, excludedTasks: ["ClangStatCache"], diagnosticsToValidate: [.error, .warning])
@@ -7184,7 +8020,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
         }
     }
-
 
     // rdar://97564149 (ER: add support for xcfilelists in build rules)
 
@@ -7221,15 +8056,18 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         TestFile("suffix.txt"),
                         TestFile("example.fake-ts"),
                         TestFile("mock.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "BUILD_VARIANTS": "debug",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "BUILD_VARIANTS": "debug",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -7237,25 +8075,30 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         type: .application,
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                TestBuildFile("example.fake-ts"),
-                            ]),
+                                TestBuildFile("example.fake-ts")
+                            ])
                         ],
                         buildRules: [
-                            TestBuildRule(filePattern: "*.fake-ts",
-                                          script: #"bash "${SRCROOT}/fake-typescript-compiler.fake-sh""#,
-                                          inputs: ["$(SRCROOT)/fake-typescript-compiler.fake-sh"],
-                                          inputFileLists: ["$(SRCROOT)/extra-input-files.xcfilelist", "$(SRCROOT)/license.xcfilelist"],
-                                          outputs: ["$(INPUT_FILE_PATH).fake-js"],
-                                          outputFileLists: ["$(SRCROOT)/extra-output-files-odd.xcfilelist", "$(SRCROOT)/extra-output-files-even.xcfilelist"]),
-                            TestBuildRule(filePattern: "*.fake-js",
-                                          script: #"bash "${SRCROOT}/fake-uglifier.fake-sh""#,
-                                          inputs: ["$(SRCROOT)/fake-uglifier.fake-sh"],
-                                          inputFileLists: ["$(SRCROOT)/uglifier-input-files.xcfilelist"],
-                                          outputs: ["$(INPUT_FILE_PATH).fake-uglified"],
-                                          outputFileLists: []),
+                            TestBuildRule(
+                                filePattern: "*.fake-ts",
+                                script: #"bash "${SRCROOT}/fake-typescript-compiler.fake-sh""#,
+                                inputs: ["$(SRCROOT)/fake-typescript-compiler.fake-sh"],
+                                inputFileLists: ["$(SRCROOT)/extra-input-files.xcfilelist", "$(SRCROOT)/license.xcfilelist"],
+                                outputs: ["$(INPUT_FILE_PATH).fake-js"],
+                                outputFileLists: ["$(SRCROOT)/extra-output-files-odd.xcfilelist", "$(SRCROOT)/extra-output-files-even.xcfilelist"]
+                            ),
+                            TestBuildRule(
+                                filePattern: "*.fake-js",
+                                script: #"bash "${SRCROOT}/fake-uglifier.fake-sh""#,
+                                inputs: ["$(SRCROOT)/fake-uglifier.fake-sh"],
+                                inputFileLists: ["$(SRCROOT)/uglifier-input-files.xcfilelist"],
+                                outputs: ["$(INPUT_FILE_PATH).fake-uglified"],
+                                outputFileLists: []
+                            ),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
 
             let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir.join("Test"), projects: [testProject])
 
@@ -7271,35 +8114,35 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 // also, add license text and year to the beginning of the generated file.
                 // also generate {one,two,three,four}.txt listed in output file lists
                 let script = #"""
-                    set -o errexit
-                    set -o xtrace
-                    set -o nounset
-                    set -o pipefail
+                        set -o errexit
+                        set -o xtrace
+                        set -o nounset
+                        set -o pipefail
 
 
-                    cat "${INPUT_FILE_PATH}" | sed -e "s/^/$(cat "${FAKE_PATH_PREFIX}")/g" -e "s/$/$(cat "${FAKE_PATH_SUFFIX}")/g" | cat "${FAKE_PATH_LICENSE_TEXT}" "${FAKE_PATH_LICENSE_YEAR}" - > "${SCRIPT_OUTPUT_FILE_0}"
+                        cat "${INPUT_FILE_PATH}" | sed -e "s/^/$(cat "${FAKE_PATH_PREFIX}")/g" -e "s/$/$(cat "${FAKE_PATH_SUFFIX}")/g" | cat "${FAKE_PATH_LICENSE_TEXT}" "${FAKE_PATH_LICENSE_YEAR}" - > "${SCRIPT_OUTPUT_FILE_0}"
 
-                    while read path_to_odd_file; do
-                        echo "ODD" > "${path_to_odd_file}"
-                    done < "${SCRIPT_OUTPUT_FILE_LIST_0}"
+                        while read path_to_odd_file; do
+                            echo "ODD" > "${path_to_odd_file}"
+                        done < "${SCRIPT_OUTPUT_FILE_LIST_0}"
 
-                    while read path_to_even_file; do
-                        echo "EVEN" > "${path_to_even_file}"
-                    done < "${SCRIPT_OUTPUT_FILE_LIST_1}"
-                """#
+                        while read path_to_even_file; do
+                            echo "EVEN" > "${path_to_even_file}"
+                        done < "${SCRIPT_OUTPUT_FILE_LIST_1}"
+                    """#
                 stream <<< script
             }
 
             try await fs.writeFileContents(Path(SRCROOT).join("fake-uglifier.fake-sh")) { stream in
                 let script = #"""
-                    set -o errexit
-                    set -o xtrace
-                    set -o nounset
-                    set -o pipefail
+                        set -o errexit
+                        set -o xtrace
+                        set -o nounset
+                        set -o pipefail
 
 
-                    cat "${INPUT_FILE_PATH}" | sed -e "s/^/UGLIFIED /g" > "${SCRIPT_OUTPUT_FILE_0}"
-                """#
+                        cat "${INPUT_FILE_PATH}" | sed -e "s/^/UGLIFIED /g" > "${SCRIPT_OUTPUT_FILE_0}"
+                    """#
                 stream <<< script
             }
 
@@ -7352,7 +8195,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "FAKE_PATH_LICENSE_YEAR": Path(SRCROOT).join("license-year.txt").str,
                 "FAKE_PATH_LICENSE_TEXT": Path(SRCROOT).join("license-text.txt").str,
                 "FAKE_PATH_PREFIX": Path(SRCROOT).join("prefix.txt").str,
-                "FAKE_PATH_SUFFIX": Path(SRCROOT).join("suffix.txt").str
+                "FAKE_PATH_SUFFIX": Path(SRCROOT).join("suffix.txt").str,
             ]
             // Check the build.
             for enableSandboxingInTest in [true, false] {
@@ -7371,11 +8214,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         let path = task.outputPaths[0]
                         let output = try fs.read(path).asString
                         let expectedOutput = """
-                        LICENSE TEXT
-                        2021
-                        PREFIX Fake typescript code SUFFIX
-                        PREFIX Fake typescript code line 2 SUFFIX
-                        """
+                            LICENSE TEXT
+                            2021
+                            PREFIX Fake typescript code SUFFIX
+                            PREFIX Fake typescript code line 2 SUFFIX
+                            """
                         XCTAssertMatch(output, .contains(expectedOutput))
 
                         func check(pathFragment: String, expectedOutput: consuming sending Regex<Substring>, sourceLocation: SourceLocation = #_sourceLocation) throws {
@@ -7396,11 +8239,11 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         let path = task.outputPaths[0]
                         let output = try fs.read(path).asString
                         let expectedOutput = """
-                        UGLIFIED LICENSE TEXT
-                        UGLIFIED 2021
-                        UGLIFIED PREFIX Fake typescript code SUFFIX
-                        UGLIFIED PREFIX Fake typescript code line 2 SUFFIX
-                        """
+                            UGLIFIED LICENSE TEXT
+                            UGLIFIED 2021
+                            UGLIFIED PREFIX Fake typescript code SUFFIX
+                            UGLIFIED PREFIX Fake typescript code line 2 SUFFIX
+                            """
                         XCTAssertMatch(output, .contains(expectedOutput))
                     }
                 }
@@ -7424,15 +8267,18 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         TestFile("example-1.fake-ts"),
                         TestFile("example-2.fake-ts"),
                         TestFile("mock.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "BUILD_VARIANTS": "debug",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "ENABLE_USER_SCRIPT_SANDBOXING": "NO", // This test will run with both ON/OFF configurations
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "BUILD_VARIANTS": "debug",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "ENABLE_USER_SCRIPT_SANDBOXING": "NO",  // This test will run with both ON/OFF configurations
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -7442,18 +8288,21 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             TestSourcesBuildPhase([
                                 TestBuildFile("example-1.fake-ts"),
                                 TestBuildFile("example-2.fake-ts"),
-                            ]),
+                            ])
                         ],
                         buildRules: [
-                            TestBuildRule(filePattern: "*.fake-ts",
-                                          script: #"bash "${SRCROOT}/fake-typescript-compiler.fake-sh""#,
-                                          inputs: ["$(SRCROOT)/fake-typescript-compiler.fake-sh"],
-                                          inputFileLists: ["$(SRCROOT)/extra-input-files.xcfilelist"],
-                                          outputs: ["${INPUT_FILE_PATH}.E.fake-js", "${INPUT_FILE_PATH}.F.fake-js"],
-                                          outputFileLists: ["$(SRCROOT)/extra-output-files-A-B.xcfilelist", "$(SRCROOT)/extra-output-files-C-D.xcfilelist"]),
+                            TestBuildRule(
+                                filePattern: "*.fake-ts",
+                                script: #"bash "${SRCROOT}/fake-typescript-compiler.fake-sh""#,
+                                inputs: ["$(SRCROOT)/fake-typescript-compiler.fake-sh"],
+                                inputFileLists: ["$(SRCROOT)/extra-input-files.xcfilelist"],
+                                outputs: ["${INPUT_FILE_PATH}.E.fake-js", "${INPUT_FILE_PATH}.F.fake-js"],
+                                outputFileLists: ["$(SRCROOT)/extra-output-files-A-B.xcfilelist", "$(SRCROOT)/extra-output-files-C-D.xcfilelist"]
+                            )
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
 
             let testWorkspace = TestWorkspace("Test", sourceRoot: tmpDir.join("Test"), projects: [testProject])
 
@@ -7465,16 +8314,16 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await fs.writeFileContents(Path(SRCROOT).join("fake-typescript-compiler.fake-sh")) { stream in
                 let script = #"""
-                    set -o errexit
-                    set -o xtrace
-                    set -o nounset
-                    set -o pipefail
+                        set -o errexit
+                        set -o xtrace
+                        set -o nounset
+                        set -o pipefail
 
-                    for outputAlphaCode in {A..F}
-                    do
-                        cat "${INPUT_FILE_PATH}" | sed -e "s/^/$(basename "${INPUT_FILE_PATH}"): /g" |  sed -e "s/^/$(cat "${FAKE_PATH_PREFIX}") ${outputAlphaCode}: /g" > "${INPUT_FILE_PATH}.${outputAlphaCode}.fake-js"
-                    done
-                """#
+                        for outputAlphaCode in {A..F}
+                        do
+                            cat "${INPUT_FILE_PATH}" | sed -e "s/^/$(basename "${INPUT_FILE_PATH}"): /g" |  sed -e "s/^/$(cat "${FAKE_PATH_PREFIX}") ${outputAlphaCode}: /g" > "${INPUT_FILE_PATH}.${outputAlphaCode}.fake-js"
+                        done
+                    """#
                 stream <<< script
             }
 
@@ -7507,7 +8356,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
 
             let overrides = [
-                "FAKE_PATH_PREFIX": Path(SRCROOT).join("prefix.txt").str,
+                "FAKE_PATH_PREFIX": Path(SRCROOT).join("prefix.txt").str
             ]
             // Check the build.
             for enableSandboxingInTest in [true, false] {
@@ -7526,9 +8375,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         for elem in ["A", "B", "C", "D", "E", "F"] {
                             let output = try fs.read(Path(SRCROOT).join("example-1.fake-ts.\(elem).fake-js")).asString
                             let expectedOutput = """
-                            PREFIX \(elem): example-1.fake-ts: Example 1, line 1
-                            PREFIX \(elem): example-1.fake-ts: Example 1, line 2
-                            """
+                                PREFIX \(elem): example-1.fake-ts: Example 1, line 1
+                                PREFIX \(elem): example-1.fake-ts: Example 1, line 2
+                                """
                             XCTAssertMatch(output, .contains(expectedOutput))
                         }
                     }
@@ -7545,9 +8394,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         for elem in ["A", "B", "C", "D", "E", "F"] {
                             let output = try fs.read(Path(SRCROOT).join("example-2.fake-ts.\(elem).fake-js")).asString
                             let expectedOutput = """
-                            PREFIX \(elem): example-2.fake-ts: Example 2, line 1
-                            PREFIX \(elem): example-2.fake-ts: Example 2, line 2
-                            """
+                                PREFIX \(elem): example-2.fake-ts: Example 2, line 1
+                                PREFIX \(elem): example-2.fake-ts: Example 2, line 2
+                                """
                             XCTAssertMatch(output, .contains(expectedOutput))
                         }
                     }
@@ -7565,12 +8414,15 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("File.swift"),
-                            TestFile("Extension.swift"),
-                            TestFile("resources.js"),
-                            TestFile("Info.plist")
-                        ]),
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("File.swift"),
+                                TestFile("Extension.swift"),
+                                TestFile("resources.js"),
+                                TestFile("Info.plist"),
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -7586,22 +8438,26 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         ],
                         targets: [
                             TestStandardTarget(
-                                "anApp", type: .application,
+                                "anApp",
+                                type: .application,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["File.swift"]),
-                                    TestCopyFilesBuildPhase([TestBuildFile("anExtension.appex", codeSignOnCopy: true)], destinationSubfolder: .frameworks, destinationSubpath: "PlugIns", onlyForDeployment: false)
+                                    TestCopyFilesBuildPhase([TestBuildFile("anExtension.appex", codeSignOnCopy: true)], destinationSubfolder: .frameworks, destinationSubpath: "PlugIns", onlyForDeployment: false),
                                 ],
                                 dependencies: ["anExtension"]
                             ),
                             TestStandardTarget(
-                                "anExtension", type: .applicationExtension,
+                                "anExtension",
+                                type: .applicationExtension,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Extension.swift"]),
-                                    TestCopyFilesBuildPhase(["resources.js"], destinationSubfolder: .resources, onlyForDeployment: false)
-                                ])
-                        ])
+                                    TestCopyFilesBuildPhase(["resources.js"], destinationSubfolder: .resources, onlyForDeployment: false),
+                                ]
+                            ),
+                        ]
+                    )
                 ]
             )
 
@@ -7651,19 +8507,33 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "Test",
                 sourceRoot: tmpDir.join("Test"),
                 projects: [
-                    TestProject( "aProject",
-                                 groupTree: TestGroup("Sources",
-                                                      children: [TestFile("main.c")]),
-                                 buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                              buildSettings: [
-                                                                                "CODE_SIGNING_ALLOWED": "NO",
-                                                                                "CLANG_GENERATE_OPTIMIZATION_REMARKS": "YES",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                              ])],
-                                 targets: [TestStandardTarget("Tool", type: .commandLineTool,
-                                                              buildConfigurations: [TestBuildConfiguration("Debug")],
-                                                              buildPhases: [TestSourcesBuildPhase(["main.c"])])])
-                ])
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [TestFile("main.c")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "CLANG_GENERATE_OPTIMIZATION_REMARKS": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool",
+                                type: .commandLineTool,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [TestSourcesBuildPhase(["main.c"])]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
 
@@ -7687,20 +8557,34 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "Test",
                 sourceRoot: tmpDir.join("Test"),
                 projects: [
-                    TestProject( "aProject",
-                                 groupTree: TestGroup("Sources",
-                                                      children: [TestFile("main.c")]),
-                                 buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                              buildSettings: [
-                                                                                "CODE_SIGNING_ALLOWED": "NO",
-                                                                                "LTO": "YES",
-                                                                                "CLANG_GENERATE_OPTIMIZATION_REMARKS": "YES",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                              ])],
-                                 targets: [TestStandardTarget("Tool", type: .commandLineTool,
-                                                              buildConfigurations: [TestBuildConfiguration("Debug")],
-                                                              buildPhases: [TestSourcesBuildPhase(["main.c"])])])
-                ])
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [TestFile("main.c")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "LTO": "YES",
+                                    "CLANG_GENERATE_OPTIMIZATION_REMARKS": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool",
+                                type: .commandLineTool,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [TestSourcesBuildPhase(["main.c"])]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
 
@@ -7723,22 +8607,36 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "Test",
                 sourceRoot: tmpDir.join("Test"),
                 projects: [
-                    TestProject("aProject",
-                                groupTree: TestGroup("Sources",
-                                                     children: [TestFile("main.c")]),
-                                buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                             buildSettings: [
-                                                                                "CODE_SIGNING_ALLOWED": "NO",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [TestFile("main.c")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
 
-                                                                                // Specify some file that doesn't exist to provoke missing input
-                                                                                "CLANG_USE_OPTIMIZATION_PROFILE": "YES",
-                                                                                "CLANG_OPTIMIZATION_PROFILE_FILE": tmpDir.join("Test").join("profile.txt").str,
-                                                                             ])],
-                                targets: [TestStandardTarget("Tool", type: .commandLineTool,
-                                                             buildConfigurations: [TestBuildConfiguration("Debug")],
-                                                             buildPhases: [TestSourcesBuildPhase(["main.c"])])])
-                ])
+                                    // Specify some file that doesn't exist to provoke missing input
+                                    "CLANG_USE_OPTIMIZATION_PROFILE": "YES",
+                                    "CLANG_OPTIMIZATION_PROFILE_FILE": tmpDir.join("Test").join("profile.txt").str,
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool",
+                                type: .commandLineTool,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [TestSourcesBuildPhase(["main.c"])]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
 
@@ -7769,30 +8667,43 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "Test",
                 sourceRoot: tmpDir.join("Test"),
                 projects: [
-                    TestProject("aProject",
-                                groupTree: TestGroup("Sources",
-                                                     children: [TestFile("main.swift")]),
-                                buildConfigurations: [TestBuildConfiguration("Debug",
-                                                                             buildSettings: [
-                                                                                "CODE_SIGNING_ALLOWED": "NO",
-                                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                                "SWIFT_VERSION": swiftVersion,
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [TestFile("main.swift")]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
 
-                                                                                // this will spawn some dynamic tasks
-                                                                                "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                                                             ])],
-                                targets: [TestStandardTarget("Tool", type: .commandLineTool,
-                                                             buildConfigurations: [TestBuildConfiguration("Debug")],
-                                                             buildPhases: [TestSourcesBuildPhase(["main.swift"])])])
-                ])
+                                    // this will spawn some dynamic tasks
+                                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool",
+                                type: .commandLineTool,
+                                buildConfigurations: [TestBuildConfiguration("Debug")],
+                                buildPhases: [TestSourcesBuildPhase(["main.swift"])]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
 
             // create the files
             let projectDir = testWorkspace.sourceRoot.join("aProject")
             try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
-                stream <<<
-                    """
+                stream <<< """
                     struct Foo { }
                     """
             }
@@ -7825,8 +8736,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             "Sources",
                             path: "Sources",
                             children: [
-                                TestFile("Source.swift"),
-                            ]),
+                                TestFile("Source.swift")
+                            ]
+                        ),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
@@ -7837,8 +8749,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                     "ARCHS": "arm64e",
 
                                     "SWIFT_USE_INTEGRATED_DRIVER": "YES",
-                                    "OTHER_SWIFT_FLAGS": "$(inherited) -Xfrontend -disable-implicit-string-processing-module-import"
-                                ])
+                                    "OTHER_SWIFT_FLAGS": "$(inherited) -Xfrontend -disable-implicit-string-processing-module-import",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -7846,11 +8759,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
-                                        "Source.swift",
-                                    ]),
-                                ]),
-                        ])
-                ])
+                                        "Source.swift"
+                                    ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let parameters = BuildParameters(configuration: "Debug")
@@ -7909,7 +8825,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         [
                             "\(SRCROOT.str)/build/Debug/TargetA.framework/Versions/A/TargetA",
                             "\(SRCROOT.str)/build/aProject.build/Debug/TargetA.build/Objects-normal/arm64e/TargetA_dependency_info.dat",
-                        ])
+                        ]
+                    )
                 }
             }
         }

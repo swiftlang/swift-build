@@ -353,10 +353,13 @@ extension SpecRegistry {
     func effectiveFlattenedBuildOptions(_ spec: PropertyDomainSpec) -> [String: BuildOption] {
         var options = spec.flattenedBuildOptions
         for extensionSpec in findSpecs(BuildSettingsExtensionSpec.self) where spec.conformsTo(identifier: extensionSpec.extendsConformsTo) {
-            options.merge(extensionSpec.flattenedBuildOptions, uniquingKeysWith: { _, new in
-                // Should duplicates be an error?
-                return new
-            })
+            options.merge(
+                extensionSpec.flattenedBuildOptions,
+                uniquingKeysWith: { _, new in
+                    // Should duplicates be an error?
+                    return new
+                }
+            )
         }
         return options
     }
@@ -439,26 +442,32 @@ public struct CommandBuildContext {
     public let validityCriteria: (any TaskValidityCriteria)?
 
     public init(
-        producer: any CommandProducer, scope: MacroEvaluationScope,
-        inputs: [FileToBuild], isPreferredArch: Bool = true,
+        producer: any CommandProducer,
+        scope: MacroEvaluationScope,
+        inputs: [FileToBuild],
+        isPreferredArch: Bool = true,
         currentArchSpec: ArchitectureSpec? = nil,
         output: Path? = nil,
         commandOrderingInputs: [any PlannedNode] = [],
         commandOrderingOutputs: [any PlannedNode] = [],
         buildPhaseInfo: (any BuildPhaseInfoForToolSpec)? = nil,
-        resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil,
+        resourcesDir: Path? = nil,
+        tmpResourcesDir: Path? = nil,
         unlocalizedResourcesDir: Path? = nil,
         preparesForIndexing: Bool = false,
         validityCriteria: (any TaskValidityCriteria)? = nil
     ) {
         self.init(
-            producer: producer, scope: scope, inputs: inputs,
+            producer: producer,
+            scope: scope,
+            inputs: inputs,
             isPreferredArch: isPreferredArch,
             currentArchSpec: currentArchSpec,
             outputs: output.map { [$0] } ?? [],
             commandOrderingInputs: commandOrderingInputs,
             commandOrderingOutputs: commandOrderingOutputs,
-            buildPhaseInfo: buildPhaseInfo, resourcesDir: resourcesDir,
+            buildPhaseInfo: buildPhaseInfo,
+            resourcesDir: resourcesDir,
             tmpResourcesDir: tmpResourcesDir,
             unlocalizedResourcesDir: unlocalizedResourcesDir,
             preparesForIndexing: preparesForIndexing,
@@ -467,14 +476,17 @@ public struct CommandBuildContext {
     }
 
     public init(
-        producer: any CommandProducer, scope: MacroEvaluationScope,
-        inputs: [FileToBuild], isPreferredArch: Bool = true,
+        producer: any CommandProducer,
+        scope: MacroEvaluationScope,
+        inputs: [FileToBuild],
+        isPreferredArch: Bool = true,
         currentArchSpec: ArchitectureSpec? = nil,
         outputs: [Path],
         commandOrderingInputs: [any PlannedNode] = [],
         commandOrderingOutputs: [any PlannedNode] = [],
         buildPhaseInfo: (any BuildPhaseInfoForToolSpec)? = nil,
-        resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil,
+        resourcesDir: Path? = nil,
+        tmpResourcesDir: Path? = nil,
         unlocalizedResourcesDir: Path? = nil,
         preparesForIndexing: Bool = false,
         validityCriteria: (any TaskValidityCriteria)? = nil
@@ -584,22 +596,23 @@ public struct TaskOrderingOptions: OptionSet, CustomDebugStringConvertible, Send
     public static let ignorePhaseOrdering = TaskOrderingOptions(1 << 10)
 
     public var debugDescription: String {
-        return "<TaskOrderingOptions [" + [
-            "compilation": .compilation,
-            "compilationForIndexableSourceFile": .compilationForIndexableSourceFile,
-            "linking": .linking,
+        return "<TaskOrderingOptions ["
+            + [
+                "compilation": .compilation,
+                "compilationForIndexableSourceFile": .compilationForIndexableSourceFile,
+                "linking": .linking,
 
-            "immediate": TaskOrderingOptions.immediate,
-            "blockedByTargetHeaders": .blockedByTargetHeaders,
+                "immediate": TaskOrderingOptions.immediate,
+                "blockedByTargetHeaders": .blockedByTargetHeaders,
 
-            "compilationRequirement": .compilationRequirement,
-            "unsignedProductRequirement": .unsignedProductRequirement,
-            "linkingRequirement": .linkingRequirement,
-            "scanning": .scanning,
-            "ignorePhaseOrdering": .ignorePhaseOrdering,
+                "compilationRequirement": .compilationRequirement,
+                "unsignedProductRequirement": .unsignedProductRequirement,
+                "linkingRequirement": .linkingRequirement,
+                "scanning": .scanning,
+                "ignorePhaseOrdering": .ignorePhaseOrdering,
             ].compactMap { (description, rawValue) -> String? in
                 return self.contains(rawValue) ? description : nil
-        }.joined(separator: ", ") + "]>"
+            }.joined(separator: ", ") + "]>"
     }
 }
 
@@ -893,12 +906,12 @@ public extension TaskGenerationDelegate {
 
     /// Create a new task taking a command line as a `String` array, and inputs and outputs as `Path` arrays.  The command line will be implicitly marshalled into a `ByteString` array, and the inputs and outputs into `PlannedNode` arrays.
     func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [Path], outputs: [Path], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
-        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs.map(createNode), outputs: outputs.map(createNode), mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
+        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map { ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs.map(createNode), outputs: outputs.map(createNode), mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
     }
 
     /// Create a new task taking a command line as a `String` array.  It will be implicitly marshalled into a `ByteString` array.
     func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
-        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs, outputs: outputs, mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
+        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map { ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs, outputs: outputs, mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
     }
 
     func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, name: String? = nil, mustPrecede: [any PlannedTask] = [], payload: (any TaskPayload)? = nil, additionalSignatureData: String = "") {
@@ -1078,9 +1091,11 @@ public struct OutputPathIndexingInfo: SourceFileIndexingInfo {
 
     /// The indexing info is packaged and sent to the client in a property list format.
     public var propertyListItem: PropertyListItem {
-        return .plDict([
-            "outputFilePath": .plString(outputFile.str),
-            ] as [String: PropertyListItem])
+        return .plDict(
+            [
+                "outputFilePath": .plString(outputFile.str)
+            ] as [String: PropertyListItem]
+        )
     }
 }
 
@@ -1276,8 +1291,10 @@ public struct TaskGenerateLocalizationInfoOutput {
     /// - Parameters:
     ///   - compilableXCStringsPaths: Paths to input source .xcstrings files.
     ///   - producedStringsdataPaths: Paths to output .stringsdata files.
-    public init(compilableXCStringsPaths: [Path] = [],
-                producedStringsdataPaths: [LocalizationBuildPortion: [Path]] = [:]) {
+    public init(
+        compilableXCStringsPaths: [Path] = [],
+        producedStringsdataPaths: [LocalizationBuildPortion: [Path]] = [:]
+    ) {
         self.compilableXCStringsPaths = compilableXCStringsPaths
         self.producedStringsdataPaths = producedStringsdataPaths
     }

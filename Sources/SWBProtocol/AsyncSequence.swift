@@ -101,7 +101,7 @@ extension AsyncSequence where Self.Element == UInt8 {
     }
 }
 
-extension AsyncIPCMessageSequence: Sendable where Base: Sendable { }
+extension AsyncIPCMessageSequence: Sendable where Base: Sendable {}
 
 @available(*, unavailable)
-extension AsyncIPCMessageSequence.AsyncIterator: Sendable { }
+extension AsyncIPCMessageSequence.AsyncIterator: Sendable {}

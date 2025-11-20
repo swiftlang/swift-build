@@ -23,10 +23,12 @@ fileprivate struct InAppPurchaseContentTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("resource.dat"),
-                ]),
+                    TestFile("resource.dat")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -34,21 +36,25 @@ fileprivate struct InAppPurchaseContentTaskConstructionTests: CoreBasedTests {
                         "INSTALL_PATH": "$(LOCAL_LIBRARY_DIR)/InAppPurchaseContent",
                         "INFOPLIST_FILE": "MyIAP/ContentInfo.plist",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyIAP",
                     type: .inAppPurchaseContent,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
-                            "resource.dat",
-                        ]),
+                            "resource.dat"
+                        ])
                     ],
                     dependencies: ["MyIAPEmbedded"]
                 ),
@@ -56,17 +62,21 @@ fileprivate struct InAppPurchaseContentTaskConstructionTests: CoreBasedTests {
                     "MyIAPEmbedded",
                     type: .inAppPurchaseContent,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
-                            "resource.dat",
-                        ]),
+                            "resource.dat"
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let srcRoot = tester.workspace.projects[0].sourceRoot
 

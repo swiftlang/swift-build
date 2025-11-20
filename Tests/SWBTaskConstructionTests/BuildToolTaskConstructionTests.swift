@@ -31,13 +31,15 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Header.h"),
                     TestFile("Header.hpp"),
                     TestFile("ModuleMap.modulemap"),
                     TestFile("Entitlements.entitlements"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -46,7 +48,8 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "APPLY_RULES_IN_COPY_FILES": "YES",
                         "COPY_HEADERS_RUN_UNIFDEF": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -62,10 +65,16 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         ]),
                         // Copy Files doesn't use COPY_HEADERS_RUN_UNIFDEF even if
                         // APPLY_RULES_IN_COPY_FILES is set.
-                        TestCopyFilesBuildPhase([
-                            "Header.h",
-                        ], destinationSubfolder: .resources, destinationSubpath: "", onlyForDeployment: false),
-                    ]),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Header.h"
+                            ],
+                            destinationSubfolder: .resources,
+                            destinationSubpath: "",
+                            onlyForDeployment: false
+                        ),
+                    ]
+                ),
                 TestStandardTarget(
                     "CustomBuildRule",
                     type: .application,
@@ -73,27 +82,34 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "COPY_HEADERS_RUN_UNIFDEF": "NO",
-                            ]),
+                                "COPY_HEADERS_RUN_UNIFDEF": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         // The Headers build phase only uses COPY_HEADERS_RUN_UNIFDEF
                         // and doesn't pay attention to build rules.
                         TestHeadersBuildPhase([
-                            TestBuildFile("Header.h", headerVisibility: .public),
+                            TestBuildFile("Header.h", headerVisibility: .public)
                         ]),
                         // A custom build rule will make files unifdef independent of
                         // COPY_HEADERS_RUN_UNIFDEF and the spec's InputFileTypes.
-                        TestCopyFilesBuildPhase([
-                            "Header.h",
-                            "ModuleMap.modulemap",
-                            "Entitlements.entitlements",
-                        ], destinationSubfolder: .resources, destinationSubpath: "", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Header.h",
+                                "ModuleMap.modulemap",
+                                "Entitlements.entitlements",
+                            ],
+                            destinationSubfolder: .resources,
+                            destinationSubpath: "",
+                            onlyForDeployment: false
+                        ),
                     ],
                     buildRules: [
                         TestBuildRule(fileTypeIdentifier: "sourcecode.c.h", compilerIdentifier: "public.build-task.unifdef"),
                         TestBuildRule(fileTypeIdentifier: "text.plist.entitlements", compilerIdentifier: "public.build-task.unifdef"),
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "NoApplyRules",
                     type: .application,
@@ -101,21 +117,29 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "APPLY_RULES_IN_COPY_FILES": "NO",
-                            ]),
+                                "APPLY_RULES_IN_COPY_FILES": "NO"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         // Copy Files will not unifdef unless APPLY_RULES_IN_COPY_FILES is set.
-                        TestCopyFilesBuildPhase([
-                            "Header.h",
-                            "ModuleMap.modulemap",
-                        ], destinationSubfolder: .resources, destinationSubpath: "", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "Header.h",
+                                "ModuleMap.modulemap",
+                            ],
+                            destinationSubfolder: .resources,
+                            destinationSubpath: "",
+                            onlyForDeployment: false
+                        )
                     ],
                     buildRules: [
                         TestBuildRule(fileTypeIdentifier: "sourcecode.c.h", compilerIdentifier: "public.build-task.unifdef"),
                         TestBuildRule(fileTypeIdentifier: "sourcecode.module-map", compilerIdentifier: "public.build-task.unifdef"),
-                    ]),
-            ])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -159,28 +183,39 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
     /// Check that unhandled files in source phases generate a diagnostic.
     @Test(.requireSDKs(.macOS))
     func missingRuleDiagnostic() async throws {
-        let testProject = TestProject("aProject",
-                                      groupTree: TestGroup("SomeFiles", path: "Sources",
-                                                           children: [
-                                                            TestFile("SourceFile1.fake-ext"),
-                                                            TestFile("SourceFile2.fake-ext")]),
-                                      buildConfigurations: [
-                                        TestBuildConfiguration("Debug",
-                                                               buildSettings: [
-                                                                "GENERATE_INFOPLIST_FILE": "YES",
-                                                                "CODE_SIGN_IDENTITY": "",
-                                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                               ])],
-                                      targets: [
-                                        TestStandardTarget("AppTarget",
-                                                           type: .application,
-                                                           buildPhases: [
-                                                            TestSourcesBuildPhase([
-                                                                "SourceFile1.fake-ext",
-                                                                .init("SourceFile2.fake-ext", shouldWarnIfNoRuleToProcess: false)
-                                                            ])
-                                                           ])
-                                      ])
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                path: "Sources",
+                children: [
+                    TestFile("SourceFile1.fake-ext"),
+                    TestFile("SourceFile2.fake-ext"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "SourceFile1.fake-ext",
+                            .init("SourceFile2.fake-ext", shouldWarnIfNoRuleToProcess: false),
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -205,14 +240,17 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SourceOne.m"),
                     TestFile("\(targetName).xcmappingmodel"),
-                    TestVersionGroup("\(targetName).xcdatamodeld",
-                                     children: [
-                                        TestFile("\(targetName)-4.6.xcdatamodel"),
-                                        TestFile("\(targetName)-5.0.xcdatamodel"),
-                                        TestFile("\(targetName).xcdatamodel"),
-                                     ]),
+                    TestVersionGroup(
+                        "\(targetName).xcdatamodeld",
+                        children: [
+                            TestFile("\(targetName)-4.6.xcdatamodel"),
+                            TestFile("\(targetName)-5.0.xcdatamodel"),
+                            TestFile("\(targetName).xcdatamodel"),
+                        ]
+                    ),
                     TestFile("MyInfo.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -220,24 +258,26 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("SourceOne.m"),
                             TestBuildFile("FrameworkTarget.xcmappingmodel", additionalArgs: ["--mapc-no-warnings"]),
                             TestBuildFile("FrameworkTarget.xcdatamodeld", additionalArgs: ["--no-warnings"]),
-                        ]),
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -245,20 +285,27 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
 
         /// Client to generate files from the core data model.
         final class TestCoreDataCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename != "momc" {
                     return try await super.executeExternalTool(commandLine: commandLine, workingDirectory: workingDirectory, environment: environment)
                 }
                 if let modelName = commandLine[safe: commandLine.count - 2].map(Path.init)?.basenameWithoutSuffix,
-                   let outputDir = commandLine.last.map(Path.init) {
-                    return .result(status: .exit(0), stdout: Data([
-                        outputDir.join("\(modelName)+CoreDataModel.h"),
-                        outputDir.join("\(modelName)+CoreDataModel.m"),
-                        outputDir.join("EntityOne+CoreDataClass.h"),
-                        outputDir.join("EntityOne+CoreDataClass.m"),
-                        outputDir.join("EntityOne+CoreDataProperties.h"),
-                        outputDir.join("EntityOne+CoreDataProperties.m"),
-                    ].map { $0.str }.joined(separator: "\n").utf8), stderr: .init())
+                    let outputDir = commandLine.last.map(Path.init)
+                {
+                    return .result(
+                        status: .exit(0),
+                        stdout: Data(
+                            [
+                                outputDir.join("\(modelName)+CoreDataModel.h"),
+                                outputDir.join("\(modelName)+CoreDataModel.m"),
+                                outputDir.join("EntityOne+CoreDataClass.h"),
+                                outputDir.join("EntityOne+CoreDataClass.m"),
+                                outputDir.join("EntityOne+CoreDataProperties.h"),
+                                outputDir.join("EntityOne+CoreDataProperties.m"),
+                            ].map { $0.str }.joined(separator: "\n").utf8
+                        ),
+                        stderr: .init()
+                    )
                 }
                 throw StubError.error("Could not determine generated file paths for Core Data code generation: Unit test should implement its own instance of TaskPlanningClientDelegate.")
             }
@@ -278,7 +325,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                 .path("\(SRCROOT)/\(targetName).xcdatamodeld"),
                                 .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreDataGenerated/\(targetName)/\(targetName)+CoreDataModel.h"),
@@ -331,10 +378,10 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                 .path("\(SRCROOT)/\(targetName).xcdatamodeld"),
                                 .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/Debug/\(targetName).framework/Versions/A/Resources/\(targetName).momd"),
+                                .path("\(SRCROOT)/build/Debug/\(targetName).framework/Versions/A/Resources/\(targetName).momd")
                             ])
                         }
 
@@ -346,10 +393,10 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                 .path("\(SRCROOT)/\(targetName).xcmappingmodel"),
                                 .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/Debug/\(targetName).framework/Versions/A/Resources/\(targetName).cdm"),
+                                .path("\(SRCROOT)/build/Debug/\(targetName).framework/Versions/A/Resources/\(targetName).cdm")
                             ])
                         }
                     }
@@ -428,7 +475,8 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         TestFile("SmartStuff2.mlpackage"),
                         TestFile("SmartStuff3.mlmodel"),
                         TestFile("MyInfo.plist"),
-                    ].compactMap { $0 }),
+                    ].compactMap { $0 }
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -441,39 +489,46 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             "TAPI_EXEC": tapiToolPath.str,
                             "COREML_CODEGEN_SWIFT_VERSION": swiftVersion,
                             "COREML_CODEGEN_SWIFT_GLOBAL_MODULE": "YES",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([]),
-                            TestSourcesBuildPhase([
-                                "SourceOne.swift",
-                                TestBuildFile("SmartStuff.mlmodel", intentsCodegenVisibility: visibility),
-                                TestBuildFile("SmartStuff2.mlpackage", intentsCodegenVisibility: visibility),
-                                TestBuildFile("SmartStuff3.mlmodel",
-                                              additionalArgs: ["--encrypt", "/path/to.key"],
-                                              intentsCodegenVisibility: visibility),
-                            ].compactMap { $0 })
+                            TestSourcesBuildPhase(
+                                [
+                                    "SourceOne.swift",
+                                    TestBuildFile("SmartStuff.mlmodel", intentsCodegenVisibility: visibility),
+                                    TestBuildFile("SmartStuff2.mlpackage", intentsCodegenVisibility: visibility),
+                                    TestBuildFile(
+                                        "SmartStuff3.mlmodel",
+                                        additionalArgs: ["--encrypt", "/path/to.key"],
+                                        intentsCodegenVisibility: visibility
+                                    ),
+                                ].compactMap { $0 }
+                            ),
                         ],
                         predominantSourceCodeLanguage: .swift
-                    ),
-                ])
+                    )
+                ]
+            )
             return try TaskConstructionTester(core, testProject)
         }
 
         /// Client to generate files from the CoreML model.
         final class TestCoreMLCompilerTaskPlanningClientDelegate: MockTestTaskPlanningClientDelegate, @unchecked Sendable {
-            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "coremlc",
-                   let outputDir = commandLine[safe: 3].map(Path.init),
-                   let input = commandLine.firstIndex(where: { $0.hasSuffix(".mlmodel") || $0.hasSuffix(".mlpackage") }).map({ Path(commandLine[$0]) }),
-                   let language = commandLine.elementAfterElements(["--language"]) {
+                    let outputDir = commandLine[safe: 3].map(Path.init),
+                    let input = commandLine.firstIndex(where: { $0.hasSuffix(".mlmodel") || $0.hasSuffix(".mlpackage") }).map({ Path(commandLine[$0]) }),
+                    let language = commandLine.elementAfterElements(["--language"])
+                {
                     let modelName = input.basenameWithoutSuffix
                     switch language {
                     case "Swift":
@@ -541,17 +596,21 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     // There should be one DataModelCompile task.
                     results.checkTask(.matchTarget(target), .matchRuleType("CoreMLModelCompile"), .matchRuleItemBasename("SmartStuff.mlmodel")) { task in
                         task.checkRuleInfo(["CoreMLModelCompile", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "\(srcroot)/SmartStuff.mlmodel"])
-                        task.checkSandboxedCommandLine([coremlcPath.str, "compile", "\(srcroot)/SmartStuff.mlmodel", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                        "--sdkroot",
-                                                        core.loadSDK(.macOS).path.str,
-                                                        "--platform", "macos", "--output-partial-info-plist", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources"].compactMap { $0 })
+                        task.checkSandboxedCommandLine(
+                            [
+                                coremlcPath.str, "compile", "\(srcroot)/SmartStuff.mlmodel", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                "--sdkroot",
+                                core.loadSDK(.macOS).path.str,
+                                "--platform", "macos", "--output-partial-info-plist", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources",
+                            ].compactMap { $0 }
+                        )
                         task.checkInputs([
                             .path("\(srcroot)/SmartStuff.mlmodel"),
                             .path("\(srcroot)/SmartStuff.mlmodel"),
                             .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                             .pathPattern(.and(.prefix("\(srcroot)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                             .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                            .name("WorkspaceHeaderMapVFSFilesWritten")
+                            .name("WorkspaceHeaderMapVFSFilesWritten"),
                         ])
                         task.checkOutputs([
                             .path("\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/SmartStuff.mlmodelc"),
@@ -560,18 +619,22 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CoreMLModelCompile"), .matchRuleItemBasename("SmartStuff2.mlpackage")) { task in
                         task.checkRuleInfo(["CoreMLModelCompile", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "\(srcroot)/SmartStuff2.mlpackage"])
-                        task.checkSandboxedCommandLine([coremlcPath.str, "compile", "\(srcroot)/SmartStuff2.mlpackage", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                        "--sdkroot",
-                                                        core.loadSDK(.macOS).path.str,
-                                                        "--platform", "macos", "--output-partial-info-plist", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist",
-                                                        "--container", "bundle-resources"].compactMap { $0 })
+                        task.checkSandboxedCommandLine(
+                            [
+                                coremlcPath.str, "compile", "\(srcroot)/SmartStuff2.mlpackage", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                "--sdkroot",
+                                core.loadSDK(.macOS).path.str,
+                                "--platform", "macos", "--output-partial-info-plist", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist",
+                                "--container", "bundle-resources",
+                            ].compactMap { $0 }
+                        )
                         task.checkInputs([
                             .path("\(srcroot)/SmartStuff2.mlpackage"),
                             .path("\(srcroot)/SmartStuff2.mlpackage"),
                             .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                             .pathPattern(.and(.prefix("\(srcroot)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                             .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                            .name("WorkspaceHeaderMapVFSFilesWritten")
+                            .name("WorkspaceHeaderMapVFSFilesWritten"),
                         ])
                         task.checkOutputs([
                             .path("\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/SmartStuff2.mlmodelc"),
@@ -580,10 +643,14 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("CoreMLModelCompile"), .matchRuleItemBasename("SmartStuff3.mlmodel")) { task in
                         task.checkRuleInfo(["CoreMLModelCompile", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "\(srcroot)/SmartStuff3.mlmodel"])
-                        task.checkSandboxedCommandLine([coremlcPath.str, "compile", "\(srcroot)/SmartStuff3.mlmodel", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                        "--sdkroot",
-                                                        core.loadSDK(.macOS).path.str,
-                                                        "--platform", "macos", "--output-partial-info-plist", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources"].compactMap { $0 })
+                        task.checkSandboxedCommandLine(
+                            [
+                                coremlcPath.str, "compile", "\(srcroot)/SmartStuff3.mlmodel", "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                "--sdkroot",
+                                core.loadSDK(.macOS).path.str,
+                                "--platform", "macos", "--output-partial-info-plist", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources",
+                            ].compactMap { $0 }
+                        )
                         task.checkInputs([
                             .path("\(srcroot)/SmartStuff3.mlmodel"),
                             .path("\(srcroot)/SmartStuff3.mlmodel"),
@@ -591,7 +658,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                             .pathPattern(.and(.prefix("\(srcroot)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                             .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                            .name("WorkspaceHeaderMapVFSFilesWritten")
+                            .name("WorkspaceHeaderMapVFSFilesWritten"),
                         ])
                         task.checkOutputs([
                             .path("\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/SmartStuff3.mlmodelc"),
@@ -600,13 +667,17 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     }
                     // There should be a ProcessInfoPlistFile task which incorporates the PartialInfo.plist generated by coremlc.
                     results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
-                        task.checkCommandLine(["builtin-infoPlistUtility", "\(srcroot)/MyInfo.plist", "-producttype", "com.apple.product-type.framework", "-expandbuildsettings", "-platform", "macosx", "-additionalcontentfile", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist",
-                                               "-additionalcontentfile",
-                                               "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist",
-                                               "-additionalcontentfile",
-                                               "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist",
-                                               "-o",
-                                               "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/Info.plist"].compactMap { $0 })
+                        task.checkCommandLine(
+                            [
+                                "builtin-infoPlistUtility", "\(srcroot)/MyInfo.plist", "-producttype", "com.apple.product-type.framework", "-expandbuildsettings", "-platform", "macosx", "-additionalcontentfile", "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist",
+                                "-additionalcontentfile",
+                                "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist",
+                                "-additionalcontentfile",
+                                "\(srcroot)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist",
+                                "-o",
+                                "\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/Info.plist",
+                            ].compactMap { $0 }
+                        )
                     }
                 }
 
@@ -625,11 +696,13 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
 
-        func verifyTask(for visibilityBeingTested: IntentsCodegenVisibility,
-                        with results: TaskConstructionTester.PlanningResults,
-                        in target: ConfiguredTarget,
-                        matching conditions: TaskCondition...,
-                        body: (any PlannedTask) -> Void) {
+        func verifyTask(
+            for visibilityBeingTested: IntentsCodegenVisibility,
+            with results: TaskConstructionTester.PlanningResults,
+            in target: ConfiguredTarget,
+            matching conditions: TaskCondition...,
+            body: (any PlannedTask) -> Void
+        ) {
             if visibilityBeingTested == .noCodegen {
                 results.checkNoTask([.matchTarget(target)] + conditions)
             } else {
@@ -637,7 +710,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        func checkBuild(action: BuildAction, overrides: [String:String] = [:]) async throws {
+        func checkBuild(action: BuildAction, overrides: [String: String] = [:]) async throws {
             for visibilityBeingTested in IntentsCodegenVisibility.allCases {
                 let tester = try await taskConstructionTesterForProject(with: visibilityBeingTested)
                 let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -649,53 +722,65 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         // There should be a CoreMLModelCodegen task.
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff.mlmodel")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff.mlmodel"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff.mlmodel"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.swift"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.swift")
                             ])
                         }
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff2.mlpackage")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff2.mlpackage"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff2.mlpackage", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff2.mlpackage", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff2.mlpackage"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2/SmartStuff2.swift"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2/SmartStuff2.swift")
                             ])
                         }
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff3.mlmodel")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff3.mlmodel"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff3.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--encrypt", "/path/to.key", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff3.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--encrypt", "/path/to.key", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff3.mlmodel"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3/SmartStuff3.swift"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3/SmartStuff3.swift")
                             ])
                         }
                         if action == .build || action == .installAPI {
@@ -731,16 +816,20 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         // There should be a CoreMLModelCodegen task.
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff.mlmodel")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff.mlmodel"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Objective-C"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Objective-C",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff.mlmodel"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.h"),
@@ -749,16 +838,20 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         }
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff2.mlpackage")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff2.mlpackage"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff2.mlpackage", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Objective-C"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff2.mlpackage", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Objective-C",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff2.mlpackage"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2/SmartStuff2.h"),
@@ -767,16 +860,20 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         }
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff3.mlmodel")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff3.mlmodel"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff3.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--encrypt", "/path/to.key", "--language", "Objective-C"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff3.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--encrypt", "/path/to.key", "--language", "Objective-C",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff3.mlmodel"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
                                 .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3/SmartStuff3.h"),
@@ -789,8 +886,8 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                 // Framework-style inclusions
                                 switch visibilityBeingTested {
                                 case .public,
-                                        .project,
-                                        .private:
+                                    .project,
+                                    .private:
                                     headermap.checkEntry("\(targetName)/SmartStuff.h", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.h")
                                     headermap.checkEntry("\(targetName)/SmartStuff2.h", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2/SmartStuff2.h")
                                     headermap.checkEntry("\(targetName)/SmartStuff3.h", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3/SmartStuff3.h")
@@ -849,53 +946,65 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         // There should be a CoreMLModelCodegen task.
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff.mlmodel")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff.mlmodel"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff.mlmodel"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.swift"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff/SmartStuff.swift")
                             ])
                         }
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff2.mlpackage")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff2.mlpackage"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff2.mlpackage", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff2.mlpackage", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff2-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff2.mlpackage"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2/SmartStuff2.swift"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff2/SmartStuff2.swift")
                             ])
                         }
                         verifyTask(for: visibilityBeingTested, with: results, in: target, matching: .matchRuleType("CoreMLModelCodegen"), .matchRuleItemBasename("SmartStuff3.mlmodel")) { task in
                             task.checkRuleInfo(["CoreMLModelCodegen", "\(SRCROOT)/SmartStuff3.mlmodel"])
-                            task.checkSandboxedCommandLine([coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff3.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
-                                                            "--sdkroot",
-                                                            core.loadSDK(.macOS).path.str,
-                                                            "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--encrypt", "/path/to.key", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule"].compactMap { $0 })
+                            task.checkSandboxedCommandLine(
+                                [
+                                    coremlcPath.str, "generate", "\(SRCROOT)/SmartStuff3.mlmodel", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3", "--deployment-target", core.loadSDK(.macOS).defaultDeploymentTarget,
+                                    "--sdkroot",
+                                    core.loadSDK(.macOS).path.str,
+                                    "--platform", "macos", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/SmartStuff3-CoreMLPartialInfo.plist", "--container", "bundle-resources", "--encrypt", "/path/to.key", "--language", "Swift", "--swift-version", swiftVersion, visibilityBeingTested == .public ? "--public-access" : nil, "--globalmodule",
+                                ].compactMap { $0 }
+                            )
                             task.checkInputs([
                                 .path("\(SRCROOT)/SmartStuff3.mlmodel"),
                                 .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                                 .pathPattern(.and(.prefix("\(SRCROOT)/build/aProject.build/Debug/FrameworkTarget.build"), .suffix(".sb"))),
                                 .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                                .name("WorkspaceHeaderMapVFSFilesWritten")
+                                .name("WorkspaceHeaderMapVFSFilesWritten"),
                             ])
                             task.checkOutputs([
-                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3/SmartStuff3.swift"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/DerivedSources/CoreMLGenerated/SmartStuff3/SmartStuff3.swift")
                             ])
                         }
                         if action == .build || action == .installAPI {
@@ -971,7 +1080,8 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         TestFile("SourceOne.swift"),
                         TestFile("Intents.intentdefinition"),
                         TestFile("MyInfo.plist"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -980,14 +1090,15 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "SWIFT_VERSION": swiftVersion,
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: targetType,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                            TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                         ],
                         buildPhases: [
                             TestHeadersBuildPhase([]),
@@ -997,8 +1108,10 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             ]),
                         ],
                         predominantSourceCodeLanguage: .swift
-                    ),
-                ], classPrefix: "XC")
+                    )
+                ],
+                classPrefix: "XC"
+            )
             return try await TaskConstructionTester(getCore(), testProject)
         }
 
@@ -1055,7 +1168,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             .path("\(srcroot)/Intents.intentdefinition"),
                             .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                             .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                            .name("WorkspaceHeaderMapVFSFilesWritten")
+                            .name("WorkspaceHeaderMapVFSFilesWritten"),
                         ])
                         switch codegenLanguage {
                         case .objectiveC:
@@ -1071,7 +1184,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             args += specialArgs
                             task.checkCommandLine(args)
                             task.checkOutputs([
-                                .path("\(srcroot)/build/aProject.build/Debug/\(targetName).build/DerivedSources/IntentDefinitionGenerated/Intents/XCOrderBurgerIntent.swift"),
+                                .path("\(srcroot)/build/aProject.build/Debug/\(targetName).build/DerivedSources/IntentDefinitionGenerated/Intents/XCOrderBurgerIntent.swift")
                             ])
                         default:
                             Issue.record("unexpected codegen language: \(codegenLanguage)")
@@ -1139,10 +1252,10 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         .path("\(srcroot)/Intents.intentdefinition"),
                         .namePattern(.and(.prefix("target-"), .suffix("-copy-headers"))),
                         .namePattern(.and(.prefix("target-"), .suffix("-begin-compiling"))),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
                     task.checkOutputs([
-                        .path("\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/Intents.intentdefinition"),
+                        .path("\(srcroot)/build/Debug/\(targetName).framework/Versions/A/Resources/Intents.intentdefinition")
                     ])
                 }
 
@@ -1172,12 +1285,13 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 self.moduleName = moduleName
             }
 
-            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+            override func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
                 if commandLine.first.map(Path.init)?.basename == "intentbuilderc",
-                   let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
-                   let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),
-                   let language = commandLine.elementAfterElements(["-language"]),
-                   let visibility = commandLine.elementAfterElements(["-visibility"]) {
+                    let outputDir = commandLine.elementAfterElements(["-output"]).map(Path.init),
+                    let classPrefix = commandLine.elementAfterElements(["-classPrefix"]),
+                    let language = commandLine.elementAfterElements(["-language"]),
+                    let visibility = commandLine.elementAfterElements(["-visibility"])
+                {
                     if visibility != self.visibility.rawValue {
                         throw StubError.error("Undefined visibility '\(visibility)'")
                     }
@@ -1270,32 +1384,38 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("Some.metal"),
                     TestFile("Others.metal"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "GENERATE_INFOPLIST_FILE": "YES",
-                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                "SDKROOT": "macosx",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("SourceFile.m"),
                             TestBuildFile("Some.metal", additionalArgs: ["-DHello"]),
                             TestBuildFile("Others.metal"),
-                        ]),
-                    ])
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
         let MACOSX_DEPLOYMENT_TARGET = core.loadSDK(.macOS).defaultDeploymentTarget
@@ -1374,7 +1494,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                 // There should be two CompileMetalFile tasks.
                 try results.checkTask(.matchTarget(target), .matchRuleType("CompileMetalFile"), .matchRuleItemBasename("Some.metal")) { task in
                     let outFile = "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Metal/Some.air"
-                    let commandLineArgs = ["metal", "-c", "-target", "air64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-I\(SRCROOT)/build/Debug/include", "-F\(SRCROOT)/build/Debug", "-isysroot", core.loadSDK(.macOS).path.str, "-fmetal-math-mode=fast", "-fmetal-math-fp32-functions=fast", "-serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Metal/Some.dia", "-o", outFile] + (perFileFlagsAvailableWorkaround ? ["-DHello"] : [])  + ["-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Metal/Some.dat", "\(SRCROOT)/Sources/Some.metal"]
+                    let commandLineArgs = ["metal", "-c", "-target", "air64-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-I\(SRCROOT)/build/Debug/include", "-F\(SRCROOT)/build/Debug", "-isysroot", core.loadSDK(.macOS).path.str, "-fmetal-math-mode=fast", "-fmetal-math-fp32-functions=fast", "-serialize-diagnostics", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Metal/Some.dia", "-o", outFile] + (perFileFlagsAvailableWorkaround ? ["-DHello"] : []) + ["-MMD", "-MT", "dependencies", "-MF", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Metal/Some.dat", "\(SRCROOT)/Sources/Some.metal"]
 
                     task.checkRuleInfo(["CompileMetalFile", "\(SRCROOT)/Sources/Some.metal"])
                     task.checkCommandLine(commandLineArgs)
@@ -1464,32 +1584,38 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Foo.c"),
                     TestFile("Foo.metal", guid: "UPPER"),
                     TestFile("foo.metal", guid: "LOWER"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "GENERATE_INFOPLIST_FILE": "YES",
-                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                "SDKROOT": "macosx",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("Foo.c"),
                             TestBuildFile("Foo.metal"),
                             TestBuildFile("foo.metal"),
-                        ]),
-                    ])
-            ])
+                        ])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1510,28 +1636,34 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
     func metalCompilerLanguageRevision() async throws {
         let core = try await getCore()
 
-        func checkLanguageRevision(sdkName:String, languageRevision:String, expectedOption:String) async throws {
+        func checkLanguageRevision(sdkName: String, languageRevision: String, expectedOption: String) async throws {
             let targetName = "MetalStuff"
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
-                    children: [TestFile("foo.metal")]),
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [TestFile("foo.metal")]
+                ),
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug",
-                                                   buildSettings: [
-                                                    "SDKROOT": sdkName,
-                                                    "MTL_LANGUAGE_REVISION": languageRevision,
-                                                   ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": sdkName,
+                                    "MTL_LANGUAGE_REVISION": languageRevision,
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase([TestBuildFile("foo.metal")]),
-                        ])
-                ])
+                            TestSourcesBuildPhase([TestBuildFile("foo.metal")])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try TaskConstructionTester(core, testProject)
 
@@ -1556,55 +1688,56 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        let optionForLanguage = [ ["macosx", "UseDeploymentTarget"] : "",
-                                  ["macosx", "Metal11"] : "-std=macos-metal1.1",
-                                  ["macosx", "Metal12"] : "-std=macos-metal1.2",
-                                  ["macosx", "Metal20"] : "-std=macos-metal2.0",
-                                  ["macosx", "Metal21"] : "-std=macos-metal2.1",
-                                  ["macosx", "Metal22"] : "-std=macos-metal2.2",
-                                  ["macosx", "Metal23"] : "-std=macos-metal2.3",
-                                  ["macosx", "Metal24"] : "-std=macos-metal2.4",
-                                  ["macosx", "Metal30"] : "-std=metal3.0",
-                                  ["macosx", "Metal31"] : "-std=metal3.1",
-                                  ["macosx", "Metal32"] : "-std=metal3.2",
-                                  ["macosx", "Metal40"] : "-std=metal4.0",
+        let optionForLanguage = [
+            ["macosx", "UseDeploymentTarget"]: "",
+            ["macosx", "Metal11"]: "-std=macos-metal1.1",
+            ["macosx", "Metal12"]: "-std=macos-metal1.2",
+            ["macosx", "Metal20"]: "-std=macos-metal2.0",
+            ["macosx", "Metal21"]: "-std=macos-metal2.1",
+            ["macosx", "Metal22"]: "-std=macos-metal2.2",
+            ["macosx", "Metal23"]: "-std=macos-metal2.3",
+            ["macosx", "Metal24"]: "-std=macos-metal2.4",
+            ["macosx", "Metal30"]: "-std=metal3.0",
+            ["macosx", "Metal31"]: "-std=metal3.1",
+            ["macosx", "Metal32"]: "-std=metal3.2",
+            ["macosx", "Metal40"]: "-std=metal4.0",
 
-                                  ["iphoneos", "UseDeploymentTarget"] : "",
-                                  ["iphoneos", "iOSMetal10"] : "-std=ios-metal1.0",
-                                  ["iphoneos", "Metal11"] : "-std=ios-metal1.1",
-                                  ["iphoneos", "Metal12"] : "-std=ios-metal1.2",
-                                  ["iphoneos", "Metal20"] : "-std=ios-metal2.0",
-                                  ["iphoneos", "Metal21"] : "-std=ios-metal2.1",
-                                  ["iphoneos", "Metal22"] : "-std=ios-metal2.2",
-                                  ["iphoneos", "Metal23"] : "-std=ios-metal2.3",
-                                  ["iphoneos", "Metal24"] : "-std=ios-metal2.4",
-                                  ["iphoneos", "Metal30"] : "-std=metal3.0",
-                                  ["iphoneos", "Metal31"] : "-std=metal3.1",
-                                  ["iphoneos", "Metal32"] : "-std=metal3.2",
-                                  ["iphoneos", "Metal40"] : "-std=metal4.0",
+            ["iphoneos", "UseDeploymentTarget"]: "",
+            ["iphoneos", "iOSMetal10"]: "-std=ios-metal1.0",
+            ["iphoneos", "Metal11"]: "-std=ios-metal1.1",
+            ["iphoneos", "Metal12"]: "-std=ios-metal1.2",
+            ["iphoneos", "Metal20"]: "-std=ios-metal2.0",
+            ["iphoneos", "Metal21"]: "-std=ios-metal2.1",
+            ["iphoneos", "Metal22"]: "-std=ios-metal2.2",
+            ["iphoneos", "Metal23"]: "-std=ios-metal2.3",
+            ["iphoneos", "Metal24"]: "-std=ios-metal2.4",
+            ["iphoneos", "Metal30"]: "-std=metal3.0",
+            ["iphoneos", "Metal31"]: "-std=metal3.1",
+            ["iphoneos", "Metal32"]: "-std=metal3.2",
+            ["iphoneos", "Metal40"]: "-std=metal4.0",
 
-                                  ["appletvos", "UseDeploymentTarget"] : "",
-                                  ["appletvos", "Metal11"] : "-std=ios-metal1.1",
-                                  ["appletvos", "Metal12"] : "-std=ios-metal1.2",
-                                  ["appletvos", "Metal20"] : "-std=ios-metal2.0",
-                                  ["appletvos", "Metal21"] : "-std=ios-metal2.1",
-                                  ["appletvos", "Metal22"] : "-std=ios-metal2.2",
-                                  ["appletvos", "Metal23"] : "-std=ios-metal2.3",
-                                  ["appletvos", "Metal24"] : "-std=ios-metal2.4",
-                                  ["appletvos", "Metal30"] : "-std=metal3.0",
-                                  ["appletvos", "Metal31"] : "-std=metal3.1",
-                                  ["appletvos", "Metal32"] : "-std=metal3.2",
-                                  ["appletvos", "Metal40"] : "-std=metal4.0",
+            ["appletvos", "UseDeploymentTarget"]: "",
+            ["appletvos", "Metal11"]: "-std=ios-metal1.1",
+            ["appletvos", "Metal12"]: "-std=ios-metal1.2",
+            ["appletvos", "Metal20"]: "-std=ios-metal2.0",
+            ["appletvos", "Metal21"]: "-std=ios-metal2.1",
+            ["appletvos", "Metal22"]: "-std=ios-metal2.2",
+            ["appletvos", "Metal23"]: "-std=ios-metal2.3",
+            ["appletvos", "Metal24"]: "-std=ios-metal2.4",
+            ["appletvos", "Metal30"]: "-std=metal3.0",
+            ["appletvos", "Metal31"]: "-std=metal3.1",
+            ["appletvos", "Metal32"]: "-std=metal3.2",
+            ["appletvos", "Metal40"]: "-std=metal4.0",
 
-                                  ["xros", "UseDeploymentTarget"] : "",
-                                  ["xros", "Metal31"] : "-std=metal3.1",
-                                  ["xros", "Metal32"] : "-std=metal3.2",
-                                  ["xros", "Metal40"] : "-std=metal4.0",
+            ["xros", "UseDeploymentTarget"]: "",
+            ["xros", "Metal31"]: "-std=metal3.1",
+            ["xros", "Metal32"]: "-std=metal3.2",
+            ["xros", "Metal40"]: "-std=metal4.0",
         ]
 
         for (language, expectedOption) in optionForLanguage {
             let (sdkName, languageRevision) = (language[0], language[1])
-            try await checkLanguageRevision(sdkName:sdkName, languageRevision:languageRevision, expectedOption:expectedOption)
+            try await checkLanguageRevision(sdkName: sdkName, languageRevision: languageRevision, expectedOption: expectedOption)
         }
     }
 
@@ -1612,28 +1745,34 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
     func metalCompilerEnableModules() async throws {
         let core = try await getCore()
 
-        func checkEnableModules(enableModules:String, expectedOption:String) async throws {
+        func checkEnableModules(enableModules: String, expectedOption: String) async throws {
             let targetName = "MetalStuff"
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
-                    children: [TestFile("foo.metal")]),
+                    "SomeFiles",
+                    path: "Sources",
+                    children: [TestFile("foo.metal")]
+                ),
                 targets: [
                     TestStandardTarget(
                         targetName,
                         type: .staticLibrary,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug",
-                                                   buildSettings: [
-                                                    "SDKROOT": "macosx",
-                                                    "MTL_ENABLE_MODULES": enableModules,
-                                                   ]),
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": "macosx",
+                                    "MTL_ENABLE_MODULES": enableModules,
+                                ]
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase([TestBuildFile("foo.metal")]),
-                        ])
-                ])
+                            TestSourcesBuildPhase([TestBuildFile("foo.metal")])
+                        ]
+                    )
+                ]
+            )
 
             let tester = try TaskConstructionTester(core, testProject)
 
@@ -1650,13 +1789,14 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             }
         }
 
-        let optionForEnableModules = [ "YES"    : "-fmodules=all",
-                                       "STDLIB" : "",
-                                       "NO"     : "-fmodules=none",
+        let optionForEnableModules = [
+            "YES": "-fmodules=all",
+            "STDLIB": "",
+            "NO": "-fmodules=none",
         ]
 
         for (enableModules, expectedOption) in optionForEnableModules {
-            try await checkEnableModules(enableModules:enableModules, expectedOption:expectedOption)
+            try await checkEnableModules(enableModules: enableModules, expectedOption: expectedOption)
         }
     }
 
@@ -1666,23 +1806,29 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [TestFile("foo.metal")]),
+                "SomeFiles",
+                path: "Sources",
+                children: [TestFile("foo.metal")]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "MTL_OPTIMIZATION_LEVEL": "default",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "MTL_OPTIMIZATION_LEVEL": "default",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.metal")]),
-                    ])
-            ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.metal")])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1701,23 +1847,29 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [TestFile("foo.metal")]),
+                "SomeFiles",
+                path: "Sources",
+                children: [TestFile("foo.metal")]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                "MTL_OPTIMIZATION_LEVEL": "s",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "MTL_OPTIMIZATION_LEVEL": "s",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.metal")]),
-                    ])
-            ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.metal")])
+                    ]
+                )
+            ]
+        )
 
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
@@ -1730,29 +1882,39 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    func checkBasicOption(core:Core, property:String, value:String,
-                          expectedOptions:[String]) async throws {
+    func checkBasicOption(
+        core: Core,
+        property: String,
+        value: String,
+        expectedOptions: [String]
+    ) async throws {
         let targetName = "MetalStuff"
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [TestFile("foo.metal")]),
+                "SomeFiles",
+                path: "Sources",
+                children: [TestFile("foo.metal")]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "macosx",
-                                                property: value,
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                property: value,
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("foo.metal")]),
-                    ])
-            ])
+                        TestSourcesBuildPhase([TestBuildFile("foo.metal")])
+                    ]
+                )
+            ]
+        )
 
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -1769,14 +1931,20 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
     func metalCompilerMathModes() async throws {
         let core = try await getCore()
 
-        let options = [ "UseLanguageDefault" : [],
-                        "RELAXED" : ["-fmetal-math-mode=relaxed"],
-                        "FAST" : ["-fmetal-math-mode=fast"],
-                        "SAFE" : ["-fmetal-math-mode=safe"] ]
+        let options = [
+            "UseLanguageDefault": [],
+            "RELAXED": ["-fmetal-math-mode=relaxed"],
+            "FAST": ["-fmetal-math-mode=fast"],
+            "SAFE": ["-fmetal-math-mode=safe"],
+        ]
 
         for (value, expectedOptions) in options {
-            try await checkBasicOption(core:core, property:"MTL_MATH_MODE",
-                                       value:value, expectedOptions:expectedOptions)
+            try await checkBasicOption(
+                core: core,
+                property: "MTL_MATH_MODE",
+                value: value,
+                expectedOptions: expectedOptions
+            )
         }
     }
 
@@ -1784,13 +1952,19 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
     func metalCompilerFP32MathFunctions() async throws {
         let core = try await getCore()
 
-        let options = [ "UseLanguageDefault" : [],
-                        "FAST" : ["-fmetal-math-fp32-functions=fast"],
-                        "PRECISE" : ["-fmetal-math-fp32-functions=precise"] ]
+        let options = [
+            "UseLanguageDefault": [],
+            "FAST": ["-fmetal-math-fp32-functions=fast"],
+            "PRECISE": ["-fmetal-math-fp32-functions=precise"],
+        ]
 
         for (value, expectedOptions) in options {
-            try await checkBasicOption(core:core, property:"MTL_MATH_FP32_FUNCTIONS",
-                                       value:value, expectedOptions:expectedOptions)
+            try await checkBasicOption(
+                core: core,
+                property: "MTL_MATH_FP32_FUNCTIONS",
+                value: value,
+                expectedOptions: expectedOptions
+            )
         }
     }
 
@@ -1801,14 +1975,24 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
     func metalCompilerFastMath() async throws {
         let core = try await getCore()
 
-        let options = [ "YES" : [ "-fmetal-math-mode=fast",
-                                  "-fmetal-math-fp32-functions=fast" ],
-                        "NO" : [ "-fmetal-math-mode=safe",
-                                 "-fmetal-math-fp32-functions=precise" ] ]
+        let options = [
+            "YES": [
+                "-fmetal-math-mode=fast",
+                "-fmetal-math-fp32-functions=fast",
+            ],
+            "NO": [
+                "-fmetal-math-mode=safe",
+                "-fmetal-math-fp32-functions=precise",
+            ],
+        ]
 
         for (value, expectedOption) in options {
-            try await checkBasicOption(core:core, property:"MTL_FAST_MATH",
-                                       value:value, expectedOptions:expectedOption)
+            try await checkBasicOption(
+                core: core,
+                property: "MTL_FAST_MATH",
+                value: value,
+                expectedOptions: expectedOption
+            )
         }
     }
 
@@ -1819,32 +2003,39 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Scanner.l"),
                     TestFile("Parser.y"),
-                ]),
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     targetName,
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "ARCHS": "arm64",
-                                                "CODE_SIGN_IDENTITY": "",
-                                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                "SDKROOT": "iphoneos",
-                                                "LEXFLAGS": "--header-file=\"$(DERIVED_FILE_DIR)/LexOut.h\"",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ARCHS": "arm64",
+                                "CODE_SIGN_IDENTITY": "",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "iphoneos",
+                                "LEXFLAGS": "--header-file=\"$(DERIVED_FILE_DIR)/LexOut.h\"",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             TestBuildFile("Scanner.l"),
-                            TestBuildFile("Parser.y")]
-                                             ),
-                    ])
-            ])
+                            TestBuildFile("Parser.y"),
+                        ]
+                        )
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the tasks.
@@ -1874,27 +2065,39 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     return
                 }
                 // Make sure they have the inputs and outputs we expect.
-                XCTAssertMatch(lexTask.inputs.map({ $0.name }), [
+                XCTAssertMatch(
+                    lexTask.inputs.map({ $0.name }),
+                    [
                         .equal("Scanner.l"),
                         .and(.prefix("target"), .suffix("Producer")),
                         .and(.prefix("target"), .suffix("-begin-compiling")),
-                    ])
-                XCTAssertMatch(lexTask.outputs.map({ $0.name }), [
+                    ]
+                )
+                XCTAssertMatch(
+                    lexTask.outputs.map({ $0.name }),
+                    [
                         .equal("Scanner.yy.c"),
                         .equal("LexOut.h"),
-                    ])
+                    ]
+                )
                 #expect(lexCompileTasks.count == 1)
                 for lexCompileTask in lexCompileTasks {
-                    XCTAssertMatch(lexCompileTask.inputs.map({ $0.name }), [
+                    XCTAssertMatch(
+                        lexCompileTask.inputs.map({ $0.name }),
+                        [
                             .equal("Scanner.yy.c"),
                             .and(.prefix("target"), .suffix("-generated-headers")),
                             .and(.prefix("target"), .suffix("-swift-generated-headers")),
                             .and(.prefix("target"), .suffix("Producer")),
                             .and(.prefix("target"), .suffix("-begin-compiling")),
-                        ])
-                    XCTAssertMatch(lexCompileTask.outputs.map({ $0.name }), [
-                            .equal("Scanner.yy.o"),
-                        ])
+                        ]
+                    )
+                    XCTAssertMatch(
+                        lexCompileTask.outputs.map({ $0.name }),
+                        [
+                            .equal("Scanner.yy.o")
+                        ]
+                    )
                 }
 
                 // Find the yacc task and its resulting compile task.
@@ -1911,34 +2114,48 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     return
                 }
                 // Make sure they have the inputs and outputs we expect.
-                XCTAssertMatch(yaccTask.inputs.map({ $0.name }), [
+                XCTAssertMatch(
+                    yaccTask.inputs.map({ $0.name }),
+                    [
                         .equal("Parser.y"),
                         .and(.prefix("target"), .suffix("Producer")),
                         .and(.prefix("target"), .suffix("-begin-compiling")),
-                    ])
-                XCTAssertMatch(yaccTask.outputs.map({ $0.name }), [
+                    ]
+                )
+                XCTAssertMatch(
+                    yaccTask.outputs.map({ $0.name }),
+                    [
                         .equal("y.tab.c"),
                         .equal("y.tab.h"),
-                    ])
+                    ]
+                )
                 #expect(yaccCompileTasks.count == 1)
                 for yaccCompileTask in yaccCompileTasks {
-                    XCTAssertMatch(yaccCompileTask.inputs.map({ $0.name }), [
+                    XCTAssertMatch(
+                        yaccCompileTask.inputs.map({ $0.name }),
+                        [
                             .equal("y.tab.c"),
                             .and(.prefix("target"), .suffix("-generated-headers")),
                             .and(.prefix("target"), .suffix("-swift-generated-headers")),
                             .and(.prefix("target"), .suffix("Producer")),
                             .and(.prefix("target"), .suffix("-begin-compiling")),
-                        ])
-                    XCTAssertMatch(yaccCompileTask.outputs.map({ $0.name }), [
-                            .equal("y.tab.o"),
-                        ])
+                        ]
+                    )
+                    XCTAssertMatch(
+                        yaccCompileTask.outputs.map({ $0.name }),
+                        [
+                            .equal("y.tab.o")
+                        ]
+                    )
                 }
 
                 // Validate that the linker and lipo tasks are set up.
                 results.checkTasks(.matchTarget(target), .matchRuleType("Ld")) { tasks in
                     #expect(tasks.count == 1)
                     for task in tasks {
-                        XCTAssertMatch(task.inputs.map({ $0.name }), [
+                        XCTAssertMatch(
+                            task.inputs.map({ $0.name }),
+                            [
                                 .equal("Scanner.yy.o"),
                                 .equal("y.tab.o"),
                                 .suffix(".LinkFileList"),
@@ -1947,7 +2164,8 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                                 .and(.prefix("target"), .suffix("-swift-generated-headers")),
                                 .and(.prefix("target"), .suffix("Producer")),
                                 .and(.prefix("target"), .suffix("-begin-linking")),
-                            ])
+                            ]
+                        )
                         task.checkOutputs([
                             .name("CoreFoo"),
                             .name("Linked Binary /tmp/Test/aProject/build/Debug-iphoneos/CoreFoo.framework/CoreFoo"),
@@ -1974,34 +2192,39 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("Foo.cl"),
-                ]),
+                    TestFile("Foo.cl")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "ARCHS": "x86_64 x86_64h",
-                                        "VALID_ARCHS": "$(inherited) x86_64h",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "CODE_SIGN_IDENTITY": "-",
-                                        "SWIFT_VERSION": swiftVersion,
-                                        "USE_HEADERMAP": "NO",
-                                        "LIBTOOL": libtoolPath.str,
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "x86_64 x86_64h",
+                        "VALID_ARCHS": "$(inherited) x86_64h",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "SWIFT_VERSION": swiftVersion,
+                        "USE_HEADERMAP": "NO",
+                        "LIBTOOL": libtoolPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Foo",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Foo.cl",]),
+                        TestSourcesBuildPhase(["Foo.cl"])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2013,14 +2236,14 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     task.checkInputs([.path("\(SRCROOT)/Sources/Foo.cl"), .any, .any, .any])
                     task.checkOutputs([
                         .pathPattern(.suffix("Foo.cl.c")),
-                        .pathPattern(.suffix("Foo.cl.h"))
+                        .pathPattern(.suffix("Foo.cl.h")),
                     ])
                     task.checkCommandLine([
                         "/System/Library/Frameworks/OpenCL.framework/Libraries/openclc",
                         "-x", "cl", "-cl-std=CL1.1", "-cl-auto-vectorize-enable",
                         "-gcl-bc-dir", "OpenCL",
                         "-emit-gcl", "\(SRCROOT)/Sources/Foo.cl",
-                        "-gcl-output-dir", "\(SRCROOT)/build/aProject.build/Debug/Foo.build/DerivedSources"
+                        "-gcl-output-dir", "\(SRCROOT)/build/aProject.build/Debug/Foo.build/DerivedSources",
                     ])
                 }
 
@@ -2044,7 +2267,8 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             "-I\(SRCROOT)/build/aProject.build/Debug/Foo.build/DerivedSources-normal",
                             "-I\(SRCROOT)/build/aProject.build/Debug/Foo.build/DerivedSources",
                             "-F\(SRCROOT)/build/Debug", "-arch", arch, "-emit-llvm", "-c",
-                            "\(SRCROOT)/Sources/Foo.cl", "-o", "\(SRCROOT)/build/Debug/OpenCL/Foo.cl.\(arch).bc"])
+                            "\(SRCROOT)/Sources/Foo.cl", "-o", "\(SRCROOT)/build/Debug/OpenCL/Foo.cl.\(arch).bc",
+                        ])
                     }
                 }
             }
@@ -2062,29 +2286,34 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("ClassOne.m"),
-                    ]),
+                        TestFile("ClassOne.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Application",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["ClassOne.m",]),
+                            TestSourcesBuildPhase(["ClassOne.m"])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2130,30 +2359,35 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("ClassOne.m"),
                         TestFile("ClassTwo.mm"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Application",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["ClassOne.m","ClassTwo.mm",]),
+                            TestSourcesBuildPhase(["ClassOne.m", "ClassTwo.mm"])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2199,30 +2433,35 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("ClassOne.m"),
-                    ]),
+                        TestFile("ClassOne.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "OTHER_CFLAGS": "-x objective-c++"
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "OTHER_CFLAGS": "-x objective-c++",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Application",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["ClassOne.m",]),
+                            TestSourcesBuildPhase(["ClassOne.m"])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2268,29 +2507,34 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("ClassOne.m"),
-                    ]),
+                        TestFile("ClassOne.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Application",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase([TestBuildFile("ClassOne.m", additionalArgs: ["-x", "objective-c++"])]),
+                            TestSourcesBuildPhase([TestBuildFile("ClassOne.m", additionalArgs: ["-x", "objective-c++"])])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2336,30 +2580,35 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("ClassOne.m"),
-                    ]),
+                        TestFile("ClassOne.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "GCC_INPUT_FILETYPE": "sourcecode.cpp.objcpp"
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "GCC_INPUT_FILETYPE": "sourcecode.cpp.objcpp",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Application",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["ClassOne.m",]),
+                            TestSourcesBuildPhase(["ClassOne.m"])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2405,31 +2654,36 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("ClassOne.m"),
-                    ]),
+                        TestFile("ClassOne.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "GCC_INPUT_FILETYPE": "sourcecode.cpp.objcpp",
-                                            "OTHER_CPLUSPLUSFLAGS": "-x c",
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "GCC_INPUT_FILETYPE": "sourcecode.cpp.objcpp",
+                            "OTHER_CPLUSPLUSFLAGS": "-x c",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Application",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase([TestBuildFile("ClassOne.m", additionalArgs: ["-x", "c++"])]),
+                            TestSourcesBuildPhase([TestBuildFile("ClassOne.m", additionalArgs: ["-x", "c++"])])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2475,31 +2729,36 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             let testProject = TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("ClassOne.m"),
-                    ]),
+                        TestFile("ClassOne.m")
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug",
-                                           buildSettings: [
-                                            "GENERATE_INFOPLIST_FILE": "YES",
-                                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                                            "GCC_INPUT_FILETYPE": "fake",
-                                            "OTHER_CPLUSPLUSFLAGS": "-x c",
-                                           ])
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "GCC_INPUT_FILETYPE": "fake",
+                            "OTHER_CPLUSPLUSFLAGS": "-x c",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Application",
                         type: .application,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase([TestBuildFile("ClassOne.m", additionalArgs: ["-x", "c++"])]),
+                            TestSourcesBuildPhase([TestBuildFile("ClassOne.m", additionalArgs: ["-x", "c++"])])
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
             let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -2544,40 +2803,44 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         }
     }
 
-
     @Test(.requireSDKs(.macOS))
     func linkMissingProjectReference() async throws {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("ClassOne.m"),
-                ]),
+                    TestFile("ClassOne.m")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Application",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["ClassOne.m",]),
+                        TestSourcesBuildPhase(["ClassOne.m"]),
                         TestFrameworksBuildPhase([
                             TestBuildFile(.namedReference(name: "UIKit.framework", fileTypeIdentifier: "wrapper.framework")),
                             TestBuildFile(.namedReference(name: "libssl.a", fileTypeIdentifier: "archive.ar")),
                             TestBuildFile(.namedReference(name: "libxml2.dylib", fileTypeIdentifier: "compiled.mach-o.dylib")),
-                        ])
+                        ]),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in
@@ -2598,30 +2861,35 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("ClassOne.m"),
-                ]),
+                    TestFile("ClassOne.m")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "OTHER_LDFLAGS": "-sectcreate __TEXT __info_plist /path/of/Info.plist -sectcreate a b /c.plist arg arg -sectcreate c d /e.plist"
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "OTHER_LDFLAGS": "-sectcreate __TEXT __info_plist /path/of/Info.plist -sectcreate a b /c.plist arg arg -sectcreate c d /e.plist",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Application",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["ClassOne.m",]),
+                        TestSourcesBuildPhase(["ClassOne.m"])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         let fs = PseudoFS()
@@ -2651,7 +2919,8 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("CFile1.c", fileType: "sourcecode.c.c"),
                     TestFile("CFile2.c", fileType: "sourcecode.c.c.preprocessed"),
@@ -2662,20 +2931,23 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     TestFile("ObjCPlusPlusFile1.mm", fileType: "sourcecode.cpp.objcpp"),
                     TestFile("ObjCPlusPlusFile2.mm", fileType: "sourcecode.cpp.objcpp.preprocessed"),
                     TestFile("Assembly.asm", fileType: "sourcecode.asm.asm"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Application",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -2688,10 +2960,11 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                             "ObjCPlusPlusFile1.mm",
                             "ObjCPlusPlusFile2.mm",
                             "Assembly.asm",
-                        ]),
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the build.
@@ -2737,34 +3010,37 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [
-                ]),
+                "SomeFiles",
+                path: "Sources",
+                children: []
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "CODE_SIGNING_ALLOWED": "NO",
-                                        "BUILD_VARIANTS": "normal debug profile",
-                                        "EXCLUDED_SOURCE_FILE_NAMES": "*",
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "SKIP_INSTALL": "YES",
-                                        "VERSIONING_SYSTEM": "apple-generic"
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_VARIANTS": "normal debug profile",
+                        "EXCLUDED_SOURCE_FILE_NAMES": "*",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SKIP_INSTALL": "YES",
+                        "VERSIONING_SYSTEM": "apple-generic",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "SomeFwk",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([
-                        ]),
+                        TestSourcesBuildPhase([])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the build.
@@ -2783,35 +3059,40 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("file.m", guid: "PACKAGE:Foo/Bar/Pkg:PHASE_1::REF_1"),
                     TestFile("file.mm", guid: "PACKAGE:Foo/Bar/Pkg:PHASE_2::REF_2"),
                     TestFile("file.c", guid: "PACKAGE:../../..:PHASE_3::REF_3"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "BUILD_VARIANTS": "normal",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "BUILD_VARIANTS": "normal",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "MyLibrary",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "file.m",
                             "file.mm",
                             "file.c",
-                        ]),
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the build.
@@ -2838,11 +3119,13 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("Info.plist"),
                     TestFile("baz.storyboard"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2850,26 +3133,31 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                         "IBC_EXEC": ibtoolPath.str,
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CONFIGURATION_BUILD_DIR": "$(SYMROOT)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "CODE_SIGN_IDENTITY": "",
-                                                "SDKROOT": "macosx",
-                                                "INFOPLIST_FILE": "Sources/Info.plist",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGN_IDENTITY": "",
+                                "SDKROOT": "macosx",
+                                "INFOPLIST_FILE": "Sources/Info.plist",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
-                            "baz.storyboard",
-                        ]),
-                    ])
-            ])
+                            "baz.storyboard"
+                        ])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -2882,10 +3170,12 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     task.checkInputs([
                         .path("\(SRCROOT)/Sources/baz.storyboard"),
                         .namePattern(.and(.prefix("target"), .suffix("Producer"))),
-                        .namePattern(.prefix("target-"))])
+                        .namePattern(.prefix("target-")),
+                    ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/App.build/baz.storyboardc"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/App.build/baz-SBPartialInfo.plist"),])
+                        .path("\(SRCROOT)/build/aProject.build/Debug/App.build/baz-SBPartialInfo.plist"),
+                    ])
                 }
 
                 // Verify that the LinkStoryboards task was created as expected with the storyboardc file as input.
@@ -2894,10 +3184,10 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
                     task.checkInputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/App.build/baz.storyboardc"),
                         .namePattern(.and(.prefix("target"), .suffix("Producer"))),
-                        .namePattern(.prefix("target-"))
+                        .namePattern(.prefix("target-")),
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/App.app/Contents/Resources/baz.storyboardc"),
+                        .path("\(SRCROOT)/build/App.app/Contents/Resources/baz.storyboardc")
                     ])
                 }
             }

@@ -32,11 +32,13 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("main.m"),
                     TestFile("Class.m"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -44,26 +46,32 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                         "INFOPLIST_FILE": "Info.plist",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "iphoneos",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.m",
+                            "main.m"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("FwkTarget.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("FwkTarget.framework", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                         TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "Foo", contents: "echo \"Running script\"\nexit 0\n", alwaysOutOfDate: true),
                     ],
                     dependencies: ["FwkTarget"]
@@ -72,21 +80,24 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     "FwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "SDKROOT": "iphoneos",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "Class.m",
+                            "Class.m"
                         ]),
                         TestFrameworksBuildPhase([
-                            "FwkTarget.framework",
+                            "FwkTarget.framework"
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -136,7 +147,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     for platform in core.platformRegistry.platforms {
                         if let otherPlatformDeploymentTargetName = platform.deploymentTargetMacro?.name {
                             if otherPlatformDeploymentTargetName != "IPHONEOS_DEPLOYMENT_TARGET" {
-                                scriptVariables[otherPlatformDeploymentTargetName] = .none      // Set the value to nil, don't remove the entry
+                                scriptVariables[otherPlatformDeploymentTargetName] = .none  // Set the value to nil, don't remove the entry
                             }
                         }
                     }
@@ -151,7 +162,8 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     #expect(task.inputs.contains { $0.path.str == "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/DerivedSources/Entitlements.plist" })
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/AppTarget.app.xcent"),])
+                        .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/AppTarget.app.xcent")
+                    ])
                 }
 
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER"), .matchRuleItemPattern(.suffix(".xcent"))) { task in
@@ -165,7 +177,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     ])
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/AppTarget.app.xcent.der"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/AppTarget.app.xcent.der")
                     ])
                 }
 
@@ -177,7 +189,8 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     #expect(task.inputs.contains { $0.path.str == "/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision" })
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/embedded.mobileprovision"),])
+                        .path("\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/embedded.mobileprovision")
+                    ])
                 }
 
                 // There should be a task to embed the framework and sign it.
@@ -212,9 +225,12 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("AppTarget.app")) { task in
                     #expect(task.ruleInfo[1] == "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app")
                     task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "105DE4E702E4", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app"])
-                    task.checkEnvironment([
-                        "CODESIGN_ALLOCATE": .equal("codesign_allocate"),
-                    ], exact: true)
+                    task.checkEnvironment(
+                        [
+                            "CODESIGN_ALLOCATE": .equal("codesign_allocate")
+                        ],
+                        exact: true
+                    )
                 }
 
                 // There should be one product validation task.
@@ -293,7 +309,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     for platform in core.platformRegistry.platforms {
                         if let otherPlatformDeploymentTargetName = platform.deploymentTargetMacro?.name {
                             if otherPlatformDeploymentTargetName != "IPHONEOS_DEPLOYMENT_TARGET" {
-                                scriptVariables[otherPlatformDeploymentTargetName] = .none      // Set the value to nil, don't remove the entry
+                                scriptVariables[otherPlatformDeploymentTargetName] = .none  // Set the value to nil, don't remove the entry
                             }
                         }
                     }
@@ -390,37 +406,43 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.m"),
-                ]),
+                    TestFile("main.m")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "BUILD_VARIANTS": "normal asan",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "Info.plist",
-                                                "SDKROOT": "iphoneos",
-                                                "CODE_SIGN_IDENTITY": "Apple Development",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "Info.plist",
+                                "SDKROOT": "iphoneos",
+                                "CODE_SIGN_IDENTITY": "Apple Development",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.m",
-                        ]),
+                            "main.m"
+                        ])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let srcRoot = tester.workspace.projects[0].sourceRoot
 
@@ -470,12 +492,16 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                     TestFile("StickerTarget-Info.plist"),
                     TestFile("Source.m"),
                     TestFile("Stickers.xcstickers"),
-                    TestVariantGroup("Sticker Pack.strings", children: [
-                        TestFile("Base.lproj/Sticker Pack.strings", regionVariantName: "Base"),
-                        TestFile("en.lproj/Sticker Pack.strings", regionVariantName: "en"),
-                    ]),
+                    TestVariantGroup(
+                        "Sticker Pack.strings",
+                        children: [
+                            TestFile("Base.lproj/Sticker Pack.strings", regionVariantName: "Base"),
+                            TestFile("en.lproj/Sticker Pack.strings", regionVariantName: "en"),
+                        ]
+                    ),
                     TestFile("Other.strings"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -484,7 +510,8 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "CODE_SIGN_IDENTITY": "Apple Development",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -494,17 +521,21 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "INFOPLIST_FILE": "AppTarget-Info.plist",
-                            ]),
+                                "INFOPLIST_FILE": "AppTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         // TODO: PBX requires the target to already have a resources phase in order to inject the product type's storyboard, but it would be more robust to cons one up implicitly. No ERs about that yet.
                         TestResourcesBuildPhase([]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("StickerTarget.appex", codeSignOnCopy: true),
-                            TestBuildFile("MessagesExtensionTarget.appex", codeSignOnCopy: true),
-                        ], destinationSubfolder: .plugins, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("StickerTarget.appex", codeSignOnCopy: true),
+                                TestBuildFile("MessagesExtensionTarget.appex", codeSignOnCopy: true),
+                            ],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: ["StickerTarget", "MessagesExtensionTarget"]
                 ),
@@ -515,28 +546,30 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Debug",
                             buildSettings: [
-                                "INFOPLIST_FILE": "StickerTarget-Info.plist",
-                            ]),
+                                "INFOPLIST_FILE": "StickerTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             TestBuildFile("Stickers.xcstickers"),
                             TestBuildFile("Sticker Pack.strings"),
                             TestBuildFile("Other.strings"),
-                        ]),
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "MessagesExtensionTarget",
                     type: .messagesExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Source.m"]),
+                        TestSourcesBuildPhase(["Source.m"])
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         guard let platformPath = core.platformRegistry.lookup(name: "iphoneos")?.path else { throw StubError.error("Couldn't find iphoneos platform") }
@@ -587,14 +620,17 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                         "-output",
                         "/tmp/Test/aProject/build/Debug-iphoneos/AppTarget.app/AppTarget",
                         "-extract",
-                        "arm64"
+                        "arm64",
                     ])
                 }
 
                 // Implied Info.plist content
-                checkProductTypeInfoPlistAdditions(target: target, expectedContent: .plDict([
-                    "LSApplicationLaunchProhibited": .plBool(true),
-                ]))
+                checkProductTypeInfoPlistAdditions(
+                    target: target,
+                    expectedContent: .plDict([
+                        "LSApplicationLaunchProhibited": .plBool(true)
+                    ])
+                )
             }
 
             results.checkTarget("StickerTarget") { target in
@@ -606,14 +642,17 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                         "-output",
                         "/tmp/Test/aProject/build/Debug-iphoneos/StickerTarget.appex/StickerTarget",
                         "-extract",
-                        "arm64"
+                        "arm64",
                     ])
                 }
 
                 // Implied Info.plist content
-                checkProductTypeInfoPlistAdditions(target: target, expectedContent: .plDict([
-                    "LSApplicationIsStickerProvider": .plBool(true),
-                ]))
+                checkProductTypeInfoPlistAdditions(
+                    target: target,
+                    expectedContent: .plDict([
+                        "LSApplicationIsStickerProvider": .plBool(true)
+                    ])
+                )
 
                 // Strings files matching a sticker pack base name should be folded into the actool task
                 for variant in ["thinned", "unthinned"] {
@@ -657,31 +696,36 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("ClassOne.m"),
                     TestFile("ClassTwo.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS[sdk=iphoneos*]": "arm64",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "iphoneos",
-                    "IPHONEOS_DEPLOYMENT_TARGET": IPHONEOS_DEPLOYMENT_TARGET,
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "CODE_SIGN_IDENTITY": "Apple Development",
-                    "SUPPORTS_MACCATALYST": "YES",
-                    "CLANG_USE_RESPONSE_FILE": "NO",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS[sdk=iphoneos*]": "arm64",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "IPHONEOS_DEPLOYMENT_TARGET": IPHONEOS_DEPLOYMENT_TARGET,
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CODE_SIGN_IDENTITY": "Apple Development",
+                        "SUPPORTS_MACCATALYST": "YES",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -689,7 +733,8 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                             "ClassTwo.swift",
                         ]),
                         TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "Foo", contents: "echo \"Running script\"\nexit 0\n", alwaysOutOfDate: true),
-                    ]),
+                    ]
+                )
             ]
         )
         let core = try await getCore()
@@ -698,7 +743,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
 
         // Perform a basic build.
         let macosOverrides = [
-            "ARCHS": archs.joined(separator: " "),
+            "ARCHS": archs.joined(separator: " ")
         ]
         await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: macosOverrides), runDestination: .anyMacCatalyst) { results in
             results.checkNoDiagnostics()
@@ -712,44 +757,47 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 for arch in archs {
                     // There should be a clang task for the ObjC file.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItem(arch)) { task in
-                        let expectedClangOptions = ["clang",
-                                                    "-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
-                                                    "-isysroot", core.loadSDK(.macOS).path.str,
-                                                    "-isystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
-                                                    "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
-                                                    "-c", "\(SRCROOT)/Sources/ClassOne.m",
-                                                    "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/ClassOne.o",
+                        let expectedClangOptions = [
+                            "clang",
+                            "-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                            "-isysroot", core.loadSDK(.macOS).path.str,
+                            "-isystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
+                            "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                            "-c", "\(SRCROOT)/Sources/ClassOne.m",
+                            "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/ClassOne.o",
                         ]
                         task.checkCommandLineContains(expectedClangOptions)
                     }
 
                     // Check the Swift compilation task and the tasks to copy its outputs.
                     results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"), .matchRuleItem(arch)) { task in
-                        let expectedSwiftOptions = [swiftCompilerPath.str,
-                                                    "-module-name", "AppTarget",
-                                                    "-sdk", core.loadSDK(.macOS).path.str,
-                                                    "-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
-                                                    "-Fsystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
-                                                    "-c",
-                                                    "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-OutputFileMap.json",
-                                                    "-serialize-diagnostics",
-                                                    "-emit-dependencies",
-                                                    "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget.swiftmodule",
-                                                    "-Xcc", "-isystem", "-Xcc", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
-                                                    "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-Swift.h",
+                        let expectedSwiftOptions = [
+                            swiftCompilerPath.str,
+                            "-module-name", "AppTarget",
+                            "-sdk", core.loadSDK(.macOS).path.str,
+                            "-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                            "-Fsystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                            "-c",
+                            "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-OutputFileMap.json",
+                            "-serialize-diagnostics",
+                            "-emit-dependencies",
+                            "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget.swiftmodule",
+                            "-Xcc", "-isystem", "-Xcc", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
+                            "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-Swift.h",
                         ]
                         task.checkCommandLineContains(expectedSwiftOptions)
                     }
 
                     // Check the link task.
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItem(arch)) { task in
-                        let expectedLinkerOptions = ["clang",
-                                                     "-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
-                                                     "-isysroot", core.loadSDK(.macOS).path.str,
-                                                     "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
-                                                     "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
-                                                     "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
-                                                     "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/Binary/AppTarget",
+                        let expectedLinkerOptions = [
+                            "clang",
+                            "-target", "\(arch)-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                            "-isysroot", core.loadSDK(.macOS).path.str,
+                            "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
+                            "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                            "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                            "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/Binary/AppTarget",
                         ]
                         task.checkCommandLineContains(expectedLinkerOptions)
                     }
@@ -762,7 +810,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("PhaseScriptExecution"), .matchRuleItemBasename("Script-Foo.sh")) { task in
                     // Check export of build settings for macCatalyst.
                     task.checkEnvironment([
-                        "IS_MACCATALYST": .equal("YES"),
+                        "IS_MACCATALYST": .equal("YES")
                     ])
                 }
             }
@@ -783,37 +831,40 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                 // check that we have tasks building for the iOS SDK and arch.
                 // There should be a clang task for the ObjC file.
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                    let expectedClangOptions = ["clang",
-                                                "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
-                                                "-isysroot", core.loadSDK(.iOS).path.str,
-                                                "-c", "\(SRCROOT)/Sources/ClassOne.m",
-                                                "-o", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/ClassOne.o",
+                    let expectedClangOptions = [
+                        "clang",
+                        "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
+                        "-isysroot", core.loadSDK(.iOS).path.str,
+                        "-c", "\(SRCROOT)/Sources/ClassOne.m",
+                        "-o", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/ClassOne.o",
                     ]
                     task.checkCommandLineContains(expectedClangOptions)
                 }
 
                 // Check the Swift compilation task and the tasks to copy its outputs.
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                    let expectedSwiftOptions = [swiftCompilerPath.str,
-                                                "-module-name", "AppTarget",
-                                                "-sdk", core.loadSDK(.iOS).path.str,
-                                                "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
-                                                "-c",
-                                                "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-OutputFileMap.json",
-                                                "-serialize-diagnostics",
-                                                "-emit-dependencies",
-                                                "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget.swiftmodule",
-                                                "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-Swift.h",
+                    let expectedSwiftOptions = [
+                        swiftCompilerPath.str,
+                        "-module-name", "AppTarget",
+                        "-sdk", core.loadSDK(.iOS).path.str,
+                        "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
+                        "-c",
+                        "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-OutputFileMap.json",
+                        "-serialize-diagnostics",
+                        "-emit-dependencies",
+                        "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget.swiftmodule",
+                        "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-Swift.h",
                     ]
                     task.checkCommandLineContains(expectedSwiftOptions)
                 }
 
                 // Check the link task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                    let expectedLinkerOptions = ["clang",
-                                                 "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
-                                                 "-isysroot", core.loadSDK(.iOS).path.str,
-                                                 "-o", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/AppTarget",
+                    let expectedLinkerOptions = [
+                        "clang",
+                        "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
+                        "-isysroot", core.loadSDK(.iOS).path.str,
+                        "-o", "\(SRCROOT)/build/Debug-iphoneos/AppTarget.app/AppTarget",
                     ]
                     task.checkCommandLineContains(expectedLinkerOptions)
                 }
@@ -838,42 +889,48 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("ClassOne.m"),
                     TestFile("ClassTwo.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SDKROOT": "iphoneos",
-                    "IPHONEOS_DEPLOYMENT_TARGET": IPHONEOS_DEPLOYMENT_TARGET,
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "CODE_SIGN_IDENTITY": "",
-                    "SUPPORTS_MACCATALYST": "YES",
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "iphoneos",
+                        "IPHONEOS_DEPLOYMENT_TARGET": IPHONEOS_DEPLOYMENT_TARGET,
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CODE_SIGN_IDENTITY": "",
+                        "SUPPORTS_MACCATALYST": "YES",
 
-                    // These settings are the point of the test: They mask out the values from the SDK variant because they're not using $(inherited).
-                    "LIBRARY_SEARCH_PATHS": "/usr/local/lib",
-                    "SYSTEM_HEADER_SEARCH_PATHS": "/usr/local/include",
-                    "SYSTEM_FRAMEWORK_SEARCH_PATHS": "/Library/Frameworks",
-                    "CLANG_USE_RESPONSE_FILE": "NO",
-                ]),
+                        // These settings are the point of the test: They mask out the values from the SDK variant because they're not using $(inherited).
+                        "LIBRARY_SEARCH_PATHS": "/usr/local/lib",
+                        "SYSTEM_HEADER_SEARCH_PATHS": "/usr/local/include",
+                        "SYSTEM_FRAMEWORK_SEARCH_PATHS": "/Library/Frameworks",
+                        "CLANG_USE_RESPONSE_FILE": "NO",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "ClassOne.m",
                             "ClassTwo.swift",
-                        ]),
-                    ]),
+                        ])
+                    ]
+                )
             ]
         )
         let core = try await getCore()
@@ -891,45 +948,48 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
             results.checkTarget("AppTarget") { target in
                 // There should be a clang task for the ObjC file.
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
-                    let expectedClangOptions = ["clang",
-                                                "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
-                                                "-isysroot", core.loadSDK(.macOS).path.str,
-                                                "-isystem", "/usr/local/include",
-                                                "-isystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
-                                                "-iframework", "/Library/Frameworks",
-                                                "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
-                                                "-c", "\(SRCROOT)/Sources/ClassOne.m",
-                                                "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ClassOne.o",
+                    let expectedClangOptions = [
+                        "clang",
+                        "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                        "-isysroot", core.loadSDK(.macOS).path.str,
+                        "-isystem", "/usr/local/include",
+                        "-isystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
+                        "-iframework", "/Library/Frameworks",
+                        "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                        "-c", "\(SRCROOT)/Sources/ClassOne.m",
+                        "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ClassOne.o",
                     ]
                     task.checkCommandLineContains(expectedClangOptions)
                 }
 
                 // Check the Swift compilation task and the tasks to copy its outputs.
                 results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                    let expectedSwiftOptions = [swiftCompilerPath.str,
-                                                "-module-name", "AppTarget",
-                                                "-sdk", core.loadSDK(.macOS).path.str,
-                                                "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
-                                                "-F", "/Library/Frameworks",
-                                                "-Fsystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
-                                                "-c",
-                                                "-Xcc", "-isystem", "-Xcc", "/usr/local/include",
-                                                "-Xcc", "-isystem", "-Xcc", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
+                    let expectedSwiftOptions = [
+                        swiftCompilerPath.str,
+                        "-module-name", "AppTarget",
+                        "-sdk", core.loadSDK(.macOS).path.str,
+                        "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                        "-F", "/Library/Frameworks",
+                        "-Fsystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                        "-c",
+                        "-Xcc", "-isystem", "-Xcc", "/usr/local/include",
+                        "-Xcc", "-isystem", "-Xcc", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
                     ]
                     task.checkCommandLineContains(expectedSwiftOptions)
                 }
 
                 // Check the link task.
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                    let expectedLinkerOptions = ["clang",
-                                                 "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
-                                                 "-isysroot", core.loadSDK(.macOS).path.str,
-                                                 "-L/usr/local/lib",
-                                                 "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
-                                                 "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
-                                                 "-iframework", "/Library/Frameworks",
-                                                 "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
-                                                 "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget",
+                    let expectedLinkerOptions = [
+                        "clang",
+                        "-target", "x86_64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)-macabi",
+                        "-isysroot", core.loadSDK(.macOS).path.str,
+                        "-L/usr/local/lib",
+                        "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib",
+                        "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst",
+                        "-iframework", "/Library/Frameworks",
+                        "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
+                        "-o", "\(SRCROOT)/build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.app/Contents/MacOS/AppTarget",
                     ]
                     task.checkCommandLineContains(expectedLinkerOptions)
                 }
@@ -944,17 +1004,20 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("main.m"),
-                ]),
+                    TestFile("main.m")
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
@@ -975,12 +1038,13 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                             buildSettings: [
                                 "SDKROOT": "macosx",
                                 "PRODUCT_NAME": "Product",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.m",
-                        ]),
+                            "main.m"
+                        ])
                     ]
                 ),
 
@@ -996,15 +1060,17 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                 "SDKROOT": "macosx",
                                 "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
                                 "PRODUCT_NAME": "Product",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.m",
-                        ]),
+                            "main.m"
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try TaskConstructionTester(core, testProject)
 
         await tester.checkBuild(runDestination: .macOS) { results in

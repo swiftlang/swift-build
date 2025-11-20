@@ -39,7 +39,7 @@ public final class CreateBuildDirectoryTaskAction: TaskAction {
             try fs.setCreatedByBuildSystemAttribute(directoryPath)
         } catch {
             #if canImport(Darwin)
-            outputDelegate?.emitWarning("Failed to set build system attribute on \(directoryPath.str): \(error.localizedDescription)")
+                outputDelegate?.emitWarning("Failed to set build system attribute on \(directoryPath.str): \(error.localizedDescription)")
             #endif
         }
 
@@ -54,7 +54,7 @@ public final class CreateBuildDirectoryTaskAction: TaskAction {
         outputDelegate: any TaskOutputDelegate
     ) async -> CommandResult {
         let generator = task.commandLineAsStrings.makeIterator()
-        _ = generator.next() // consume program name
+        _ = generator.next()  // consume program name
 
         guard let directory = generator.next() else {
             outputDelegate.emitError("wrong number of arguments")

@@ -100,7 +100,6 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         return macros
     }
 
-
     enum SpecializationSource: CustomStringConvertible {
         case synthesized
         case workspace
@@ -155,9 +154,9 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             sourceString = "imposed by \(source)"
         }
 
-        return "Specialization parameters \(sourceString): platform '\(platform?.identifier ?? "nil")' sdkVariant '\(sdkVariant?.name ?? "nil")' supportedPlatforms: '\(supportedPlatforms?.joined(separator: " ") ?? "nil")' toolchain: '\(toolchain?.joined(separator: " ") ?? "nil")'" +
+        return "Specialization parameters \(sourceString): platform '\(platform?.identifier ?? "nil")' sdkVariant '\(sdkVariant?.name ?? "nil")' supportedPlatforms: '\(supportedPlatforms?.joined(separator: " ") ?? "nil")' toolchain: '\(toolchain?.joined(separator: " ") ?? "nil")'"
             // Hide the suffix if it is not present.
-        (canonicalNameSuffix != nil ? " suffix: \(String(describing: canonicalNameSuffix))" : "")
+            + (canonicalNameSuffix != nil ? " suffix: \(String(describing: canonicalNameSuffix))" : "")
     }
 
     private func effectiveToolchainOverride(originalParameters: BuildParameters, workspaceContext: WorkspaceContext) -> [String]? {
@@ -186,10 +185,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
     /// Check if a configured target can be used when this specialization is required.
     func isCompatible(with configuredTarget: ConfiguredTarget, settings: Settings, workspaceContext: WorkspaceContext) -> Bool {
         let toolchain = effectiveToolchainOverride(originalParameters: configuredTarget.parameters, workspaceContext: workspaceContext)
-        return (platform == nil || platform === settings.platform) &&
-        (sdkVariant == nil || sdkVariant?.name == settings.sdkVariant?.name) &&
-        (toolchain == nil || toolchain == settings.toolchains.map(\.identifier)) &&
-        (canonicalNameSuffix == nil || canonicalNameSuffix?.nilIfEmpty == settings.sdk?.canonicalNameSuffix)
+        return (platform == nil || platform === settings.platform) && (sdkVariant == nil || sdkVariant?.name == settings.sdkVariant?.name) && (toolchain == nil || toolchain == settings.toolchains.map(\.identifier)) && (canonicalNameSuffix == nil || canonicalNameSuffix?.nilIfEmpty == settings.sdk?.canonicalNameSuffix)
     }
 
     /// Return an effective set of specialization parameters based on a specific target-dependency pair.
@@ -251,8 +247,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         let overridingSdk: SDK?
         if let sdkRoot {
             overridingSdk = try? workspaceContext.core.sdkRegistry.lookup(nameOrPath: sdkRoot.value, basePath: Path("/"), activeRunDestination: parameters.activeRunDestination)
-        }
-        else {
+        } else {
             overridingSdk = nil
         }
         // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evaluate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
@@ -265,8 +260,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             if let overridingSdk = overridingSdk {
                 let platformNames = workspaceContext.core.platformRegistry.platforms.map { $0.name }
                 diagnostics.append(Diagnostic(behavior: .warning, location: .unknown, data: DiagnosticData("Could not find a platform name for workspace specialization parameter for overriding SDK '\(overridingSdk.canonicalName)' among loaded platforms '\(platformNames.joined(separator: " "))'s.")))
-            }
-            else if let sdkRoot = sdkRoot {
+            } else if let sdkRoot = sdkRoot {
                 diagnostics.append(Diagnostic(behavior: .warning, location: .unknown, data: DiagnosticData("Could not find an SDK for workspace specialization parameters for overriding SDKROOT '\(sdkRoot.value)' from \(sdkRoot.source).")))
             }
             // Otherwise there was no overriding SDK provided, and there is no active run destination (or somehow there's a destination without a platform).  This is valid, but it's not clear to me what this means for specialization parameters.
@@ -294,8 +288,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
                 let platformNames = workspaceContext.core.platformRegistry.platforms.map { $0.name }
                 diagnostics.append(Diagnostic(behavior: .warning, location: .unknown, data: DiagnosticData("Could not find a platform named '\(platformName)' from loaded platforms '\(platformNames.joined(separator: " "))' for workspace specialization parameters.")))
             }
-        }
-        else {
+        } else {
             platform = nil
         }
         let defaultVariant: SDKVariant?
@@ -368,14 +361,14 @@ extension BuildRequestContext {
         for overrideSource in overrideSources {
             switch overrideSource {
             case .environmentConfigOverrides(dict: let dict),
-                 .commandLineConfigOverrides(dict: let dict),
-                 .commandLineOverrides(dict: let dict),
-                 .buildParametersOverrides(dict: let dict):
+                .commandLineConfigOverrides(dict: let dict),
+                .commandLineOverrides(dict: let dict),
+                .buildParametersOverrides(dict: let dict):
                 if let value = dict[macroName] {
                     return (value, overrideSource)
                 }
             case .environmentConfigOverridesPath,
-                 .commandLineConfigOverridesPath:
+                .commandLineConfigOverridesPath:
                 // These cases were handled before this loop.
                 continue
             }
@@ -500,7 +493,7 @@ extension SpecializationParameters {
             // Keep this dictionary empty so that `LinkageDependencyResolver` fallbacks to using the build parameters of the configured targets, which are the relevant ones.
             self.buildParametersByTarget = [:]
         } else {
-            var buildParametersByTarget = [Target:BuildParameters]()
+            var buildParametersByTarget = [Target: BuildParameters]()
             for targetInfo in buildRequest.buildTargets {
                 buildParametersByTarget[targetInfo.target] = targetInfo.parameters
             }
@@ -517,15 +510,20 @@ extension SpecializationParameters {
             var hostBuildParameters: PlatformBuildParameters? = nil
             for platform in workspaceContext.core.platformRegistry.platforms {
                 // Find the corresponding SDK for this platform
-                let potentialSDKNames = [platform.sdkCanonicalName].compactMap { $0 } + workspaceContext.core.sdkRegistry.supportedSDKCanonicalNameSuffixes().compactMap {
-                    if let sdkBaseName = platform.sdkCanonicalName {
-                        return "\(sdkBaseName).\($0)"
-                    } else {
-                        return nil
+                let potentialSDKNames =
+                    [platform.sdkCanonicalName].compactMap { $0 }
+                    + workspaceContext.core.sdkRegistry.supportedSDKCanonicalNameSuffixes().compactMap {
+                        if let sdkBaseName = platform.sdkCanonicalName {
+                            return "\(sdkBaseName).\($0)"
+                        } else {
+                            return nil
+                        }
                     }
-                }
-                guard let matchingSDK = potentialSDKNames
-                    .compactMap({ try? workspaceContext.core.sdkRegistry.lookup($0, activeRunDestination: nil) }).first else {
+                guard
+                    let matchingSDK =
+                        potentialSDKNames
+                        .compactMap({ try? workspaceContext.core.sdkRegistry.lookup($0, activeRunDestination: nil) }).first
+                else {
                     continue
                 }
 
@@ -537,7 +535,7 @@ extension SpecializationParameters {
                     let specializationParams = SpecializationParameters.default(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: buildParams)
                     platformBuildParameters.append(PlatformBuildParameters(buildParams: buildParams, specializationParams: specializationParams))
 
-                    if runDestination.platform == hostOS && runDestination.sdkVariant == matchingSDK.defaultVariant?.name  {
+                    if runDestination.platform == hostOS && runDestination.sdkVariant == matchingSDK.defaultVariant?.name {
                         hostBuildParameters = platformBuildParameters.last
                     }
                 }
@@ -550,11 +548,13 @@ extension SpecializationParameters {
             self.hostParametersForIndex = nil
         }
 
-        self.dynamicallyBuildingTargets = Set(buildRequest.buildTargets.filter {
-            workspaceContext.workspace.project(for: $0.target).isPackage && buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PACKAGE_BUILD_DYNAMICALLY)
-        }.map {
-            $0.target
-        })
+        self.dynamicallyBuildingTargets = Set(
+            buildRequest.buildTargets.filter {
+                workspaceContext.workspace.project(for: $0.target).isPackage && buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PACKAGE_BUILD_DYNAMICALLY)
+            }.map {
+                $0.target
+            }
+        )
     }
 
     /// Add the superimposed overrides in `specialization` to be imposed on the target in `configuredTarget` and other instances of that target which match this `configuredTarget`.
@@ -868,8 +868,7 @@ extension SpecializationParameters {
             } else {
                 imposedSdkVariant = imposedPlatform?.defaultSDKVariant
             }
-        }
-        else {
+        } else {
             imposedSdkVariant = nil
         }
 
@@ -897,14 +896,21 @@ extension SpecializationParameters {
                     // having a build description, severely hampering semantic functionality.
                     let behavior: Diagnostic.Behavior = buildRequest.enableIndexBuildArena ? .warning : .error
 
-                    delegate.emit(Diagnostic(behavior: behavior, location: .unknown, data: data, childDiagnostics: {
-                        switch specialization.source {
-                        case .synthesized, .workspace:
-                            []
-                        case let .target(name):
-                            [Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Consider changing target '\(name)' to build using an \(specializationSDKOptions.joined(separator: " ")) SDK."))]
-                        }
-                    }()))
+                    delegate.emit(
+                        Diagnostic(
+                            behavior: behavior,
+                            location: .unknown,
+                            data: data,
+                            childDiagnostics: {
+                                switch specialization.source {
+                                case .synthesized, .workspace:
+                                    []
+                                case let .target(name):
+                                    [Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Consider changing target '\(name)' to build using an \(specializationSDKOptions.joined(separator: " ")) SDK."))]
+                                }
+                            }()
+                        )
+                    )
                 }
 
                 // Since we are imposing a platform, we also need to impose internal-ness (from either the client or `SPECIALIZATION_SDK_OPTIONS`).
@@ -947,14 +953,16 @@ extension SpecializationParameters {
             imposedToolchain = nil
         }
 
-        let fromPackage =  workspaceContext.workspace.project(for: forTarget).isPackage
+        let fromPackage = workspaceContext.workspace.project(for: forTarget).isPackage
 
         let imposedSwiftCompileCache: Bool?
         if fromPackage {
-            imposedSwiftCompileCache = settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) || buildRequest.buildTargets.contains { buildTargetInfo in
-                let buildTargetSettings = buildRequestContext.getCachedSettings(buildTargetInfo.parameters, target: buildTargetInfo.target)
-                return buildTargetSettings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE)
-            }
+            imposedSwiftCompileCache =
+                settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE)
+                || buildRequest.buildTargets.contains { buildTargetInfo in
+                    let buildTargetSettings = buildRequestContext.getCachedSettings(buildTargetInfo.parameters, target: buildTargetInfo.target)
+                    return buildTargetSettings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE)
+                }
         } else {
             imposedSwiftCompileCache = nil
         }
@@ -967,8 +975,7 @@ extension SpecializationParameters {
         // Ideally, this code shouldn't live here, but there are issues tracked in (rdar://80907686) that we need to work through.
         if settings.enableTargetPlatformSpecialization || settings.enableBuildRequestOverrides || fromPackage {
             return lookupConfiguredTarget(forTarget, parameters: filteredSpecialization.imposed(on: parameters, workspaceContext: workspaceContext), superimposedProperties: filteredSpecialization.superimposedProperties)
-        }
-        else {
+        } else {
             let nonimposedParameters = fromPackage ? parameters : parameters.withoutImposedOverrides(buildRequest, core: workspaceContext.core)
             return lookupConfiguredTarget(forTarget, parameters: filteredSpecialization.imposed(on: nonimposedParameters, workspaceContext: workspaceContext), superimposedProperties: filteredSpecialization.superimposedProperties)
         }
@@ -1083,8 +1090,7 @@ extension DependencyResolver {
             for n in 0..<iterations {
                 await fn(n)
             }
-        }
-        else {
+        } else {
             await TaskGroup.concurrentPerform(iterations: iterations, maximumParallelism: maximumParallelism, execute: fn)
         }
     }
@@ -1093,8 +1099,7 @@ extension DependencyResolver {
     func concurrentMap<Element: Sendable, T: Sendable, S: Sendable>(maximumParallelism: Int, _ items: S, _ transform: @Sendable @escaping (Element) async -> [T]) async -> [T] where S: Sequence<Element> {
         if disableConcurrentDependencyResolution {
             return await items.asyncMap(transform).flatMap { $0 }
-        }
-        else {
+        } else {
             return await items.concurrentMap(maximumParallelism: maximumParallelism, transform).flatMap { $0 }
         }
     }

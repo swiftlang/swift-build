@@ -17,22 +17,17 @@ public import SWBCore
 import SWBLibc
 public import SWBUtil
 
-
 /// Concrete implementation of task for processing the provisioning profile for a product.
-public final class ProcessProductProvisioningProfileTaskAction: TaskAction
-{
-    public override init()
-    {
+public final class ProcessProductProvisioningProfileTaskAction: TaskAction {
+    public override init() {
         // Presently this class' initializer doesn't do anything extra - all parameters are passed in as command-line options.
         super.init()
     }
 
     /// The parsed command line options.
-    private struct Options
-    {
+    private struct Options {
         /// The output format of the task.
-        enum FormatKind: String
-        {
+        enum FormatKind: String {
             /// Preserve the format of the input file.
             case sameAsInput = "none"
             /// Convert to binary.
@@ -42,8 +37,7 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
 
             // Note that Foundation no longer supports writing the OpenStep plist format.
 
-            init?(name: String)
-            {
+            init?(name: String) {
                 switch name
                 {
                 case "openstep":
@@ -52,23 +46,18 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
 
                 default:
                     // Otherwise we initialize from the raw value, if possible.
-                    if let value = FormatKind(rawValue: name)
-                    {
+                    if let value = FormatKind(rawValue: name) {
                         self = value
                         return
-                    }
-                    else
-                    {
+                    } else {
                         return nil
                     }
                 }
             }
         }
 
-        static func emitUsage(_ name: String, _ outputDelegate: any TaskOutputDelegate)
-        {
-            outputDelegate.emitOutput
-            { stream in
+        static func emitUsage(_ name: String, _ outputDelegate: any TaskOutputDelegate) {
+            outputDelegate.emitOutput { stream in
                 stream <<< "usage: \(name) [-format <name>] <input-file> -o <output-path>\n"
                 stream <<< "  --format {none|binary|xml}\n"
                 stream <<< "      The output format of the entitlements.\n"
@@ -86,15 +75,13 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
         /// The path to the output file.
         let outputPath: Path
 
-        init?(_ commandLine: AnySequence<String>, _ outputDelegate: any TaskOutputDelegate)
-        {
+        init?(_ commandLine: AnySequence<String>, _ outputDelegate: any TaskOutputDelegate) {
             var format = FormatKind.sameAsInput
             var inputPath: Path? = nil
             var foundOutputPathOption = false
             var outputPath: Path? = nil
             var hadErrors = false
-            func error(_ message: String)
-            {
+            func error(_ message: String) {
                 outputDelegate.emitError(message)
                 hadErrors = true
             }
@@ -103,20 +90,16 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
             let generator = commandLine.makeIterator()
             // Skip the executable.
             let programName = generator.next() ?? "<<missing program name>>"
-        argumentParsing:
-            while let arg = generator.next()
-            {
+            argumentParsing: while let arg = generator.next() {
                 switch arg
                 {
                 case "-format":
                     // The '-format' option takes a single argument: 'xml', 'binary', 'openstep' or 'none'.
-                    guard let name = generator.next() else
-                    {
+                    guard let name = generator.next() else {
                         error("missing argument for option: \(arg)")
                         continue
                     }
-                    guard let kind = FormatKind(name: name) else
-                    {
+                    guard let kind = FormatKind(name: name) else {
                         error("failed to parse option: \(arg) \(name)")
                         continue
                     }
@@ -125,8 +108,7 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
                 case "-o":
                     // The '-o' argument take a single parameter: the output path.
                     foundOutputPathOption = true
-                    guard let value = generator.next() else
-                    {
+                    guard let value = generator.next() else {
                         error("missing argument for option: \(arg)")
                         continue
                     }
@@ -148,22 +130,19 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
             }
 
             // Diagnose missing input path.
-            if inputPath == nil
-            {
+            if inputPath == nil {
                 error("no input file specified")
                 inputPath = Path("<<error>>")
             }
 
             // Diagnose missing output path option.
-            if outputPath == nil && !foundOutputPathOption
-            {
+            if outputPath == nil && !foundOutputPathOption {
                 error("missing required option: -o")
                 outputPath = Path("<<error>>")
             }
 
             // If there were errors, emit the usage and return an error.
-            if hadErrors
-            {
+            if hadErrors {
                 outputDelegate.emitOutput("\n")
                 Options.emitUsage(programName, outputDelegate)
                 return nil
@@ -176,8 +155,7 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
         }
     }
 
-    public override class var toolIdentifier: String
-    {
+    public override class var toolIdentifier: String {
         return "process-product-provisioning-profile"
     }
 
@@ -189,23 +167,19 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
         outputDelegate: any TaskOutputDelegate
     ) async -> CommandResult {
         // Parse the arguments.
-        guard let options = Options(task.commandLineAsStrings, outputDelegate) else
-        {
+        guard let options = Options(task.commandLineAsStrings, outputDelegate) else {
             return .failed
         }
 
         // Make paths absolute.
-        let input = task.workingDirectory.join(options.inputPath)     // Not presently used
+        let input = task.workingDirectory.join(options.inputPath)  // Not presently used
         let output = task.workingDirectory.join(options.outputPath)
 
         // Read the input file.
         let contents: ByteString
-        do
-        {
+        do {
             contents = try executionDelegate.fs.read(input)
-        }
-        catch let e
-        {
+        } catch let e {
             outputDelegate.emitError("unable to read input file '\(input.str)': \(e.localizedDescription)")
             return .failed
         }
@@ -230,12 +204,9 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
             guard let (plist, _) = validateAsPropertyList(contents, outputDelegate) else { return .failed }
 
             let outBytes: [UInt8]
-            do
-            {
+            do {
                 try outBytes = plist.asBytes(outputFormat!)
-            }
-            catch
-            {
+            } catch {
                 let errorDescription = (error as NSError).localizedDescription
                 outputDelegate.emitError("unable to create \(options.format.rawValue) property list data: \(errorDescription)")
                 return .failed
@@ -244,12 +215,9 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
         }
 
         // Finally we can write the output file.
-        do
-        {
+        do {
             try executionDelegate.fs.write(output, contents: outContents)
-        }
-        catch let error as NSError
-        {
+        } catch let error as NSError {
             outputDelegate.emitError("could not write profile file: \(output.str): \(error.localizedDescription)")
             return .failed
         }
@@ -260,8 +228,7 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
     /// Validate that the given `contents` are a property list, with the root item being a dictionary, and return the parsed property list.
     ///
     /// If validation fails, then messages will be emitted to the `outputDelegate`, and nil will be returned.
-    private func validateAsPropertyList(_ contents: ByteString, _ outputDelegate: any TaskOutputDelegate) -> (PropertyListItem, PropertyListSerialization.PropertyListFormat)?
-    {
+    private func validateAsPropertyList(_ contents: ByteString, _ outputDelegate: any TaskOutputDelegate) -> (PropertyListItem, PropertyListSerialization.PropertyListFormat)? {
         // Validate it as a property list.  The top-level item must be a dictionary.
         let plist: PropertyListItem
         let format: PropertyListSerialization.PropertyListFormat
@@ -272,8 +239,7 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
             outputDelegate.emitError("unable to read input file as a property list: \(errorDescription)")
             return nil
         }
-        guard case .plDict = plist else
-        {
+        guard case .plDict = plist else {
             outputDelegate.emitError("input file is not a dictionary")
             return nil
         }
@@ -281,20 +247,15 @@ public final class ProcessProductProvisioningProfileTaskAction: TaskAction
         return (plist, format)
     }
 
-
     // Serialization
 
-
-    public override func serialize<T: Serializer>(to serializer: T)
-    {
-        serializer.serializeAggregate(1)
-        {
+    public override func serialize<T: Serializer>(to serializer: T) {
+        serializer.serializeAggregate(1) {
             super.serialize(to: serializer)
         }
     }
 
-    public required init(from deserializer: any Deserializer) throws
-    {
+    public required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(1)
         try super.init(from: deserializer)
     }

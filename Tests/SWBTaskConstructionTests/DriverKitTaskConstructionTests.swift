@@ -26,14 +26,16 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
                     TestFile("interface.iig"),
                     TestFile("project.iig"),
                     TestFile("private.iig"),
                     TestFile("public.iig"),
                     TestFile("main.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -48,20 +50,21 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                         "IIG_CXX_LANGUAGE_STANDARD": "c++17",
                         "COPY_HEADERS_RUN_UNIFDEF": runUnifdef ? "YES" : "NO",
                         "COPY_HEADERS_UNIFDEF_FLAGS": runUnifdef ? "-DHIDE_FOO" : "",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "DextTarget",
                     type: .driverExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "interface.iig",
                             "main.c",
-                        ]),
+                        ])
                     ],
                     dependencies: ["LibraryTarget"]
                 ),
@@ -69,7 +72,7 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                     "LibraryTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -77,10 +80,11 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                             "project.iig",
                             TestBuildFile("private.iig", headerVisibility: .private),
                             TestBuildFile("public.iig", headerVisibility: .public),
-                        ]),
+                        ])
                     ]
-                )
-            ])
+                ),
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let srcRoot = tester.workspace.projects[0].sourceRoot
@@ -181,14 +185,16 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
             let testProject = try await TestProject(
                 "aProject",
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("interface.iig"),
                         TestFile("project.iig"),
                         TestFile("private.iig"),
                         TestFile("public.iig"),
                         TestFile("main.c"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -202,14 +208,15 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                             "TAPI_EXEC": tapiToolPath.str,
                             "IIG_EXEC": iigPath.str,
                             "IIG_CXX_LANGUAGE_STANDARD": "c++17",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "LibraryTarget",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
@@ -217,10 +224,11 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                                 "project.iig",
                                 TestBuildFile("private.iig", headerVisibility: .private),
                                 TestBuildFile("public.iig", headerVisibility: .public),
-                            ]),
+                            ])
                         ]
                     )
-                ])
+                ]
+            )
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
             let srcRoot = tester.workspace.projects[0].sourceRoot
@@ -302,10 +310,12 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
-                        TestFile("main.c"),
-                    ]),
+                        TestFile("main.c")
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -313,22 +323,24 @@ fileprivate struct DriverKitTaskConstructionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SDKROOT": "driverkit",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "DextTarget",
                         type: .driverExtension,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug"),
+                            TestBuildConfiguration("Debug")
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase([
-                                "main.c",
-                            ]),
+                                "main.c"
+                            ])
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             let fs = PseudoFS()

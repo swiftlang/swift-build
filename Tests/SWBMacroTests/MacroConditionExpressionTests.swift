@@ -380,7 +380,7 @@ import SWBMacro
 }
 
 extension MacroConditionExpression {
-    class func fromString(_ string: String, diagnosticsHandler: @escaping (((String) -> Void)) = {_ in }) -> MacroConditionExpression? {
+    class func fromString(_ string: String, diagnosticsHandler: @escaping (((String) -> Void)) = { _ in }) -> MacroConditionExpression? {
         struct Static {
             static let namespace = MacroNamespace(debugDescription: "test")
         }

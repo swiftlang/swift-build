@@ -26,20 +26,24 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("SourceFile.m"),
                     TestFile("Another.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CC": clangCompilerPath.str,
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "CLANG_ENABLE_MODULES": "YES",
-                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
-                    "CLANG_ENABLE_COMPILE_CACHE": "YES",
-                    "SWIFT_ENABLE_COMPILE_CACHE": "YES",
-                    "COMPILATION_CACHE_ENABLE_PLUGIN": "YES",
-                    "COMPILATION_CACHE_REMOTE_SERVICE_PATH": "/tmp/cc",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CC": clangCompilerPath.str,
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "CLANG_ENABLE_MODULES": "YES",
+                        "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                        "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                        "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                        "COMPILATION_CACHE_ENABLE_PLUGIN": "YES",
+                        "COMPILATION_CACHE_REMOTE_SERVICE_PATH": "/tmp/cc",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -57,9 +61,12 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
                     "ToolRemoteObjC",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES": "objective-c",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES": "objective-c"
+                            ]
+                        )
                     ],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m", "Another.swift"])]
                 ),
@@ -67,9 +74,12 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
                     "ToolRemoteSwift",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES": "swift",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES": "swift"
+                            ]
+                        )
                     ],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m", "Another.swift"])]
                 ),
@@ -77,13 +87,17 @@ fileprivate struct CompilationCachingTaskConstructionTests: CoreBasedTests {
                     "ToolRemoteBoth",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES": "swift objective-c",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "COMPILATION_CACHE_REMOTE_SUPPORTED_LANGUAGES": "swift objective-c"
+                            ]
+                        )
                     ],
                     buildPhases: [TestSourcesBuildPhase(["SourceFile.m", "Another.swift"])]
                 ),
-            ])
+            ]
+        )
         let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
         let tester = try await TaskConstructionTester(getCore(), testWorkspace)
 

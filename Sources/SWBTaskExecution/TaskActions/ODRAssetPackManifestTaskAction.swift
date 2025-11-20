@@ -43,13 +43,11 @@ public final class ODRAssetPackManifestTaskAction: TaskAction {
                 // a) if ASSET_PACK_MANIFEST_URL_PREFIX is set to anything other than the empty string, we use it, and append the name of the asset pack to it (note that we do -not- insert a path separator, to allow prefixes like "http://myserver/script?pack=").
                 guard let suffix = assetPackPath.basename.addingPercentEncoding(withAllowedCharacters: allowedChars) else { throw StubError.error("could not percent-encode \(assetPackPath.basename)") }
                 return assetPackManifestURLPrefix.appending(suffix)
-            }
-            else if embedAssetPacksInProductBundle {
+            } else if embedAssetPacksInProductBundle {
                 // b) otherwise, if the ASSET_PACK_FOLDER_PATH path is inside the Resources directory of the main product bundle, we use the relative path to that Resources directory as the URL,
                 guard let subPath = assetPackPath.relativeSubpath(from: unlocalizedProductResourcesDir) else { throw StubError.error("expected path \(assetPackPath.str) to be a subpath of \(unlocalizedProductResourcesDir.str)") }
                 return subPath
-            }
-            else {
+            } else {
                 // c) otherwise, we use a full http://127.0.0.1/full/path.assetpack path with an absolute path to the asset pack
                 guard let suffix = assetPackPath.str.addingPercentEncoding(withAllowedCharacters: allowedChars) else { throw StubError.error("could not percent-encode \(assetPackPath.str)") }
                 return "http://127.0.0.1".appending(suffix)
@@ -64,8 +62,7 @@ public final class ODRAssetPackManifestTaskAction: TaskAction {
                 let infoPlist: PropertyListItem
                 do {
                     infoPlist = try PropertyList.fromPath(infoPlistPath, fs: executionDelegate.fs)
-                }
-                catch {
+                } catch {
                     throw StubError.error("failed to load \(infoPlistPath.str): \(error)")
                 }
 
@@ -76,8 +73,7 @@ public final class ODRAssetPackManifestTaskAction: TaskAction {
                 if let priorityItem = dict["Priority"] {
                     guard case .plDouble(let p) = priorityItem else { throw StubError.error("expected number in \(infoPlistPath.str) : Priority") }
                     priority = p
-                }
-                else {
+                } else {
                     priority = nil
                 }
 
@@ -91,8 +87,7 @@ public final class ODRAssetPackManifestTaskAction: TaskAction {
 
             let plistData = try AssetPackManifestPlist(resources: Set(resources)).propertyListItem.asBytes(.binary)
             try executionDelegate.fs.write(outputPath, contents: ByteString(plistData))
-        }
-        catch {
+        } catch {
             outputDelegate.emitError("\(error)")
             return .failed
         }

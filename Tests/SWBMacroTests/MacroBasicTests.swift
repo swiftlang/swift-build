@@ -38,7 +38,6 @@ import SWBMacro
         #expect(didCatchExpectedException)
     }
 
-
     @Test
     func macroExpressionCreation() throws {
         let namespace = MacroNamespace(debugDescription: "test")
@@ -83,7 +82,6 @@ import SWBMacro
         #expect(expr3.stringRep == str3)
     }
 
-
     @Test
     func macroExpressionEquality() {
         let namespace = MacroNamespace(debugDescription: "test")
@@ -98,7 +96,6 @@ import SWBMacro
         #expect(expr1 != expr4)
         #expect(expr2 != expr3)
     }
-
 
     @Test
     func macroNamespaceInheritance() throws {
@@ -153,7 +150,6 @@ import SWBMacro
         let middlePathDecl = middleNamespace.lookupMacroDeclaration("PathMacro")
         #expect(middlePathDecl == nil)
 
-
         // Make sure we can also declare a path macro in the upper namespace.
         let upperPathListDecl = try upperNamespace.declarePathListMacro("PathListMacro")
         #expect(upperPathListDecl.type == .pathList)
@@ -184,4 +180,3 @@ import SWBMacro
         #expect(middleLookedupCondParam == nil)
     }
 }
-

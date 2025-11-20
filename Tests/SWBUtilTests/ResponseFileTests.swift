@@ -58,12 +58,15 @@ import SWBUtil
             try localFS.write(tmpDir.join("a.resp"), contents: "-foo -bar -baz")
             try localFS.write(tmpDir.join("b.resp"), contents: "-b @a.resp")
             try localFS.write(tmpDir.join("c.resp"), contents: "-foo @c.resp")
-            try localFS.write(tmpDir.join("d.resp"), contents: """
-            // comment
-            -foo -bar -baz
-            // comment two
-            -path '/path/with space' @b.resp
-            """)
+            try localFS.write(
+                tmpDir.join("d.resp"),
+                contents: """
+                    // comment
+                    -foo -bar -baz
+                    // comment two
+                    -path '/path/with space' @b.resp
+                    """
+            )
             try #expect(ResponseFiles.expandResponseFiles(["-first", "@a.resp", "-last"], fileSystem: localFS, relativeTo: tmpDir, format: .unixShellQuotedSpaceSeparated) == ["-first", "-foo", "-bar", "-baz", "-last"])
             try #expect(ResponseFiles.expandResponseFiles(["-first", "@b.resp", "-last"], fileSystem: localFS, relativeTo: tmpDir, format: .unixShellQuotedSpaceSeparated) == ["-first", "-b", "-foo", "-bar", "-baz", "-last"])
             #expect(throws: (any Error).self) {

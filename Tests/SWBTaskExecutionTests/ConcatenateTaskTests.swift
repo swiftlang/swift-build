@@ -36,7 +36,7 @@ fileprivate struct ConcatenateTaskTests {
         let outputDelegate = MockTaskOutputDelegate()
 
         // Test creating a new file.
-        var commandLine = ["builtin-concatenate", output.str, inputOne.str, inputTwo.str, inputThree.str].map{ ByteString(encodingAsUTF8: $0) }
+        var commandLine = ["builtin-concatenate", output.str, inputOne.str, inputTwo.str, inputThree.str].map { ByteString(encodingAsUTF8: $0) }
         var inputs = [inputOne, inputTwo, inputThree].map { MakePlannedPathNode($0) }
         var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: commandLine.map { .literal($0) }, inputs: inputs, outputs: [MakePlannedPathNode(output)])
         var task = Task(&builder)
@@ -49,7 +49,7 @@ fileprivate struct ConcatenateTaskTests {
         #expect("onetwothree" == outputContents)
 
         // Test overwriting the file.
-        commandLine = ["builtin-concatenate", output.str, inputThree.str, inputTwo.str, inputOne.str].map{ ByteString(encodingAsUTF8: $0) }
+        commandLine = ["builtin-concatenate", output.str, inputThree.str, inputTwo.str, inputOne.str].map { ByteString(encodingAsUTF8: $0) }
         inputs = [inputThree, inputTwo, inputOne].map { MakePlannedPathNode($0) }
         builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: commandLine.map { .literal($0) }, inputs: inputs, outputs: [MakePlannedPathNode(output)])
         task = Task(&builder)

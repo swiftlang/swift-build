@@ -30,8 +30,7 @@ import SWBMacro
         do {
             let _ = try XCFramework(version: version, libraries: libraries)
             Issue.record("Expected a validation error.", sourceLocation: sourceLocation)
-        }
-        catch {
+        } catch {
             handler(error)
         }
     }
@@ -44,8 +43,7 @@ import SWBMacro
         do {
             let _ = try XCFramework(version: version, libraries: libraries)
             Issue.record("Expected a validation error.", sourceLocation: sourceLocation)
-        }
-        catch {
+        } catch {
             handler(error)
         }
     }
@@ -77,7 +75,7 @@ import SWBMacro
 
         do {
             let libraries: OrderedSet<XCFramework.Library> = [
-                XCFramework.Library(libraryIdentifier: "foo", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Foo.unsupported"), binaryPath: Path("Foo.unsupported"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "foo", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Foo.unsupported"), binaryPath: Path("Foo.unsupported"), headersPath: nil)
             ]
 
             assertValidationError(libraries: libraries) { error in
@@ -170,7 +168,7 @@ import SWBMacro
 
         do {
             let libraries = [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("foo.framework"), binaryPath: Path("foo.framework/Versions/A/foo"), headersPath: Path("Headers")),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("foo.framework"), binaryPath: Path("foo.framework/Versions/A/foo"), headersPath: Path("Headers"))
             ]
 
             assertValidationError(libraries: libraries) { error in
@@ -185,7 +183,7 @@ import SWBMacro
 
         do {
             let libraries = [
-                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libtest.a"), binaryPath: Path("libtest.a"), headersPath: Path("Headers"), mergeableMetadata: true),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos10.15", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("libtest.a"), binaryPath: Path("libtest.a"), headersPath: Path("Headers"), mergeableMetadata: true)
             ]
 
             assertValidationError(libraries: libraries) { error in
@@ -199,7 +197,7 @@ import SWBMacro
 
         do {
             let libraries: OrderedSet<XCFramework.Library> = [
-                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libtest.dylib"), binaryPath: nil, headersPath: Path("Headers"), mergeableMetadata: true),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos13.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("libtest.dylib"), binaryPath: nil, headersPath: Path("Headers"), mergeableMetadata: true)
             ]
 
             assertValidationError(libraries: libraries) { error in
@@ -215,11 +213,9 @@ import SWBMacro
             let fs = PseudoFS()
             let _ = try XCFramework(path: Path.root.join("tmp/no.xcframework"), fs: fs)
             Issue.record("should have failed loading xcframework")
-        }
-        catch let XCFrameworkValidationError.missingXCFramework(path) {
+        } catch let XCFrameworkValidationError.missingXCFramework(path) {
             #expect(path.str == Path.root.join("tmp/no.xcframework").str)
-        }
-        catch {
+        } catch {
             Issue.record("unexpected error: \(error)")
         }
 
@@ -229,11 +225,9 @@ import SWBMacro
             try fs.createDirectory(xcframeworkPath, recursive: true)
             let _ = try XCFramework(path: xcframeworkPath, fs: fs)
             Issue.record("should have failed loading xcframework")
-        }
-        catch let XCFrameworkValidationError.missingInfoPlist(path) {
+        } catch let XCFrameworkValidationError.missingInfoPlist(path) {
             #expect(path.str == Path.root.join("tmp/foo.xcframework/Info.plist").str)
-        }
-        catch {
+        } catch {
             Issue.record("unexpected error: \(error)")
         }
     }
@@ -268,20 +262,15 @@ import SWBMacro
             let _ = try XCFramework(other: try PropertyList.decode(XCFrameworkInfoPlist_V1.self, from: plist))
 
             Issue.record("expected XCFrameworkError.parsing", sourceLocation: sourceLocation)
-        }
-        catch DecodingError.dataCorrupted(let context) {
+        } catch DecodingError.dataCorrupted(let context) {
             #expect(context.debugDescription == expected)
-        }
-        catch DecodingError.valueNotFound(_, let context) {
+        } catch DecodingError.valueNotFound(_, let context) {
             #expect(context.debugDescription == expected)
-        }
-        catch DecodingError.keyNotFound(_, let context) {
+        } catch DecodingError.keyNotFound(_, let context) {
             #expect(context.debugDescription == expected)
-        }
-        catch DecodingError.typeMismatch(_, let context) {
+        } catch DecodingError.typeMismatch(_, let context) {
             #expect(context.debugDescription == expected)
-        }
-        catch {
+        } catch {
             Issue.record("unexpected error throw: \(error)", sourceLocation: sourceLocation)
         }
     }
@@ -291,11 +280,9 @@ import SWBMacro
             let _ = try XCFramework(other: try PropertyList.decode(XCFrameworkInfoPlist_V1.self, from: plist))
 
             Issue.record("expected XCFrameworkError.parsing", sourceLocation: sourceLocation)
-        }
-        catch let validationError as XCFrameworkValidationError {
+        } catch let validationError as XCFrameworkValidationError {
             #expect(validationError == expected)
-        }
-        catch {
+        } catch {
             Issue.record("unexpected error throw: \(error)", sourceLocation: sourceLocation)
         }
     }
@@ -313,7 +300,7 @@ import SWBMacro
                     "BinaryPath": .plString("XCSample.dylib"),
                     "HeadersPath": .plString("Headers"),
                     "DebugSymbolsPath": .plString("dSYMs"),
-                    "SupportedPlatformVariant": .plString("maccatalyst")
+                    "SupportedPlatformVariant": .plString("maccatalyst"),
                 ]),
                 .plDict([
                     "LibraryIdentifier": .plString("arm64-apple-iphoneos13.0"),
@@ -331,7 +318,7 @@ import SWBMacro
                     // Missing BinaryPath to exercise this case
                     "HeadersPath": .plString("Headers"),
                 ]),
-            ])
+            ]),
         ])
 
         let xcframework: XCFramework
@@ -380,7 +367,7 @@ import SWBMacro
         do {
             let plist: PropertyListItem = .plDict([
                 "XCFrameworkFormatVersion": .plString("15.0"),
-                "AvailableLibraries": .plDict([:])
+                "AvailableLibraries": .plDict([:]),
             ])
             assertParsingError(plist: plist, message: "Expected to decode Array<Any> but found a dictionary instead.")
         }
@@ -388,7 +375,7 @@ import SWBMacro
         do {
             let plist: PropertyListItem = .plDict([
                 "XCFrameworkFormatVersionXXX": .plString("15.0"),
-                "AvailableLibraries": .plArray([])
+                "AvailableLibraries": .plArray([]),
             ])
 
             assertParsingError(plist: plist, message: "No value associated with key CodingKeys(stringValue: \"XCFrameworkFormatVersion\", intValue: nil) (\"XCFrameworkFormatVersion\").")
@@ -397,7 +384,7 @@ import SWBMacro
         do {
             let plist: PropertyListItem = .plDict([
                 "XCFrameworkFormatVersion": .plString("edf3djf"),
-                "AvailableLibraries": .plArray([])
+                "AvailableLibraries": .plArray([]),
             ])
 
             assertValidationError(plist: plist, error: XCFrameworkValidationError.unsupportedVersion(version: "edf3djf"))
@@ -408,8 +395,8 @@ import SWBMacro
                 "XCFrameworkFormatVersion": .plString("1.0"),
                 "AvailableLibraries": .plArray([
                     .plString("LibraryIdentifier"),
-                    .plInt(12)
-                ])
+                    .plInt(12),
+                ]),
             ])
 
             // FIXME: This check should really be expressed in terms of "Swift < 6.0" or something
@@ -427,7 +414,7 @@ import SWBMacro
                     .plDict([
                         "LibraryIdentifierXXX": .plString("")
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "No value associated with key CodingKeys(stringValue: \"LibraryIdentifier\", intValue: nil) (\"LibraryIdentifier\").")
@@ -440,7 +427,7 @@ import SWBMacro
                     .plDict([
                         "LibraryIdentifier": .plString("")
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "No value associated with key CodingKeys(stringValue: \"SupportedPlatform\", intValue: nil) (\"SupportedPlatform\").")
@@ -452,9 +439,9 @@ import SWBMacro
                 "AvailableLibraries": .plArray([
                     .plDict([
                         "LibraryIdentifier": .plString("x86_64-apple-macos10.15"),
-                        "SupportedPlatform": .plArray([])
+                        "SupportedPlatform": .plArray([]),
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "Expected to decode String but found an array instead.")
@@ -467,9 +454,9 @@ import SWBMacro
                     .plDict([
                         "LibraryIdentifier": .plString("x86_64-apple-macos10.15"),
                         "SupportedPlatform": .plString("macosx"),
-                        "SupportedArchitectures": .plString("")
+                        "SupportedArchitectures": .plString(""),
                     ])
-                ])
+                ]),
             ])
 
             // FIXME: This check should really be expressed in terms of "Swift < 6.0" or something
@@ -487,9 +474,9 @@ import SWBMacro
                     .plDict([
                         "LibraryIdentifier": .plString("x86_64-apple-macos10.15"),
                         "SupportedPlatform": .plString("macosx"),
-                        "SupportedArchitectures": .plArray([.plDict([:])])
+                        "SupportedArchitectures": .plArray([.plDict([:])]),
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "Expected to decode String but found a dictionary instead.")
@@ -502,9 +489,9 @@ import SWBMacro
                     .plDict([
                         "LibraryIdentifier": .plString("x86_64-apple-macos10.15"),
                         "SupportedPlatform": .plString("macosx"),
-                        "SupportedArchitectures": .plArray([.plString("x86_64")])
+                        "SupportedArchitectures": .plArray([.plString("x86_64")]),
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "No value associated with key CodingKeys(stringValue: \"LibraryPath\", intValue: nil) (\"LibraryPath\").")
@@ -519,9 +506,9 @@ import SWBMacro
                         "SupportedPlatform": .plString("macosx"),
                         "SupportedArchitectures": .plArray([.plString("x86_64")]),
                         "LibraryPath": .plString("libtest.a"),
-                        "HeadersPath": .plArray([])
+                        "HeadersPath": .plArray([]),
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "Expected to decode String but found an array instead.")
@@ -537,9 +524,9 @@ import SWBMacro
                         "SupportedArchitectures": .plArray([.plString("x86_64")]),
                         "LibraryPath": .plString("libtest.a"),
                         "HeadersPath": .plString("Headers"),
-                        "DebugSymbolsPath": .plArray([])
+                        "DebugSymbolsPath": .plArray([]),
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "Expected to decode String but found an array instead.")
@@ -556,9 +543,9 @@ import SWBMacro
                         "LibraryPath": .plString("libtest.a"),
                         "HeadersPath": .plString("Headers"),
                         "DebugSymbolsPath": .plString("dSYMs"),
-                        "SupportedPlatformVariant": .plArray([])
+                        "SupportedPlatformVariant": .plArray([]),
                     ])
-                ])
+                ]),
             ])
 
             assertParsingError(plist: plist, message: "Expected to decode String but found an array instead.")
@@ -578,7 +565,7 @@ import SWBMacro
                     "BinaryPath": .plString("XCSample.dylib"),
                     "HeadersPath": .plString("Headers"),
                     "DebugSymbolsPath": .plString("dSYMs"),
-                    "SupportedPlatformVariant": .plString("maccatalyst")
+                    "SupportedPlatformVariant": .plString("maccatalyst"),
                 ]),
                 .plDict([
                     "LibraryIdentifier": .plString("arm64-apple-iphoneos13.0"),
@@ -586,9 +573,9 @@ import SWBMacro
                     "SupportedArchitectures": .plArray([.plString("arm64"), .plString("arm64e")]),
                     "LibraryPath": .plString("XCSample.dylib"),
                     // BinaryPath missing to test this case
-                    "HeadersPath": .plString("Headers")
+                    "HeadersPath": .plString("Headers"),
                 ]),
-            ])
+            ]),
         ])
 
         func validate(_ xcframework: XCFramework) throws {
@@ -673,7 +660,7 @@ import SWBMacro
                     "LibraryPath": .plString("XCSample.dylib"),
                     "BinaryPath": .plString("XCSample.dylib"),
                     "HeadersPath": .plString("Headers"),
-                    "SupportedPlatformVariant": .plString("macabi")
+                    "SupportedPlatformVariant": .plString("macabi"),
                 ]),
                 .plDict([
                     "LibraryIdentifier": .plString("x86_64-apple-macos10.15-another"),
@@ -682,7 +669,7 @@ import SWBMacro
                     "LibraryPath": .plString("XCSample.dylib"),
                     "BinaryPath": .plString("XCSample.dylib"),
                     "HeadersPath": .plString("Headers"),
-                    "SupportedPlatformVariant": .plString("maccatalyst")
+                    "SupportedPlatformVariant": .plString("maccatalyst"),
                 ]),
                 .plDict([
                     "LibraryIdentifier": .plString("x86_64-apple-macos10.15-nobinarypath"),
@@ -691,9 +678,9 @@ import SWBMacro
                     "LibraryPath": .plString("XCSample.dylib"),
                     // No BinaryPath
                     "HeadersPath": .plString("Headers"),
-                    "SupportedPlatformVariant": .plString("maccatalyst")
+                    "SupportedPlatformVariant": .plString("maccatalyst"),
                 ]),
-            ])
+            ]),
         ])
 
         let xcframework: XCFramework
@@ -779,7 +766,6 @@ fileprivate extension Result where Success == XCFramework.Library, Failure == XC
         return nil
     }
 }
-
 
 @Suite fileprivate struct XCFrameworkCreationParsingErrorsTests {
 
@@ -991,8 +977,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(library.headersPath == nil)
             if withDebugSymbols {
                 #expect(library.debugSymbolsPath?.str == "dSYMs")
-            }
-            else {
+            } else {
                 #expect(library.debugSymbolsPath == nil)
             }
             #expect(library.libraryType == .framework)
@@ -1154,7 +1139,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
 
     @Test
     func iOSFrameworkWithDebugSymbols_nonswift() async throws {
-        try await _testiOSFramework(useSwift: false,  withDebugSymbols: true)
+        try await _testiOSFramework(useSwift: false, withDebugSymbols: true)
     }
 
     func _testiOSFramework(useSwift: Bool, withDebugSymbols: Bool = true) async throws {
@@ -1165,10 +1150,9 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             let debugSymbolPaths: [Path]
             if withDebugSymbols {
                 debugSymbolPaths = [
-                    tmpDir.join(path.basenameWithoutSuffix + ".framework.dSYM"),
+                    tmpDir.join(path.basenameWithoutSuffix + ".framework.dSYM")
                 ]
-            }
-            else {
+            } else {
                 debugSymbolPaths = []
             }
 
@@ -1187,8 +1171,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(library.headersPath == nil)
             if withDebugSymbols {
                 #expect(library.debugSymbolsPath?.str == "dSYMs")
-            }
-            else {
+            } else {
                 #expect(library.debugSymbolsPath == nil)
             }
             #expect(library.libraryType == .framework)
@@ -1429,8 +1412,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(localFS.exists(outputPath.join(macos.libraryIdentifier).join(macos.libraryPath)))
             if let debugSymbolsPath = macos.debugSymbolsPath {
                 #expect(localFS.exists(outputPath.join(macos.libraryIdentifier).join(debugSymbolsPath).join(macos.libraryPath.str + ".dSYM")))
-            }
-            else {
+            } else {
                 Issue.record("Missing the debug symbols path")
             }
 
@@ -1442,8 +1424,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             #expect(localFS.exists(outputPath.join(driverkit.libraryIdentifier).join(driverkit.libraryPath)))
             if let debugSymbolsPath = driverkit.debugSymbolsPath {
                 #expect(localFS.exists(outputPath.join(driverkit.libraryIdentifier).join(debugSymbolsPath).join(driverkit.libraryPath.str + ".dSYM")))
-            }
-            else {
+            } else {
                 Issue.record("Missing the debug symbols path")
             }
 
@@ -1456,8 +1437,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
 
             if allowInternalDistribution {
                 #expect(!swiftModuleFilesFound.isEmpty, "The swiftmodule files should not have been removed.")
-            }
-            else {
+            } else {
                 #expect(swiftModuleFilesFound.isEmpty, "The swiftmodule files should have been removed: \(swiftModuleFilesFound)")
             }
         }
@@ -1488,7 +1468,6 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
 
             let outputPath = tmpDir.join("sample.xcframework")
 
-
             // Create a fake dSYM file as we don't actually need a real one for testing this. However, only do this for some of the platforms to ensure that mixing works properly.
             func createFakeDebugFile(at root: Path, bundle: Bool = false, basename: String? = nil, fileExtension: String = "dSYM") throws -> Path {
                 let dsymRootPath = root.dirname.join("dSYMs")
@@ -1502,8 +1481,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
                     try localFS.createDirectory(dsymPath, recursive: true)
                     try localFS.write(dsymPath.join("part1.\(fileExtension)"), contents: ByteString("mock debug symbols file"))
                     try localFS.write(dsymPath.join("part2.\(fileExtension)"), contents: ByteString("another mock debug symbols file"))
-                }
-                else {
+                } else {
                     try localFS.write(dsymPath, contents: ByteString("mock debug symbols file"))
                 }
 
@@ -1600,8 +1578,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
                 #expect(localFS.exists(iphonesimulatorSwiftModuleDir.join("x86_64.swiftmodule")) == allowInternalDistribution)
                 #expect(localFS.exists(iphonesimulatorSwiftModuleDir.join("sample.swiftinterface")))
                 #expect(localFS.exists(iphonesimulatorSwiftModuleDir.join("x86_64.swiftdoc")))
-            }
-            else {
+            } else {
                 #expect(localFS.exists(outputPath.join(macos.libraryIdentifier).join(macos.headersPath!).join("source.h")))
                 #expect(localFS.exists(outputPath.join(iphoneos.libraryIdentifier).join(iphoneos.headersPath!).join("source.h")))
                 #expect(localFS.exists(outputPath.join(iphonesimulator.libraryIdentifier).join(iphonesimulator.headersPath!).join("source.h")))
@@ -1641,61 +1618,69 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         // explicitly missing dSYM
         try fs.createDirectory(Path("/var/tmp/bye.xcarchive/BCSymbolMaps"), recursive: true)
 
-        try testCommandLineRewrite([
-            "-create-xcframework",
-            "-framework", "hi.framework",
-            "-framework", "bye.framework",
-            "-output", "/var/tmp/my.xcframework",
-        ],
-                                   expected: [
-                                    "-create-xcframework",
-                                    "-framework", "hi.framework",
-                                    "-framework", "bye.framework",
-                                    "-output", "/var/tmp/my.xcframework",
-                                   ])
+        try testCommandLineRewrite(
+            [
+                "-create-xcframework",
+                "-framework", "hi.framework",
+                "-framework", "bye.framework",
+                "-output", "/var/tmp/my.xcframework",
+            ],
+            expected: [
+                "-create-xcframework",
+                "-framework", "hi.framework",
+                "-framework", "bye.framework",
+                "-output", "/var/tmp/my.xcframework",
+            ]
+        )
 
-        try testCommandLineRewrite([
-            "-create-xcframework",
-            "-archive", "/var/tmp/hi.xcarchive", "-framework", "hi.framework",
-            "-archive", "/var/tmp/bye.xcarchive", "-framework", "bye.framework",
-            "-output", "/var/tmp/my.xcframework",
-        ],
-                                   expected: [
-                                    "-create-xcframework",
-                                    "-framework", "/var/tmp/hi.xcarchive/Products/Library/Frameworks/hi.framework", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/hi.framework.dSYM",
-                                    "-framework", "/var/tmp/bye.xcarchive/Products/Library/Frameworks/bye.framework", "-debug-symbols", "/var/tmp/bye.xcarchive/dSYMs/bye.framework.dSYM",
-                                    "-output", "/var/tmp/my.xcframework",
-                                   ])
+        try testCommandLineRewrite(
+            [
+                "-create-xcframework",
+                "-archive", "/var/tmp/hi.xcarchive", "-framework", "hi.framework",
+                "-archive", "/var/tmp/bye.xcarchive", "-framework", "bye.framework",
+                "-output", "/var/tmp/my.xcframework",
+            ],
+            expected: [
+                "-create-xcframework",
+                "-framework", "/var/tmp/hi.xcarchive/Products/Library/Frameworks/hi.framework", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/hi.framework.dSYM",
+                "-framework", "/var/tmp/bye.xcarchive/Products/Library/Frameworks/bye.framework", "-debug-symbols", "/var/tmp/bye.xcarchive/dSYMs/bye.framework.dSYM",
+                "-output", "/var/tmp/my.xcframework",
+            ]
+        )
 
-        try testCommandLineRewrite([
-            "-create-xcframework",
-            "-archive", "/var/tmp/hi.xcarchive", "-library", "libhi.a",
-            "-archive", "/var/tmp/hi.xcarchive", "-library", "hi.dylib",
-            "-archive", "/var/tmp/bye.xcarchive", "-library", "libbye.a",
-            "-output", "/var/tmp/my.xcframework",
-        ],
-                                   expected: [
-                                    "-create-xcframework",
-                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/libhi.a", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/libhi.a.dSYM",
-                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
-                                    "-library", "/var/tmp/bye.xcarchive/Products/usr/local/lib/libbye.a",
-                                    "-output", "/var/tmp/my.xcframework",
-                                   ])
+        try testCommandLineRewrite(
+            [
+                "-create-xcframework",
+                "-archive", "/var/tmp/hi.xcarchive", "-library", "libhi.a",
+                "-archive", "/var/tmp/hi.xcarchive", "-library", "hi.dylib",
+                "-archive", "/var/tmp/bye.xcarchive", "-library", "libbye.a",
+                "-output", "/var/tmp/my.xcframework",
+            ],
+            expected: [
+                "-create-xcframework",
+                "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/libhi.a", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/libhi.a.dSYM",
+                "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
+                "-library", "/var/tmp/bye.xcarchive/Products/usr/local/lib/libbye.a",
+                "-output", "/var/tmp/my.xcframework",
+            ]
+        )
 
-        try testCommandLineRewrite([
-            "-create-xcframework",
-            "-archive", "/var/tmp/hi.xcarchive", "-library", "libhi.a",
-            /* skip -archive and inherit it */ "-library", "hi.dylib",
-            "-archive", "/var/tmp/bye.xcarchive", "-library", "libbye.a",
-            "-output", "/var/tmp/my.xcframework",
-        ],
-                                   expected: [
-                                    "-create-xcframework",
-                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/libhi.a", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/libhi.a.dSYM",
-                                    "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
-                                    "-library", "/var/tmp/bye.xcarchive/Products/usr/local/lib/libbye.a",
-                                    "-output", "/var/tmp/my.xcframework",
-                                   ])
+        try testCommandLineRewrite(
+            [
+                "-create-xcframework",
+                "-archive", "/var/tmp/hi.xcarchive", "-library", "libhi.a",
+                /* skip -archive and inherit it */ "-library", "hi.dylib",
+                "-archive", "/var/tmp/bye.xcarchive", "-library", "libbye.a",
+                "-output", "/var/tmp/my.xcframework",
+            ],
+            expected: [
+                "-create-xcframework",
+                "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/libhi.a", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include", "-debug-symbols", "/var/tmp/hi.xcarchive/dSYMs/libhi.a.dSYM",
+                "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/hi.dylib", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
+                "-library", "/var/tmp/bye.xcarchive/Products/usr/local/lib/libbye.a",
+                "-output", "/var/tmp/my.xcframework",
+            ]
+        )
 
         // This will create an invalid command-line, but the only test consideration here is that the rewriting happens appropriately.
         let expectedCommandLine = [
@@ -1704,12 +1689,14 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
             "-library", "/var/tmp/hi.xcarchive/Products/usr/local/lib/-allow-internal-distribution", "-headers", "/var/tmp/hi.xcarchive/Products/usr/local/include",
             "-output", "/var/tmp/my.xcframework",
         ]
-        try testCommandLineRewrite([
-            "-create-xcframework",
-            "-archive", "/var/tmp/hi.xcarchive", "-framework", "hi.framework", "-library", "-allow-internal-distribution",
-            "-output", "/var/tmp/my.xcframework",
-        ],
-                                   expected: expectedCommandLine)
+        try testCommandLineRewrite(
+            [
+                "-create-xcframework",
+                "-archive", "/var/tmp/hi.xcarchive", "-framework", "hi.framework", "-library", "-allow-internal-distribution",
+                "-output", "/var/tmp/my.xcframework",
+            ],
+            expected: expectedCommandLine
+        )
 
         let result = XCFramework.parseCommandLine(args: expectedCommandLine, currentWorkingDirectory: cwd, fs: fs)
         #expect(result.error?.message == "error: an xcframework cannot contain both frameworks and libraries.")
@@ -1805,9 +1792,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         }
     }
 
-
     // MARK: Creating XCFrameworks with mergeable libraries
-
 
     /// Creates several frameworks, some of which contain mergeable libraries, and creates an XCFramework from them.  Then checks that the correct metadata for each library was added to the Info.plist.
     @Test
@@ -1881,9 +1866,7 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         }
     }
 
-
     // MARK: Testing friendly error messages
-
 
     @Test
     func friendlyErrorMessageForFrameworkNotExisting() async throws {
@@ -1928,4 +1911,3 @@ fileprivate struct XCFrameworkCreationCommandTests: CoreBasedTests {
         }
     }
 }
-

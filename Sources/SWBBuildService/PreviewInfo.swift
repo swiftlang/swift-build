@@ -149,9 +149,9 @@ extension BuildDescriptionManager {
             guard let potentialTargets = targetsByGuid[targetID] else { continue }
             for configuredTarget in potentialTargets {
                 if case .thunkInfo = input,
-                   let packageProductTarget = configuredTarget.target as? PackageProductTarget,
-                   let dynamicTargetVariantGuid = packageProductTarget.dynamicTargetVariantGuid,
-                   let dynamicTargetVariants = targetsByGuid[dynamicTargetVariantGuid]
+                    let packageProductTarget = configuredTarget.target as? PackageProductTarget,
+                    let dynamicTargetVariantGuid = packageProductTarget.dynamicTargetVariantGuid,
+                    let dynamicTargetVariants = targetsByGuid[dynamicTargetVariantGuid]
                 {
                     targets.append(contentsOf: dynamicTargetVariants)
                 } else {
@@ -242,7 +242,7 @@ extension BuildDescription {
                         case 1:
                             let info = infos[0]
                             linkInfo = info
-                            assert(requestingTargetDependencyInfo || compileInfo?.output == info.input) // make sure the tasks match up.
+                            assert(requestingTargetDependencyInfo || compileInfo?.output == info.input)  // make sure the tasks match up.
                         case 0:
                             // No link task because the target type is a static library (which doesn't support previews), or previews dylib is enabled
                             continue

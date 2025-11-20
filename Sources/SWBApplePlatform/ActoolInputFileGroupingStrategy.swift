@@ -49,8 +49,7 @@ import Foundation
                     file.fileType.conformsTo(stringsFileType) && file.absolutePath.basenameWithoutSuffix == stickerPackName
                 }
             }
-        }
-        catch {
+        } catch {
             context.error("\(error)", location: .unknown, component: .default)
             return []
         }

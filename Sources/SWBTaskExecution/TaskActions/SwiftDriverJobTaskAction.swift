@@ -83,15 +83,15 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         case explicitDependency
         case targetCompile(_ identifier: String)
 
-        public func serialize<T>(to serializer: T) where T : Serializer {
+        public func serialize<T>(to serializer: T) where T: Serializer {
             serializer.beginAggregate(2)
             switch self {
-                case .explicitDependency:
-                    serializer.serialize(0)
-                    serializer.serializeNil()
-                case .targetCompile(let identifier):
-                    serializer.serialize(1)
-                    serializer.serialize(identifier)
+            case .explicitDependency:
+                serializer.serialize(0)
+                serializer.serializeNil()
+            case .targetCompile(let identifier):
+                serializer.serialize(1)
+                serializer.serialize(identifier)
             }
             serializer.endAggregate()
         }
@@ -100,14 +100,14 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             try deserializer.beginAggregate(2)
             let code: Int = try deserializer.deserialize()
             switch code {
-                case 0:
-                    guard deserializer.deserializeNil() else { throw DeserializerError.deserializationFailed("Unexpected associated value for SwiftDriverJobIdentifier.") }
-                    self = .explicitDependency
-                case 1:
-                    let string: String = try deserializer.deserialize()
-                    self = .targetCompile(string)
-                default:
-                    throw DeserializerError.incorrectType("Unexpected type code for SwiftDriverJobIdentifier: \(code)")
+            case 0:
+                guard deserializer.deserializeNil() else { throw DeserializerError.deserializationFailed("Unexpected associated value for SwiftDriverJobIdentifier.") }
+                self = .explicitDependency
+            case 1:
+                let string: String = try deserializer.deserialize()
+                self = .targetCompile(string)
+            default:
+                throw DeserializerError.incorrectType("Unexpected type code for SwiftDriverJobIdentifier: \(code)")
             }
         }
     }
@@ -127,7 +127,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         super.init()
     }
 
-    public override func serialize<T>(to serializer: T) where T : Serializer {
+    public override func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(6) {
             serializer.serialize(driverJob)
             serializer.serialize(variant)
@@ -178,11 +178,13 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             fatalError("Unexpected payload type: \(type(of: task.payload)).")
         }
         let taskID = state.jobTaskIDBase
-        if try Self.maybeRequestCachingKeyMaterialization(plannedJob: driverJob,
-                                                          dynamicExecutionDelegate: dynamicExecutionDelegate,
-                                                          casOptions: payload.casOptions,
-                                                          compilerLocation: payload.compilerLocation,
-                                                          taskID: taskID) {
+        if try Self.maybeRequestCachingKeyMaterialization(
+            plannedJob: driverJob,
+            dynamicExecutionDelegate: dynamicExecutionDelegate,
+            casOptions: payload.casOptions,
+            compilerLocation: payload.compilerLocation,
+            taskID: taskID
+        ) {
             state.openDependencies.insert(taskID)
         }
         state.cacheJobRequested = true
@@ -200,20 +202,25 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         }
     }
 
-    internal func constructDriverJobTaskKey(variant: String?,
-                                            arch: String,
-                                            plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
-                                            identifier: String?,
-                                            compilerLocation: LibSwiftDriver.CompilerLocation,
-                                            casOptions: CASOptions?) -> DynamicTaskKey {
+    internal func constructDriverJobTaskKey(
+        variant: String?,
+        arch: String,
+        plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
+        identifier: String?,
+        compilerLocation: LibSwiftDriver.CompilerLocation,
+        casOptions: CASOptions?
+    ) -> DynamicTaskKey {
         let key: DynamicTaskKey
         if plannedJob.driverJob.categorizer.isExplicitDependencyBuild {
-            key = .swiftDriverExplicitDependencyJob(SwiftDriverExplicitDependencyJobTaskKey(
-                arch: arch,
-                driverJobKey: plannedJob.key,
-                driverJobSignature: plannedJob.signature,
-                compilerLocation: compilerLocation,
-                casOptions: casOptions))
+            key = .swiftDriverExplicitDependencyJob(
+                SwiftDriverExplicitDependencyJobTaskKey(
+                    arch: arch,
+                    driverJobKey: plannedJob.key,
+                    driverJobSignature: plannedJob.signature,
+                    compilerLocation: compilerLocation,
+                    casOptions: casOptions
+                )
+            )
         } else {
             guard let variant else {
                 fatalError("Expected variant for non-explicit-module job: \(plannedJob.driverJob.descriptionForLifecycle)")
@@ -221,15 +228,18 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             guard let jobID = identifier else {
                 fatalError("Expected job identifier for target compile: \(plannedJob.driverJob.descriptionForLifecycle)")
             }
-            key = .swiftDriverJob(SwiftDriverJobTaskKey(
-                identifier: jobID,
-                variant: variant,
-                arch: arch,
-                driverJobKey: plannedJob.key,
-                driverJobSignature: plannedJob.signature,
-                isUsingWholeModuleOptimization: isUsingWholeModuleOptimization,
-                compilerLocation: compilerLocation,
-                casOptions: casOptions))
+            key = .swiftDriverJob(
+                SwiftDriverJobTaskKey(
+                    identifier: jobID,
+                    variant: variant,
+                    arch: arch,
+                    driverJobKey: plannedJob.key,
+                    driverJobSignature: plannedJob.signature,
+                    isUsingWholeModuleOptimization: isUsingWholeModuleOptimization,
+                    compilerLocation: compilerLocation,
+                    casOptions: casOptions
+                )
+            )
         }
         return key
     }
@@ -246,28 +256,30 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             let jobDependencies: [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob]
             var jobID: String? = nil
             switch self.identifier {
-                case .targetCompile(let identifierStr):
-                    let plannedBuild = try graph.queryPlannedBuild(for: identifierStr)
-                    jobDependencies = plannedBuild.dependencies(for: driverJob)
-                    jobID = identifierStr
-                case .explicitDependency:
-                    guard let explicitBuildJob = graph.plannedExplicitDependencyBuildJob(for: self.driverJob.key) else {
-                        state.executionError = "Could not query build containing explicit dependency build job: \(self.driverJob.driverJob.descriptionForLifecycle)"
-                        return
-                    }
-                    jobDependencies = graph.explicitDependencies(for: explicitBuildJob)
+            case .targetCompile(let identifierStr):
+                let plannedBuild = try graph.queryPlannedBuild(for: identifierStr)
+                jobDependencies = plannedBuild.dependencies(for: driverJob)
+                jobID = identifierStr
+            case .explicitDependency:
+                guard let explicitBuildJob = graph.plannedExplicitDependencyBuildJob(for: self.driverJob.key) else {
+                    state.executionError = "Could not query build containing explicit dependency build job: \(self.driverJob.driverJob.descriptionForLifecycle)"
+                    return
+                }
+                jobDependencies = graph.explicitDependencies(for: explicitBuildJob)
             }
 
             let jobTaskIDBase = UInt((task.executionInputs ?? []).count)
             // For each depended-upon job, request a dynamic task.
             for (index, dependency) in jobDependencies.enumerated() {
                 let isExplicitDependencyBuildJob = dependency.driverJob.categorizer.isExplicitDependencyBuild
-                let taskKey = constructDriverJobTaskKey(variant: variant,
-                                                        arch: arch,
-                                                        plannedJob: dependency,
-                                                        identifier: jobID,
-                                                        compilerLocation: payload.compilerLocation,
-                                                        casOptions: payload.casOptions)
+                let taskKey = constructDriverJobTaskKey(
+                    variant: variant,
+                    arch: arch,
+                    plannedJob: dependency,
+                    identifier: jobID,
+                    compilerLocation: payload.compilerLocation,
+                    casOptions: payload.casOptions
+                )
                 let taskID = jobTaskIDBase + UInt(index)
                 state.openDependencies.insert(taskID)
                 dynamicExecutionDelegate.requestDynamicTask(
@@ -304,11 +316,11 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             let graph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
             let jobDependencies: [LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob]
             switch self.identifier {
-                case .targetCompile(let identifier):
-                    let plannedBuild = try graph.queryPlannedBuild(for: identifier)
-                    jobDependencies = plannedBuild.dependencies(for: driverJob)
-                case .explicitDependency:
-                    jobDependencies = graph.explicitDependencies(for: driverJob)
+            case .targetCompile(let identifier):
+                let plannedBuild = try graph.queryPlannedBuild(for: identifier)
+                jobDependencies = plannedBuild.dependencies(for: driverJob)
+            case .explicitDependency:
+                jobDependencies = graph.explicitDependencies(for: driverJob)
             }
 
             let dependencyIdentifier = Int(dependencyID)
@@ -346,15 +358,15 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         // Explicit dependency build jobs do not update the delegate's (driver's)
         // state (incl. incremental), so we do not require access to their planned build.
         switch self.identifier {
-            case .targetCompile(let identifier):
-                do {
-                    let graph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
-                    plannedBuild = try graph.queryPlannedBuild(for: identifier)
-                } catch {
-                    state.executionError = "Unable to get planned build for identifier \(identifier): \(error.localizedDescription)"
-                }
-            case .explicitDependency:
-                break
+        case .targetCompile(let identifier):
+            do {
+                let graph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
+                plannedBuild = try graph.queryPlannedBuild(for: identifier)
+            } catch {
+                state.executionError = "Unable to get planned build for identifier \(identifier): \(error.localizedDescription)"
+            }
+        case .explicitDependency:
+            break
         }
 
         defer {
@@ -396,9 +408,9 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
 
             // FIXME: rdar://134664046 (Add an EnvironmentBlock type to represent environment variables)
             #if os(Windows)
-            if let value = environment.removeValue(forKey: "PATH") {
-                environment["Path"] = value
-            }
+                if let value = environment.removeValue(forKey: "PATH") {
+                    environment["Path"] = value
+                }
             #endif
         } else {
             environment = task.environment.bindingsDictionary
@@ -413,7 +425,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 let plannedBuild: LibSwiftDriver.PlannedBuild?
                 let driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob
                 let arguments: [String]
-                let environment: [String : String]
+                let environment: [String: String]
                 let outputDelegate: any TaskOutputDelegate
 
                 private(set) var output: ByteString = ""
@@ -430,7 +442,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                     return _commandResult
                 }
 
-                init(plannedBuild: LibSwiftDriver.PlannedBuild?, driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob, arguments: [String], environment: [String : String], outputDelegate: any TaskOutputDelegate) {
+                init(plannedBuild: LibSwiftDriver.PlannedBuild?, driverJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob, arguments: [String], environment: [String: String], outputDelegate: any TaskOutputDelegate) {
                     self.plannedBuild = plannedBuild
                     self.driverJob = driverJob
                     self.arguments = arguments
@@ -520,14 +532,17 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             }
 
             if let db = cas,
-               let casOpts = payload.casOptions,
-               try await Self.replayCachedCommand(cas: db,
-                                                  plannedJob: driverJob,
-                                                  commandLine: options.commandLine,
-                                                  dynamicExecutionDelegate: dynamicExecutionDelegate,
-                                                  outputDelegate: outputDelegate,
-                                                  enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks) {
-                    return .succeeded
+                let casOpts = payload.casOptions,
+                try await Self.replayCachedCommand(
+                    cas: db,
+                    plannedJob: driverJob,
+                    commandLine: options.commandLine,
+                    dynamicExecutionDelegate: dynamicExecutionDelegate,
+                    outputDelegate: outputDelegate,
+                    enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks
+                )
+            {
+                return .succeeded
             }
 
             try await spawn(commandLine: options.commandLine, environment: environment, workingDirectory: task.workingDirectory, dynamicExecutionDelegate: dynamicExecutionDelegate, clientDelegate: clientDelegate, processDelegate: delegate)
@@ -554,12 +569,14 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             // If has remote cache, start uploading task.
             if let db = cas, let casOpts = payload.casOptions, casOpts.hasRemoteCache, delegate.commandResult == .succeeded {
                 // upload only if succeed
-                try Self.upload(cas: db,
-                                plannedJob: driverJob,
-                                dynamicExecutionDelegate: dynamicExecutionDelegate,
-                                outputDelegate: outputDelegate,
-                                enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks,
-                                enableStrictCASErrors: casOpts.enableStrictCASErrors)
+                try Self.upload(
+                    cas: db,
+                    plannedJob: driverJob,
+                    dynamicExecutionDelegate: dynamicExecutionDelegate,
+                    outputDelegate: outputDelegate,
+                    enableDiagnosticRemarks: casOpts.enableDiagnosticRemarks,
+                    enableStrictCASErrors: casOpts.enableStrictCASErrors
+                )
             }
 
             if delegate.commandResult == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
@@ -585,8 +602,9 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         taskID: UInt
     ) throws -> Bool {
         guard let casOptions,
-              casOptions.enableIntegratedCacheQueries,
-              casOptions.hasRemoteCache else {
+            casOptions.enableIntegratedCacheQueries,
+            casOptions.hasRemoteCache
+        else {
             return false
         }
         let cacheQueryKey = SwiftCachingKeyQueryTaskKey(casOptions: casOptions, cacheKeys: plannedJob.driverJob.cacheKeys, compilerLocation: compilerLocation)
@@ -600,19 +618,21 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             forTarget: nil,
             priority: .network,
             showEnvironment: false,
-            reason: .wasCompilationCachingQuery)
+            reason: .wasCompilationCachingQuery
+        )
         return true
     }
 
     /// Attempts to replay a previously cached compilation, using data from the local CAS.
     ///
     /// - Returns: `true` if the the cached compilation outputs were found and replayed, `false` otherwise.
-    static func replayCachedCommand(cas: SwiftCASDatabases,
-                                    plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
-                                    commandLine: [String],
-                                    dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
-                                    outputDelegate: any TaskOutputDelegate,
-                                    enableDiagnosticRemarks: Bool
+    static func replayCachedCommand(
+        cas: SwiftCASDatabases,
+        plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
+        commandLine: [String],
+        dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
+        outputDelegate: any TaskOutputDelegate,
+        enableDiagnosticRemarks: Bool
     ) async throws -> Bool {
         let cacheKeys = plannedJob.driverJob.cacheKeys
         guard !cacheKeys.isEmpty else { return false }
@@ -648,7 +668,7 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
             }
 
             // Replay after all checks are done.
-            let instance = try cas.createReplayInstance(cmd: Array(commandLine.dropFirst(1))) // drop executable name
+            let instance = try cas.createReplayInstance(cmd: Array(commandLine.dropFirst(1)))  // drop executable name
             let replayResults: [Result<SwiftCacheReplayResult, any Error>] = await comps.concurrentMap(maximumParallelism: 10) { comp in
                 do {
                     return .success(try cas.replayCompilation(instance: instance, compilation: comp))
@@ -681,12 +701,13 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
         return result
     }
 
-    static func upload(cas: SwiftCASDatabases,
-                       plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
-                       dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
-                       outputDelegate: any TaskOutputDelegate,
-                       enableDiagnosticRemarks: Bool,
-                       enableStrictCASErrors: Bool
+    static func upload(
+        cas: SwiftCASDatabases,
+        plannedJob: LibSwiftDriver.PlannedBuild.PlannedSwiftDriverJob,
+        dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
+        outputDelegate: any TaskOutputDelegate,
+        enableDiagnosticRemarks: Bool,
+        enableStrictCASErrors: Bool
     ) throws {
         let cacheKeys = plannedJob.driverJob.cacheKeys
         guard !cacheKeys.isEmpty else { return }
@@ -705,7 +726,8 @@ public final class SwiftDriverJobTaskAction: TaskAction, BuildValueValidatingTas
                 cacheKey: cacheKey,
                 enableDiagnosticRemarks: enableDiagnosticRemarks,
                 enableStrictCASErrors: enableStrictCASErrors,
-                activityReporter: dynamicExecutionDelegate)
+                activityReporter: dynamicExecutionDelegate
+            )
         }
     }
 }

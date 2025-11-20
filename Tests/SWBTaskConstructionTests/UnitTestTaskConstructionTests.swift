@@ -41,7 +41,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     TestFile("TestOne.swift"),
                     TestFile("TestTwo.swift"),
                     TestFile("UnitTestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -53,17 +54,20 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "UnitTestTarget",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -71,8 +75,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                             "TestTwo.swift",
                         ]),
                         TestFrameworksBuildPhase([
-                            "FrameworkTarget.framework",
-                        ])
+                            "FrameworkTarget.framework"
+                        ]),
                     ],
                     dependencies: ["FrameworkTarget"]
                 ),
@@ -80,18 +84,18 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "FrameworkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "FrameworkTarget-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "FrameworkTarget-Info.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "ClassOne.swift",
                             "ClassTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
         let tester = try TaskConstructionTester(core, testProject)
@@ -149,7 +153,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -181,7 +185,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -195,10 +199,12 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTarget-OutputFileMap.json"])) { task in
                     task.checkInputs([
-                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))])
+                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))
+                    ])
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTarget-OutputFileMap.json"),])
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTarget-OutputFileMap.json")
+                    ])
                 }
 
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTarget_const_extract_protocols.json"])) { task in
@@ -210,8 +216,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     #expect(lines == inputFiles + [""])
                 }
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTarget.SwiftConstValuesFileList"])) { task, contents in
-                    let inputFiles = ["\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues",
-                                      "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestTwo.swiftconstvalues"]
+                    let inputFiles = [
+                        "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues",
+                        "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestTwo.swiftconstvalues",
+                    ]
                     let lines = contents.asString.components(separatedBy: .newlines)
                     #expect(lines == inputFiles + [""])
                 }
@@ -246,22 +254,26 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTarget.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftdoc", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTarget.swiftdoc"])) { _ in }
 
                 // There should be the expected mkdir tasks for the test bundle.
-                results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { (tasks) -> Void in
-                    let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
-                    #expect(sortedTasks.count == 4)
-                    for (idx, (ruleInfo, commandLine)) in [
-                        (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest"]),
-                        (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents"]),
-                        (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/MacOS"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/MacOS"]),
-                        (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/Resources"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/Resources"]),
-                    ].enumerated() {
-                        // Assuming we have at least 'idx' many tasks, then check the rule info and command line.
-                        if idx < sortedTasks.count {
-                            sortedTasks[idx].checkRuleInfo(ruleInfo)
-                            sortedTasks[idx].checkCommandLine(commandLine)
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("MkDir"),
+                    body: { (tasks) -> Void in
+                        let sortedTasks = tasks.sorted { $0.ruleInfo.lexicographicallyPrecedes($1.ruleInfo) }
+                        #expect(sortedTasks.count == 4)
+                        for (idx, (ruleInfo, commandLine)) in [
+                            (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest"]),
+                            (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents"]),
+                            (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/MacOS"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/MacOS"]),
+                            (["MkDir", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/Resources"], ["/bin/mkdir", "-p", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/Resources"]),
+                        ].enumerated() {
+                            // Assuming we have at least 'idx' many tasks, then check the rule info and command line.
+                            if idx < sortedTasks.count {
+                                sortedTasks[idx].checkRuleInfo(ruleInfo)
+                                sortedTasks[idx].checkCommandLine(commandLine)
+                            }
                         }
                     }
-                })
+                )
 
                 // There should be a task to copy the testing baselines.
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "\(SRCROOT)/build/Debug/UnitTestTarget.xctest/Contents/Resources/xcbaselines", baselineDir.str])) { _ in }
@@ -310,7 +322,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("TestOne.swift"),
                     TestFile("TestTwo.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -321,7 +334,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "INDEX_DATA_STORE_DIR": "/index",
                         "LINKER_DRIVER": "swiftc",
-                    ])
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -330,7 +344,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
-                            buildSettings: [:])
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(),
@@ -346,7 +361,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
-                            buildSettings: [:])
+                            buildSettings: [:]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -357,7 +373,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     dependencies: [],
                     productReferenceName: "$(EXCTABLE_NAME)"
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -380,7 +397,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "--linker-filelist", .suffix("UnitTestTarget.LinkFileList"),
                         "--index-store", .equal(Path("/index").str),
                         "--index-unit-base-path",
-                        .equal(Path.root.join("/tmp/Test/aProject/build").str)
+                        .equal(Path.root.join("/tmp/Test/aProject/build").str),
                     ])
                     task.checkInputs([
                         .pathPattern(.suffix("UnitTestTarget.LinkFileList")),
@@ -395,7 +412,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
     }
-
 
     // MARK: Application test target using TEST_HOST
 
@@ -421,7 +437,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     TestFile("UnitTestTargetOne-Info.plist"),
                     TestFile("TestTwo.swift"),
                     TestFile("UnitTestTargetTwo-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -435,7 +452,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
@@ -447,17 +465,19 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "UnitTestTargetOne",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UnitTestTargetOne-Info.plist",
-                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
-                                                "BUNDLE_LOADER": "$(TEST_HOST)",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UnitTestTargetOne-Info.plist",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
-                        ]),
+                            "TestOne.swift"
+                        ])
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -465,17 +485,19 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "UnitTestTargetTwo",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UnitTestTargetTwo-Info.plist",
-                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
-                                                "BUNDLE_LOADER": "$(TEST_HOST)",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UnitTestTargetTwo-Info.plist",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestTwo.swift",
-                        ]),
+                            "TestTwo.swift"
+                        ])
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -483,18 +505,18 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "ClassOne.swift",
                             "ClassTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
         let tester = try TaskConstructionTester(core, testProject)
@@ -553,13 +575,13 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne Swift Compilation Requirements Finished"),
 
-                            .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftmodule"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.swiftsourceinfo"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.abi.json"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-Swift.h"),
@@ -585,13 +607,13 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne Swift Compilation Finished"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.o"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues")
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues"),
                     ])
 
                     testTargetCompileTasks.append(task)
@@ -599,10 +621,12 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json"])) { task in
                     task.checkInputs([
-                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))])
+                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))
+                    ])
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json"),])
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne-OutputFileMap.json")
+                    ])
 
                 }
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UnitTestTargetOne.SwiftFileList"])) { task, contents in
@@ -676,7 +700,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .any,
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent")
                     ])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER"), .matchRuleItemPattern(.suffix(".xcent"))) { task in
@@ -688,7 +712,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .any,
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent.der"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent.der")
                     ])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UnitTestTargetOne.xctest")) { task in
@@ -700,9 +724,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/Info.plist"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"),
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
-                        .any,   // -will-sign
-                        .any,   // -Barrier-ChangeAlternatePermissions
-                        .any,   // -entry
+                        .any,  // -will-sign
+                        .any,  // -Barrier-ChangeAlternatePermissions
+                        .any,  // -entry
                     ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/AppTarget.app/Contents/PlugIns/UnitTestTargetOne.xctest"),
@@ -886,9 +910,9 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/Info.plist"),
                         .path("\(SRCROOT)/build/aProject.build/Debug/UnitTestTargetOne.build/UnitTestTargetOne.xctest.xcent"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest/Contents/MacOS/UnitTestTargetOne"),
-                        .any,   // -will-sign
-                        .any,   // -Barrier-ChangeAlternatePermissions
-                        .any,   // -entry
+                        .any,  // -will-sign
+                        .any,  // -Barrier-ChangeAlternatePermissions
+                        .any,  // -entry
                     ])
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UnitTestTargetOne.xctest"),
@@ -970,7 +994,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     TestFile("TestOne.swift"),
                     TestFile("TestTwo.swift"),
                     TestFile("UnitTestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -983,24 +1008,27 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
                         "SDKROOT": "watchos",
                         "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "UnitTestTarget",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist",
-                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
-                                                "BUNDLE_LOADER": "$(TEST_HOST)",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UnitTestTarget-Info.plist",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
-                        ]),
+                            "TestOne.swift"
+                        ])
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -1008,18 +1036,18 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "ClassOne.swift",
                             "ClassTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1246,7 +1274,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     // Test target sources
                     TestFile("TestOne.swift"),
                     TestFile("ExtensionTests-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1259,19 +1288,24 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
                         "SDKROOT": "watchos",
                         "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "WatchApp",
                     type: .watchKitApp,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "WatchApp-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "WatchApp-Info.plist"])
                     ],
                     buildPhases: [
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("WatchExtension.appex", codeSignOnCopy: true)
-                        ], destinationSubfolder: .plugins, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("WatchExtension.appex", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        )
                     ],
                     dependencies: ["WatchExtension"]
                 ),
@@ -1279,34 +1313,37 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "WatchExtension",
                     type: .watchKitExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "WatchExtension-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "WatchExtension-Info.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
-                        ]),
+                            "ClassOne.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "ExtensionTests",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "ExtensionTests-Info.plist",
-                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/WatchExtension.appex/WatchExtension",
-                                                "BUNDLE_LOADER": "$(TEST_HOST)",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "ExtensionTests-Info.plist",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/WatchExtension.appex/WatchExtension",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
-                        ]),
+                            "TestOne.swift"
+                        ])
                     ],
                     dependencies: ["WatchExtension"]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1638,7 +1675,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     // Test target sources
                     TestFile("TestOne.swift"),
                     TestFile("UnitTestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1651,24 +1689,27 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "iphoneos",
                         "SUPPORTS_MACCATALYST": "YES",
                         "SWIFT_VERSION": swiftVersion,
-                        "INFOPLIST_FILE": "$(TARGET_NAME)-Info.plist"
-                    ]),
+                        "INFOPLIST_FILE": "$(TARGET_NAME)-Info.plist",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "UnitTestTarget",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
-                                                "BUNDLE_LOADER": "$(TEST_HOST)",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
-                        ]),
+                            "TestOne.swift"
+                        ])
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -1677,11 +1718,12 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     type: .application,
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
-                        ]),
+                            "ClassOne.swift"
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
@@ -1734,7 +1776,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
     }
 
-
     /// Due to the interleaving of a host and hosted target, if Parallelize Build is turned *off* we take special measures to avoid known dependency cycles.  (Serial target builds are far more likely to lead to dependency cycles because of the strict ordering of targets.)  c.f. rdar://problem/72563741
     @Test(.requireSDKs(.macOS))
     func applicationUnitTestTarget_usingSerializedTargetBuild() async throws {
@@ -1756,7 +1797,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     TestFile("HostedTestTargetOne-Info.plist"),
                     TestFile("TestTwo.swift"),
                     TestFile("HostedTestTargetTwo-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -1769,37 +1811,44 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
                         "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "AppTarget-Info.plist",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "AppTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
-                        ]),
+                            "ClassOne.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "HostedTestTargetOne",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "HostedTestTargetOne-Info.plist",
-                            "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
-                            "BUNDLE_LOADER": "$(TEST_HOST)",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "HostedTestTargetOne-Info.plist",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
-                        ]),
+                            "TestOne.swift"
+                        ])
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -1807,16 +1856,19 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "HostedTestTargetTwo",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "HostedTestTargetTwo-Info.plist",
-                            "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
-                            "BUNDLE_LOADER": "$(TEST_HOST)",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "HostedTestTargetTwo-Info.plist",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestTwo.swift",
-                        ]),
+                            "TestTwo.swift"
+                        ])
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -1825,18 +1877,22 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "FwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "FwkTarget-Info.plist",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "FwkTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassTwo.swift",
-                        ]),
+                            "ClassTwo.swift"
+                        ])
                     ],
                     dependencies: []
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -1975,7 +2031,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
     }
 
-
     /// This test exercises another case where when Parallelize Build is turned *off* there could be a cycle. In this case, the test target depends on the app target and an additional framework target, which used to result in a cycle if the framework target were listed after the app target.  c.f. rdar://problem/73210420
     ///
     /// This is different from `testApplicationUnitTestTarget_usingSerializedTargetBuild()` above because the framework target is a dependency of the test target, rather than being an intervening top-level target.
@@ -1997,7 +2052,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     // Test target sources
                     TestFile("TestOne.swift"),
                     TestFile("HostedTestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2010,37 +2066,44 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SWIFT_VERSION": swiftVersion,
                         "TAPI_EXEC": tapiToolPath.str,
                         "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "AppTarget-Info.plist",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "AppTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
-                        ]),
+                            "ClassOne.swift"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "HostedTestTarget",
                     type: .unitTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "HostedTestTarget-Info.plist",
-                            "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
-                            "BUNDLE_LOADER": "$(TEST_HOST)",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "HostedTestTarget-Info.plist",
+                                "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/AppTarget.app/Contents/MacOS/AppTarget",
+                                "BUNDLE_LOADER": "$(TEST_HOST)",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "TestOne.swift",
-                        ]),
+                            "TestOne.swift"
+                        ])
                     ],
                     // This is the key to this test: If FwkTarget is listed after AppTarget here, then there would previously have been a cycle.
                     dependencies: [
@@ -2052,18 +2115,22 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "FwkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "INFOPLIST_FILE": "FwkTarget-Info.plist",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "FwkTarget-Info.plist"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassTwo.swift",
-                        ]),
+                            "ClassTwo.swift"
+                        ])
                     ],
                     dependencies: []
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -2196,9 +2263,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
         }
     }
 
-
     // MARK: UI test target using a test runner
-
 
     /// Test task construction for a UI test target for macOS.  Both debug and install builds are tested.
     @Test(.requireSDKs(.macOS), .requireXcode26())
@@ -2220,7 +2285,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     TestFile("TestOne.swift"),
                     TestFile("TestTwo.swift"),
                     TestFile("UITestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2230,29 +2296,31 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
                         "_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES": "NO",
                         "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "UITestTarget",
                     type: .uiTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UITestTarget-Info.plist",
-                                                "PRODUCT_BUNDLE_IDENTIFIER": "com.dev.UITestTarget",
-                                                "CODE_SIGN_IDENTITY": "-",
-                                                "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                                                "TEST_FRAMEWORK_DEVELOPER_VARIANT_SUBPATH": "",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UITestTarget-Info.plist",
+                                "PRODUCT_BUNDLE_IDENTIFIER": "com.dev.UITestTarget",
+                                "CODE_SIGN_IDENTITY": "-",
+                                "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                                "TEST_FRAMEWORK_DEVELOPER_VARIANT_SUBPATH": "",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "TestOne.swift",
                             "TestTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -2260,7 +2328,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"]),
+                        TestBuildConfiguration("Debug", buildSettings: ["INFOPLIST_FILE": "AppTarget-Info.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -2268,11 +2336,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                             "ClassOne.swift",
                             "ClassTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
         let tester = try TaskConstructionTester(core, testProject)
@@ -2334,7 +2402,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -2361,7 +2429,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .namePattern(.suffix("copy-headers-completion")),
                         .namePattern(.and(.prefix("target-"), .suffix("Producer"))),
                         .namePattern(.prefix("target-")),
-                        .name("WorkspaceHeaderMapVFSFilesWritten")
+                        .name("WorkspaceHeaderMapVFSFilesWritten"),
                     ])
 
                     task.checkOutputs([
@@ -2376,10 +2444,12 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
 
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UITestTarget-OutputFileMap.json"])) { task in
                     task.checkInputs([
-                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))])
+                        .namePattern(.and(.prefix("target-"), .suffix("-immediate")))
+                    ])
 
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UITestTarget-OutputFileMap.json"),])
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UITestTarget-OutputFileMap.json")
+                    ])
                 }
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UITestTarget.SwiftFileList"])) { task, contents in
                     let inputFiles = ["\(SRCROOT)/TestOne.swift", "\(SRCROOT)/TestTwo.swift"]
@@ -2387,8 +2457,10 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     #expect(lines == inputFiles + [""])
                 }
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UITestTarget.SwiftConstValuesFileList"])) { task, contents in
-                    let inputFiles = ["\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues",
-                                      "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestTwo.swiftconstvalues"]
+                    let inputFiles = [
+                        "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestOne.swiftconstvalues",
+                        "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/TestTwo.swiftconstvalues",
+                    ]
                     let lines = contents.asString.components(separatedBy: .newlines)
                     #expect(lines == inputFiles + [""])
                 }
@@ -2400,7 +2472,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     let lines = contents.asString.components(separatedBy: .newlines)
                     #expect(lines == [""])
                 }
-
 
                 // There should be one link task, and a task to generate its link file list.
                 results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/UITestTarget.LinkFileList"])) { _ in }
@@ -2536,7 +2607,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .any,
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent")
                     ])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessProductPackagingDER")) { task in
@@ -2548,7 +2619,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         .any,
                     ])
                     task.checkOutputs([
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent.der"),
+                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent.der")
                     ])
                 }
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UITestTarget.xctest")) { task in
@@ -2574,29 +2645,33 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UITestTarget-Runner.app")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app"])
                     task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/UITestTarget-Runner.app"])
-                    task.checkInputs(contain: ([[
-                        .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
-                        .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent"),
-                        // The task to sign the runner depends on the tasks to copy the runner and the test frameworks.
-                        .name("MkDir \(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
-                        .name("Preprocess \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Info.plist"),
-                        .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PkgInfo"),
-                        .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTest.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCUnit.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCUIAutomation.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTestCore.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTestSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
-                        .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
-                        .name("CodeSign \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
-                        .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
-                        .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
-                    ]] as [[NodePattern]]).reduce([], +))
+                    task.checkInputs(
+                        contain: ([
+                            [
+                                .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
+                                .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent"),
+                                // The task to sign the runner depends on the tasks to copy the runner and the test frameworks.
+                                .name("MkDir \(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
+                                .name("Preprocess \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Info.plist"),
+                                .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PkgInfo"),
+                                .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTest.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCUnit.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCUIAutomation.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTestCore.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTestSupport.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
+                                .name("SignTestFramework \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
+                                .name("CodeSign \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
+                                .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
+                                .name("Copy \(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
+                                .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
+                                .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
+                            ]
+                        ] as [[NodePattern]]).reduce([], +)
+                    )
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app"),
                         .path("\(SRCROOT)/build/Debug/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
@@ -2748,29 +2823,33 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("UITestTarget-Runner.app")) { task in
                     task.checkRuleInfo(["CodeSign", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"])
                     task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent", "--generate-entitlement-der", "\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"])
-                    task.checkInputs(contain: ([[
-                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
-                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
-                        .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent"),
-                        // The task to sign the runner depends on the tasks to copy the runner and the test frameworks.
-                        .name("MkDir \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
-                        .name("Preprocess \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Info.plist"),
-                        .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PkgInfo"),
-                        .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTest.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCUnit.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCUIAutomation.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTestCore.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTestSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
-                        .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
-                        .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
-                        .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
-                        .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
-                        .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
-                    ]] as [[NodePattern]]).reduce([], +))
+                    task.checkInputs(
+                        contain: ([
+                            [
+                                .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
+                                .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
+                                .path("\(SRCROOT)/build/aProject.build/Debug/UITestTarget.build/UITestTarget.xctest.xcent"),
+                                // The task to sign the runner depends on the tasks to copy the runner and the test frameworks.
+                                .name("MkDir \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
+                                .name("Preprocess \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Info.plist"),
+                                .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PkgInfo"),
+                                .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTest.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCUnit.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCUIAutomation.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTestCore.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTestSupport.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/XCTAutomationSupport.framework"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/libXCTestSwiftSupport.dylib"),
+                                .name("SignTestFramework \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/Frameworks/Testing.framework"),
+                                .name("CodeSign \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/PlugIns/UITestTarget.xctest"),
+                                .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
+                                .name("Copy \(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
+                                .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-ProductPostprocessingTaskProducer"))),
+                                .namePattern(.and(.prefix("target-UITestTarget-"), .suffix("-entry"))),
+                            ]
+                        ] as [[NodePattern]]).reduce([], +)
+                    )
                     task.checkOutputs([
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app"),
                         .path("\(SRCROOT)/build/UninstalledProducts/macosx/UITestTarget-Runner.app/Contents/MacOS/UITestTarget-Runner"),
@@ -2783,7 +2862,6 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         results.checkTaskFollows(task, antecedent: nestedSigningTask)
                     }
                 }
-
 
                 // Check there are no more tasks for this target.
                 results.checkNoTask(.matchTarget(target))
@@ -2817,7 +2895,8 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     TestFile("TestOne.swift"),
                     TestFile("TestTwo.swift"),
                     TestFile("UITestTarget-Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Debug",
@@ -2826,27 +2905,29 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "iphoneos",
                         "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "UITestTarget",
                     type: .uiTest,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "UITestTarget-Info.plist",
-                                                "CODE_SIGN_IDENTITY": "Apple Development",
-                                                "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "UITestTarget-Info.plist",
+                                "CODE_SIGN_IDENTITY": "Apple Development",
+                                "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "TestOne.swift",
                             "TestTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ],
                     dependencies: ["AppTarget"]
                 ),
@@ -2854,12 +2935,14 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     "AppTarget",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug",
-                                               buildSettings: [
-                                                "INFOPLIST_FILE": "AppTarget-Info.plist",
-                                                "CODE_SIGN_IDENTITY": "Apple Development",
-                                                "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
-                                               ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "AppTarget-Info.plist",
+                                "CODE_SIGN_IDENTITY": "Apple Development",
+                                "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -2867,11 +2950,11 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                             "ClassOne.swift",
                             "ClassTwo.swift",
                         ]),
-                        TestFrameworksBuildPhase([
-                        ])
+                        TestFrameworksBuildPhase([]),
                     ]
                 ),
-            ])
+            ]
+        )
         let core = try await getCore()
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
         let tester = try TaskConstructionTester(core, testProject)

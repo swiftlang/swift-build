@@ -14,7 +14,7 @@ public import SWBUtil
 import SWBMacro
 import Foundation
 
-public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class InfoPlistToolSpec: GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.info-plist-utility"
 
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -35,8 +35,7 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
             let contents: SWBUtil.ByteString
             do {
                 contents = try ByteString(additions.asBytes(.binary))
-            }
-            catch {
+            } catch {
                 delegate.error("failed to serialize product type infoPlistAdditions: \(error)")
                 return nil
             }
@@ -130,7 +129,7 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
          that tracks the usage of these potential items.
          */
         var privacyFiles: [Path] = []
-        var privacyFilesMap: [String:[Path]] = [:]
+        var privacyFilesMap: [String: [Path]] = [:]
         for path in files {
             let basename = path.basename
             privacyFilesMap[basename, default: []].append(path)
@@ -144,13 +143,11 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
 
                 if let pathToUse = paths.filter({ $0.str.hasPrefix(targetPath.str) }).first {
                     privacyFiles.append(pathToUse)
-                }
-                else {
+                } else {
                     // Unclear which one to use so pass them all.
                     privacyFiles.append(contentsOf: paths)
                 }
-            }
-            else {
+            } else {
                 privacyFiles.append(contentsOf: paths)
             }
         }

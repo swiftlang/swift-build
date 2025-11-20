@@ -111,9 +111,9 @@ public struct UserPreferences: Sendable {
 
     public static var allowsExternalToolExecutionDefaultValue: Bool {
         #if RC_PLAYGROUNDS
-        return true
+            return true
         #else
-        return false
+            return false
         #endif
     }
 
@@ -317,7 +317,7 @@ public final class WorkspaceContext: Sendable {
         return sdkRegistryCache.getValue(self)
     }
     private let sdkRegistryCache = LazyCache { (workspaceContext: WorkspaceContext) -> WorkspaceContextSDKRegistry in
-        let overridingSDKsDir: Path? = workspaceContext.userInfo?.processEnvironment["XCODE_OVERRIDING_SDKS_DIRECTORY"].flatMap{Path($0)}
+        let overridingSDKsDir: Path? = workspaceContext.userInfo?.processEnvironment["XCODE_OVERRIDING_SDKS_DIRECTORY"].flatMap { Path($0) }
 
         return WorkspaceContextSDKRegistry(coreSDKRegistry: workspaceContext.core.sdkRegistry, delegate: workspaceContext.core.registryDelegate, userNamespace: workspaceContext.workspace.userNamespace, overridingSDKsDir: overridingSDKsDir)
     }
@@ -361,8 +361,7 @@ public final class WorkspaceContext: Sendable {
         if let p = parameters.arena?.derivedDataPath {
             // If the arena defines a derived data path, then use it.
             cacheFolderPath = p
-        }
-        else {
+        } else {
             // Otherwise use the path to the default clang user cache directory.  This will mainly used when running xcodebuild without -scheme.
             // First see if CCHROOT is defined in the environment.  If it is, and if it does *not* start with "/Library/Caches/com.apple.Xcode", then we use it.
             if let CCHROOT = self.userInfo?.processEnvironment["CCHROOT"], !CCHROOT.isEmpty {
@@ -386,10 +385,10 @@ public final class WorkspaceContext: Sendable {
 extension FSProxy {
     private static var CreatedByBuildSystemAttribute: String {
         #if os(Linux) || os(Android)
-        // On Linux, "the name [of an extended attribute] must be a null-terminated string prefixed by a namespace identifier and a dot character" and only the "user" namespace is available for unrestricted access.
-        "user.org.swift.swift-build.CreatedByBuildSystem"
+            // On Linux, "the name [of an extended attribute] must be a null-terminated string prefixed by a namespace identifier and a dot character" and only the "user" namespace is available for unrestricted access.
+            "user.org.swift.swift-build.CreatedByBuildSystem"
         #else
-        "com.apple.xcode.CreatedByBuildSystem"
+            "com.apple.xcode.CreatedByBuildSystem"
         #endif
     }
 
@@ -450,4 +449,4 @@ extension MachOInfo: FileSystemInitializable {
     }
 }
 
-extension XCFramework: FileSystemInitializable { }
+extension XCFramework: FileSystemInitializable {}

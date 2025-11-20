@@ -169,7 +169,7 @@ public final class Platform: Sendable {
         }
 
         var result = [String](values)
-        result.sort(by:) { (lhs,rhs) in
+        result.sort(by:) { (lhs, rhs) in
             // Compare as versions.
             let lhsNums = lhs.split(separator: ".").compactMap { Int($0) }
             let rhsNums = rhs.split(separator: ".").compactMap { Int($0) }
@@ -369,14 +369,16 @@ public final class PlatformRegistry {
 
     /// The default deployment targets for all installed platforms.
     var defaultDeploymentTargets: [String: Version] {
-        Dictionary(uniqueKeysWithValues: Dictionary(grouping: platforms, by: { $0.defaultSDKVariant?.deploymentTargetSettingName })
-            .sorted(by: \.key)
-            .compactMap { (key, value) in
-                guard let key, let value = Set(value.compactMap { $0.defaultSDKVariant?.defaultDeploymentTarget }).only else {
-                    return nil
+        Dictionary(
+            uniqueKeysWithValues: Dictionary(grouping: platforms, by: { $0.defaultSDKVariant?.deploymentTargetSettingName })
+                .sorted(by: \.key)
+                .compactMap { (key, value) in
+                    guard let key, let value = Set(value.compactMap { $0.defaultSDKVariant?.defaultDeploymentTarget }).only else {
+                        return nil
+                    }
+                    return (key, value)
                 }
-                return (key, value)
-            })
+        )
     }
 
     @_spi(Testing) public init(delegate: any PlatformRegistryDelegate, searchPaths: [Path], hostOperatingSystem: OperatingSystem, fs: any FSProxy) async {
@@ -594,7 +596,7 @@ public final class PlatformRegistry {
         }
 
         var executableSearchPaths: [Path] = [
-            path.join("usr").join("bin"),
+            path.join("usr").join("bin")
         ]
 
         var sdkSearchPaths: [Path] = [
@@ -611,7 +613,7 @@ public final class PlatformRegistry {
         executableSearchPaths.append(contentsOf: [
             path.join("usr").join("local").join("bin"),
             path.join("Developer").join("usr").join("bin"),
-            path.join("Developer").join("usr").join("local").join("bin")
+            path.join("Developer").join("usr").join("local").join("bin"),
         ])
 
         // FIXME: Need to parse other fields. It would also be nice to diagnose unused keys like we do for Spec data (and we might want to just use the spec parser here).
@@ -663,7 +665,6 @@ public final class PlatformRegistry {
         return false
     }
 
-
     /// Load the extended platform info.
     @_spi(Testing) public func loadExtendedInfo(_ namespace: MacroNamespace) {
         precondition(!hasLoadedExtendedInfo)
@@ -682,12 +683,19 @@ public final class PlatformRegistry {
                 }
             } else if !deploymentTargets.isEmpty {
                 platform._deploymentTargetMacro.initialize(to: nil)
-                delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Multiple deployment targets for platform '\(platform.name)'"), childDiagnostics: baseSDKs.sorted(by: \.canonicalName).compactMap { baseSDK in
-                    guard let deploymentTargetSettingName = baseSDK.defaultVariant?.deploymentTargetSettingName else {
-                        return nil
-                    }
-                    return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("\(deploymentTargetSettingName), defined by SDK '\(baseSDK.canonicalName)'"))
-                }))
+                delegate.emit(
+                    Diagnostic(
+                        behavior: .error,
+                        location: .unknown,
+                        data: DiagnosticData("Multiple deployment targets for platform '\(platform.name)'"),
+                        childDiagnostics: baseSDKs.sorted(by: \.canonicalName).compactMap { baseSDK in
+                            guard let deploymentTargetSettingName = baseSDK.defaultVariant?.deploymentTargetSettingName else {
+                                return nil
+                            }
+                            return Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("\(deploymentTargetSettingName), defined by SDK '\(baseSDK.canonicalName)'"))
+                        }
+                    )
+                )
             } else {
                 platform._deploymentTargetMacro.initialize(to: nil)
             }
@@ -733,12 +741,14 @@ extension Platform {
     /// Determines the default architecture to use for the index arena build, preferring `preferredArch` if valid on this platform or the first "Standard" architecture otherwise.
     @_spi(Testing) public func determineDefaultArchForIndexArena(preferredArch: String?, using core: Core) -> String? {
         if let preferredArch,
-           core.specRegistry.getSpec(preferredArch, domain: name) is ArchitectureSpec {
+            core.specRegistry.getSpec(preferredArch, domain: name) is ArchitectureSpec
+        {
             return preferredArch
         }
 
         if let standardArch = core.specRegistry.getSpec("Standard", domain: name) as? ArchitectureSpec,
-           let realArchs = standardArch.realArchs?.stringRep {
+            let realArchs = standardArch.realArchs?.stringRep
+        {
             return realArchs.split(" ").0
         }
 

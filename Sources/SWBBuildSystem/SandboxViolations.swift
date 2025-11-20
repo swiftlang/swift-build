@@ -15,7 +15,7 @@ import SWBUtil
 package import SWBCore
 
 #if os(macOS)
-import OSLog
+    import OSLog
 #endif
 
 extension ExecutableTask {
@@ -31,45 +31,46 @@ extension ExecutableTask {
     package func extractSandboxViolationMessages_ASYNC_UNSAFE(startTime: Date) -> [String] {
         var res: [String] = []
         #if os(macOS)
-        withUnsafeCurrentTask { task in
-            if task != nil {
-                preconditionFailure("This function should not be invoked from the Swift Concurrency thread pool as it may lead to deadlock via thread starvation.")
+            withUnsafeCurrentTask { task in
+                if task != nil {
+                    preconditionFailure("This function should not be invoked from the Swift Concurrency thread pool as it may lead to deadlock via thread starvation.")
+                }
             }
-        }
 
-        if let store = try? OSLogStore.local() {
-            let query = String("((processID == 0 AND senderImagePath CONTAINS[c] \"/Sandbox\") OR (process == \"sandboxd\" AND subsystem == \"com.apple.sandbox.reporting\")) AND (eventMessage CONTAINS[c] %@)")
-            let endTime = Date()
-            let duration = -DateInterval(start: startTime, end: endTime).duration
+            if let store = try? OSLogStore.local() {
+                let query = String("((processID == 0 AND senderImagePath CONTAINS[c] \"/Sandbox\") OR (process == \"sandboxd\" AND subsystem == \"com.apple.sandbox.reporting\")) AND (eventMessage CONTAINS[c] %@)")
+                let endTime = Date()
+                let duration = -DateInterval(start: startTime, end: endTime).duration
 
-            let position = store.position(timeIntervalSinceEnd: duration)
+                let position = store.position(timeIntervalSinceEnd: duration)
 
-            let sentinel = identifier.sandboxProfileSentinel
+                let sentinel = identifier.sandboxProfileSentinel
 
-            if let entries = try? store.getEntries(with: [], at: position, matching: NSPredicate(format: query, sentinel)) {
-                for entry in entries {
-                    if entry is (any OSLogEntryWithPayload) {
-                        let fullViolation = entry.composedMessage
-                        if let strippedViolation = fullViolation.components(separatedBy: "\n").first {
-                            // strip the guid from the emitted diagnostic
-                            res.append(strippedViolation)
-                        } else {
-                            // this should never happen
-                            res.append("Failed to parse sandbox violation: \(fullViolation)")
+                if let entries = try? store.getEntries(with: [], at: position, matching: NSPredicate(format: query, sentinel)) {
+                    for entry in entries {
+                        if entry is (any OSLogEntryWithPayload) {
+                            let fullViolation = entry.composedMessage
+                            if let strippedViolation = fullViolation.components(separatedBy: "\n").first {
+                                // strip the guid from the emitted diagnostic
+                                res.append(strippedViolation)
+                            } else {
+                                // this should never happen
+                                res.append("Failed to parse sandbox violation: \(fullViolation)")
+                            }
                         }
-                    }
 
-                    if let entryWithPayload = entry as? (any OSLogEntryWithPayload),
-                        entryWithPayload.components.count == 5,
-                        entryWithPayload.components[3].argumentCategory == .string,
-                        let violationMessage = entryWithPayload.components[3].argumentStringValue {
-                        res.append(violationMessage)
+                        if let entryWithPayload = entry as? (any OSLogEntryWithPayload),
+                            entryWithPayload.components.count == 5,
+                            entryWithPayload.components[3].argumentCategory == .string,
+                            let violationMessage = entryWithPayload.components[3].argumentStringValue
+                        {
+                            res.append(violationMessage)
+                        }
                     }
                 }
             }
-        }
         #else
-        res.append("Cannot obtain list of violations on non-macOS platforms")
+            res.append("Cannot obtain list of violations on non-macOS platforms")
         #endif
         return res
     }

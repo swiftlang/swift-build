@@ -38,7 +38,7 @@ extension ByteCount: Serializable {
         self.count = try .init(from: deserializer)
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         self.count.serialize(to: serializer)
     }
 }

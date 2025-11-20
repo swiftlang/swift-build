@@ -10,8 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public extension Dictionary
-{
+public extension Dictionary {
     /// Check if the dictionary contains an entry for `element`.
     func contains(_ element: Key) -> Bool {
         return index(forKey: element) != nil
@@ -77,7 +76,7 @@ public extension Dictionary {
     }
 
     /// Returns the elements of the dictionary, sorted using the given key path as the comparison between elements.
-    @inlinable func sorted<KeyValue: Comparable>( _ areInIncreasingOrder: (KeyValue, KeyValue) throws -> Bool, byKey predicate: (Key) -> KeyValue) rethrows -> [(key: Key, value: Value)] {
+    @inlinable func sorted<KeyValue: Comparable>(_ areInIncreasingOrder: (KeyValue, KeyValue) throws -> Bool, byKey predicate: (Key) -> KeyValue) rethrows -> [(key: Key, value: Value)] {
         return try sorted(byKey: { try areInIncreasingOrder(predicate($0), predicate($1)) })
     }
 

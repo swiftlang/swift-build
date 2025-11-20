@@ -80,10 +80,14 @@ public extension Optional where Wrapped == TaskResult {
 }
 
 public struct CommandMetrics: Hashable, Sendable {
-    public let utime: UInt64         /// User time (in μs)
-    public let stime: UInt64         /// Sys time (in μs)
-    public let maxRSS: UInt64        /// Max RSS (in bytes)
-    public let wcDuration: ElapsedTimerInterval? /// Wall time duration (in μs).
+    public let utime: UInt64
+    /// User time (in μs)
+    public let stime: UInt64
+    /// Sys time (in μs)
+    public let maxRSS: UInt64
+    /// Max RSS (in bytes)
+    public let wcDuration: ElapsedTimerInterval?
+    /// Wall time duration (in μs).
 
     public init(utime: UInt64, stime: UInt64, maxRSS: UInt64, wcDuration: ElapsedTimerInterval?) {
         self.utime = utime

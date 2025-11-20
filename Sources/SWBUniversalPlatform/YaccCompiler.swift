@@ -14,7 +14,7 @@ import SWBUtil
 import SWBCore
 import SWBMacro
 
-final class YaccCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Sendable {
+final class YaccCompilerSpec: CompilerSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.yacc"
 
     static let extensionMappings = [
@@ -22,7 +22,8 @@ final class YaccCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Send
         ".ymm": ".mm", ".YMM": ".MM",
         ".yp": ".cp", ".YP": ".CP",
         ".ypp": ".cpp", ".YPP": ".CPP",
-        ".yxx": ".cxx", ".YXX": ".CXX"]
+        ".yxx": ".cxx", ".YXX": ".CXX",
+    ]
 
     override var toolBasenameAliases: [String] {
         return ["bison"]
@@ -36,7 +37,7 @@ final class YaccCompilerSpec : CompilerSpec, SpecIdentifierType, @unchecked Send
         // Compute the input and output path.
         let input = cbc.input
         let inputBasename = input.absolutePath.basename
-        let (inputPrefix,inputExt) = Path(inputBasename).splitext()
+        let (inputPrefix, inputExt) = Path(inputBasename).splitext()
 
         let outputPrefix: String
         if cbc.scope.evaluate(BuiltinMacros.YACC_GENERATED_FILE_STEM) == "InputFileStem" {

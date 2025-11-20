@@ -22,7 +22,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.split()
                 lengths = lengths &+ result.0.str.utf8.count &+ 1 &+ result.1.utf8.count
             }
@@ -36,7 +36,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.dirname
                 lengths = lengths &+ result.str.utf8.count
             }
@@ -50,7 +50,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.basename
                 lengths = lengths &+ result.utf8.count
             }
@@ -64,7 +64,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.basenameWithoutSuffix
                 lengths = lengths &+ result.utf8.count
             }
@@ -78,7 +78,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.withoutSuffix
                 lengths = lengths &+ result.utf8.count
             }
@@ -92,7 +92,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.fileSuffix
                 lengths = lengths &+ result.utf8.count
             }
@@ -106,7 +106,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.fileExtension
                 lengths = lengths &+ result.utf8.count
             }
@@ -120,7 +120,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.normalize()
                 lengths = lengths &+ result.str.utf8.count
             }
@@ -135,7 +135,7 @@ fileprivate struct PathPerfTests: PerfTests {
         let N = 100000
         await measure {
             var lengths = 0
-            for _ in 0 ..< N {
+            for _ in 0..<N {
                 let result = path.join(path2)
                 lengths = lengths &+ result.str.utf8.count
             }

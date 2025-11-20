@@ -59,7 +59,7 @@ jobs:
     with:
       license_header_check_project_name: "Swift"
       api_breakage_check_enabled: false
-      format_check_enabled: false
+      format_check_enabled: true
 
   space-format-check:
     name: Space format check

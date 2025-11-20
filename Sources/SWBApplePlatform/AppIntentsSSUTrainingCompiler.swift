@@ -46,21 +46,23 @@ final public class AppIntentsSSUTrainingCompilerSpec: GenericCommandLineToolSpec
 
         if cbc.scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
             guard cbc.inputs[0].fileType.conformsTo(stringsFileType) || cbc.inputs[0].fileType.conformsTo(xcstringsFileType),
-                  cbc.inputs[0].absolutePath.basename.hasSuffix("InfoPlist.strings") ||
-                    cbc.inputs[0].absolutePath.basename.hasSuffix("InfoPlist.xcstrings") else {
+                cbc.inputs[0].absolutePath.basename.hasSuffix("InfoPlist.strings") || cbc.inputs[0].absolutePath.basename.hasSuffix("InfoPlist.xcstrings")
+            else {
                 assertionFailure("AppIntents YAML Generation task construction was passed context without InfoPlist.strings file.")
                 return false
             }
         } else {
             guard cbc.inputs[0].fileType.conformsTo(plistFileType),
-                  cbc.inputs[0].absolutePath.basename == "Info.plist" else {
+                cbc.inputs[0].absolutePath.basename == "Info.plist"
+            else {
                 assertionFailure("AppIntents YAML Generation task construction was passed context without Info.plist file.")
                 return false
             }
         }
         if cbc.inputs.count == 2 {
             guard cbc.inputs[1].fileType.conformsTo(stringsFileType) || cbc.inputs[1].fileType.conformsTo(xcstringsFileType),
-                  ["AppShortcuts.strings", "AppShortcuts.xcstrings"].contains(cbc.inputs[1].absolutePath.basename) else {
+                ["AppShortcuts.strings", "AppShortcuts.xcstrings"].contains(cbc.inputs[1].absolutePath.basename)
+            else {
                 assertionFailure("AppIntents YAML Generation task construction was passed context without AppShortcuts.strings file.")
                 return false
             }
@@ -92,7 +94,7 @@ final public class AppIntentsSSUTrainingCompilerSpec: GenericCommandLineToolSpec
             } else {
                 inputNodeIdentifier = "ValidateAppShortcutStringsMetadata \(cbc.inputs[1].absolutePath.str)"
             }
-            let inputOrderingNode = delegate.createVirtualNode(inputNodeIdentifier) // Create the NL training task only if AppShortcuts.strings is validated
+            let inputOrderingNode = delegate.createVirtualNode(inputNodeIdentifier)  // Create the NL training task only if AppShortcuts.strings is validated
             inputs.append(inputOrderingNode)
         }
 
@@ -118,16 +120,17 @@ final public class AppIntentsSSUTrainingCompilerSpec: GenericCommandLineToolSpec
         }
 
         let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
-        delegate.createTask(type: self,
-                            ruleInfo: defaultRuleInfo(cbc, delegate),
-                            commandLine: commandLine,
-                            environment: environmentFromSpec(cbc, delegate),
-                            workingDirectory: cbc.producer.defaultWorkingDirectory,
-                            inputs: inputs,
-                            outputs: outputs,
-                            action: nil,
-                            execDescription: resolveExecutionDescription(cbc, delegate),
-                            enableSandboxing: enableSandboxing)
+        delegate.createTask(
+            type: self,
+            ruleInfo: defaultRuleInfo(cbc, delegate),
+            commandLine: commandLine,
+            environment: environmentFromSpec(cbc, delegate),
+            workingDirectory: cbc.producer.defaultWorkingDirectory,
+            inputs: inputs,
+            outputs: outputs,
+            action: nil,
+            execDescription: resolveExecutionDescription(cbc, delegate),
+            enableSandboxing: enableSandboxing
+        )
     }
 }
-

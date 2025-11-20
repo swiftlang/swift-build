@@ -35,13 +35,16 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "INFOPLIST_FILE": "Info.plist",
                     "CODE_SIGN_IDENTITY": "-",
                     "ENABLE_APP_SANDBOX": "YES",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-                "com.apple.security.app-sandbox": "1",
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+                    "com.apple.security.app-sandbox": "1",
+                ]
+            )
         }
     }
 
@@ -56,12 +59,15 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "INFOPLIST_FILE": "Info.plist",
                     "CODE_SIGN_IDENTITY": "-",
                     "ENABLE_APP_SANDBOX": "NO",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)"
+                ]
+            )
         }
     }
 
@@ -81,18 +87,21 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_FILE_ACCESS_MUSIC_FOLDER": "readonly",
                     "ENABLE_FILE_ACCESS_PICTURE_FOLDER": "readonly",
                     "ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER": "readonly",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-                "com.apple.security.app-sandbox": "1",
-                "com.apple.security.files.user-selected.read-only": "1",
-                "com.apple.security.assets.movies.read-only": "1",
-                "com.apple.security.assets.music.read-only": "1",
-                "com.apple.security.assets.pictures.read-only": "1",
-                "com.apple.security.files.downloads.read-only": "1",
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+                    "com.apple.security.app-sandbox": "1",
+                    "com.apple.security.files.user-selected.read-only": "1",
+                    "com.apple.security.assets.movies.read-only": "1",
+                    "com.apple.security.assets.music.read-only": "1",
+                    "com.apple.security.assets.pictures.read-only": "1",
+                    "com.apple.security.files.downloads.read-only": "1",
+                ]
+            )
         }
     }
 
@@ -112,18 +121,21 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_FILE_ACCESS_MUSIC_FOLDER": "readwrite",
                     "ENABLE_FILE_ACCESS_PICTURE_FOLDER": "readwrite",
                     "ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER": "readwrite",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-                "com.apple.security.app-sandbox": "1",
-                "com.apple.security.files.user-selected.read-write": "1",
-                "com.apple.security.assets.movies.read-write": "1",
-                "com.apple.security.assets.music.read-write": "1",
-                "com.apple.security.assets.pictures.read-write": "1",
-                "com.apple.security.files.downloads.read-write": "1",
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+                    "com.apple.security.app-sandbox": "1",
+                    "com.apple.security.files.user-selected.read-write": "1",
+                    "com.apple.security.assets.movies.read-write": "1",
+                    "com.apple.security.assets.music.read-write": "1",
+                    "com.apple.security.assets.pictures.read-write": "1",
+                    "com.apple.security.files.downloads.read-write": "1",
+                ]
+            )
         }
     }
 
@@ -161,14 +173,17 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY": "",
                     "ENABLE_RESOURCE_ACCESS_USB": "",
                     "ENABLE_RESOURCE_ACCESS_PRINTING": "",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
 
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-                "com.apple.security.app-sandbox": "1",
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+                    "com.apple.security.app-sandbox": "1",
+                ]
+            )
         }
     }
 
@@ -205,36 +220,39 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY": "YES",
                     "ENABLE_RESOURCE_ACCESS_USB": "YES",
                     "ENABLE_RESOURCE_ACCESS_PRINTING": "YES",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
 
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-                "com.apple.security.app-sandbox": "1",
-                "com.apple.security.automation.apple-events": "1",
-                "com.apple.security.cs.allow-dyld-environment-variables": "1",
-                "com.apple.security.cs.allow-jit": "1",
-                "com.apple.security.cs.allow-unsigned-executable-memory": "1",
-                "com.apple.security.cs.debugger": "1",
-                "com.apple.security.cs.disable-executable-page-protection": "1",
-                "com.apple.security.cs.disable-library-validation": "1",
-                "com.apple.security.device.audio-input": "1",
-                "com.apple.security.device.bluetooth": "1",
-                "com.apple.security.personal-information.calendars": "1",
-                "com.apple.security.device.camera": "1",
-                "com.apple.security.personal-information.addressbook": "1",
-                "com.apple.security.personal-information.location": "1",
-                "com.apple.security.personal-information.photos-library": "1",
-                "com.apple.security.files.downloads.read-write": "1",
-                "com.apple.security.assets.pictures.read-only": "1",
-                "com.apple.security.assets.music.read-write": "1",
-                "com.apple.security.assets.movies.read-only": "1",
-                "com.apple.security.network.client": "1",
-                "com.apple.security.network.server": "1",
-                "com.apple.security.print": "1",
-                "com.apple.security.device.usb": "1"
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+                    "com.apple.security.app-sandbox": "1",
+                    "com.apple.security.automation.apple-events": "1",
+                    "com.apple.security.cs.allow-dyld-environment-variables": "1",
+                    "com.apple.security.cs.allow-jit": "1",
+                    "com.apple.security.cs.allow-unsigned-executable-memory": "1",
+                    "com.apple.security.cs.debugger": "1",
+                    "com.apple.security.cs.disable-executable-page-protection": "1",
+                    "com.apple.security.cs.disable-library-validation": "1",
+                    "com.apple.security.device.audio-input": "1",
+                    "com.apple.security.device.bluetooth": "1",
+                    "com.apple.security.personal-information.calendars": "1",
+                    "com.apple.security.device.camera": "1",
+                    "com.apple.security.personal-information.addressbook": "1",
+                    "com.apple.security.personal-information.location": "1",
+                    "com.apple.security.personal-information.photos-library": "1",
+                    "com.apple.security.files.downloads.read-write": "1",
+                    "com.apple.security.assets.pictures.read-only": "1",
+                    "com.apple.security.assets.music.read-write": "1",
+                    "com.apple.security.assets.movies.read-only": "1",
+                    "com.apple.security.network.client": "1",
+                    "com.apple.security.network.server": "1",
+                    "com.apple.security.print": "1",
+                    "com.apple.security.device.usb": "1",
+                ]
+            )
         }
     }
 
@@ -271,13 +289,16 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY": "YES",
                     "ENABLE_RESOURCE_ACCESS_USB": "YES",
                     "ENABLE_RESOURCE_ACCESS_PRINTING": "YES",
-                    "SDKROOT": "iphoneos"
+                    "SDKROOT": "iphoneos",
                 ]
             )
 
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)"
+                ]
+            )
         }
     }
 
@@ -312,33 +333,36 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_RESOURCE_ACCESS_CONTACTS": "YES",
                     "ENABLE_RESOURCE_ACCESS_LOCATION": "YES",
                     "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY": "YES",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
 
-            try await buildTestBinaryAndValidateEntitlements(testWorkspace: testWorkspace, expectedEntitlements: [
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
-                "com.apple.security.automation.apple-events": "1",
-                "com.apple.security.cs.allow-dyld-environment-variables": "1",
-                "com.apple.security.cs.allow-jit": "1",
-                "com.apple.security.cs.allow-unsigned-executable-memory": "1",
-                "com.apple.security.cs.debugger": "1",
-                "com.apple.security.cs.disable-executable-page-protection": "1",
-                "com.apple.security.cs.disable-library-validation": "1",
-                "com.apple.security.device.audio-input": "1",
-                "com.apple.security.device.bluetooth": "1",
-                "com.apple.security.personal-information.calendars": "1",
-                "com.apple.security.device.camera": "1",
-                "com.apple.security.personal-information.addressbook": "1",
-                "com.apple.security.personal-information.location": "1",
-                "com.apple.security.personal-information.photos-library": "1",
-                "com.apple.security.files.downloads.read-write": "1",
-                "com.apple.security.assets.pictures.read-only": "1",
-                "com.apple.security.assets.music.read-write": "1",
-                "com.apple.security.assets.movies.read-only": "1",
-                "com.apple.security.network.client": "1",
-                "com.apple.security.network.server": "1",
-            ])
+            try await buildTestBinaryAndValidateEntitlements(
+                testWorkspace: testWorkspace,
+                expectedEntitlements: [
+                    "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+                    "com.apple.security.automation.apple-events": "1",
+                    "com.apple.security.cs.allow-dyld-environment-variables": "1",
+                    "com.apple.security.cs.allow-jit": "1",
+                    "com.apple.security.cs.allow-unsigned-executable-memory": "1",
+                    "com.apple.security.cs.debugger": "1",
+                    "com.apple.security.cs.disable-executable-page-protection": "1",
+                    "com.apple.security.cs.disable-library-validation": "1",
+                    "com.apple.security.device.audio-input": "1",
+                    "com.apple.security.device.bluetooth": "1",
+                    "com.apple.security.personal-information.calendars": "1",
+                    "com.apple.security.device.camera": "1",
+                    "com.apple.security.personal-information.addressbook": "1",
+                    "com.apple.security.personal-information.location": "1",
+                    "com.apple.security.personal-information.photos-library": "1",
+                    "com.apple.security.files.downloads.read-write": "1",
+                    "com.apple.security.assets.pictures.read-only": "1",
+                    "com.apple.security.assets.music.read-write": "1",
+                    "com.apple.security.assets.movies.read-only": "1",
+                    "com.apple.security.network.client": "1",
+                    "com.apple.security.network.server": "1",
+                ]
+            )
         }
     }
 
@@ -373,7 +397,7 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "ENABLE_RESOURCE_ACCESS_CONTACTS": "YES",
                     "ENABLE_RESOURCE_ACCESS_LOCATION": "YES",
                     "ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY": "YES",
-                    "SDKROOT": "macosx"
+                    "SDKROOT": "macosx",
                 ]
             )
 
@@ -424,10 +448,12 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                     "com.apple.security.assets.movies.read-only": .plBool(false),
                     "com.apple.security.network.client": .plBool(true),
                     "com.apple.security.network.server": .plBool(true),
-                ], expectedWarnings: SWBFeatureFlag.enableAppSandboxConflictingValuesEmitsWarning.value ? [
-                    "The \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\' build setting is set to \'YES\', but entitlement \'com.apple.security.device.audio-input\' is set to \'NO\' in your entitlements file.\nTo enable \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\', remove the entitlement from your entitlements file.\nTo disable \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\', remove the entitlement from your entitlements file and disable \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\' in  build settings. (in target \'App\' from project \'aProject\')",
-                    "The \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\' build setting is set to \'readOnly\', but entitlement \'com.apple.security.assets.movies.read-only\' is set to \'NO\' in your entitlements file.\nTo enable \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\', remove the entitlement from your entitlements file.\nTo disable \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\', remove the entitlement from your entitlements file and disable \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\' in  build settings. (in target \'App\' from project \'aProject\')",
-                ] : nil
+                ],
+                expectedWarnings: SWBFeatureFlag.enableAppSandboxConflictingValuesEmitsWarning.value
+                    ? [
+                        "The \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\' build setting is set to \'YES\', but entitlement \'com.apple.security.device.audio-input\' is set to \'NO\' in your entitlements file.\nTo enable \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\', remove the entitlement from your entitlements file.\nTo disable \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\', remove the entitlement from your entitlements file and disable \'ENABLE_RESOURCE_ACCESS_AUDIO_INPUT\' in  build settings. (in target \'App\' from project \'aProject\')",
+                        "The \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\' build setting is set to \'readOnly\', but entitlement \'com.apple.security.assets.movies.read-only\' is set to \'NO\' in your entitlements file.\nTo enable \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\', remove the entitlement from your entitlements file.\nTo disable \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\', remove the entitlement from your entitlements file and disable \'ENABLE_FILE_ACCESS_MOVIES_FOLDER\' in  build settings. (in target \'App\' from project \'aProject\')",
+                    ] : nil
             )
 
             try await buildTestBinaryAndValidateEntitlements(
@@ -483,36 +509,40 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))
     func simulatorEntitlementsSections() async throws {
         try await withTemporaryDirectory { tmpDirPath in
-            let testWorkspace = TestWorkspace("aWorkspace", sourceRoot: tmpDirPath, projects: [
-                TestProject(
-                    "aProject",
-                    groupTree: TestGroup(
-                        "Sources",
-                        children: [
-                            TestFile("main.c")
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: tmpDirPath,
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("main.c")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SDKROOT": "iphonesimulator",
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "App",
+                                type: .application,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.c"])
+                                ]
+                            )
                         ]
-                    ),
-                    buildConfigurations: [
-                        TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "GENERATE_INFOPLIST_FILE": "YES",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SDKROOT": "iphonesimulator",
-                            ]
-                        )
-                    ],
-                    targets: [
-                        TestStandardTarget(
-                            "App",
-                            type: .application,
-                            buildPhases: [
-                                TestSourcesBuildPhase(["main.c"])
-                            ]
-                        )
-                    ]
-                )
-            ])
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/main.c")) { stream in
@@ -522,7 +552,7 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
             let parameters = BuildParameters(action: .build, configuration: "Debug")
             let entitlements: PropertyListItem = [
                 // Specify just the baseline entitlements, since other entitlements should be added via build settings.
-                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+                "com.apple.application-identifier": "$(AppIdentifierPrefix)$(CFBundleIdentifier)"
             ]
             let provisioningInputs = ["App": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: entitlements)]
 
@@ -549,22 +579,24 @@ fileprivate struct EntitlementsBuildOperationTests: CoreBasedTests {
                         "SomeFiles",
                         children: [
                             // App sources
-                            TestFile("main.c"),
-                        ]),
-                    buildConfigurations: [TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: buildSettings
-                    )],
+                            TestFile("main.c")
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: buildSettings
+                        )
+                    ],
                     targets: [
                         TestStandardTarget(
                             "App",
                             type: .application,
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    "main.c",
+                                    "main.c"
                                 ]),
-                                TestFrameworksBuildPhase([
-                                ]),
+                                TestFrameworksBuildPhase([]),
                             ]
                         )
                     ]

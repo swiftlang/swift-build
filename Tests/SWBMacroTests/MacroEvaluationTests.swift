@@ -534,23 +534,23 @@ import SWBTestSupport
         let Y = try namespace.declareStringMacro("Y")
         table.push(X, literal: "x")
         var conditions = [MacroCondition]()
-        let cond1 = MacroCondition(parameter:param, valuePattern:"pattern*")
+        let cond1 = MacroCondition(parameter: param, valuePattern: "pattern*")
         #expect(cond1.parameter == param);
         #expect(cond1.valuePattern == "pattern*");
         #expect(cond1.description != "");
-        let cond2 = MacroCondition(parameter:param, valuePattern:"pattern*")
+        let cond2 = MacroCondition(parameter: param, valuePattern: "pattern*")
         #expect(cond2.parameter == param);
         #expect(cond2.valuePattern == "pattern*");
         #expect(cond2.description != "");
         #expect(cond1 == cond2)
-        let cond3 = MacroCondition(parameter:param, valuePattern:"pattern*~")
+        let cond3 = MacroCondition(parameter: param, valuePattern: "pattern*~")
         #expect(cond3.parameter == param);
         #expect(cond3.valuePattern == "pattern*~");
         #expect(cond3.description != "");
         #expect(cond1 != cond3)
         #expect(cond2 != cond3)
         conditions.append(cond1)
-        table.push(X, literal: "ⓧ", conditions:MacroConditionSet(conditions: conditions))
+        table.push(X, literal: "ⓧ", conditions: MacroConditionSet(conditions: conditions))
         #expect(table.lookupMacro(X)?.conditions != nil)
         table.push(Y, namespace.parseString("¡$(X)!"))
         table.push(Y, namespace.parseString("$(Y)"))
@@ -630,7 +630,7 @@ import SWBTestSupport
         let _ = try namespace.declareStringListMacro("LIST_WITH_MISSING_VALUE")
 
         // Test a literal empty string.
-        table.push(STRING, literal:"")
+        table.push(STRING, literal: "")
         let scope1 = MacroEvaluationScope(table: table)
         #expect(scope1.evaluate(LIST) == ["-foo", ""])
 
@@ -856,10 +856,12 @@ import SWBTestSupport
             }
 
             init(arrayLiteral elements: TestCase...) {
-                self = .literal(elements.compactMap({ value in
-                    guard case .string(let str) = value else { return nil }
-                    return str
-                }))
+                self = .literal(
+                    elements.compactMap({ value in
+                        guard case .string(let str) = value else { return nil }
+                        return str
+                    })
+                )
             }
         }
 
@@ -877,8 +879,8 @@ import SWBTestSupport
             "😱\u{200D}a",
             TestCase(stringLiteral: Array(repeating: "a", count: 1_000_000).joined(separator: " ")),
             TestCase.literal(Array(repeating: "a", count: 1_000_000)),
-            "caf\u{E9}", // café with pre-composed é
-            "caf\u{65}\u{301}", // café with decomposed é
+            "caf\u{E9}",  // café with pre-composed é
+            "caf\u{65}\u{301}",  // café with decomposed é
             ["caf\u{E9}", "caf\u{65}\u{301}"],
             ["caf\u{65}\u{301}", "caf\u{E9}"],
         ]
@@ -1023,7 +1025,6 @@ extension MacroEvaluationScope {
         let separators: [String]
         let expectations: Expectations
 
-
         init(root: String, components: [String], separators: [String], expectations: Expectations) throws {
             if components.count != separators.count {
                 throw TestPathError.componentSeparatorLengthMismatch
@@ -1047,29 +1048,65 @@ extension MacroEvaluationScope {
         var tps: [TestPath] = []
         do {
             #if !os(Windows)
-            tps = try [
-                TestPath(root: "/", components: [ "this", "is", "a", "path" ], separators: ["/", "/", "/", "/"],
-                         expectations: Expectations(stringEvaluated: "/this/is/a/path", macroEvaluated: "/this/is/a/path", base: nil, file: nil, dir: "/this/is/a")),
-                TestPath(root: "/", components: [ "this", "is", "..", "path" ], separators: ["/", "/", "/", "/"],
-                         expectations: Expectations(stringEvaluated: "/this/is/../path", macroEvaluated: "/this/path", base: nil, file: nil, dir: "/this")),
-                TestPath(root: "", components: [ "I", "have", "no", "root" ], separators: ["/", "/", "/", "/"],
-                         expectations: Expectations(stringEvaluated: "I/have/no/root", macroEvaluated: "I/have/no/root", base: nil, file: nil, dir: "I/have/no" )),
-                TestPath(root: "/", components: [ "I", "have", "a", "trailing", "" ], separators: ["/", "/", "/", "/", "/"],
-                         expectations: Expectations(stringEvaluated: "/I/have/a/trailing/", macroEvaluated: "/I/have/a/trailing", base: nil, file: nil, dir: "/I/have/a/trailing")),
-                TestPath(root: "/", components: [ "this", "is", "a", "file", "file1.txt" ], separators: ["/", "/", "/", "/", "/"],
-                         expectations: Expectations(stringEvaluated: "/this/is/a/file/file1.txt", macroEvaluated: "/this/is/a/file/file1.txt", base: "file1", file: "file1.txt", dir: nil))
-            ]
+                tps = try [
+                    TestPath(
+                        root: "/",
+                        components: ["this", "is", "a", "path"],
+                        separators: ["/", "/", "/", "/"],
+                        expectations: Expectations(stringEvaluated: "/this/is/a/path", macroEvaluated: "/this/is/a/path", base: nil, file: nil, dir: "/this/is/a")
+                    ),
+                    TestPath(
+                        root: "/",
+                        components: ["this", "is", "..", "path"],
+                        separators: ["/", "/", "/", "/"],
+                        expectations: Expectations(stringEvaluated: "/this/is/../path", macroEvaluated: "/this/path", base: nil, file: nil, dir: "/this")
+                    ),
+                    TestPath(
+                        root: "",
+                        components: ["I", "have", "no", "root"],
+                        separators: ["/", "/", "/", "/"],
+                        expectations: Expectations(stringEvaluated: "I/have/no/root", macroEvaluated: "I/have/no/root", base: nil, file: nil, dir: "I/have/no")
+                    ),
+                    TestPath(
+                        root: "/",
+                        components: ["I", "have", "a", "trailing", ""],
+                        separators: ["/", "/", "/", "/", "/"],
+                        expectations: Expectations(stringEvaluated: "/I/have/a/trailing/", macroEvaluated: "/I/have/a/trailing", base: nil, file: nil, dir: "/I/have/a/trailing")
+                    ),
+                    TestPath(
+                        root: "/",
+                        components: ["this", "is", "a", "file", "file1.txt"],
+                        separators: ["/", "/", "/", "/", "/"],
+                        expectations: Expectations(stringEvaluated: "/this/is/a/file/file1.txt", macroEvaluated: "/this/is/a/file/file1.txt", base: "file1", file: "file1.txt", dir: nil)
+                    ),
+                ]
             #else
-            tps = try [
-                TestPath(root: "C:\\", components: [ "this", "is", "a", "path" ], separators: ["\\", "\\", "\\", "\\"],
-                         expectations: Expectations(stringEvaluated: "C:\\this\\is\\a\\path", macroEvaluated: "C:\\this\\is\\a\\path", base: nil, file: nil, dir: "C:\\this\\is\\a")),
-                TestPath(root: "C:\\", components: [ "this", "is", "a", "path" ], separators: ["\\", "\\", "/", "/"],
-                         expectations: Expectations(stringEvaluated: "C:\\this\\is/a/path", macroEvaluated: "C:\\this\\is\\a\\path", base: nil, file: nil, dir: "C:\\this\\is\\a")),
-                TestPath(root: "C:\\", components: [ "this", "is", "..", "path" ], separators: ["\\", "\\", "\\", "\\"],
-                         expectations: Expectations(stringEvaluated: "C:\\this\\is\\..\\path", macroEvaluated: "C:\\this\\path", base: nil, file: nil, dir: "C:\\this")),
-                TestPath(root: "C:\\", components: [ "I", "have", "a", "trailing", "" ], separators: ["\\", "\\", "\\", "\\", "\\"],
-                         expectations: Expectations(stringEvaluated: "C:\\I\\have\\a\\trailing\\", macroEvaluated: "C:\\I\\have\\a\\trailing", base: nil, file: nil, dir: "C:\\I\\have\\a"))
-            ]
+                tps = try [
+                    TestPath(
+                        root: "C:\\",
+                        components: ["this", "is", "a", "path"],
+                        separators: ["\\", "\\", "\\", "\\"],
+                        expectations: Expectations(stringEvaluated: "C:\\this\\is\\a\\path", macroEvaluated: "C:\\this\\is\\a\\path", base: nil, file: nil, dir: "C:\\this\\is\\a")
+                    ),
+                    TestPath(
+                        root: "C:\\",
+                        components: ["this", "is", "a", "path"],
+                        separators: ["\\", "\\", "/", "/"],
+                        expectations: Expectations(stringEvaluated: "C:\\this\\is/a/path", macroEvaluated: "C:\\this\\is\\a\\path", base: nil, file: nil, dir: "C:\\this\\is\\a")
+                    ),
+                    TestPath(
+                        root: "C:\\",
+                        components: ["this", "is", "..", "path"],
+                        separators: ["\\", "\\", "\\", "\\"],
+                        expectations: Expectations(stringEvaluated: "C:\\this\\is\\..\\path", macroEvaluated: "C:\\this\\path", base: nil, file: nil, dir: "C:\\this")
+                    ),
+                    TestPath(
+                        root: "C:\\",
+                        components: ["I", "have", "a", "trailing", ""],
+                        separators: ["\\", "\\", "\\", "\\", "\\"],
+                        expectations: Expectations(stringEvaluated: "C:\\I\\have\\a\\trailing\\", macroEvaluated: "C:\\I\\have\\a\\trailing", base: nil, file: nil, dir: "C:\\I\\have\\a")
+                    ),
+                ]
             #endif
         } catch {
             #expect(Bool(false), "Failed to load test paths: \(error)")
@@ -1096,7 +1133,7 @@ extension MacroEvaluationScope {
 
             // Combined Path
             let macroPath = try namespace.declarePathMacro("MACRO_PATH")
-            let expressionPath  = namespace.parseString(expressionPathString)
+            let expressionPath = namespace.parseString(expressionPathString)
             table.push(macroPath, expressionPath)
 
             // Macro Operators
@@ -1126,7 +1163,7 @@ extension MacroEvaluationScope {
             #expect(scope.evaluate(macroPath).str == testPath.expectations.macroEvaluated)
 
             // Test macro operators
-            #expect(scope.evaluate(macroPathStandardized).str == testPath.expectations.macroEvaluated) //Should be already standardized/normalized
+            #expect(scope.evaluate(macroPathStandardized).str == testPath.expectations.macroEvaluated)  //Should be already standardized/normalized
             if testPath.expectations.file != nil {
                 #expect(scope.evaluate(macroPathFile).str == testPath.expectations.file)
             }
@@ -1136,7 +1173,7 @@ extension MacroEvaluationScope {
             if testPath.expectations.dir != nil {
                 #expect(scope.evaluate(macroPathDir).str == testPath.expectations.dir)
             }
-         }
+        }
     }
 
     @Test
@@ -1145,7 +1182,7 @@ extension MacroEvaluationScope {
         var table = MacroValueAssignmentTable(namespace: namespace)
 
         let macroPathList = try namespace.declarePathListMacro("MACRO_PATH_LIST")
-        table.push(macroPathList, literal: testPaths.map{$0.path})
+        table.push(macroPathList, literal: testPaths.map { $0.path })
 
         //Macro Operators
         //:standardize
@@ -1159,18 +1196,17 @@ extension MacroEvaluationScope {
         //:file
         let macroPathListFile = try namespace.declarePathListMacro("MACRO_PATH_LIST_FILE")
         let expressionPathListFile = namespace.parseStringList("$(MACRO_PATH_LIST:file)")
-        table.push(macroPathListFile , expressionPathListFile)
+        table.push(macroPathListFile, expressionPathListFile)
         //:dir
         let macroPathListDir = try namespace.declarePathListMacro("MACRO_PATH_LIST_DIR")
         let expressionPathListDir = namespace.parseStringList("$(MACRO_PATH_LIST:dir)")
-        table.push(macroPathListDir , expressionPathListDir)
-
+        table.push(macroPathListDir, expressionPathListDir)
 
         // Create a macro evaluation scope for testing.
         let scope = MacroEvaluationScope(table: table)
 
         // Check that all paths have been normalized
-        #expect(scope.evaluate(macroPathList) == testPaths.map{$0.expectations.macroEvaluated})
+        #expect(scope.evaluate(macroPathList) == testPaths.map { $0.expectations.macroEvaluated })
 
         // Check macro operators function as expected, order is same as testPaths
         for (testPathIndex, testPath) in testPaths.enumerated() {

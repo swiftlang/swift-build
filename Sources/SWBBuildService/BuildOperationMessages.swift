@@ -87,7 +87,7 @@ final class ActiveBuild: ActiveBuildOperation {
 
         func beginActivity(ruleInfo: String, executionDescription: String, signature: ByteString, target: ConfiguredTarget?, parentActivity: ActivityID?) -> ActivityID {
             let activity = ActivityID(rawValue: activeBuild.activeTasks.takeID())
-            assert(target == nil) // not supported yet
+            assert(target == nil)  // not supported yet
             activeBuild.request.send(BuildOperationTaskStarted(id: activity.rawValue, targetID: nil, parentID: parentActivity?.rawValue, info: .init(taskName: executionDescription, signature: .activitySignature(signature), ruleInfo: ruleInfo, executionDescription: executionDescription, commandLineDisplayString: nil, interestingPath: nil, serializedDiagnosticsPaths: [])))
             return activity
         }
@@ -484,7 +484,8 @@ final class ActiveBuild: ActiveBuildOperation {
             assert(state == .created)
             state = .started
 
-            if case .cleanBuildFolder(_) = buildRequest.buildCommand {} else {
+            if case .cleanBuildFolder(_) = buildRequest.buildCommand {
+            } else {
                 // Once we have reached this point, we are done reporting preparation progress.
                 let statusMessage = workspaceContext.userPreferences.activityTextShorteningLevel == .full ? "Starting" : "Starting build"
                 preparationProgressDelegate!.updateProgress(statusMessage: statusMessage, showInLog: false)
@@ -540,7 +541,6 @@ final class ActiveBuild: ActiveBuildOperation {
     }
 }
 
-
 // FIXME: This needs to be factored out as a reusable ObjectIDMapping soon (it's not actually set since it doesn't implement the actual Set protocol).
 private final class ObjectIDMapping<T> {
     private struct State {
@@ -549,7 +549,7 @@ private final class ObjectIDMapping<T> {
         var objsToIDs: [Ref<T>: Int] = [:]
 
         mutating func takeID() -> Int {
-            defer{ nextID += 1 }
+            defer { nextID += 1 }
             return nextID
         }
     }
@@ -600,16 +600,21 @@ final class ActiveBuildDiagnosticsHandler: TargetDiagnosticProducingDelegate {
 
     func diagnosticsEngine(for target: ConfiguredTarget?) -> DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
         return targetDiagnosticsEngines.withLock { targetDiagnosticsEngines in
-            .init(targetDiagnosticsEngines.getOrInsert(target, {
-                let engine = DiagnosticsEngine()
-                if target == nil {
-                    let request = self.request
-                    engine.addHandler { diag in
-                        sendDiagnosticMessage(request, diag, .global)
+            .init(
+                targetDiagnosticsEngines.getOrInsert(
+                    target,
+                    {
+                        let engine = DiagnosticsEngine()
+                        if target == nil {
+                            let request = self.request
+                            engine.addHandler { diag in
+                                sendDiagnosticMessage(request, diag, .global)
+                            }
+                        }
+                        return engine
                     }
-                }
-                return engine
-            }))
+                )
+            )
         }
     }
 
@@ -918,8 +923,8 @@ private final class TaskOutputParserHandler: TaskOutputParserDelegate {
 
 /// A task output collector which simply discards any data it receives.
 private final class DiscardingTaskOutputHandler: TaskOutputDelegate {
-    var counters: [BuildOperationMetrics.Counter : Int] = [:]
-    var taskCounters: [BuildOperationMetrics.TaskCounter : Int] = [:]
+    var counters: [BuildOperationMetrics.Counter: Int] = [:]
+    var taskCounters: [BuildOperationMetrics.TaskCounter: Int] = [:]
 
     private let _diagnosticsEngine = DiagnosticsEngine()
     var result: TaskResult? { nil }
@@ -1040,7 +1045,7 @@ final class OperationDelegate: BuildOperationDelegate {
         return outputCollector
     }
 
-    func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String : String], generatedFilesPathMap: [String : String]) {
+    func reportPathMap(_ operation: BuildOperation, copiedPathMap: [String: String], generatedFilesPathMap: [String: String]) {
         request.send(BuildOperationReportPathMap(copiedPathMap: copiedPathMap, generatedFilesPathMap: generatedFilesPathMap))
     }
 
@@ -1163,11 +1168,12 @@ final class OperationDelegate: BuildOperationDelegate {
 
         // If we haven't started, show a custom message (to prevent a "Building 0" message).
         if stats.numCommandsStarted == 0 {
-            if  messageShortening != .full || workspaceContext.userPreferences.enableDebugActivityLogs {
+            if messageShortening != .full || workspaceContext.userPreferences.enableDebugActivityLogs {
                 request.send(BuildOperationProgressUpdated(targetName: targetName, statusMessage: "Scanning build tasks", percentComplete: percentComplete, showInLog: false))
             }
         } else {
-            let statusMessage = messageShortening > .legacy
+            let statusMessage =
+                messageShortening > .legacy
                 ? activityMessageFractionString(stats.numCommandsStarted, over: stats.numPossibleMaxExecutedCommands)
                 : "Building \(stats.numCommandsStarted) of \(stats.numPossibleMaxExecutedCommands) tasks"
             request.send(BuildOperationProgressUpdated(targetName: targetName, statusMessage: statusMessage, percentComplete: percentComplete, showInLog: false))
@@ -1331,9 +1337,9 @@ final class OperationDelegate: BuildOperationDelegate {
             )
         })
 
-        self.aggregatedCounters.merge(delegate.counters) { (a, b) in a+b }
+        self.aggregatedCounters.merge(delegate.counters) { (a, b) in a + b }
         if !delegate.taskCounters.isEmpty {
-            self.aggregatedTaskCounters[task.ruleInfo[0], default: [:]].merge(delegate.taskCounters) { (a, b) in a+b }
+            self.aggregatedTaskCounters[task.ruleInfo[0], default: [:]].merge(delegate.taskCounters) { (a, b) in a + b }
         }
 
         request.send(BuildOperationTaskEnded(id: taskID, signature: .taskIdentifier(ByteString(encodingAsUTF8: taskIdentifier.rawValue)), status: status, signalled: status == .cancelled, metrics: metrics))

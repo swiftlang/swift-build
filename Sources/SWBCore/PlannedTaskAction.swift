@@ -14,12 +14,10 @@ import Foundation
 public import SWBUtil
 public import SWBMacro
 
-
 /// A task action encapsulates concrete work to be done for a task during a build.
 ///
 /// Task actions are primarily used to capture state and execution logic for in-process tasks.
-public protocol PlannedTaskAction
-{
+public protocol PlannedTaskAction {
 }
 
 public struct AuxiliaryFileTaskActionContext {
@@ -103,8 +101,7 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
         serializer.endAggregate()
     }
 
-    public init(from deserializer: any Deserializer) throws
-    {
+    public init(from deserializer: any Deserializer) throws {
         // Get the platform registry to use to look up the platform from the deserializer's delegate.
         guard let delegate = deserializer.delegate as? (any InfoPlistProcessorTaskActionContextDeserializerDelegate) else { throw DeserializerError.invalidDelegate("delegate must be a BuildDescriptionDeserializerDelegate") }
 
@@ -118,8 +115,7 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
                 throw DeserializerError.deserializationFailed("Platform lookup failed for identifier: \(platformIdentifier)")
             }
             platform = p
-        }
-        else {
+        } else {
             platform = nil
         }
 
@@ -144,7 +140,7 @@ public struct InfoPlistProcessorTaskActionContext: PlatformBuildContext, Seriali
             sdk = loadedSDK
         } else {
             sdk = nil
-            _ = deserializer.deserializeNil() // skip past SDK variant name
+            _ = deserializer.deserializeNil()  // skip past SDK variant name
             sdkVariant = nil
         }
 
@@ -251,11 +247,11 @@ public struct FileCopyTaskActionContext {
 
         return (
             compileAndLink: partialTargetValues.map { partialTargetValue in
-                    (
-                        compile: stubPartialCompilerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue).o").str],
-                        link: stubPartialLinkerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue)").str, tempDir.join("\(partialTargetValue).o").str]
-                    )
-                },
+                (
+                    compile: stubPartialCompilerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue).o").str],
+                    link: stubPartialLinkerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue)").str, tempDir.join("\(partialTargetValue).o").str]
+                )
+            },
             lipo: stubPartialLipoCommandLine + ["-output", frameworkPath.join(isDeepBundle ? "Versions/A" : nil).join(frameworkPath.basenameWithoutSuffix).str] + partialTargetValues.map { partialTargetValue in tempDir.join("\(partialTargetValue)").str }
         )
     }
@@ -264,14 +260,21 @@ public struct FileCopyTaskActionContext {
 extension FileCopyTaskActionContext {
     public init(_ cbc: CommandBuildContext) {
         let compilerPath = cbc.producer.clangSpec.resolveExecutablePath(cbc, forLanguageOfFileType: cbc.producer.lookupFileType(languageDialect: .c))
-        let linkerPath = cbc.producer.ldLinkerSpec.resolveExecutablePath(cbc.producer, cbc.producer.ldLinkerSpec.computeLinkerPath(cbc, usedCXX: false, lookup: { macro in
-            switch macro {
-            case BuiltinMacros.LINKER_DRIVER:
-                return cbc.scope.namespace.parseString("clang")
-            default:
-                return nil
-            }
-        }))
+        let linkerPath = cbc.producer.ldLinkerSpec.resolveExecutablePath(
+            cbc.producer,
+            cbc.producer.ldLinkerSpec.computeLinkerPath(
+                cbc,
+                usedCXX: false,
+                lookup: { macro in
+                    switch macro {
+                    case BuiltinMacros.LINKER_DRIVER:
+                        return cbc.scope.namespace.parseString("clang")
+                    default:
+                        return nil
+                    }
+                }
+            )
+        )
         let lipoPath = cbc.producer.lipoSpec.resolveExecutablePath(cbc.producer, Path(cbc.producer.lipoSpec.computeExecutablePath(cbc)))
 
         // If we couldn't find clang, skip the special stub binary handling. We may be using an Open Source toolchain which only has Swift. Also skip it for installLoc builds.
@@ -283,12 +286,15 @@ extension FileCopyTaskActionContext {
         let scope = cbc.scope
 
         let partialTargetValues = scope.evaluate(BuiltinMacros.ARCHS).map { arch in
-            return scope.evaluate(scope.namespace.parseString("$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)"), lookup: {
-                if $0 == BuiltinMacros.CURRENT_ARCH {
-                    return scope.namespace.parseLiteralString(arch)
+            return scope.evaluate(
+                scope.namespace.parseString("$(CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)"),
+                lookup: {
+                    if $0 == BuiltinMacros.CURRENT_ARCH {
+                        return scope.namespace.parseLiteralString(arch)
+                    }
+                    return nil
                 }
-                return nil
-            })
+            )
         }
         let llvmTargetTripleOSVersion = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_OS_VERSION)
         let llvmTargetTripleSuffix = scope.evaluate(BuiltinMacros.LLVM_TARGET_TRIPLE_SUFFIX)
@@ -307,13 +313,13 @@ extension FileCopyTaskActionContext {
             llvmTargetTripleSuffix: llvmTargetTripleSuffix,
             platformName: platformName,
             swiftPlatformTargetPrefix: swiftPlatformTargetPrefix,
-            isMacCatalyst: isMacCatalyst)
+            isMacCatalyst: isMacCatalyst
+        )
     }
 }
 
 /// Protocol for objects that can create task actions for in-process tasks.
-public protocol TaskActionCreationDelegate
-{
+public protocol TaskActionCreationDelegate {
     func createAuxiliaryFileTaskAction(_ context: AuxiliaryFileTaskActionContext) -> any PlannedTaskAction
     func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction
     func createBuildDirectoryTaskAction() -> any PlannedTaskAction

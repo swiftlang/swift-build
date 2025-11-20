@@ -32,7 +32,7 @@ extension CoreBasedTests {
         let context = try await WorkspaceContext(core: core.or(await getCore()), workspace: workspace, fs: fs, processExecutionCache: .sharedForTesting)
 
         // Configure fake user and system info.
-        context.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path.root.join("Users").join("exampleUser"), environment: environment))
+        context.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid: 12345, home: Path.root.join("Users").join("exampleUser"), environment: environment))
         context.updateSystemInfo(systemInfo ?? SystemInfo(operatingSystemVersion: Version(99, 98, 97), productBuildVersion: "99A98", nativeArchitecture: "x86_64"))
 
         return context

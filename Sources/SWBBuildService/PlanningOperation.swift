@@ -48,8 +48,7 @@ package final class PlanningOperation: Sendable {
     /// Concurrent queue used to dispatch work to the background.
     private let workQueue: SWBQueue
 
-    init(request: Request, session: Session, workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any PlanningOperationDelegate)
-    {
+    init(request: Request, session: Session, workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any PlanningOperationDelegate) {
         self.request = request
         self.uuid = UUID()
         self.session = session
@@ -94,32 +93,34 @@ package final class PlanningOperation: Sendable {
         // We now need to request all the provisioning inputs, which we do in parallel.
         let provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs]
         do {
-            provisioningInputs = try await Dictionary(uniqueKeysWithValues: withThrowingTaskGroup(of: (ConfiguredTarget, ProvisioningTaskInputs).self) { [delegate] group in
-                return try await delegate.withActivity(ruleInfo: "GatherProvisioningInputs", executionDescription: "Gather provisioning inputs", signature: "gather_provisioning_inputs", target: nil, parentActivity: nil) { [delegate] activity in
-                    for (index, target) in graph.allTargets.enumerated() {
-                        group.addTask {
-                            try _Concurrency.Task.checkCancellation()
+            provisioningInputs = try await Dictionary(
+                uniqueKeysWithValues: withThrowingTaskGroup(of: (ConfiguredTarget, ProvisioningTaskInputs).self) { [delegate] group in
+                    return try await delegate.withActivity(ruleInfo: "GatherProvisioningInputs", executionDescription: "Gather provisioning inputs", signature: "gather_provisioning_inputs", target: nil, parentActivity: nil) { [delegate] activity in
+                        for (index, target) in graph.allTargets.enumerated() {
+                            group.addTask {
+                                try _Concurrency.Task.checkCancellation()
 
-                            // Dispatch the request for inputs.
-                            let inputs = await self.getProvisioningTaskInputs(for: target)
+                                // Dispatch the request for inputs.
+                                let inputs = await self.getProvisioningTaskInputs(for: target)
 
-                            if self.workspaceContext.userPreferences.enableDebugActivityLogs {
-                                delegate.emit(data: Array("Received inputs for target \(target): \(inputs)\n".utf8), for: activity, signature: "gather_provisioning_inputs")
+                                if self.workspaceContext.userPreferences.enableDebugActivityLogs {
+                                    delegate.emit(data: Array("Received inputs for target \(target): \(inputs)\n".utf8), for: activity, signature: "gather_provisioning_inputs")
+                                }
+
+                                // Register the result.
+                                let numInputs = index + 1
+                                let provisioningStatus = messageShortening >= .allDynamicText ? "Provisioning \(activityMessageFractionString(numInputs, over: graph.allTargets.count))" : "Getting \(numInputs) of \(graph.allTargets.count) provisioning task inputs"
+                                delegate.updateProgress(statusMessage: provisioningStatus, showInLog: false)
+
+                                return (target, inputs)
                             }
-
-                            // Register the result.
-                            let numInputs = index + 1
-                            let provisioningStatus = messageShortening >= .allDynamicText ? "Provisioning \(activityMessageFractionString(numInputs, over: graph.allTargets.count))" : "Getting \(numInputs) of \(graph.allTargets.count) provisioning task inputs"
-                            delegate.updateProgress(statusMessage: provisioningStatus, showInLog: false)
-
-                            return (target, inputs)
                         }
+                        return try await group.collect()
                     }
-                    return try await group.collect()
                 }
-            })
+            )
         } catch {
-            return nil // CancellationError
+            return nil  // CancellationError
         }
 
         if messageShortening != .full || self.workspaceContext.userPreferences.enableDebugActivityLogs {
@@ -152,14 +153,13 @@ package final class PlanningOperation: Sendable {
     /// Create the provisioning task inputs for a configured target.
     private func getProvisioningTaskInputs(for configuredTarget: ConfiguredTarget) async -> ProvisioningTaskInputs {
         // We only collect provisioning task inputs for standard targets.
-        if let target = configuredTarget.target as? SWBCore.StandardTarget
-        {
+        if let target = configuredTarget.target as? SWBCore.StandardTarget {
             // Create the settings and collect data we need to ship back to the client.
             let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target)
 
             // Exit early if code signing is disabled, or if we don't have a valid SDK.
             guard let project = settings.project, let sdk = settings.sdk,
-                  settings.globalScope.evaluate(BuiltinMacros.CODE_SIGNING_ALLOWED)
+                settings.globalScope.evaluate(BuiltinMacros.CODE_SIGNING_ALLOWED)
             else {
                 return ProvisioningTaskInputs()
             }
@@ -211,16 +211,21 @@ package final class PlanningOperation: Sendable {
                 // Based on the conversation from rdar://problem/40909675, the team prefix should have a trailing period (`.`), but **only** if teamID actually has a value.
                 let parsedTeamIdentifierPrefix = settings.userNamespace.parseLiteralString(teamID.flatMap { $0 + "." } ?? "")
 
-                return rawEntitlements.byEvaluatingMacros(withScope: settings.globalScope, andDictionaryKeys: true, preserveReferencesToSettings: preserveReferencesToSettings, lookup: { macro in
-                    switch macro {
-                    case BuiltinMacros.CFBundleIdentifier:
-                        return parsedBundleIdentifier
-                    case BuiltinMacros.TeamIdentifierPrefix:
-                        return parsedTeamIdentifierPrefix
-                    default:
-                        return nil
+                return rawEntitlements.byEvaluatingMacros(
+                    withScope: settings.globalScope,
+                    andDictionaryKeys: true,
+                    preserveReferencesToSettings: preserveReferencesToSettings,
+                    lookup: { macro in
+                        switch macro {
+                        case BuiltinMacros.CFBundleIdentifier:
+                            return parsedBundleIdentifier
+                        case BuiltinMacros.TeamIdentifierPrefix:
+                            return parsedTeamIdentifierPrefix
+                        default:
+                            return nil
+                        }
                     }
-                })
+                )
             }
 
             // We need to read the entitlements from CODE_SIGN_ENTITLEMENTS_CONTENTS and evaluate build settings in it, to send it to Xcode to generate the provisioning inputs.
@@ -228,14 +233,12 @@ package final class PlanningOperation: Sendable {
             if !entitlementsContentsString.isEmpty {
                 if let rawEntitlementsFromBuildSetting = try? PropertyList.fromString(entitlementsContentsString) {
                     entitlementsFromBuildSetting = processRawEntitlements(rawEntitlementsFromBuildSetting)
-                }
-                else {
+                } else {
                     delegate.emit(.default, .init(behavior: .error, location: .buildSetting(name: "CODE_SIGN_ENTITLEMENTS_CONTENTS"), data: .init("The value of CODE_SIGN_ENTITLEMENTS_CONTENTS could not be parsed as entitlements")))
 
                     entitlementsFromBuildSetting = nil
                 }
-            }
-            else {
+            } else {
                 entitlementsFromBuildSetting = nil
             }
 
@@ -244,13 +247,11 @@ package final class PlanningOperation: Sendable {
             if let entitlementsFilePath = entitlementsFilePath {
                 if let rawEntitlementsFromFile = try? PropertyList.fromPath(entitlementsFilePath, fs: workspaceContext.fs) {
                     entitlementsFromFile = processRawEntitlements(rawEntitlementsFromFile)
-                }
-                else {
+                } else {
                     // FIXME: We should report an issue if we couldn't read the file.  Though presently I think the provisioning inputs generation machinery will do that, it might be clearer to just deal with it ourselves.  However, if `CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION` is being used, the file path might point to a generated file which hasn't yet been created, and we won't be able to read it anyways.
                     entitlementsFromFile = nil
                 }
-            }
-            else {
+            } else {
                 entitlementsFromFile = nil
             }
 
@@ -269,14 +270,11 @@ package final class PlanningOperation: Sendable {
                     }
 
                     return .plDict(entitlementsFromFileDictionary.addingContents(of: entitlementsFromBuildSettingDictionary))
-                }
-                else if let entitlementsFromFile = entitlementsFromFile {
+                } else if let entitlementsFromFile = entitlementsFromFile {
                     return entitlementsFromFile
-                }
-                else if let entitlementsFromBuildSetting = entitlementsFromBuildSetting {
+                } else if let entitlementsFromBuildSetting = entitlementsFromBuildSetting {
                     return entitlementsFromBuildSetting
-                }
-                else {
+                } else {
                     // Otherwise, we don't have any entitlements, and can just set it to nil.
                     return nil
                 }
@@ -294,16 +292,19 @@ package final class PlanningOperation: Sendable {
             // Create the outstanding request entry.
             return await withCheckedContinuation { continuation in
                 workQueue.async {
-                    self.provisioningTaskInputRequests[configuredTargetHandle] = ProvisioningTaskInputRequest(configuredTarget: configuredTarget, settingsHandle: settingsHandle, bundleIdentifier: bundleIdentifier, completion: { inputs in
-                        continuation.resume(returning: inputs)
-                    })
+                    self.provisioningTaskInputRequests[configuredTargetHandle] = ProvisioningTaskInputRequest(
+                        configuredTarget: configuredTarget,
+                        settingsHandle: settingsHandle,
+                        bundleIdentifier: bundleIdentifier,
+                        completion: { inputs in
+                            continuation.resume(returning: inputs)
+                        }
+                    )
 
                     self.request.send(message)
                 }
             }
-        }
-        else
-        {
+        } else {
             // Other target classes get an empty provisioning object.
             return ProvisioningTaskInputs()
         }
@@ -322,8 +323,7 @@ package final class PlanningOperation: Sendable {
             let settings: Settings
             do {
                 settings = try self.session.settings(for: subrequest.settingsHandle)
-            }
-            catch let e as SessionError {
+            } catch let e as SessionError {
                 let error: String
                 switch e {
                 case .noSettings(let str):
@@ -332,8 +332,7 @@ package final class PlanningOperation: Sendable {
                     error = "No settings in session for handle '\(subrequest.settingsHandle)': Handle is for a different workspace"
                 }
                 fatalError(error)
-            }
-            catch {
+            } catch {
                 fatalError("no settings in session for handle '\(subrequest.settingsHandle)': Unknown error")
             }
             // Now evaluate settings in the entitlements plists we got back from the client.  This includes some settings we evaluated before sending the request because the provisioning inputs generation may add content referring to those settings beyond what we passed to it.
@@ -361,8 +360,7 @@ package final class PlanningOperation: Sendable {
             // Clean up.
             do {
                 try self.session.unregisterSettings(for: subrequest.settingsHandle)
-            }
-            catch let e as SessionError {
+            } catch let e as SessionError {
                 let error: String
                 switch e {
                 case .noSettings(let str):
@@ -371,8 +369,7 @@ package final class PlanningOperation: Sendable {
                     error = "No settings to unregister in session for handle '\(subrequest.settingsHandle)': Handle is for a different workspace"
                 }
                 fatalError(error)
-            }
-            catch {
+            } catch {
                 fatalError("no settings to unregister in session for handle '\(subrequest.settingsHandle)': Unknown error")
             }
         }
@@ -397,11 +394,8 @@ extension PlanningOperation: TargetDependencyResolverDelegate {
     }
 }
 
-
-extension ProvisioningTaskInputsSourceData
-{
-    init(configurationName: String, sourceData: ProvisioningSourceData, provisioningProfileSupport: ProvisioningProfileSupport, provisioningProfileSpecifier: String, provisioningProfileUUID: String, bundleIdentifier: String, productTypeEntitlements: PropertyListItem, productTypeIdentifier: String, projectEntitlementsFile: String?, projectEntitlements: PropertyListItem?, signingCertificateIdentifier: String, signingRequiresTeam: Bool, teamID: String?, sdkRoot: String, sdkVariant: String?, supportsEntitlements: Bool, wantsBaseEntitlementInjection: Bool, entitlementsDestination: String, localSigningStyle: String, enableCloudSigning: Bool)
-    {
+extension ProvisioningTaskInputsSourceData {
+    init(configurationName: String, sourceData: ProvisioningSourceData, provisioningProfileSupport: ProvisioningProfileSupport, provisioningProfileSpecifier: String, provisioningProfileUUID: String, bundleIdentifier: String, productTypeEntitlements: PropertyListItem, productTypeIdentifier: String, projectEntitlementsFile: String?, projectEntitlements: PropertyListItem?, signingCertificateIdentifier: String, signingRequiresTeam: Bool, teamID: String?, sdkRoot: String, sdkVariant: String?, supportsEntitlements: Bool, wantsBaseEntitlementInjection: Bool, entitlementsDestination: String, localSigningStyle: String, enableCloudSigning: Bool) {
         self.init(configurationName: configurationName, provisioningProfileSupport: provisioningProfileSupport, provisioningProfileSpecifier: provisioningProfileSpecifier, provisioningProfileUUID: provisioningProfileUUID, provisioningStyle: sourceData.provisioningStyle, teamID: teamID, bundleIdentifier: bundleIdentifier, productTypeEntitlements: productTypeEntitlements, productTypeIdentifier: productTypeIdentifier, projectEntitlementsFile: projectEntitlementsFile, projectEntitlements: projectEntitlements, signingCertificateIdentifier: signingCertificateIdentifier, signingRequiresTeam: signingRequiresTeam, sdkRoot: sdkRoot, sdkVariant: sdkVariant, supportsEntitlements: supportsEntitlements, wantsBaseEntitlementInjection: wantsBaseEntitlementInjection, entitlementsDestination: entitlementsDestination, localSigningStyle: localSigningStyle, enableCloudSigning: enableCloudSigning)
     }
 }

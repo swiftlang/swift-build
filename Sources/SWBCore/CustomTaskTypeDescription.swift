@@ -60,6 +60,6 @@ public final class CustomTaskTypeDescription: TaskTypeDescription {
     }
 
     public func generateLocalizationInfo(for task: any ExecutableTask, input: TaskGenerateLocalizationInfoInput) -> [TaskGenerateLocalizationInfoOutput] {
-       []
+        []
     }
 }

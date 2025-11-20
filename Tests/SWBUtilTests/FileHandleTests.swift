@@ -16,9 +16,9 @@ import SWBTestSupport
 import Testing
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 @Suite fileprivate struct FileHandleTests {

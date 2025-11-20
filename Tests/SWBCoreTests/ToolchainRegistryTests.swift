@@ -25,11 +25,13 @@ import SWBServiceCore
     ///
     /// - parameter inputs: A list of test inputs, in the form (name, testData). These inputs will be written to files in a temporary directory for testing.
     /// - parameter perform: A block that runs with the registry that results from scanning the inputs, as well as the list of warnings and errors. Each warning and error is a pair of the path basename and the diagnostic message.
-    private func withRegistryForTestInputs(strict: Bool = true,
-                                           _ inputs: [(String, PropertyListItem?)],
-                                           infoPlistName: String = "ToolchainInfo.plist",
-                                           postProcess: (Path) throws -> Void = { _ in },
-                                           perform: (ToolchainRegistry, [(String, String)], [(String, String)]) throws -> Void) async throws {
+    private func withRegistryForTestInputs(
+        strict: Bool = true,
+        _ inputs: [(String, PropertyListItem?)],
+        infoPlistName: String = "ToolchainInfo.plist",
+        postProcess: (Path) throws -> Void = { _ in },
+        perform: (ToolchainRegistry, [(String, String)], [(String, String)]) throws -> Void
+    ) async throws {
         try await withTemporaryDirectory { baseTmpDirPath in
             let tmpDirPath = baseTmpDirPath.join("tmp")
             try fs.createDirectory(tmpDirPath)
@@ -47,7 +49,7 @@ import SWBServiceCore
 
             try postProcess(tmpDirPath)
 
-            class TestDataDelegate : ToolchainRegistryDelegate {
+            class TestDataDelegate: ToolchainRegistryDelegate {
                 private let _diagnosticsEngine = DiagnosticsEngine()
 
                 init(pluginManager: any PluginManager) {
@@ -113,23 +115,25 @@ import SWBServiceCore
     }
 
     func _testLoadingIssues(strict: Bool) async throws {
-        try await withRegistryForTestInputs(strict: strict, [
-            ("unused", nil),
-            ("a.xctoolchain", nil),
-            ("b.xctoolchain", []),
-            ("c.xctoolchain", ["bad": "bad"]),
-            ("d.xctoolchain", ["Identifier": "d"]),
-            ("e.xctoolchain", ["Identifier": "d"]),
-            ("default.xctoolchain", ["Identifier": ToolchainRegistry.defaultToolchainIdentifier]),
-            ("swift.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161115a", "Aliases": ["swift"]]),
-            ("swift-latest.xctoolchain", ["CFBundleIdentifier": "org.swift.latest"]),
-        ]) { registry, warnings, errors in
+        try await withRegistryForTestInputs(
+            strict: strict,
+            [
+                ("unused", nil),
+                ("a.xctoolchain", nil),
+                ("b.xctoolchain", []),
+                ("c.xctoolchain", ["bad": "bad"]),
+                ("d.xctoolchain", ["Identifier": "d"]),
+                ("e.xctoolchain", ["Identifier": "d"]),
+                ("default.xctoolchain", ["Identifier": ToolchainRegistry.defaultToolchainIdentifier]),
+                ("swift.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161115a", "Aliases": ["swift"]]),
+                ("swift-latest.xctoolchain", ["CFBundleIdentifier": "org.swift.latest"]),
+            ]
+        ) { registry, warnings, errors in
             #expect(registry.toolchainsByIdentifier.keys.sorted(by: <) == [ToolchainRegistry.defaultToolchainIdentifier, "d", "org.swift.3020161115a"])
 
             if strict {
                 #expect(warnings.isEmpty)
-            }
-            else {
+            } else {
                 #expect(errors.isEmpty)
             }
 
@@ -170,10 +174,13 @@ import SWBServiceCore
     func loadingDownloadableToolchain() async throws {
         let additionalToolchains: [String] = ["com.apple.dt.toolchain.XcodeDefault"]
 
-        try await withRegistryForTestInputs([
-            ("swift-newer.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161115a", "Version": "3.0.220161211151", "Aliases": ["swift"]]),
-            ("swift-older.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161114a", "Version": "3.0.220161211141", "Aliases": ["swift"]]),
-        ], infoPlistName: "Info.plist") { registry, _, errors in
+        try await withRegistryForTestInputs(
+            [
+                ("swift-newer.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161115a", "Version": "3.0.220161211151", "Aliases": ["swift"]]),
+                ("swift-older.xctoolchain", ["CFBundleIdentifier": "org.swift.3020161114a", "Version": "3.0.220161211141", "Aliases": ["swift"]]),
+            ],
+            infoPlistName: "Info.plist"
+        ) { registry, _, errors in
 
             #expect(Set(registry.toolchainsByIdentifier.keys) == Set(["org.swift.3020161114a", "org.swift.3020161115a"] + additionalToolchains))
             #expect(errors.count == 0, "\(errors)")
@@ -207,9 +214,12 @@ import SWBServiceCore
 
     @Test
     func swiftDeveloperToolchainSet() async throws {
-        try await withRegistryForTestInputs([
-            ("swift-org.xctoolchain", ["CFBundleIdentifier": "org.swift", "Version": "3.0.220161211141", "Aliases": ["swift"]]),
-        ], infoPlistName: "Info.plist") { registry, _, errors in
+        try await withRegistryForTestInputs(
+            [
+                ("swift-org.xctoolchain", ["CFBundleIdentifier": "org.swift", "Version": "3.0.220161211141", "Aliases": ["swift"]])
+            ],
+            infoPlistName: "Info.plist"
+        ) { registry, _, errors in
 
             #expect(errors.count == 0)
             #expect(registry.lookup("org.swift")?.overrideSettings["SWIFT_DEVELOPMENT_TOOLCHAIN"]?.looselyTypedBoolValue == true)
@@ -218,14 +228,21 @@ import SWBServiceCore
 
     @Test
     func customBuildSettings() async throws {
-        try await withRegistryForTestInputs([
-            ("swift-org.xctoolchain", [
-                "CFBundleIdentifier": "org.swift",
-                "Version": "3.0.220161211141",
-                "Aliases": ["swift"],
-                "DefaultBuildSettings": ["dfoo": "DefaultValue"],
-                "OverrideBuildSettings": ["ofoo": "OverrideValue"]]),
-        ], infoPlistName: "Info.plist") { registry, _, errors in
+        try await withRegistryForTestInputs(
+            [
+                (
+                    "swift-org.xctoolchain",
+                    [
+                        "CFBundleIdentifier": "org.swift",
+                        "Version": "3.0.220161211141",
+                        "Aliases": ["swift"],
+                        "DefaultBuildSettings": ["dfoo": "DefaultValue"],
+                        "OverrideBuildSettings": ["ofoo": "OverrideValue"],
+                    ]
+                )
+            ],
+            infoPlistName: "Info.plist"
+        ) { registry, _, errors in
 
             #expect(errors.count == 0)
             #expect(registry.lookup("org.swift")?.defaultSettings["dfoo"]?.stringValue == "DefaultValue")

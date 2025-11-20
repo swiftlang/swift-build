@@ -38,24 +38,31 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                     TestFile("libdynamic.dylib"),
                     TestFile("StubFramework.framework"),
                     TestFile("Script-Input-Header.fake-input"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "DEFINES_MODULE": "YES",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "DEFINES_MODULE": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "FrameworkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "INFOPLIST_FILE": "MyInfo.plist",
-                            "SUPPORTS_TEXT_BASED_API": "YES"
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "MyInfo.plist",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -66,20 +73,24 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("FrameworkTarget.h", headerVisibility: .public),
                             TestBuildFile("PublicHeaderFile.h", headerVisibility: .public),
                             TestBuildFile("PrivateHeaderFile.h", headerVisibility: .private),
-                            TestBuildFile("ProjectHeaderFile.h"),   // visibility: project
+                            TestBuildFile("ProjectHeaderFile.h"),  // visibility: project
                         ]),
                         TestResourcesBuildPhase([
-                            "StringsResource.strings",
+                            "StringsResource.strings"
                         ]),
                         TestFrameworksBuildPhase([
-                            "libdynamic.dylib",
+                            "libdynamic.dylib"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "StubFramework.framework",
-                        ], destinationSubfolder: .frameworks),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "StubFramework.framework"
+                            ],
+                            destinationSubfolder: .frameworks
+                        ),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -87,12 +98,20 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release"), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
-                results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
-                    #expect(tasks.count == 5)
-                })
-                results.checkTasks(.matchTarget(target), .matchRuleType("SymLink"), body: { tasks in
-                    #expect(tasks.count == 6)
-                })
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("MkDir"),
+                    body: { tasks in
+                        #expect(tasks.count == 5)
+                    }
+                )
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("SymLink"),
+                    body: { tasks in
+                        #expect(tasks.count == 6)
+                    }
+                )
 
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
 
@@ -141,17 +160,25 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
 
         // Check an installapi release build with copy files enabled.
         let overrides = [
-            "INSTALLAPI_COPY_PHASE": "YES",
+            "INSTALLAPI_COPY_PHASE": "YES"
         ]
         await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release", overrides: overrides), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
-                results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
-                    #expect(tasks.count == 6)
-                })
-                results.checkTasks(.matchTarget(target), .matchRuleType("SymLink"), body: { tasks in
-                    #expect(tasks.count == 7)
-                })
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("MkDir"),
+                    body: { tasks in
+                        #expect(tasks.count == 6)
+                    }
+                )
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("SymLink"),
+                    body: { tasks in
+                        #expect(tasks.count == 7)
+                    }
+                )
 
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
 
@@ -225,22 +252,29 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                     TestFile("StringsResource.strings"),
                     TestFile("libdynamic.dylib"),
                     TestFile("Script-Input-Header.fake-input"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "TAPI_EXEC": tapiToolPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "TAPI_EXEC": tapiToolPath.str,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "DynamicLibraryTarget",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "SUPPORTS_TEXT_BASED_API": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -251,65 +285,79 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("DynamicLibraryTarget.h", headerVisibility: .public),
                             TestBuildFile("PublicHeaderFile.h", headerVisibility: .public),
                             TestBuildFile("PrivateHeaderFile.h", headerVisibility: .private),
-                            TestBuildFile("ProjectHeaderFile.h"),   // visibility: project
+                            TestBuildFile("ProjectHeaderFile.h"),  // visibility: project
                         ]),
                         TestResourcesBuildPhase([
-                            "StringsResource.strings",
+                            "StringsResource.strings"
                         ]),
                         TestFrameworksBuildPhase([
-                            "libdynamic.dylib",
+                            "libdynamic.dylib"
                         ]),
-                    ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "DoesNotSupportTextBasedAPI",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "ALLOW_UNSUPPORTED_TEXT_BASED_API": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "ALLOW_UNSUPPORTED_TEXT_BASED_API": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceOne.m",
+                            "SourceOne.m"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("DoesNotSupportTextBasedAPI.h", headerVisibility: .public),
-                        ])
-                    ]),
+                            TestBuildFile("DoesNotSupportTextBasedAPI.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "UsesNonStandardExtension",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "EXECUTABLE_EXTENSION": "videodecoder",
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "EXECUTABLE_EXTENSION": "videodecoder",
+                                "SUPPORTS_TEXT_BASED_API": "YES",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceOne.m",
+                            "SourceOne.m"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("UsesNonStandardExtension.h", headerVisibility: .public),
-                        ])
-                    ]),
+                            TestBuildFile("UsesNonStandardExtension.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
                 TestStandardTarget(
                     "StaticLibraryTarget",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "SUPPORTS_TEXT_BASED_API": "YES",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "SUPPORTS_TEXT_BASED_API": "YES"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceOne.m",
+                            "SourceOne.m"
                         ]),
                         TestHeadersBuildPhase([
-                            TestBuildFile("StaticLibraryTarget.h", headerVisibility: .public),
-                        ])
-                    ]),
-            ])
+                            TestBuildFile("StaticLibraryTarget.h", headerVisibility: .public)
+                        ]),
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -383,7 +431,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
 
         // Check an installapi release build with copy files enabled.
         let overrides = [
-            "INSTALLAPI_COPY_PHASE": "YES",
+            "INSTALLAPI_COPY_PHASE": "YES"
         ]
         await tester.checkBuild(BuildParameters(action: .installAPI, configuration: "Release", overrides: overrides), runDestination: .macOS) { results in
             results.checkTarget("DynamicLibraryTarget") { target in
@@ -444,20 +492,24 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                     TestFile("libdynamic.dylib"),
                     TestFile("StubFramework.framework"),
                     TestFile("Script-Input-Header.fake-input"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "DEFINES_MODULE": "YES",
-                    "CODE_SIGN_IDENTITY": "-",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "DEFINES_MODULE": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "FrameworkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"]),
+                        TestBuildConfiguration("Release", buildSettings: ["INFOPLIST_FILE": "MyInfo.plist"])
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -468,25 +520,39 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                             TestBuildFile("FrameworkTarget.h", headerVisibility: .public),
                             TestBuildFile("PublicHeaderFile.h", headerVisibility: .public),
                             TestBuildFile("PrivateHeaderFile.h", headerVisibility: .private),
-                            TestBuildFile("ProjectHeaderFile.h"),    // visibility: project
+                            TestBuildFile("ProjectHeaderFile.h"),  // visibility: project
                         ]),
                         TestResourcesBuildPhase([
-                            "StringsResource.strings",
+                            "StringsResource.strings"
                         ]),
                         TestFrameworksBuildPhase([
-                            "libdynamic.dylib",
+                            "libdynamic.dylib"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "StubFramework.framework",
-                        ], destinationSubfolder: .frameworks),
-                        TestShellScriptBuildPhase(name: "Run Script", originalObjectID: "Foo", contents: "echo \"Running script\"\nexit 0\n",
-                                                  inputs: ["Script-Input-Header.fake-input"], outputs: ["$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/Script-Header.h"]),
-                        TestShellScriptBuildPhase(name: "Always Run Script", originalObjectID: "Bar", contents: "echo \"Running script\"\nexit 0\n",
-                                                  inputs: ["Script-Input-Header.fake-input"], outputs: ["$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/Script2-Header.h"],
-                                                  alwaysRunForInstallHdrs: true),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "StubFramework.framework"
+                            ],
+                            destinationSubfolder: .frameworks
+                        ),
+                        TestShellScriptBuildPhase(
+                            name: "Run Script",
+                            originalObjectID: "Foo",
+                            contents: "echo \"Running script\"\nexit 0\n",
+                            inputs: ["Script-Input-Header.fake-input"],
+                            outputs: ["$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/Script-Header.h"]
+                        ),
+                        TestShellScriptBuildPhase(
+                            name: "Always Run Script",
+                            originalObjectID: "Bar",
+                            contents: "echo \"Running script\"\nexit 0\n",
+                            inputs: ["Script-Input-Header.fake-input"],
+                            outputs: ["$(TARGET_BUILD_DIR)/$(PUBLIC_HEADERS_FOLDER_PATH)/Script2-Header.h"],
+                            alwaysRunForInstallHdrs: true
+                        ),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
@@ -494,12 +560,20 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Release"), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
-                results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
-                    #expect(tasks.count == 5)
-                })
-                results.checkTasks(.matchTarget(target), .matchRuleType("SymLink"), body: { tasks in
-                    #expect(tasks.count == 5)
-                })
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("MkDir"),
+                    body: { tasks in
+                        #expect(tasks.count == 5)
+                    }
+                )
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("SymLink"),
+                    body: { tasks in
+                        #expect(tasks.count == 5)
+                    }
+                )
 
                 // There should be three CpHeader tasks.
                 results.checkTask(.matchTarget(target), .matchRule(["CpHeader", "/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/PrivateHeaders/PrivateHeaderFile.h", "\(SRCROOT)/PrivateHeaderFile.h"])) { task in
@@ -532,7 +606,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                         .namePattern(.prefix("target-")),
                     ])
                     task.checkOutputs([
-                        .path("/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/Headers/Script2-Header.h"),
+                        .path("/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/Headers/Script2-Header.h")
                     ])
                 }
 
@@ -578,12 +652,20 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         await tester.checkBuild(BuildParameters(action: .installHeaders, configuration: "Release", overrides: overrides), runDestination: .macOS) { results in
             results.checkTarget("FrameworkTarget") { target in
                 // There should be the expected number of mkdir and symlink tasks.
-                results.checkTasks(.matchTarget(target), .matchRuleType("MkDir"), body: { tasks in
-                    #expect(tasks.count == 6)
-                })
-                results.checkTasks(.matchTarget(target), .matchRuleType("SymLink"), body: { tasks in
-                    #expect(tasks.count == 6)
-                })
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("MkDir"),
+                    body: { tasks in
+                        #expect(tasks.count == 6)
+                    }
+                )
+                results.checkTasks(
+                    .matchTarget(target),
+                    .matchRuleType("SymLink"),
+                    body: { tasks in
+                        #expect(tasks.count == 6)
+                    }
+                )
 
                 // There should be two CpHeader tasks.
                 results.checkTask(.matchTarget(target), .matchRule(["CpHeader", "/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/PrivateHeaders/PrivateHeaderFile.h", "\(SRCROOT)/PrivateHeaderFile.h"])) { task in
@@ -629,7 +711,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                         .namePattern(.prefix("target-")),
                     ])
                     task.checkOutputs([
-                        .path("/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/Headers/Script-Header.h"),
+                        .path("/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/Headers/Script-Header.h")
                     ])
                 }
 
@@ -648,7 +730,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                         .namePattern(.prefix("target-")),
                     ])
                     task.checkOutputs([
-                        .path("/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/Headers/Script2-Header.h"),
+                        .path("/tmp/aProject.dst/Library/Frameworks/FrameworkTarget.framework/Versions/A/Headers/Script2-Header.h")
                     ])
                 }
 
@@ -679,7 +761,6 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
         }
     }
 
-
     /// Test running an install on a product to a location which contains an upwards path component ('..'), as path normalization and task validation criteria nullification can results in some build artifacts not being produced if paths don't line up.
     @Test(.requireSDKs(.macOS))
     func installWithUpwardsPath() async throws {
@@ -697,49 +778,70 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                     TestFile("Service.xpc"),
                     TestFile("Extension.appex"),
                     TestFile("Info.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "RETAIN_RAW_BINARIES": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "RETAIN_RAW_BINARIES": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "FrameworkTarget",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "INFOPLIST_FILE": "Info.plist",
-                            // The INSTALL_PATH definition here is the point of the test - we want to make sure tasks get created when there's a '..' in the path.
-                            "INSTALL_PATH": "/Applications/SomeOtherApp.app/Frameworks/../InternalFrameworks",
-                        ]),
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "INFOPLIST_FILE": "Info.plist",
+                                // The INSTALL_PATH definition here is the point of the test - we want to make sure tasks get created when there's a '..' in the path.
+                                "INSTALL_PATH": "/Applications/SomeOtherApp.app/Frameworks/../InternalFrameworks",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "SourceOne.m",
+                            "SourceOne.m"
                         ]),
                         TestHeadersBuildPhase([
                             TestBuildFile("PublicHeaderFile.h", headerVisibility: .public),
                             TestBuildFile("PrivateHeaderFile.h", headerVisibility: .private),
                         ]),
                         TestResourcesBuildPhase([
-                            "StringsResource.strings",
+                            "StringsResource.strings"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("StubFramework.framework", codeSignOnCopy: true),
-                        ], destinationSubfolder: .frameworks, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("StubFramework.framework", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .frameworks,
+                            onlyForDeployment: false
+                        ),
                         // The destination here matches how the "XPCServices" popup in the build phase UI populates it.  See <rdar://problem/15366863>
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("Service.xpc", codeSignOnCopy: true),
-                        ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/XPCServices", onlyForDeployment: false),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile("Extension.appex", codeSignOnCopy: true),
-                        ], destinationSubfolder: .plugins, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("Service.xpc", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(CONTENTS_FOLDER_PATH)/XPCServices",
+                            onlyForDeployment: false
+                        ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile("Extension.appex", codeSignOnCopy: true)
+                            ],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 

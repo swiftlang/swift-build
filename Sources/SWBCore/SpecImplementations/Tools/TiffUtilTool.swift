@@ -13,7 +13,7 @@
 import SWBUtil
 import SWBMacro
 
-final class TiffUtilToolSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
+final class TiffUtilToolSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     static let identifier = "com.apple.compilers.tiffutil"
 
     private class func deferredSpec(_ cbc: CommandBuildContext) -> CommandLineToolSpec? {

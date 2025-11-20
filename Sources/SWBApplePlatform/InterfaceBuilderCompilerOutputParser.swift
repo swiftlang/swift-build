@@ -13,7 +13,7 @@
 public import SWBUtil
 public import SWBCore
 
-public final class InterfaceBuilderCompilerOutputParser : GenericOutputParser {
+public final class InterfaceBuilderCompilerOutputParser: GenericOutputParser {
 
     /// Regex to extract location information from a diagnostic prefix (capture group 0 is the name, 1 is the line number or the object identifier).
     static let locRegex = RegEx(patternLiteral: "^([^:]+):(?:([^:]+):)? .*$")

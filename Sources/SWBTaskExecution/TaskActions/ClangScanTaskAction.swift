@@ -40,8 +40,7 @@ public final class ClangScanTaskAction: TaskAction, BuildValueValidatingTaskActi
             // Skip the executable.
             let programName = generator.next() ?? "<<missing program name>>"
 
-        argumentIteration:
-            while let arg = generator.next() {
+            argumentIteration: while let arg = generator.next() {
                 switch arg {
                 case "-o":
                     if let outputPath = generator.next() {

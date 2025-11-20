@@ -55,8 +55,7 @@ public final class CopyTiffTaskAction: TaskAction {
             let generator = commandLine.makeIterator()
             // Skip the executable.
             let programName = generator.next() ?? "<<missing program name>>"
-        argumentParsing:
-            while let arg = generator.next() {
+            argumentParsing: while let arg = generator.next() {
                 switch arg {
                 case "--":
                     break argumentParsing
@@ -86,7 +85,7 @@ public final class CopyTiffTaskAction: TaskAction {
             }
 
             // All remaining arguments are input paths.
-            let inputs = generator.map { Path($0 )}
+            let inputs = generator.map { Path($0) }
 
             // Diagnose missing inputs.
             if inputs.isEmpty {
@@ -167,8 +166,7 @@ public final class CopyTiffTaskAction: TaskAction {
                 let contents: ByteString
                 do {
                     contents = try executionDelegate.fs.read(input)
-                }
-                catch {
+                } catch {
                     outputDelegate.emitError("unable to read input file '\(input.str)': \(error.localizedDescription)")
                     return .failed
                 }
@@ -176,8 +174,7 @@ public final class CopyTiffTaskAction: TaskAction {
                 // FIXME: The native build system would remove the old file if it existed, perform the copy, then update the mod time on the new file.
                 do {
                     try executionDelegate.fs.write(output, contents: contents)
-                }
-                catch {
+                } catch {
                     outputDelegate.emitError("unable to write file '\(output.str)': \(error.localizedDescription)")
                     return .failed
                 }
@@ -187,17 +184,13 @@ public final class CopyTiffTaskAction: TaskAction {
         return .succeeded
     }
 
-
     // Serialization
 
-
-    public override func serialize<T: Serializer>(to serializer: T)
-    {
+    public override func serialize<T: Serializer>(to serializer: T) {
         super.serialize(to: serializer)
     }
 
-    public required init(from deserializer: any Deserializer) throws
-    {
+    public required init(from deserializer: any Deserializer) throws {
         try super.init(from: deserializer)
     }
 }

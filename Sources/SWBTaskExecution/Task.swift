@@ -126,9 +126,11 @@ package final class Task: ExecutableTask, Serializable, Encodable {
         case .direct(let directStorage):
             return EnvironmentBindings(directStorage.environmentBindings)
         case .interned(let internedStorage):
-            return EnvironmentBindings(internedStorage.handles.environmentBindings.map {
-                (internedStorage.stringArena.lookup(handle: $0), internedStorage.stringArena.lookup(handle: $1))
-            })
+            return EnvironmentBindings(
+                internedStorage.handles.environmentBindings.map {
+                    (internedStorage.stringArena.lookup(handle: $0), internedStorage.stringArena.lookup(handle: $1))
+                }
+            )
         }
     }
 
@@ -233,7 +235,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
             showEnvironment: builder.showEnvironment,
             execDescription: builder.execDescription,
             // FIXME: This cast is unfortunate.
-            action: builder.action.map{ $0 as! TaskAction },
+            action: builder.action.map { $0 as! TaskAction },
             preparesForIndexing: builder.preparesForIndexing,
             llbuildControlDisabled: builder.llbuildControlDisabled,
             targetDependencies: builder.targetDependencies,
@@ -313,18 +315,17 @@ package final class Task: ExecutableTask, Serializable, Encodable {
             // Make sure each configured target object is serialized only once.
             if let index = delegate.configuredTargetIndexes[configuredTarget] {
                 // We already have an index into the configured target list, so serialize it.
-                serializer.serialize(1)         // Placeholder indicating the next element is an index
+                serializer.serialize(1)  // Placeholder indicating the next element is an index
                 serializer.serialize(index)
             } else {
                 // This configured target has not been serialized before, so serialize it and add it to our delegate's index map.
-                serializer.serialize(0)         // Placeholder indicating the next element is a serialized ConfiguredTarget
+                serializer.serialize(0)  // Placeholder indicating the next element is a serialized ConfiguredTarget
                 serializer.serialize(configuredTarget)
                 delegate.configuredTargetIndexes[configuredTarget] = delegate.currentConfiguredTargetIndex
                 delegate.currentConfiguredTargetIndex += 1
             }
             serializer.endAggregate()
-        }
-        else {
+        } else {
             serializer.serializeNil()
         }
         serializer.serialize(ruleInfo)
@@ -384,8 +385,7 @@ package final class Task: ExecutableTask, Serializable, Encodable {
 
         if deserializer.deserializeNil() {
             self.forTarget = nil
-        }
-        else {
+        } else {
             guard let delegate = deserializer.delegate as? (any ConfiguredTargetDeserializerDelegate) else { throw DeserializerError.invalidDelegate("delegate must be a ConfiguredTargetDeserializerDelegate") }
 
             // Deserialize the configured target by deserializing it if we haven't seen it before, or by looking it up via the delegate if we have.
@@ -446,12 +446,14 @@ package final class Task: ExecutableTask, Serializable, Encodable {
                 return .parentPath(stringArena.intern(path.str))
             }
         }
-        return .init(ruleInfo: ruleInfo.map { stringArena.intern($0) },
-                     commandLine: internedCommandLine,
-                     additionalSignatureData: stringArena.intern(additionalSignatureData),
-                     inputPathStrings: inputPaths.map { stringArena.intern($0.str) },
-                     outputPathStrings: outputPaths.map { stringArena.intern($0.str) },
-                     environmentBindings: environment.bindings.map { (stringArena.intern($0.0), stringArena.intern($0.1)) })
+        return .init(
+            ruleInfo: ruleInfo.map { stringArena.intern($0) },
+            commandLine: internedCommandLine,
+            additionalSignatureData: stringArena.intern(additionalSignatureData),
+            inputPathStrings: inputPaths.map { stringArena.intern($0.str) },
+            outputPathStrings: outputPaths.map { stringArena.intern($0.str) },
+            environmentBindings: environment.bindings.map { (stringArena.intern($0.0), stringArena.intern($0.1)) }
+        )
     }
 
     internal init(task: Task, internedStorageHandles: Task.Storage.InternedStorage.Handles, frozenByteStringArena: FrozenByteStringArena, frozenStringArena: FrozenStringArena) {
@@ -486,11 +488,10 @@ extension Task: Hashable {
         hasher.combine(ObjectIdentifier(self))
     }
 
-    package static func ==(lhs: Task, rhs: Task) -> Bool {
+    package static func == (lhs: Task, rhs: Task) -> Bool {
         return lhs === rhs
     }
 }
-
 
 /// A delegate which must be used to deserialize a `Task`.
 package protocol TaskDeserializerDelegate: DeserializerDelegate {
@@ -508,7 +509,8 @@ extension GateTask {
 extension ConstructedTask {
     /// Add the task to the given build description builder.
     func addToDescription(_ builder: BuildDescriptionBuilder) throws {
-        let allowMissingInputs = (ruleInfo.first == "PhaseScriptExecution" ? !SWBFeatureFlag.disableShellScriptAllowsMissingInputs.value : false)
+        let allowMissingInputs =
+            (ruleInfo.first == "PhaseScriptExecution" ? !SWBFeatureFlag.disableShellScriptAllowsMissingInputs.value : false)
             || ruleInfo.first == "ValidateDevelopmentAssets"
 
         // Handle custom tasks.
@@ -552,8 +554,7 @@ public enum RequiredTargetDependencyReason: CustomStringConvertible {
 /// The interface used for interactions between running tasks and the controlling execution environment.
 /// A `TaskExecutionDelegate` performs operations commonly needed by a task, such as file I/O.
 /// This protocol enables task behavior to be more easily tested.
-public protocol TaskExecutionDelegate
-{
+public protocol TaskExecutionDelegate {
     /// The proxy to use for file system access.
     var fs: any FSProxy { get }
 
@@ -594,8 +595,7 @@ package protocol BuildOutputDelegate: TargetDiagnosticProducingDelegate {
 }
 
 /// A `TaskOutputDelegate` handles output emitted by a task.
-public protocol TaskOutputDelegate: DiagnosticProducingDelegate
-{
+public protocol TaskOutputDelegate: DiagnosticProducingDelegate {
     var startTime: Date { get }
 
     /// Emit output log data.
@@ -620,8 +620,7 @@ public protocol TaskOutputDelegate: DiagnosticProducingDelegate
     var result: TaskResult? { get }
 }
 
-package extension TaskOutputDelegate
-{
+package extension TaskOutputDelegate {
     /// Emit an error message.
     func emitError(_ message: String) {
         error(message)
@@ -649,8 +648,7 @@ package extension TaskOutputDelegate
 }
 
 /// Convenience function for writing inline text output.
-extension TaskOutputDelegate
-{
+extension TaskOutputDelegate {
     func emitOutput(_ body: (OutputByteStream) -> Void) {
         let stream = OutputByteStream()
         body(stream)

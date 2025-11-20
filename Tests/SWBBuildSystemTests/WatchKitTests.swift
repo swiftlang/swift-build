@@ -31,27 +31,39 @@ fileprivate struct WatchKitTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("File.m"),
-                        ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "CODE_SIGN_IDENTITY": "",
-                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": "5.0",
-                                "SDKROOT": runDestination.sdk,
-                                "WATCHOS_DEPLOYMENT_TARGET": deploymentTarget,
-                            ])],
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("File.m")
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "CODE_SIGN_IDENTITY": "",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": "5.0",
+                                    "SDKROOT": runDestination.sdk,
+                                    "WATCHOS_DEPLOYMENT_TARGET": deploymentTarget,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "WKExt", type: .watchKitExtension,
+                                "WKExt",
+                                type: .watchKitExtension,
                                 buildConfigurations: [TestBuildConfiguration("Debug")],
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["File.m"]),
-                                ])])])
+                                    TestSourcesBuildPhase(["File.m"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Create the input files.

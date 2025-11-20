@@ -29,23 +29,29 @@ fileprivate struct CircularDependencyTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [
-                            TestFile("HighLevel.h"),
-                            TestFile("HighLevel.m"),
-                            TestFile("LowLevel.h"),
-                            TestFile("LowLevel.m"),
-                        ]),
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("HighLevel.h"),
+                                TestFile("HighLevel.m"),
+                                TestFile("LowLevel.h"),
+                                TestFile("LowLevel.m"),
+                            ]
+                        ),
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "ARCHS[sdk=iphoneos*]": "arm64",
-                                "CODE_SIGNING_ALLOWED": "NO",
-                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
-                                "SDKROOT": "iphoneos",
-                                "DEFINES_MODULE": "NO",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "USE_HEADERMAP": "NO",
-                                "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
-                            ])
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "ARCHS[sdk=iphoneos*]": "arm64",
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
+                                    "SDKROOT": "iphoneos",
+                                    "DEFINES_MODULE": "NO",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "USE_HEADERMAP": "NO",
+                                    "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
+                                ]
+                            )
                         ],
                         targets: [
                             TestStandardTarget(
@@ -63,9 +69,11 @@ fileprivate struct CircularDependencyTests: CoreBasedTests {
                                     TestHeadersBuildPhase([TestBuildFile("LowLevel.h", headerVisibility: .public)]),
                                     TestSourcesBuildPhase([TestBuildFile("LowLevel.m")]),
                                 ]
-                            )
-                        ])
-                ])
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(tmpDirPath.join("Test/aProject/HighLevel.h")) {
@@ -86,10 +94,22 @@ fileprivate struct CircularDependencyTests: CoreBasedTests {
 
             let buildParameters = BuildParameters(configuration: "Debug")
 
-            try await tester.checkBuild(parameters: buildParameters, runDestination: .iOS, buildRequest: BuildRequest(parameters: buildParameters, buildTargets: [
-                .init(parameters: buildParameters, target: tester.workspace.projects[0].targets[1]),
-                .init(parameters: buildParameters, target: tester.workspace.projects[0].targets[0])
-            ], dependencyScope: .workspace, continueBuildingAfterErrors: false, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)) { results in
+            try await tester.checkBuild(
+                parameters: buildParameters,
+                runDestination: .iOS,
+                buildRequest: BuildRequest(
+                    parameters: buildParameters,
+                    buildTargets: [
+                        .init(parameters: buildParameters, target: tester.workspace.projects[0].targets[1]),
+                        .init(parameters: buildParameters, target: tester.workspace.projects[0].targets[0]),
+                    ],
+                    dependencyScope: .workspace,
+                    continueBuildingAfterErrors: false,
+                    useParallelTargets: false,
+                    useImplicitDependencies: false,
+                    useDryRun: false
+                )
+            ) { results in
                 results.checkError(.prefix("Command CompileC failed."))
                 results.checkError(.prefix("\(tmpDirPath.str)/Test/aProject/LowLevel.m:1:10: [Lexical or Preprocessor Issue] \'HighLevel/HighLevel.h\' file not found"))
                 results.checkNoDiagnostics()
@@ -105,11 +125,13 @@ fileprivate struct CircularDependencyTests: CoreBasedTests {
                 try tester.fs.traverse(tmpDirPath.join("Test/aProject/build/Debug-iphoneos")) { paths.append($0) }
                 paths.sort()
 
-                #expect(paths == [
-                    tmpDirPath.join("Test/aProject/build/Debug-iphoneos/LowLevel.framework"),
-                    tmpDirPath.join("Test/aProject/build/Debug-iphoneos/LowLevel.framework/Headers"),
-                    tmpDirPath.join("Test/aProject/build/Debug-iphoneos/LowLevel.framework/Headers/LowLevel.h"),
-                ])
+                #expect(
+                    paths == [
+                        tmpDirPath.join("Test/aProject/build/Debug-iphoneos/LowLevel.framework"),
+                        tmpDirPath.join("Test/aProject/build/Debug-iphoneos/LowLevel.framework/Headers"),
+                        tmpDirPath.join("Test/aProject/build/Debug-iphoneos/LowLevel.framework/Headers/LowLevel.h"),
+                    ]
+                )
             }
         }
     }

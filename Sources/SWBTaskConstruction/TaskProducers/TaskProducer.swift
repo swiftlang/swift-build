@@ -30,8 +30,7 @@ enum TaskProducerPhase {
 }
 
 /// A TaskProducer embodies a set of work which needs to be done create the tasks which, when run, will generate all or part of the product of a ProductPlan.
-package protocol TaskProducer
-{
+package protocol TaskProducer {
     /// Immutable data available to the task producer.
     var context: TaskProducerContext { get }
 
@@ -45,15 +44,13 @@ package protocol TaskProducer
     func prepare() async
 }
 
-extension TaskProducer
-{
+extension TaskProducer {
     /// By default, most task producers should not need to make use of this functionality.
     package func prepare() async {}
 }
 
 /// Context of immutable data available to a task producer.
-public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
-{
+public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution {
     /// The workspace context.
     public let workspaceContext: WorkspaceContext
 
@@ -294,8 +291,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// - parameter workspaceContext: The containing workspace and context.
     /// - parameter globalProductPlan: The high-level global build information.
     /// - parameter delegate: The delegate to use for task construction.
-    init(configuredTarget: ConfiguredTarget? = nil, workspaceContext: WorkspaceContext, globalProductPlan: GlobalProductPlan, delegate: any TaskPlanningDelegate)
-    {
+    init(configuredTarget: ConfiguredTarget? = nil, workspaceContext: WorkspaceContext, globalProductPlan: GlobalProductPlan, delegate: any TaskPlanningDelegate) {
         self.workspaceContext = workspaceContext
         self.configuredTarget = configuredTarget
         self.globalProductPlan = globalProductPlan
@@ -329,7 +325,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
         self.buildRuleSet = LeveledBuildRuleSet(ruleSets: [
             BasicBuildRuleSet(rules: projectBuildRules),
-            DisambiguatingBuildRuleSet(rules: settings.systemBuildRules, enableDebugActivityLogs: workspaceContext.userPreferences.enableDebugActivityLogs)
+            DisambiguatingBuildRuleSet(rules: settings.systemBuildRules, enableDebugActivityLogs: workspaceContext.userPreferences.enableDebugActivityLogs),
         ])
 
         self.project = configuredTarget.map { workspaceContext.workspace.project(for: $0.target) }
@@ -760,24 +756,26 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
         // Otherwise, we are producing a binary if we have a Sources build phase and either that phase is not empty or we're generating a versioning stub file.
         guard let target = configuredTarget?.target as? SWBCore.BuildPhaseTarget,
-            let sourcesBuildPhase = target.sourcesBuildPhase else {
+            let sourcesBuildPhase = target.sourcesBuildPhase
+        else {
             return false
         }
 
         let context = BuildFilesProcessingContext(scope)
 
-        let hasObjectProducingSources = sourcesBuildPhase.buildFiles.filter {
-            guard let buildFile = try? resolveBuildFileReference($0), !context.isExcluded(buildFile.absolutePath, filters: $0.platformFilters) else {
-                return false
-            }
+        let hasObjectProducingSources =
+            sourcesBuildPhase.buildFiles.filter {
+                guard let buildFile = try? resolveBuildFileReference($0), !context.isExcluded(buildFile.absolutePath, filters: $0.platformFilters) else {
+                    return false
+                }
 
-            // AppleScript files don't produce object files either directly or transitively, so they cannot (for most definitions of "cannot") contribute to a linked Mach-O being produced.
-            if buildFile.fileType.identifier == "sourcecode.applescript" {
-                return false
-            }
+                // AppleScript files don't produce object files either directly or transitively, so they cannot (for most definitions of "cannot") contribute to a linked Mach-O being produced.
+                if buildFile.fileType.identifier == "sourcecode.applescript" {
+                    return false
+                }
 
-            return true
-        }.count > 0 || scope.generatesAppleGenericVersioningFile(context) || scope.generatesKernelExtensionModuleInfoFile(context, settings, sourcesBuildPhase)
+                return true
+            }.count > 0 || scope.generatesAppleGenericVersioningFile(context) || scope.generatesKernelExtensionModuleInfoFile(context, settings, sourcesBuildPhase)
 
         // We will produce a binary if we have sources.
         if hasObjectProducingSources {
@@ -944,17 +942,21 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 
     /// Report an error that is caused by a missing package product.
     func missingPackageProduct(_ packageName: String, _ buildFile: BuildFile, _ buildPhase: BuildPhase) {
-        error("Missing package product '\(packageName)'",
+        error(
+            "Missing package product '\(packageName)'",
             location: .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: buildPhase.guid, targetGUID: configuredTarget?.target.guid ?? ""),
-            component: .packageResolution)
+            component: .packageResolution
+        )
     }
 
     func missingNamedReference(_ name: String, _ buildFile: BuildFile, _ buildPhase: BuildPhase) {
         // TODO: Semantic build file locations end up going to the General tab in Xcode, but here we have our first use case where we ALWAYS want it to go to the Build Phases tab.
         // Will need to figure out a way to abstract this into the diagnostics model which doesn't directly map to Xcode's UI. Perhaps an `exact` flag?
-        error("This \(buildPhase.name) build phase contains a reference to a missing file '\(name)'.",
+        error(
+            "This \(buildPhase.name) build phase contains a reference to a missing file '\(name)'.",
             location: .buildFile(buildFileGUID: buildFile.guid, buildPhaseGUID: buildPhase.guid, targetGUID: configuredTarget?.target.guid ?? ""),
-            component: .targetIntegrity)
+            component: .targetIntegrity
+        )
     }
 
     func emitFileExclusionDiagnostic(_ exclusionReason: BuildFileExclusionReason, _ context: any BuildFileFilteringContext, _ path: Path, _ filters: Set<PlatformFilter>, _ buildFileLocation: Diagnostic.Location?) {
@@ -970,10 +972,18 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         case let .patternLists(excludePattern):
             let excl = context.excludedSourceFileNames.joined(separator: " ")
             let incl = context.includedSourceFileNames.joined(separator: " ")
-            self.delegate.emit(configuredTarget.map { .overrideTarget($0) } ?? .default, Diagnostic(behavior: .note, location: buildFileLocation ?? .unknown, data: DiagnosticData("Skipping '\(path.str)' because it is excluded by EXCLUDED_SOURCE_FILE_NAMES pattern: \(excludePattern)"), childDiagnostics: [
-                Diagnostic(behavior: .note, location: .buildSetting(name: BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES.name), data: DiagnosticData("EXCLUDED_SOURCE_FILE_NAMES: \(excl)")),
-                Diagnostic(behavior: .note, location: .buildSetting(name: BuiltinMacros.INCLUDED_SOURCE_FILE_NAMES.name), data: DiagnosticData("INCLUDED_SOURCE_FILE_NAMES: \(incl)")),
-            ]))
+            self.delegate.emit(
+                configuredTarget.map { .overrideTarget($0) } ?? .default,
+                Diagnostic(
+                    behavior: .note,
+                    location: buildFileLocation ?? .unknown,
+                    data: DiagnosticData("Skipping '\(path.str)' because it is excluded by EXCLUDED_SOURCE_FILE_NAMES pattern: \(excludePattern)"),
+                    childDiagnostics: [
+                        Diagnostic(behavior: .note, location: .buildSetting(name: BuiltinMacros.EXCLUDED_SOURCE_FILE_NAMES.name), data: DiagnosticData("EXCLUDED_SOURCE_FILE_NAMES: \(excl)")),
+                        Diagnostic(behavior: .note, location: .buildSetting(name: BuiltinMacros.INCLUDED_SOURCE_FILE_NAMES.name), data: DiagnosticData("INCLUDED_SOURCE_FILE_NAMES: \(incl)")),
+                    ]
+                )
+            )
         }
     }
 
@@ -1015,13 +1025,11 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     private func onDemandResourcesAssetTagPriority(tag: String) -> Double? {
         if onDemandResourcesInitialInstallTags.contains(tag) {
             return 1.0
-        }
-        else if let index = onDemandResourcesPrefetchOrder.firstIndex(of: tag) {
+        } else if let index = onDemandResourcesPrefetchOrder.firstIndex(of: tag) {
             let count = onDemandResourcesPrefetchOrder.count
             if count == 1 {
                 return 0.5
-            }
-            else {
+            } else {
                 return (Double(count - 1 - index) / Double(count - 1)) * 0.9 + 0.05
             }
         }
@@ -1208,7 +1216,7 @@ extension TaskProducerContext: Hashable {
         hasher.combine(ObjectIdentifier(self))
     }
 
-    public static func ==(lhs: TaskProducerContext, rhs: TaskProducerContext) -> Bool {
+    public static func == (lhs: TaskProducerContext, rhs: TaskProducerContext) -> Bool {
         return lhs === rhs
     }
 }
@@ -1319,8 +1327,8 @@ extension TaskProducerContext: CommandProducer {
             // a facility for doing that, we approximate by checking if the target contains
             // any Swift sources.
             guard let standardTarget = targetDependency.target as? SWBCore.StandardTarget,
-                  let sourcesBuildPhase = standardTarget.sourcesBuildPhase,
-                  sourcesBuildPhase.containsSwiftSources(self.workspaceContext.workspace, self, dependencyScope, self.filePathResolver)
+                let sourcesBuildPhase = standardTarget.sourcesBuildPhase,
+                sourcesBuildPhase.containsSwiftSources(self.workspaceContext.workspace, self, dependencyScope, self.filePathResolver)
             else {
                 return nil
             }
@@ -1337,16 +1345,18 @@ extension TaskProducerContext: CommandProducer {
                     return nil
                 }
                 // Currently there is no more than one compatibility arch; first might not be correct otherwise
-                guard let compatibleArch = archSpec.compatibilityArchs.first(where: { compatibleArch in
-                    dependencyArchs.contains(compatibleArch)
-                }) else {
+                guard
+                    let compatibleArch = archSpec.compatibilityArchs.first(where: { compatibleArch in
+                        dependencyArchs.contains(compatibleArch)
+                    })
+                else {
                     return nil
                 }
                 arch = compatibleArch
             }
 
-
-            return dependencyScope
+            return
+                dependencyScope
                 .subscope(binding: BuiltinMacros.variantCondition, to: variant)
                 .subscopeBindingArchAndTriple(arch: arch)
         }
@@ -1360,14 +1370,12 @@ extension TaskProducerContext: CommandProducer {
     public func supportsEagerLinking(scope: MacroEvaluationScope) -> Bool {
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)
         // Currently, eager linking (using TBDs to unblock linking early within a build invocation) and building with installapi (using TBDs to unblock linking between build invocations) are mutually exclusive.
-        return buildComponents.contains("build") &&
-            !scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) &&
-            scope.evaluate(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER) && // Prerequisite for eager linking
-            !SwiftCompilerSpec.shouldUseWholeModuleOptimization(for: scope).result && // off for WMO
-            scope.evaluate(BuiltinMacros.EAGER_LINKING) && // Optimization is currently opt-in via this build setting
-            settings.productType?.supportsEagerLinking == true && // The optimization is only valid for supported product types
-            compileSourcesExportOnlySwiftSymbols(scope: scope) && // All exported symbols from compile sources must be from Swift sources
-            !linkedLibrariesMayIntroduceExportedSymbols(scope: scope) // We must not be linking anything that introduces exported symbols
+        return buildComponents.contains("build") && !scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) && scope.evaluate(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER)  // Prerequisite for eager linking
+            && !SwiftCompilerSpec.shouldUseWholeModuleOptimization(for: scope).result  // off for WMO
+            && scope.evaluate(BuiltinMacros.EAGER_LINKING)  // Optimization is currently opt-in via this build setting
+            && settings.productType?.supportsEagerLinking == true  // The optimization is only valid for supported product types
+            && compileSourcesExportOnlySwiftSymbols(scope: scope)  // All exported symbols from compile sources must be from Swift sources
+            && !linkedLibrariesMayIntroduceExportedSymbols(scope: scope)  // We must not be linking anything that introduces exported symbols
     }
 
     public func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo? {
@@ -1388,7 +1396,8 @@ extension TaskProducerContext: CommandProducer {
         let isBundleProductType = productType?.conformsTo(identifier: "com.apple.product-type.bundle") ?? false
         let isStaticLibrary = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib"
         let isObject = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_object"
-        let result = (isBuild || isLocExport)
+        let result =
+            (isBuild || isLocExport)
             && !indexEnableBuildArena
             && (isBundleProductType || isStaticLibrary || isObject)
             && isApplePlatform
@@ -1405,10 +1414,7 @@ extension TaskProducerContext: CommandProducer {
         let indexEnableBuildArena = scope.evaluate(BuiltinMacros.INDEX_ENABLE_BUILD_ARENA)
         let machOType = scope.evaluate(BuiltinMacros.MACH_O_TYPE)
         let isBundleProductType = productType?.conformsTo(identifier: "com.apple.product-type.bundle") ?? false
-        return ((isBuild || isLocInstall) &&
-                !indexEnableBuildArena &&
-                machOType != "staticlib" &&
-                isBundleProductType)
+        return ((isBuild || isLocInstall) && !indexEnableBuildArena && machOType != "staticlib" && isBundleProductType)
     }
 
     public var targetRequiredToBuildForIndexing: Bool {
@@ -1433,7 +1439,8 @@ extension TaskProducerContext: CommandProducer {
 extension TaskProducerContext {
     private func compileSourcesExportOnlySwiftSymbols(scope: MacroEvaluationScope) -> Bool {
         guard let buildPhaseTarget = configuredTarget?.target as? BuildPhaseTarget,
-              let sourcesBuildPhase = buildPhaseTarget.sourcesBuildPhase else { return false }
+            let sourcesBuildPhase = buildPhaseTarget.sourcesBuildPhase
+        else { return false }
 
         // Ensure that the sources build phase only includes swift source files or source files which won't contribute exported symbols.
         // FIXME: Various types of sources which generate code that doesn't export any symbols could probably be added here.
@@ -1444,25 +1451,26 @@ extension TaskProducerContext {
             scope.subscopeBindingArchAndTriple(arch: arch)
         }) {
             let context = BuildFilesProcessingContext(archSpecificSubscope)
-            guard !sourcesBuildPhase.buildFiles.contains(where: { buildFile in
-                guard let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile),
-                      !context.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters) else { return false }
+            guard
+                !sourcesBuildPhase.buildFiles.contains(where: { buildFile in
+                    guard let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile),
+                        !context.isExcluded(resolvedBuildFileInfo.absolutePath, filters: buildFile.platformFilters)
+                    else { return false }
 
-                var fileIsOfOtherType = true
-                for type in [swiftFileType, applescriptFileType, doccFileType] {
-                    if resolvedBuildFileInfo.fileType.conformsTo(type) == true {
-                        fileIsOfOtherType = false
-                        break
+                    var fileIsOfOtherType = true
+                    for type in [swiftFileType, applescriptFileType, doccFileType] {
+                        if resolvedBuildFileInfo.fileType.conformsTo(type) == true {
+                            fileIsOfOtherType = false
+                            break
+                        }
                     }
-                }
-                return fileIsOfOtherType
-            }) else { return false }
+                    return fileIsOfOtherType
+                })
+            else { return false }
 
             // Check that we're not generating any C sources with exported symbols based on build settings.
             guard !archSpecificSubscope.generatesKernelExtensionModuleInfoFile(context, settings, sourcesBuildPhase) else { return false }
-            guard !archSpecificSubscope.generatesAppleGenericVersioningFile(context) ||
-                    archSpecificSubscope.evaluate(BuiltinMacros.VERSION_INFO_EXPORT_DECL).split(separator: " ").contains("static") ||
-                    ["", "apple-generic-hidden"].contains(scope.evaluate(BuiltinMacros.VERSIONING_SYSTEM)) else {
+            guard !archSpecificSubscope.generatesAppleGenericVersioningFile(context) || archSpecificSubscope.evaluate(BuiltinMacros.VERSION_INFO_EXPORT_DECL).split(separator: " ").contains("static") || ["", "apple-generic-hidden"].contains(scope.evaluate(BuiltinMacros.VERSIONING_SYSTEM)) else {
                 return false
             }
         }
@@ -1484,7 +1492,8 @@ extension TaskProducerContext {
     /// Compute the flattened list of build files from the frameworks build phase after expanding package product targets.
     func computeFlattenedFrameworksPhaseBuildFiles(_ buildFilesContext: BuildFilesProcessingContext) -> [BuildFile] {
         guard let buildPhaseTarget = configuredTarget?.target as? BuildPhaseTarget,
-              let frameworksPhase = buildPhaseTarget.frameworksBuildPhase else { return [] }
+            let frameworksPhase = buildPhaseTarget.frameworksBuildPhase
+        else { return [] }
 
         // The ordered list of output files.
         var result = [BuildFile]()
@@ -1505,9 +1514,10 @@ extension TaskProducerContext {
             for buildFile in phase.buildFiles {
                 // If this is a package producer reference, visit it recursively.
                 if case .targetProduct(let guid) = buildFile.buildableItem,
-                   case let target as PackageProductTarget = workspaceContext.workspace.target(for: guid),
-                   let frameworksBuildPhase = target.frameworksBuildPhase,
-                   buildFilesContext.currentPlatformFilter.matches(buildFile.platformFilters) {
+                    case let target as PackageProductTarget = workspaceContext.workspace.target(for: guid),
+                    let frameworksBuildPhase = target.frameworksBuildPhase,
+                    buildFilesContext.currentPlatformFilter.matches(buildFile.platformFilters)
+                {
                     if globalProductPlan.dynamicallyBuildingTargets.contains(target) {
                         result.append(buildFile)
                     } else {
@@ -1712,7 +1722,6 @@ class ProducerBasedTaskGenerationDelegate: TaskGenerationDelegate {
         return context.workspaceContext.userPreferences
     }
 }
-
 
 /// This class adapts the TaskGenerationDelegate protocol used by the Core to that provided by the producer delegate API, to provide phase ordering among tasks created by different `PhasedTaskProducers`.
 ///

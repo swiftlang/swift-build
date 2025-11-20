@@ -30,7 +30,7 @@ public actor ActorLock {
             if let next = queue.popFirst() {
                 next.resume(returning: ())
             } else {
-                queue = [] // reallocate buffer if it's empty
+                queue = []  // reallocate buffer if it's empty
             }
         }
         return try await body()

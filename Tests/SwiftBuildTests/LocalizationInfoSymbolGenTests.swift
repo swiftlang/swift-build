@@ -37,50 +37,60 @@ fileprivate struct LocalizationInfoSymbolGenTests {
                     "MyApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                            "ONLY_ACTIVE_ARCH": "NO",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                                "ONLY_ACTIVE_ARCH": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "MyApp.swift",
-                            "Supporting.swift"
+                            "Supporting.swift",
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
 
-                let testWorkspace = TestWorkspace("MyWorkspace", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "Project",
-                        groupTree: TestGroup(
-                            "ProjectSources",
-                            path: "Sources",
-                            children: [
-                                TestFile("MyApp.swift"),
-                                TestFile("Supporting.swift"),
-                                TestFile("Localizable.xcstrings"),
-                            ]
-                        ),
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])
-                        ],
-                        targets: [
-                            target
-                        ],
-                        developmentRegion: "en"
-                    )
-                ])
+                let testWorkspace = TestWorkspace(
+                    "MyWorkspace",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "Project",
+                            groupTree: TestGroup(
+                                "ProjectSources",
+                                path: "Sources",
+                                children: [
+                                    TestFile("MyApp.swift"),
+                                    TestFile("Supporting.swift"),
+                                    TestFile("Localizable.xcstrings"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                target
+                            ],
+                            developmentRegion: "en"
+                        )
+                    ]
+                )
 
                 // Describe the workspace to the build system.
                 try await testSession.sendPIF(testWorkspace)
@@ -97,7 +107,7 @@ fileprivate struct LocalizationInfoSymbolGenTests {
 
                 let info = try await testSession.session.generateLocalizationInfo(for: request, delegate: delegate)
 
-                #expect(info.infoByTarget.count == 1) // 1 target
+                #expect(info.infoByTarget.count == 1)  // 1 target
 
                 let targetInfo = try #require(info.infoByTarget[target.guid])
 
@@ -126,50 +136,60 @@ fileprivate struct LocalizationInfoSymbolGenTests {
                     "MyApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SKIP_INSTALL": "YES",
-                            "SWIFT_VERSION": "5.5",
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
-                            "SDKROOT": "auto",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                            "ONLY_ACTIVE_ARCH": "NO"
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SKIP_INSTALL": "YES",
+                                "SWIFT_VERSION": "5.5",
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+                                "SDKROOT": "auto",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                                "ONLY_ACTIVE_ARCH": "NO",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
                             "MyApp.swift",
-                            "Supporting.swift"
+                            "Supporting.swift",
                         ]),
                         TestResourcesBuildPhase([
                             "Localizable.xcstrings"
-                        ])
+                        ]),
                     ]
                 )
 
-                let testWorkspace = TestWorkspace("MyWorkspace", sourceRoot: tmpDir, projects: [
-                    TestProject(
-                        "Project",
-                        groupTree: TestGroup(
-                            "ProjectSources",
-                            path: "Sources",
-                            children: [
-                                TestFile("MyApp.swift"),
-                                TestFile("Supporting.swift"),
-                                TestFile("Localizable.xcstrings"),
-                            ]
-                        ),
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                            ])
-                        ],
-                        targets: [
-                            target
-                        ],
-                        developmentRegion: "en"
-                    )
-                ])
+                let testWorkspace = TestWorkspace(
+                    "MyWorkspace",
+                    sourceRoot: tmpDir,
+                    projects: [
+                        TestProject(
+                            "Project",
+                            groupTree: TestGroup(
+                                "ProjectSources",
+                                path: "Sources",
+                                children: [
+                                    TestFile("MyApp.swift"),
+                                    TestFile("Supporting.swift"),
+                                    TestFile("Localizable.xcstrings"),
+                                ]
+                            ),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                                    ]
+                                )
+                            ],
+                            targets: [
+                                target
+                            ],
+                            developmentRegion: "en"
+                        )
+                    ]
+                )
 
                 // Describe the workspace to the build system.
                 try await testSession.sendPIF(testWorkspace)
@@ -188,7 +208,7 @@ fileprivate struct LocalizationInfoSymbolGenTests {
 
                 let info = try await testSession.session.generateLocalizationInfo(for: request, delegate: delegate)
 
-                #expect(info.infoByTarget.count == 1) // 1 target
+                #expect(info.infoByTarget.count == 1)  // 1 target
 
                 let targetInfo = try #require(info.infoByTarget[target.guid])
 
@@ -215,7 +235,7 @@ private final class BuildOperationDelegate: SWBLocalizationDelegate {
         return await delegate.provisioningTaskInputs(targetGUID: targetGUID, provisioningSourceData: provisioningSourceData)
     }
 
-    func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String : String]) async throws -> SWBExternalToolResult {
+    func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> SWBExternalToolResult {
         guard let command = commandLine.first, command.hasSuffix("xcstringstool") else {
             return .deferred
         }

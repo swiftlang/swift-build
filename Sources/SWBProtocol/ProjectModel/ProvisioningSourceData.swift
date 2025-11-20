@@ -42,7 +42,6 @@ extension ProvisioningSourceData: Encodable, Decodable {
     }
 }
 
-
 // MARK: SerializableCodable
 
 extension ProvisioningSourceData: PendingSerializableCodable {
@@ -59,10 +58,10 @@ extension ProvisioningSourceData: PendingSerializableCodable {
         self.configurationName = try deserializer.deserialize()
         self.provisioningStyle = try deserializer.deserialize()
         if count > 3 {
-            _ = try deserializer.deserialize() as Bool          // appIDHasFeaturesEnabled
+            _ = try deserializer.deserialize() as Bool  // appIDHasFeaturesEnabled
         }
         if count > 4 {
-            _ = try deserializer.deserialize() as String        // legacyTeamID
+            _ = try deserializer.deserialize() as String  // legacyTeamID
         }
         self.bundleIdentifierFromInfoPlist = try deserializer.deserialize()
     }

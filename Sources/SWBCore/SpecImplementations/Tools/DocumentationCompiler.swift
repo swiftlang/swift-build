@@ -142,7 +142,7 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
             // When building executable types (like applications and command-line tools), include all levels of headers in the generated symbol graph
             // since executable documentation is meant for the team developing that executable (compared to framework documentation for the consumers
             // of that framework).
-            return [.public, .private, nil] // nil for project visibility
+            return [.public, .private, nil]  // nil for project visibility
         case .framework, .none:
             // For frameworks (and non-documentable types), only include public API in the generated symbol graph.
             return [.public]
@@ -155,9 +155,16 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
         }
 
         if cbc.inputs.count > 1 {
-            delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Each target may contain only a single documentation catalog."), childDiagnostics: cbc.inputs.map { input in
-                Diagnostic(behavior: .note, location: .path(input.absolutePath), data: DiagnosticData("Documentation catalog named \(input.absolutePath.basename)"))
-            }))
+            delegate.emit(
+                Diagnostic(
+                    behavior: .error,
+                    location: .unknown,
+                    data: DiagnosticData("Each target may contain only a single documentation catalog."),
+                    childDiagnostics: cbc.inputs.map { input in
+                        Diagnostic(behavior: .note, location: .path(input.absolutePath), data: DiagnosticData("Documentation catalog named \(input.absolutePath.basename)"))
+                    }
+                )
+            )
             return
         }
 
@@ -188,7 +195,8 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
         let environmentBindings = templatePath.map { [("DOCC_HTML_DIR", $0.str)] } ?? []
 
         // The inputs (files that this task depend on) are the '.docs' bundles, specified in the '.xcspec' file, and the symbol graph task
-        let inputs: [any PlannedNode] = cbc.inputs.map({ delegate.createDirectoryTreeNode($0.absolutePath) })
+        let inputs: [any PlannedNode] =
+            cbc.inputs.map({ delegate.createDirectoryTreeNode($0.absolutePath) })
             + mainSymbolGraphFiles.map({ delegate.createNode($0) })
 
         // The outputs (files that other tasks can depend on) are specified in the '.xcspec' file.
@@ -257,12 +265,15 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
         // Attach a payload with information about what built documentation this task will output.
         let outputDir = cbc.scope.evaluate(BuiltinMacros.DOCC_ARCHIVE_PATH)
         let diagnosticsFilePath = cbc.scope.evaluate(BuiltinMacros.DOCC_DIAGNOSTICS_FILE, lookup: lookup).nilIfEmpty
-        let payload = outputDir.isEmpty ? nil : DocumentationTaskPayload(
-            bundleIdentifier: cbc.scope.evaluate(BuiltinMacros.DOCC_CATALOG_IDENTIFIER),
-            outputPath: Path(outputDir),
-            targetIdentifier: cbc.producer.configuredTarget?.target.guid,
-            documentationDiagnosticsPath: diagnosticsFilePath
-        )
+        let payload =
+            outputDir.isEmpty
+            ? nil
+            : DocumentationTaskPayload(
+                bundleIdentifier: cbc.scope.evaluate(BuiltinMacros.DOCC_CATALOG_IDENTIFIER),
+                outputPath: Path(outputDir),
+                targetIdentifier: cbc.producer.configuredTarget?.target.guid,
+                documentationDiagnosticsPath: diagnosticsFilePath
+            )
         if let diagnosticsFilePath {
             outputs.append(delegate.createNode(diagnosticsFilePath))
         }
@@ -340,27 +351,32 @@ public func discoveredDocumentationCompilerInfo(_ producer: any CommandProducer,
     if !producer.executableSearchPaths.fs.exists(featuresPath) && producer.hostOperatingSystem == .windows {
         return DocumentationCompilerToolSpecInfo(toolPath: toolPath, toolFeatures: .init([.diagnosticsFile]))
     }
-    return try await producer.discoveredCommandLineToolSpecInfo(delegate, "docc", featuresPath, { contents in
-        func getFeatures(at toolPath: Path) throws -> ToolFeatures<DocumentationCompilerToolSpecInfo.FeatureFlag> {
-            do {
-                let fs = PseudoFS()
-                try fs.createDirectory(featuresPath.dirname, recursive: true)
-                try fs.write(featuresPath, contents: ByteString(contents))
-                return try .init(path: featuresPath, fs: fs)
-            } catch {
-                // If this is a custom tool path (via DOCC_EXEC) check the default features.
-                if let defaultToolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: "docc"), defaultToolPath != toolPath {
-                    let defaultFeaturesPath = defaultToolPath.dirname.dirname.join("share").join("docc").join("features.json")
-                    if localFS.exists(defaultFeaturesPath) {
-                        return try .init(path: defaultFeaturesPath, fs: localFS)
+    return try await producer.discoveredCommandLineToolSpecInfo(
+        delegate,
+        "docc",
+        featuresPath,
+        { contents in
+            func getFeatures(at toolPath: Path) throws -> ToolFeatures<DocumentationCompilerToolSpecInfo.FeatureFlag> {
+                do {
+                    let fs = PseudoFS()
+                    try fs.createDirectory(featuresPath.dirname, recursive: true)
+                    try fs.write(featuresPath, contents: ByteString(contents))
+                    return try .init(path: featuresPath, fs: fs)
+                } catch {
+                    // If this is a custom tool path (via DOCC_EXEC) check the default features.
+                    if let defaultToolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: "docc"), defaultToolPath != toolPath {
+                        let defaultFeaturesPath = defaultToolPath.dirname.dirname.join("share").join("docc").join("features.json")
+                        if localFS.exists(defaultFeaturesPath) {
+                            return try .init(path: defaultFeaturesPath, fs: localFS)
+                        }
                     }
+                    // Didn't find any default features.
+                    throw error
                 }
-                // Didn't find any default features.
-                throw error
             }
+            return try DocumentationCompilerToolSpecInfo(toolPath: toolPath, toolFeatures: getFeatures(at: toolPath))
         }
-        return try DocumentationCompilerToolSpecInfo(toolPath: toolPath, toolFeatures: getFeatures(at: toolPath))
-    })
+    )
 }
 
 public struct DocumentationCompilerToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
@@ -393,9 +409,9 @@ extension DocumentationCompilerSpec {
 
         /// The Mach-O types considered by DocC to be frameworks.
         private static let frameworkMachOTypes: Set = [
-            "mh_dylib", // dylibs and dynamic frameworks
-            "staticlib", // static libraries and static frameworks
-            "mh_object", // relocatable objects, used by SwiftPM
+            "mh_dylib",  // dylibs and dynamic frameworks
+            "staticlib",  // static libraries and static frameworks
+            "mh_object",  // relocatable objects, used by SwiftPM
         ]
 
         /// The Mach-O type that DocC considers to be executable.
@@ -709,7 +725,7 @@ private extension Diagnostic {
             location: mainLocation,
             sourceRanges: mainSourceRanges,
             data: DiagnosticData(diagnostic.summary),
-            fixIts: [], // DocC Solutions are created as child diagnostics to customize the fix-it messages
+            fixIts: [],  // DocC Solutions are created as child diagnostics to customize the fix-it messages
             childDiagnostics: childDiagnostics
         )
     }
@@ -744,9 +760,10 @@ private extension Diagnostic.SourceRange {
     init(path: Path, range: DiagnosticFile.Diagnostic.Range) {
         self.init(
             path: path,
-            startLine: range.start.line, startColumn: range.start.column,
-            endLine: range.end.line, endColumn: range.end.column
+            startLine: range.start.line,
+            startColumn: range.start.column,
+            endLine: range.end.line,
+            endColumn: range.end.column
         )
     }
 }
-

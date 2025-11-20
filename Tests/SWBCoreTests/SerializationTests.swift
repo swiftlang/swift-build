@@ -19,8 +19,7 @@ import SWBProtocol
 import SWBMacro
 
 @Suite fileprivate struct SerializationTests: CoreBasedTests {
-    struct MacroEvaluationScopeDeserializerDelegate: MacroValueAssignmentTableDeserializerDelegate
-    {
+    struct MacroEvaluationScopeDeserializerDelegate: MacroValueAssignmentTableDeserializerDelegate {
         let namespace: MacroNamespace
     }
 
@@ -63,8 +62,8 @@ import SWBMacro
         table.push(A, literal: true)
         table.push(B, literal: false)
         table.push(U, namespace.parseForMacro(U, value: "u"))
-        table.push(C, literal: "MAC", conditions: MacroConditionSet(conditions: [MacroCondition(parameter:param, valuePattern:"macosx")]))
-        table.push(C, literal: "IOS", conditions: MacroConditionSet(conditions: [MacroCondition(parameter:param, valuePattern:"iphoneos")]))
+        table.push(C, literal: "MAC", conditions: MacroConditionSet(conditions: [MacroCondition(parameter: param, valuePattern: "macosx")]))
+        table.push(C, literal: "IOS", conditions: MacroConditionSet(conditions: [MacroCondition(parameter: param, valuePattern: "iphoneos")]))
 
         // Create a macro evaluation scope for testing.
         let scope = MacroEvaluationScope(table: table, conditionParameterValues: [param: ["iphoneos"]])
@@ -75,11 +74,11 @@ import SWBMacro
 
         // Deserialize!
         // We re-use the namespace here since these are simple tests.
-        let dsz = MsgPackDeserializer(sz.byteString, delegate:MacroEvaluationScopeDeserializerDelegate(namespace: namespace))
+        let dsz = MsgPackDeserializer(sz.byteString, delegate: MacroEvaluationScopeDeserializerDelegate(namespace: namespace))
         let dszScope: MacroEvaluationScope = try dsz.deserialize()
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as String
-        }                // Next element is not a String
+        }  // Next element is not a String
         // Nothing left to deserialize.
 
         // Test that we get expected and identical values from both scopes.
@@ -101,7 +100,7 @@ import SWBMacro
         #expect(scope.evaluate(A) == dszScope.evaluate(A))
         #expect(!scope.evaluate(B))
         #expect(scope.evaluate(B) == dszScope.evaluate(B))
-        #expect(scope.evaluateAsString(U) == "u")                              // MacroEvaluationScope doesn't support evaluate() for user-defined macros
+        #expect(scope.evaluateAsString(U) == "u")  // MacroEvaluationScope doesn't support evaluate() for user-defined macros
         #expect(scope.evaluateAsString(U) == dszScope.evaluateAsString(U))
         #expect(scope.evaluate(C) == "IOS")
         #expect(scope.evaluate(C) == dszScope.evaluate(C))
@@ -110,36 +109,42 @@ import SWBMacro
     /// Test serializing the settings for a scope for a simple project with some overriding parameters.
     @Test(.skipHostOS(.windows, "seems to hit an assertion in evaluating the :relativeto operator"))
     func basicProjectSettingsSerialization() async throws {
-        let testWorkspaceData = TestWorkspace("Workspace",
-                                              projects:
-                                                [
-                                                    TestProject("aProject",
-                                                                groupTree: TestGroup("SomeFiles"),
-                                                                buildConfigurations:
-                                                                    [
-                                                                        TestBuildConfiguration("Debug", buildSettings:
-                                                                                                [
-                                                                                                    "BAZ": "project-$(inherited)",
-                                                                                                    "PROJECT_LEVEL": "project",
-                                                                                                ]),
-                                                                    ],
-                                                                targets:
-                                                                    [
-                                                                        TestAggregateTarget("AggregateTarget",
-                                                                                            buildConfigurations:
-                                                                                                [
-                                                                                                    TestBuildConfiguration("Debug", buildSettings:
-                                                                                                                            [
-                                                                                                                                "BAZ": "target-$(inherited)",
-                                                                                                                                "TARGET_LEVEL": "target",
-                                                                                                                            ]),
-                                                                                                ]),
-                                                                    ]),
-                                                ])
+        let testWorkspaceData = TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "BAZ": "project-$(inherited)",
+                                "PROJECT_LEVEL": "project",
+                            ]
+                        )
+                    ],
+                    targets: [
+                        TestAggregateTarget(
+                            "AggregateTarget",
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "BAZ": "target-$(inherited)",
+                                        "TARGET_LEVEL": "target",
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                )
+            ]
+        )
 
         let core = try await getCore()
         let context = try WorkspaceContext(core: core, workspace: testWorkspaceData.load(core), processExecutionCache: .sharedForTesting)
-        context.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: ["BAZ": "environment-$(inherited)"]))
+        context.updateUserInfo(UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid: 12345, home: Path("/Users/exampleUser"), environment: ["BAZ": "environment-$(inherited)"]))
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
 
         let testProject = context.workspace.projects[0]
@@ -153,7 +158,8 @@ import SWBMacro
             commandLineConfigOverridesPath: nil,
             commandLineConfigOverrides: ["BAZ": "commandlineconfig-$(inherited)"],
             environmentConfigOverridesPath: nil,
-            environmentConfigOverrides: ["BAZ": "environmentconfig-$(inherited)"])
+            environmentConfigOverrides: ["BAZ": "environmentconfig-$(inherited)"]
+        )
         let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testTarget)
 
         let scope = settings.globalScope
@@ -165,11 +171,11 @@ import SWBMacro
         // Deserialize!
         // Create a new namespace which is a child of the workspace's namespace, which will be a peer to the settings object's namespace.  This gets us some coverage of declaring macros in a new namespace.
         let dszNamespace = MacroNamespace(parent: context.workspace.userNamespace, debugDescription: "deserializer")
-        let dsz = MsgPackDeserializer(sz.byteString, delegate:MacroEvaluationScopeDeserializerDelegate(namespace: dszNamespace))
+        let dsz = MsgPackDeserializer(sz.byteString, delegate: MacroEvaluationScopeDeserializerDelegate(namespace: dszNamespace))
         let dszScope: MacroEvaluationScope = try dsz.deserialize()
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as String
-        }                // Next element is not a String
+        }  // Next element is not a String
         // Nothing left to deserialize.
 
         let macroName = "PROJECT_LEVEL"
@@ -181,24 +187,17 @@ import SWBMacro
         #expect(baseValue == dszValue)
 
         // Iterate through all of the settings in the original settings scope, and check that they evaluate to the same value in the deserialized scope.
-        for settingsMacro in scope.table.valueAssignments.keys
-        {
-            if let dszMacro = dszNamespace.lookupMacroDeclaration(settingsMacro.name)
-            {
-                if settingsMacro.type == dszMacro.type
-                {
+        for settingsMacro in scope.table.valueAssignments.keys {
+            if let dszMacro = dszNamespace.lookupMacroDeclaration(settingsMacro.name) {
+                if settingsMacro.type == dszMacro.type {
                     // We use evaluateAsString() here to keep the logic simple.
                     let settingsValue = scope.evaluateAsString(settingsMacro)
                     let dszValue = dszScope.evaluateAsString(dszMacro)
                     #expect(settingsValue == dszValue)
-                }
-                else
-                {
+                } else {
                     Issue.record("Macro '\(settingsMacro.name)' is of type \(settingsMacro.type) in original settings namespace, but type \(dszMacro.type) in deserializer namespace.")
                 }
-            }
-            else
-            {
+            } else {
                 Issue.record("Could not find macro '\(settingsMacro.name)' (type \(settingsMacro.type)) in deserializer namespace.")
             }
         }

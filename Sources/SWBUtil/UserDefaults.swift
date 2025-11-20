@@ -49,7 +49,7 @@ public enum UserDefaults: Sendable {
 
     /// We load user defaults from the `org.swift.swift-build` domain.  By convention the lookup methods will override these with the process environment.  See the `internalDefaults` property for more details.
     nonisolated(unsafe) private static let defaults: Foundation.UserDefaults = {
-        let defaults =  Foundation.UserDefaults(suiteName: "org.swift.swift-build")!
+        let defaults = Foundation.UserDefaults(suiteName: "org.swift.swift-build")!
         // Preserved for backwards compatibility
         defaults.addSuite(named: "com.apple.dt.XCBuild")
         return defaults
@@ -325,10 +325,8 @@ public enum ActivityTextShorteningLevel: Int, Codable, Comparable, RawRepresenta
     public static let `default`: ActivityTextShorteningLevel = .full
 }
 
-
 // MARK: -
 // MARK: Exporting user defaults from Xcode to Swift Build.
-
 
 /// List of user defaults we want Xcode to export from its domain down to Swift Build.
 ///
@@ -356,7 +354,6 @@ public let xcodeUserDefaultsToExportToSwiftBuild = [
     "IDEBuildOperationMaxNumberOfConcurrentCompileTasks",
     "EnableFixFor23297285",
 ]
-
 
 /// Global function which exports the supplied user default key, if present in the standard UserDefaults, to the process environment if it has not already been set.
 public func exportUserDefaultToEnvironment(_ key: String) {

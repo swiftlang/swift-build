@@ -79,7 +79,8 @@ import SWBLibc
         case ".bundle":
             pluginPath = path
             let shallow = !localFS.exists(path.join("Contents"))
-            let executableBasePath = shallow
+            let executableBasePath =
+                shallow
                 ? path.join(Path(name).basenameWithoutSuffix)
                 : path.join("Contents").join("MacOS").join(Path(name).basenameWithoutSuffix)
             executablePath = {
@@ -91,13 +92,13 @@ import SWBLibc
                 }
                 return executableBasePath
             }()
-            let infoPlistPath = shallow
+            let infoPlistPath =
+                shallow
                 ? path.join("Info.plist")
                 : path.join("Contents").join("Info.plist")
             if let plist = try? PropertyList.fromPath(infoPlistPath, fs: localFS), let cfBundleIdentifier = plist.dictValue?["CFBundleIdentifier"]?.stringValue {
                 pluginIdentifier = cfBundleIdentifier
-            }
-            else {
+            } else {
                 pluginIdentifier = path.basename
             }
         default:
@@ -226,8 +227,8 @@ public typealias PluginInitializationFunction = @Sendable @PluginExtensionSystem
 
 public var useStaticPluginInitialization: Bool {
     #if USE_STATIC_PLUGIN_INITIALIZATION
-    true
+        true
     #else
-    false
+        false
     #endif
 }

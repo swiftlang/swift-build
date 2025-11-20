@@ -16,55 +16,55 @@ import SWBUtil
 import Testing
 
 #if canImport(AppleArchive)
-@Suite fileprivate struct XCBuildDataArchiveTests {
-    @Test
-    func appendBuildDataSerial() async throws {
-        try await withTemporaryDirectory { tmpDir in
-            let archive = XCBuildDataArchive(filePath: tmpDir.join("XCBuildData.aar"))
-
-            let uuids = try (0..<3).map { _ -> UUID in
-                let uuid = UUID()
-                let dir = tmpDir.join(UUID().description).join("XCBuildData")
-                try localFS.createDirectory(dir, recursive: true)
-                try localFS.write(dir.join("manifest.json"), contents: "manifest")
-                try archive.appendBuildDataDirectory(from: dir, uuid: uuid)
-                return uuid
-            }
-
-            let output = try await runProcess(["/usr/bin/yaa", "list", "-i", archive.archiveFilePath.str])
-            #expect(output.split(separator: "\n").map(String.init) == uuids.flatMap { [$0.description, "\($0)/manifest.json"] })
-        }
-    }
-
-    @Test
-    func appendBuildDataConcurrent() async throws {
-        try await withTemporaryDirectory { tmpDir in
-            let archive = XCBuildDataArchive(filePath: tmpDir.join("XCBuildData.aar"))
-
-            let uuids = try await Array(0..<3).asyncMap { _ -> UUID in
-                let uuid = UUID()
-                let dir = tmpDir.join(UUID().description).join("XCBuildData")
-                try localFS.createDirectory(dir, recursive: true)
-                try localFS.write(dir.join("manifest.json"), contents: "manifest")
-                try archive.appendBuildDataDirectory(from: dir, uuid: uuid)
-                return uuid
-            }
-
-            let output = try await runProcess(["/usr/bin/yaa", "list", "-i", archive.archiveFilePath.str])
-            #expect(output.split(separator: "\n").map(String.init).sorted() == uuids.flatMap { [$0.description, "\($0)/manifest.json"] }.sorted())
-        }
-    }
-
-    @Test
-    func badInput() throws {
-        #expect {
-            try withTemporaryDirectory { tmpDir in
+    @Suite fileprivate struct XCBuildDataArchiveTests {
+        @Test
+        func appendBuildDataSerial() async throws {
+            try await withTemporaryDirectory { tmpDir in
                 let archive = XCBuildDataArchive(filePath: tmpDir.join("XCBuildData.aar"))
-                try archive.appendBuildDataDirectory(from: Path("/tmp"), uuid: UUID())
+
+                let uuids = try (0..<3).map { _ -> UUID in
+                    let uuid = UUID()
+                    let dir = tmpDir.join(UUID().description).join("XCBuildData")
+                    try localFS.createDirectory(dir, recursive: true)
+                    try localFS.write(dir.join("manifest.json"), contents: "manifest")
+                    try archive.appendBuildDataDirectory(from: dir, uuid: uuid)
+                    return uuid
+                }
+
+                let output = try await runProcess(["/usr/bin/yaa", "list", "-i", archive.archiveFilePath.str])
+                #expect(output.split(separator: "\n").map(String.init) == uuids.flatMap { [$0.description, "\($0)/manifest.json"] })
             }
-        } throws: { error in
-            error as? StubError == .error("/tmp is not an XCBuildData directory")
+        }
+
+        @Test
+        func appendBuildDataConcurrent() async throws {
+            try await withTemporaryDirectory { tmpDir in
+                let archive = XCBuildDataArchive(filePath: tmpDir.join("XCBuildData.aar"))
+
+                let uuids = try await Array(0..<3).asyncMap { _ -> UUID in
+                    let uuid = UUID()
+                    let dir = tmpDir.join(UUID().description).join("XCBuildData")
+                    try localFS.createDirectory(dir, recursive: true)
+                    try localFS.write(dir.join("manifest.json"), contents: "manifest")
+                    try archive.appendBuildDataDirectory(from: dir, uuid: uuid)
+                    return uuid
+                }
+
+                let output = try await runProcess(["/usr/bin/yaa", "list", "-i", archive.archiveFilePath.str])
+                #expect(output.split(separator: "\n").map(String.init).sorted() == uuids.flatMap { [$0.description, "\($0)/manifest.json"] }.sorted())
+            }
+        }
+
+        @Test
+        func badInput() throws {
+            #expect {
+                try withTemporaryDirectory { tmpDir in
+                    let archive = XCBuildDataArchive(filePath: tmpDir.join("XCBuildData.aar"))
+                    try archive.appendBuildDataDirectory(from: Path("/tmp"), uuid: UUID())
+                }
+            } throws: { error in
+                error as? StubError == .error("/tmp is not an XCBuildData directory")
+            }
         }
     }
-}
 #endif

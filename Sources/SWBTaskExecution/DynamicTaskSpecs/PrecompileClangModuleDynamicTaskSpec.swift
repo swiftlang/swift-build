@@ -91,7 +91,7 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
             self.fileNameMapPath = fileNameMapPath
         }
 
-        func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+        func serialize<T>(to serializer: T) where T: SWBUtil.Serializer {
             serializer.serializeAggregate(3) {
                 serializer.serialize(serializedDiagnosticsPath)
                 serializer.serialize(fileNameMapPath)

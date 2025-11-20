@@ -45,17 +45,20 @@ import SWBServiceCore
             let sdkCanonicalName = try #require(platform.sdkCanonicalName)
             let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
             let macOSSDKVariant = try #require(publicSDK.defaultVariant)
-            #expect(macOSSDKVariant.deviceFamilies.list == [
-                .init(name: "mac", displayName: "Mac")
-            ])
+            #expect(
+                macOSSDKVariant.deviceFamilies.list == [
+                    .init(name: "mac", displayName: "Mac")
+                ]
+            )
 
             let macCatalystSDKVariant = try #require(publicSDK.variant(for: MacCatalystInfo.sdkVariantName))
-            #expect(macCatalystSDKVariant.deviceFamilies.list == [
-                .init(identifier: 2, name: "ipad", displayName: "iPad"),
-                .init(identifier: 6, name: "mac", displayName: "Mac")
-            ])
-        }
-        else {
+            #expect(
+                macCatalystSDKVariant.deviceFamilies.list == [
+                    .init(identifier: 2, name: "ipad", displayName: "iPad"),
+                    .init(identifier: 6, name: "mac", displayName: "Mac"),
+                ]
+            )
+        } else {
             Issue.record("did not load platform '\(identifier)'")
         }
     }
@@ -72,12 +75,13 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    .init(identifier: 1, name: "iphone", displayName: "iPhone"),
-                    .init(identifier: 2, name: "ipad", displayName: "iPad"),
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        .init(identifier: 1, name: "iphone", displayName: "iPhone"),
+                        .init(identifier: 2, name: "ipad", displayName: "iPad"),
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
@@ -90,12 +94,13 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    DeviceFamily(identifier: 1, name: "iphone", displayName: "iPhone"),
-                    DeviceFamily(identifier: 2, name: "ipad", displayName: "iPad"),
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        DeviceFamily(identifier: 1, name: "iphone", displayName: "iPhone"),
+                        DeviceFamily(identifier: 2, name: "ipad", displayName: "iPad"),
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
@@ -113,11 +118,12 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    DeviceFamily(identifier: 3, name: "tv", displayName: "Apple TV")
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        DeviceFamily(identifier: 3, name: "tv", displayName: "Apple TV")
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
@@ -130,11 +136,12 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    DeviceFamily(identifier: 3, name: "tv", displayName: "Apple TV")
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        DeviceFamily(identifier: 3, name: "tv", displayName: "Apple TV")
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
@@ -152,11 +159,12 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    DeviceFamily(identifier: 4, name: "watch", displayName: "Apple Watch")
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        DeviceFamily(identifier: 4, name: "watch", displayName: "Apple Watch")
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
@@ -169,11 +177,12 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    DeviceFamily(identifier: 4, name: "watch", displayName: "Apple Watch")
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        DeviceFamily(identifier: 4, name: "watch", displayName: "Apple Watch")
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
@@ -191,11 +200,12 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    DeviceFamily(identifier: 7, name: "vision", displayName: "Apple Vision")
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        DeviceFamily(identifier: 7, name: "vision", displayName: "Apple Vision")
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
@@ -208,16 +218,16 @@ import SWBServiceCore
                 let sdkCanonicalName = try #require(platform.sdkCanonicalName)
                 let publicSDK = try #require(core.sdkRegistry.lookup(sdkCanonicalName))
                 let defaultVariant = try #require(publicSDK.defaultVariant)
-                #expect(defaultVariant.deviceFamilies.list == [
-                    DeviceFamily(identifier: 7, name: "vision", displayName: "Apple Vision")
-                ])
-            }
-            else {
+                #expect(
+                    defaultVariant.deviceFamilies.list == [
+                        DeviceFamily(identifier: 7, name: "vision", displayName: "Apple Vision")
+                    ]
+                )
+            } else {
                 Issue.record("did not load platform '\(identifier)'")
             }
         }
     }
-
 
     @Test(.requireHostOS(.macOS))
     func toolchainLoading() async throws {
@@ -226,7 +236,7 @@ import SWBServiceCore
         #expect(defaultToolchain.identifier == ToolchainRegistry.defaultToolchainIdentifier)
     }
 
-    final class Delegate : CoreDelegate {
+    final class Delegate: CoreDelegate {
         private let _diagnosticsEngine = DiagnosticsEngine()
 
         var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
@@ -322,14 +332,17 @@ import SWBServiceCore
             let fakePlatformPath = tmpDirPath.join("Platforms/Fake.platform")
             try localFS.createDirectory(tmpDirPath.join("Toolchains"), recursive: true)
             try localFS.createDirectory(fakePlatformPath, recursive: true)
-            try await localFS.writePlist(fakePlatformPath.join("Info.plist"), .plDict([
-                "Description": .plString("Fake"),
-                "FamilyName": .plString("Fake"),
-                "FamilyIdentifier": .plString("Fake"),
-                "Identifier": .plString("com.apple.FakePlatform"),
-                "Name": .plString("fake"),
-                "Type": .plString("Platform"),
-            ]))
+            try await localFS.writePlist(
+                fakePlatformPath.join("Info.plist"),
+                .plDict([
+                    "Description": .plString("Fake"),
+                    "FamilyName": .plString("Fake"),
+                    "FamilyIdentifier": .plString("Fake"),
+                    "Identifier": .plString("com.apple.FakePlatform"),
+                    "Name": .plString("fake"),
+                    "Type": .plString("Platform"),
+                ])
+            )
 
             let delegate = Delegate()
             let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
@@ -354,27 +367,37 @@ import SWBServiceCore
             try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain)
             try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: tmpDir.join("tmp/Foobar/MyDir").str, expecting: [tmpDir.join("tmp/Foobar/MyDir").str], originalToolchain)
             try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain)
-            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: [tmpDir.join("tmp/MetalToolchain1.0").str, tmpDir.join("tmp/MetalToolchain2.0").str, tmpDir.join("tmp/MetalToolchain3.0").str].joined(separator: String(Path.pathEnvironmentSeparator)), expecting: [
-                tmpDir.join("tmp/MetalToolchain1.0").str,
-                tmpDir.join("tmp/MetalToolchain2.0").str,
-                tmpDir.join("tmp/MetalToolchain3.0").str,
-            ], originalToolchain)
+            try await testExternalToolchainPath(
+                toolchainPath: tmpDir,
+                withSetEnv: [tmpDir.join("tmp/MetalToolchain1.0").str, tmpDir.join("tmp/MetalToolchain2.0").str, tmpDir.join("tmp/MetalToolchain3.0").str].joined(separator: String(Path.pathEnvironmentSeparator)),
+                expecting: [
+                    tmpDir.join("tmp/MetalToolchain1.0").str,
+                    tmpDir.join("tmp/MetalToolchain2.0").str,
+                    tmpDir.join("tmp/MetalToolchain3.0").str,
+                ],
+                originalToolchain
+            )
             try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain)
             try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: "", expecting: [], originalToolchain)
 
             // Environment overrides
-            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain) // Clear
+            try await testExternalToolchainPath(toolchainPath: tmpDir, withSetEnv: nil, expecting: [], originalToolchain)  // Clear
 
-            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: ["Hello":"world"], expecting: [], originalToolchain)
+            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: ["Hello": "world"], expecting: [], originalToolchain)
             try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: ["EXTERNAL_TOOLCHAINS_DIR": tmpDir.join("tmp/Foobar/MyDir").str], expecting: [tmpDir.join("tmp/Foobar/MyDir").str], originalToolchain)
             try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: [:], expecting: [], originalToolchain)
-            try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: [
-                "EXTERNAL_TOOLCHAINS_DIR" : [tmpDir.join("tmp/MetalToolchain1.0").str, tmpDir.join("tmp/MetalToolchain2.0").str, tmpDir.join("tmp/MetalToolchain3.0").str].joined(separator: String(Path.pathEnvironmentSeparator)),
-            ], expecting: [
-                tmpDir.join("tmp/MetalToolchain1.0").str,
-                tmpDir.join("tmp/MetalToolchain2.0").str,
-                tmpDir.join("tmp/MetalToolchain3.0").str,
-            ], originalToolchain)
+            try await testExternalToolchainPath(
+                toolchainPath: tmpDir,
+                environmentOverrides: [
+                    "EXTERNAL_TOOLCHAINS_DIR": [tmpDir.join("tmp/MetalToolchain1.0").str, tmpDir.join("tmp/MetalToolchain2.0").str, tmpDir.join("tmp/MetalToolchain3.0").str].joined(separator: String(Path.pathEnvironmentSeparator))
+                ],
+                expecting: [
+                    tmpDir.join("tmp/MetalToolchain1.0").str,
+                    tmpDir.join("tmp/MetalToolchain2.0").str,
+                    tmpDir.join("tmp/MetalToolchain3.0").str,
+                ],
+                originalToolchain
+            )
             try await testExternalToolchainPath(toolchainPath: tmpDir, environmentOverrides: [:], expecting: [], originalToolchain)
         }
     }
@@ -428,7 +451,7 @@ import SWBServiceCore
         }
     }
 
-    func testExternalToolchainPath(toolchainPath: Path, environmentOverrides: [String:String], expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
+    func testExternalToolchainPath(toolchainPath: Path, environmentOverrides: [String: String], expecting expectedPathStrings: [String], _ originalToolchainCount: Int) async throws {
         let delegate = Delegate()
         let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
         await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
@@ -460,9 +483,12 @@ import SWBServiceCore
         }
         let toolchainPaths = try #require(core?.toolchainPaths)
         for expectedPathString in expectedPathStrings {
-            #expect(toolchainPaths.contains(where: { searchPath in
-                searchPath.path == Path(expectedPathString) && searchPath.strict == false
-            }), "Unable to find \(expectedPathString)")
+            #expect(
+                toolchainPaths.contains(where: { searchPath in
+                    searchPath.path == Path(expectedPathString) && searchPath.strict == false
+                }),
+                "Unable to find \(expectedPathString)"
+            )
         }
 
         #expect(toolchainPaths.count == originalToolchainCount + expectedPathStrings.count)

@@ -27,12 +27,18 @@ private extension MacroValueAssignmentTable {
 
 /// A lightweight parameterized “view” of a MacroValueAssignmentTable, allowing clients to evaluate macro expressions under a particular set of conditions.  In the future a MacroEvaluationScope will also bind conditions to affect the values that are found in the table.  Unlike many of the other classes in the macro evaluation subsystem, MacroEvaluationScope is a prominent class from a client perspective — after declaring macros, parsing macro expressions, and creating macro-to-expression tables, all actual evaluation occurs through a MacroEvaluationScope.
 public final class MacroEvaluationScope: Serializable, Sendable {
-    static let evaluations = Statistic("MacroEvaluationScope.evaluations",
-        "The number of evaluation requests.")
-    static let evaluationsComputed = Statistic("MacroEvaluationScope.evaluationsComputed",
-        "The number of evaluations which were actually computed (not cached).")
-    static let exprEvaluations = Statistic("MacroEvaluationScope.exprEvaluations",
-        "The number of expression evaluation requests.")
+    static let evaluations = Statistic(
+        "MacroEvaluationScope.evaluations",
+        "The number of evaluation requests."
+    )
+    static let evaluationsComputed = Statistic(
+        "MacroEvaluationScope.evaluationsComputed",
+        "The number of evaluations which were actually computed (not cached)."
+    )
+    static let exprEvaluations = Statistic(
+        "MacroEvaluationScope.exprEvaluations",
+        "The number of expression evaluation requests."
+    )
 
     private struct SubscopeKey: Hashable {
         let parameter: MacroConditionParameter
@@ -227,8 +233,6 @@ public final class MacroEvaluationScope: Serializable, Sendable {
         return compute()
     }
 
-
-
     /// Evaluate the given string macro and return the result.
     ///
     /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
@@ -274,9 +278,9 @@ public final class MacroEvaluationScope: Serializable, Sendable {
                         serializer.serialize(parm.name)
                         serializer.serialize(values)
                     }
-                }   // key-value pair
-            }   // conditionParameterValues
-        }   // the whole scope
+                }  // key-value pair
+            }  // conditionParameterValues
+        }  // the whole scope
     }
 
     public init(from deserializer: any Deserializer) throws {
@@ -297,8 +301,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
             let parm: MacroConditionParameter
             if let aParm = delegate.namespace.lookupConditionParameter(parmName) {
                 parm = aParm
-            }
-            else {
+            } else {
                 parm = delegate.namespace.declareConditionParameter(parmName)
             }
 

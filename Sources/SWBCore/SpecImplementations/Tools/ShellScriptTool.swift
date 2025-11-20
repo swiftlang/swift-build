@@ -12,7 +12,7 @@
 
 public import SWBUtil
 
-public final class ShellScriptToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
+public final class ShellScriptToolSpec: CommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.commands.shell-script"
 
     override public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
@@ -21,30 +21,48 @@ public final class ShellScriptToolSpec : CommandLineToolSpec, SpecIdentifierType
     }
 
     public func constructShellScriptTasks(
-        _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate,
-        ruleInfo: [String], commandLine: [String], environment: EnvironmentBindings,
-        workingDirectory: Path? = nil, inputs: [any PlannedNode], outputs: [any PlannedNode],
-        dependencyData: DependencyDataStyle?, execDescription: String,
-        showEnvironment: Bool, alwaysExecuteTask: Bool, enableSandboxing: Bool,
-        payload: (any TaskPayload)? = nil, action: (any PlannedTaskAction)? = nil,
+        _ cbc: CommandBuildContext,
+        _ delegate: any TaskGenerationDelegate,
+        ruleInfo: [String],
+        commandLine: [String],
+        environment: EnvironmentBindings,
+        workingDirectory: Path? = nil,
+        inputs: [any PlannedNode],
+        outputs: [any PlannedNode],
+        dependencyData: DependencyDataStyle?,
+        execDescription: String,
+        showEnvironment: Bool,
+        alwaysExecuteTask: Bool,
+        enableSandboxing: Bool,
+        payload: (any TaskPayload)? = nil,
+        action: (any PlannedTaskAction)? = nil,
         repairViaOwnershipAnalysis: Bool = false
     ) {
         delegate.createTask(
-            type: self, dependencyData: dependencyData, payload: payload,
-            ruleInfo: ruleInfo, additionalSignatureData: "",
+            type: self,
+            dependencyData: dependencyData,
+            payload: payload,
+            ruleInfo: ruleInfo,
+            additionalSignatureData: "",
             commandLine: commandLine.map { ByteString(encodingAsUTF8: $0) },
-            additionalOutput: [], environment: environment,
+            additionalOutput: [],
+            environment: environment,
             workingDirectory: workingDirectory ?? cbc.producer.defaultWorkingDirectory,
-            inputs: inputs, outputs: outputs, mustPrecede: [],
-            action: action ?? delegate.taskActionCreationDelegate
+            inputs: inputs,
+            outputs: outputs,
+            mustPrecede: [],
+            action: action
+                ?? delegate.taskActionCreationDelegate
                 .createDeferredExecutionTaskActionIfRequested(
                     userPreferences: delegate.userPreferences
                 ),
             execDescription: execDescription,
             preparesForIndexing: cbc.preparesForIndexing,
             enableSandboxing: enableSandboxing,
-            llbuildControlDisabled: true, additionalTaskOrderingOptions: [],
-            alwaysExecuteTask: alwaysExecuteTask, showEnvironment: showEnvironment,
+            llbuildControlDisabled: true,
+            additionalTaskOrderingOptions: [],
+            alwaysExecuteTask: alwaysExecuteTask,
+            showEnvironment: showEnvironment,
             repairViaOwnershipAnalysis: repairViaOwnershipAnalysis
         )
     }

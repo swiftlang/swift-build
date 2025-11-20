@@ -34,40 +34,51 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
         let tmpDir = try NamedTemporaryDirectory()
         let targets = (0..<Config.numTargets).map { targetNum -> (any TestTarget) in
             TestStandardTarget(
-                "Target\(targetNum)", type: .framework,
+                "Target\(targetNum)",
+                type: .framework,
                 buildPhases: [
-                    TestSourcesBuildPhase((0..<Config.numSwiftFiles).map({ TestBuildFile("Target-\(targetNum)-File-\($0).swift") })),
+                    TestSourcesBuildPhase((0..<Config.numSwiftFiles).map({ TestBuildFile("Target-\(targetNum)-File-\($0).swift") }))
                 ],
                 provisioningSourceData: [
                     SWBProtocol.ProvisioningSourceData(
                         configurationName: "Debug",
                         provisioningStyle: .manual,
-                        bundleIdentifierFromInfoPlist: "$(PRODUCT_BUNDLE_IDENTIFIER)")])
+                        bundleIdentifierFromInfoPlist: "$(PRODUCT_BUNDLE_IDENTIFIER)"
+                    )
+                ]
+            )
         }
 
         let swiftVersion = try await self.swiftVersion
         let testProject = TestProject(
             "aProject",
             defaultConfigurationName: "Debug",
-            groupTree: TestGroup("Root", children: (0..<Config.numTargets).flatMap { targetNum in
-                (0..<Config.numSwiftFiles).map { TestFile("Target-\(targetNum)-File-\($0).swift") }
-            }),
-            buildConfigurations: [TestBuildConfiguration(
-                "Debug",
-                buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_VERSION": swiftVersion,
+            groupTree: TestGroup(
+                "Root",
+                children: (0..<Config.numTargets).flatMap { targetNum in
+                    (0..<Config.numSwiftFiles).map { TestFile("Target-\(targetNum)-File-\($0).swift") }
+                }
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_VERSION": swiftVersion,
 
-                    "SWIFT_USE_INTEGRATED_DRIVER": "YES",
+                        "SWIFT_USE_INTEGRATED_DRIVER": "YES",
 
-                    "DSTROOT": tmpDir.path.join("dstroot").str,
-                ]
-            )],
+                        "DSTROOT": tmpDir.path.join("dstroot").str,
+                    ]
+                )
+            ],
             targets: targets
         )
-        let testWorkspace = TestWorkspace("aWorkspace",
-                                          sourceRoot: tmpDir.path.join("Test"),
-                                          projects: [testProject])
+        let testWorkspace = TestWorkspace(
+            "aWorkspace",
+            sourceRoot: tmpDir.path.join("Test"),
+            projects: [testProject]
+        )
         let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
         // Write the source files.
@@ -85,7 +96,7 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
 
         return { resultsCheck in
 
-            _ = tmpDir // hold a strong reference here :)
+            _ = tmpDir  // hold a strong reference here :)
 
             for _ in 0..<Config.iterations {
 
@@ -120,38 +131,46 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
         let swiftVersion = try await self.swiftVersion
         try await withTemporaryDirectory { tmpDir in
             let filenames = (0..<(getEnvironmentVariable("CI") != nil ? 100 : 1000)).map { "File-\($0).swift" }
-            let testWorkspace = TestWorkspace("aWorkspace",
-                                              sourceRoot: tmpDir.path.join("Test"),
-                                              projects: [TestProject(
-                                                "aProject",
-                                                defaultConfigurationName: "Debug",
-                                                groupTree: TestGroup("Root", children: filenames.map { TestFile($0) }),
-                                                buildConfigurations: [TestBuildConfiguration(
-                                                    "Debug",
-                                                    buildSettings: [
-                                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                        "SWIFT_VERSION": swiftVersion,
-                                                        "DSTROOT": tmpDir.path.join("dstroot").str,
-                                                    ]
-                                                )],
-                                                targets: [
-                                                    TestStandardTarget(
-                                                        "Framework", type: .framework,
-                                                        buildPhases: [
-                                                            TestSourcesBuildPhase(filenames.map { TestBuildFile($0) }),
-                                                        ])
-                                                ]
-                                              )])
+            let testWorkspace = TestWorkspace(
+                "aWorkspace",
+                sourceRoot: tmpDir.path.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        defaultConfigurationName: "Debug",
+                        groupTree: TestGroup("Root", children: filenames.map { TestFile($0) }),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DSTROOT": tmpDir.path.join("dstroot").str,
+                                ]
+                            )
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "Framework",
+                                type: .framework,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(filenames.map { TestBuildFile($0) })
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
             for name in filenames {
                 try await localFS.writeFileContents(SRCROOT.join(name)) { contents in
                     contents <<< """
-                    class \(name.mangledToC99ExtendedIdentifier()) {
-                        let x = 1
-                        func bar() {}
-                    }
-                    """
+                        class \(name.mangledToC99ExtendedIdentifier()) {
+                            let x = 1
+                            func bar() {}
+                        }
+                        """
                 }
             }
 
@@ -171,4 +190,3 @@ fileprivate struct SwiftDriverPerfTests: CoreBasedTests, PerfTests {
         }
     }
 }
-

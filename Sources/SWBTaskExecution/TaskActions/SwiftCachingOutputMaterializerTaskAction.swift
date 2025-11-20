@@ -41,7 +41,7 @@ public final class SwiftCachingOutputMaterializerTaskAction: TaskAction {
         outputDelegate: any TaskOutputDelegate
     ) async -> CommandResult {
         let swiftModuleDependencyGraph = dynamicExecutionDelegate.operationContext.swiftModuleDependencyGraph
-        do  {
+        do {
             guard let cas = try swiftModuleDependencyGraph.getCASDatabases(casOptions: key.casOptions, compilerLocation: key.compilerLocation) else {
                 throw StubError.error("unable to use CAS databases")
             }
@@ -81,4 +81,3 @@ public final class SwiftCachingOutputMaterializerTaskAction: TaskAction {
         try super.init(from: deserializer)
     }
 }
-

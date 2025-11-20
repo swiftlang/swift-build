@@ -11,16 +11,16 @@
 //===----------------------------------------------------------------------===//
 
 #if canImport(Darwin)
-import class CoreFoundation.CFBoolean
-import func CoreFoundation.CFBooleanGetTypeID
-import func CoreFoundation.CFBooleanGetValue
-import func CoreFoundation.CFEqual
-import func CoreFoundation.CFGetTypeID
-import func CoreFoundation.CFHash
-import class CoreFoundation.CFNumber
-import func CoreFoundation.CFNumberGetTypeID
-import func CoreFoundation.CFNumberIsFloatType
-import typealias CoreFoundation.CFTypeRef
+    import class CoreFoundation.CFBoolean
+    import func CoreFoundation.CFBooleanGetTypeID
+    import func CoreFoundation.CFBooleanGetValue
+    import func CoreFoundation.CFEqual
+    import func CoreFoundation.CFGetTypeID
+    import func CoreFoundation.CFHash
+    import class CoreFoundation.CFNumber
+    import func CoreFoundation.CFNumberGetTypeID
+    import func CoreFoundation.CFNumberIsFloatType
+    import typealias CoreFoundation.CFTypeRef
 #endif
 
 public import struct Foundation.Data
@@ -68,35 +68,35 @@ extension PropertyListConversionError: CustomStringConvertible {
 }
 
 public struct OpaquePropertyListItem: Equatable, Hashable, @unchecked Sendable {
-#if canImport(Darwin)
-    fileprivate var wrappedValue: CFTypeRef
+    #if canImport(Darwin)
+        fileprivate var wrappedValue: CFTypeRef
 
-    fileprivate init(_ wrappedValue: CFTypeRef) {
-        self.wrappedValue = wrappedValue
-    }
+        fileprivate init(_ wrappedValue: CFTypeRef) {
+            self.wrappedValue = wrappedValue
+        }
 
-    public static func == (lhs: OpaquePropertyListItem, rhs: OpaquePropertyListItem) -> Bool {
-        return CFEqual(lhs.wrappedValue, rhs.wrappedValue)
-    }
+        public static func == (lhs: OpaquePropertyListItem, rhs: OpaquePropertyListItem) -> Bool {
+            return CFEqual(lhs.wrappedValue, rhs.wrappedValue)
+        }
 
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(CFHash(wrappedValue))
-    }
-#else
-    fileprivate var wrappedValue: NSObject
+        public func hash(into hasher: inout Hasher) {
+            hasher.combine(CFHash(wrappedValue))
+        }
+    #else
+        fileprivate var wrappedValue: NSObject
 
-    fileprivate init(_ wrappedValue: NSObject) {
-        self.wrappedValue = wrappedValue
-    }
+        fileprivate init(_ wrappedValue: NSObject) {
+            self.wrappedValue = wrappedValue
+        }
 
-    public static func == (lhs: OpaquePropertyListItem, rhs: OpaquePropertyListItem) -> Bool {
-        return lhs.wrappedValue.isEqual(rhs.wrappedValue)
-    }
+        public static func == (lhs: OpaquePropertyListItem, rhs: OpaquePropertyListItem) -> Bool {
+            return lhs.wrappedValue.isEqual(rhs.wrappedValue)
+        }
 
-    public func hash(into hasher: inout Hasher) {
-        wrappedValue.hash(into: &hasher)
-    }
-#endif
+        public func hash(into hasher: inout Hasher) {
+            wrappedValue.hash(into: &hasher)
+        }
+    #endif
 }
 
 public enum PropertyListItem: Hashable, Sendable {
@@ -244,15 +244,19 @@ extension PropertyListItem {
     public func withConcreteBooleans(forKeys booleanKeyNames: Set<String>) -> PropertyListItem {
         switch self {
         case .plDict(let d):
-            return .plDict(Dictionary<String, PropertyListItem>(uniqueKeysWithValues: d.sorted(byKey: <).map { (key, value) -> (String, PropertyListItem) in
-                if case .plDict = value {
-                    return (key, value.withConcreteBooleans(forKeys: booleanKeyNames))
-                }
-                if booleanKeyNames.contains(key), let bool = value.looselyTypedBoolValue {
-                    return (key, .plBool(bool))
-                }
-                return (key, value)
-            }))
+            return .plDict(
+                Dictionary<String, PropertyListItem>(
+                    uniqueKeysWithValues: d.sorted(byKey: <).map { (key, value) -> (String, PropertyListItem) in
+                        if case .plDict = value {
+                            return (key, value.withConcreteBooleans(forKeys: booleanKeyNames))
+                        }
+                        if booleanKeyNames.contains(key), let bool = value.looselyTypedBoolValue {
+                            return (key, .plBool(bool))
+                        }
+                        return (key, value)
+                    }
+                )
+            )
         default:
             return self
         }
@@ -372,7 +376,7 @@ public extension PropertyListItem {
     /// `PropertyListItemConvertible` hence we cannot use the overload above.
     @_disfavoredOverload
     init(_ x: [any PropertyListItemConvertible]) {
-        self = .plArray(x.map{$0.propertyListItem})
+        self = .plArray(x.map { $0.propertyListItem })
     }
 
     /// This overload is intended only to support dictionaries with heterogeneous values.
@@ -477,7 +481,7 @@ public extension PropertyListItem {
             stream.write(UInt8(ascii: "{"))
             var first = true
             let sortedValue = value.sorted(byKey: <)
-            for (key,item) in sortedValue {
+            for (key, item) in sortedValue {
                 if !first { stream.write(UInt8(ascii: ",")) }
                 stream.write(UInt8(ascii: "\""))
                 stream.writeJSONEscaped(key)
@@ -528,7 +532,7 @@ public extension PropertyListItem {
 
         case .plDict(let value):
             let dict = NSMutableDictionary()
-            for (key,item) in value {
+            for (key, item) in value {
                 dict.setObject(item.unsafePropertyList, forKey: key as NSString)
             }
             return dict
@@ -621,7 +625,7 @@ public extension PropertyListItem {
 }
 
 extension PropertyListItem: Equatable {
-    public static func ==(lhs: PropertyListItem, rhs: PropertyListItem) -> Bool {
+    public static func == (lhs: PropertyListItem, rhs: PropertyListItem) -> Bool {
         switch (lhs, rhs) {
         case (.plBool(let lhs), .plBool(let rhs)): return lhs == rhs
         case (.plBool, _): return false
@@ -646,14 +650,14 @@ extension PropertyListItem: Equatable {
 }
 
 private func convertToPropertyListItem(_ item: Any) -> PropertyListItem {
-    switch(item) {
-#if canImport(Darwin)
-    case let asBool as CFBoolean where CFGetTypeID(asBool) == CFBooleanGetTypeID():
-        return .plBool(CFBooleanGetValue(asBool))
+    switch (item) {
+    #if canImport(Darwin)
+        case let asBool as CFBoolean where CFGetTypeID(asBool) == CFBooleanGetTypeID():
+            return .plBool(CFBooleanGetValue(asBool))
 
-    case let asNumber as NSNumber where CFGetTypeID(asNumber) == CFNumberGetTypeID() && CFNumberIsFloatType(unsafeBitCast(asNumber, to: CFNumber.self)):
-        return .plDouble(asNumber as! Double)
-#endif
+        case let asNumber as NSNumber where CFGetTypeID(asNumber) == CFNumberGetTypeID() && CFNumberIsFloatType(unsafeBitCast(asNumber, to: CFNumber.self)):
+            return .plDouble(asNumber as! Double)
+    #endif
 
     case let asInt as Int:
         return .plInt(asInt)
@@ -685,19 +689,19 @@ private func convertToPropertyListItem(_ item: Any) -> PropertyListItem {
 
     case let asDict as NSDictionary:
         var result = Dictionary<String, PropertyListItem>(minimumCapacity: asDict.count)
-        for (key,value) in asDict {
+        for (key, value) in asDict {
             let valueItem = convertToPropertyListItem(value)
             result[key as! String] = valueItem
         }
         return .plDict(result)
 
-#if canImport(Darwin)
-    case let asCFType as CFTypeRef:
-        return .plOpaque(.init(asCFType))
-#else
-    case let asNSObject as NSObject:
-        return .plOpaque(.init(asNSObject))
-#endif
+    #if canImport(Darwin)
+        case let asCFType as CFTypeRef:
+            return .plOpaque(.init(asCFType))
+    #else
+        case let asNSObject as NSObject:
+            return .plOpaque(.init(asNSObject))
+    #endif
 
     default:
         fatalError("unable to convert \(item) (a `\(type(of: item))` to a `PropertyListItem`")
@@ -714,8 +718,7 @@ public enum PropertyList: Sendable {
             _ = try fs.getFileInfo(path)
         } catch let error as POSIXError {
             throw PropertyListConversionError.fileError(error)
-        }
-        catch _ {
+        } catch _ {
             throw PropertyListConversionError.unknown
         }
 
@@ -758,7 +761,6 @@ public enum PropertyList: Sendable {
     public static func fromString(_ string: String) throws -> PropertyListItem {
         return try fromStringWithFormat(string).propertyList
     }
-
 
     /// Create a property list from `string`, and return the property list and the format it was read from.
     public static func fromBytesWithFormat(_ bytes: [UInt8]) throws -> (propertyList: PropertyListItem, format: PropertyListSerialization.PropertyListFormat) {
@@ -812,12 +814,12 @@ public enum PropertyList: Sendable {
 }
 
 extension PropertyList {
-    public static func encode<Value>(_ value: Value) throws -> PropertyListItem where Value : Encodable {
+    public static func encode<Value>(_ value: Value) throws -> PropertyListItem where Value: Encodable {
         // FIXME: Make this more efficient! We should be able to encode directly into the PropertyListItem object rather than first serializing to a binary plist.
         return try PropertyList.fromBytes(Array(PropertyListEncoder().encode(value)))
     }
 
-    public static func decode<T>(_ type: T.Type, from propertyListItem: PropertyListItem) throws -> T where T : Decodable {
+    public static func decode<T>(_ type: T.Type, from propertyListItem: PropertyListItem) throws -> T where T: Decodable {
         // FIXME: Make this more efficient! We should be able to decode directly from the PropertyListItem object rather than first serializing to a binary plist.
         return try PropertyListDecoder().decode(type, from: Data(propertyListItem.asBytes(.binary)))
     }
@@ -889,9 +891,11 @@ extension PropertyListItem {
                     if keyPath.keyPath.count == 1 {
                         values.append(PropertyListItemKeyPathValue(actualKeyPath: [key], value: value))
                     } else {
-                        values.append(contentsOf: value[keyPath.dropFirst()].map {
-                            PropertyListItemKeyPathValue(actualKeyPath: [key] + $0.actualKeyPath, value: $0.value)
-                        })
+                        values.append(
+                            contentsOf: value[keyPath.dropFirst()].map {
+                                PropertyListItemKeyPathValue(actualKeyPath: [key] + $0.actualKeyPath, value: $0.value)
+                            }
+                        )
                     }
                 }
             }
@@ -912,9 +916,9 @@ extension PropertyListSerialization {
                 return result
             }
             #if canImport(Darwin)
-            table.setObject(value, forKey: value as! (any NSCopying))
+                table.setObject(value, forKey: value as! (any NSCopying))
             #else
-            table.setObject(value, forKey: value as! AnyHashable)
+                table.setObject(value, forKey: value as! AnyHashable)
             #endif
             return value
         }
@@ -945,13 +949,14 @@ extension PropertyListSerialization {
 
             init(dictionary: NSDictionary, memoTable: NSMutableDictionary) {
                 // Create the sorted key list.
-                orderedKeys = dictionary.allKeys.sorted(by: { lhs, rhs in
-                    guard let lhs = lhs as? String, let rhs = rhs as? String else {
-                        // This is a rule of property lists in general, not a limitation of the implementation.
-                        preconditionFailure("property list dictionaries may only have keys which are strings")
-                    }
-                    return lhs < rhs
-                }) as NSArray
+                orderedKeys =
+                    dictionary.allKeys.sorted(by: { lhs, rhs in
+                        guard let lhs = lhs as? String, let rhs = rhs as? String else {
+                            // This is a rule of property lists in general, not a limitation of the implementation.
+                            preconditionFailure("property list dictionaries may only have keys which are strings")
+                        }
+                        return lhs < rhs
+                    }) as NSArray
 
                 let count = orderedKeys.count
                 let stableCopy = NSMutableDictionary(capacity: count)
@@ -959,18 +964,18 @@ extension PropertyListSerialization {
                     // Replace the entry with a stable copy of the key and value.
                     let key = GetInternedValue(orderedKeys[i], memoTable)
                     #if canImport(Darwin)
-                    stableCopy.setObject(GetStableValueReplacement(dictionary[key] as Any, memoTable), forKey: key as! (any NSCopying))
+                        stableCopy.setObject(GetStableValueReplacement(dictionary[key] as Any, memoTable), forKey: key as! (any NSCopying))
                     #else
-                    stableCopy.setObject(GetStableValueReplacement(dictionary[key] as Any, memoTable), forKey: key as! AnyHashable)
+                        stableCopy.setObject(GetStableValueReplacement(dictionary[key] as Any, memoTable), forKey: key as! AnyHashable)
                     #endif
                 }
 
                 self.dictionary = stableCopy
 
                 #if canImport(Darwin)
-                super.init()
+                    super.init()
                 #else
-                super.init(objects: nil, forKeys: nil, count: 0)
+                    super.init(objects: nil, forKeys: nil, count: 0)
                 #endif
             }
 
@@ -979,17 +984,17 @@ extension PropertyListSerialization {
             }
 
             #if canImport(Darwin)
-            required convenience override init() {
-                self.init(objects: nil, forKeys: nil, count: 0)
-            }
+                required convenience override init() {
+                    self.init(objects: nil, forKeys: nil, count: 0)
+                }
 
-            override init(objects: UnsafePointer<AnyObject>?, forKeys keys: UnsafePointer<any NSCopying>?, count: Int) {
-                super.init(objects: objects, forKeys: keys, count: count)
-            }
+                override init(objects: UnsafePointer<AnyObject>?, forKeys keys: UnsafePointer<any NSCopying>?, count: Int) {
+                    super.init(objects: objects, forKeys: keys, count: count)
+                }
             #else
-            required init(objects: UnsafePointer<AnyObject>!, forKeys keys: UnsafePointer<NSObject>!, count: Int) {
-                super.init(objects: objects, forKeys: keys, count: count)
-            }
+                required init(objects: UnsafePointer<AnyObject>!, forKeys keys: UnsafePointer<NSObject>!, count: Int) {
+                    super.init(objects: objects, forKeys: keys, count: count)
+                }
             #endif
 
             override var count: Int {
@@ -1010,10 +1015,10 @@ extension PropertyListSerialization {
 
         // Not working on Linux
         #if !canImport(Darwin)
-        return try data(fromPropertyList: plist, format: format, options: options)
+            return try data(fromPropertyList: plist, format: format, options: options)
         #else
-        // Convert the input property list to something which will have a stable representation when serialized.
-        return try data(fromPropertyList: GetStableValueReplacement(plist, memoTable), format: format, options: options)
+            // Convert the input property list to something which will have a stable representation when serialized.
+            return try data(fromPropertyList: GetStableValueReplacement(plist, memoTable), format: format, options: options)
         #endif
     }
 }

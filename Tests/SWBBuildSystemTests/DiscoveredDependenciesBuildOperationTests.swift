@@ -30,24 +30,33 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
-                                TestFile("proc.c"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CC": "/usr/bin/true", // use `true` so the process succeeds but won't write any dependency file
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("proc.c")
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CC": "/usr/bin/true",  // use `true` so the process succeeds but won't write any dependency file
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Client", type: .framework,
+                                "Client",
+                                type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["proc.c"]),
-                                ]),
-                        ])
-                ])
+                                    TestSourcesBuildPhase(["proc.c"])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -80,32 +89,43 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("Client.swift"),
                                 TestFile("Dep.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Client", type: .framework,
+                                "Client",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["Client.swift"]),
-                                    TestFrameworksBuildPhase(["Dep.framework"])
+                                    TestFrameworksBuildPhase(["Dep.framework"]),
                                 ],
-                                dependencies: ["Dep"]),
+                                dependencies: ["Dep"]
+                            ),
                             TestStandardTarget(
-                                "Dep", type: .framework,
+                                "Dep",
+                                type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["Dep.swift"]),
-                                ]),
-                        ])
-                ])
+                                    TestSourcesBuildPhase(["Dep.swift"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 
@@ -220,7 +240,6 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                 results.checkNoTask()
             }
 
-
             try await tester.checkNullBuild(runDestination: .macOS, persistent: true)
 
             // Change the public API of the dep, and rebuild.
@@ -300,25 +319,33 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                         TestFile("Fmwk_something_private.h"),
                         TestFile("Fmwk.h"),
                         TestFile("Fmwk_Private.h"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "DEFINES_MODULE": "YES",
-                        "CLANG_ENABLE_MODULES": "YES",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "DEFINES_MODULE": "YES",
+                            "CLANG_ENABLE_MODULES": "YES",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
                         "Fmwk",
                         type: .framework,
                         buildConfigurations: [
-                            TestBuildConfiguration("Debug", buildSettings: [
-                                "INFOPLIST_FILE": "Info.plist",
-                                "MODULEMAP_PRIVATE_FILE": "module.private.modulemap",
-                                "GENERATE_TEXT_BASED_STUBS": "YES",
-                                "PRODUCT_MODULE_NAME": "$(PRODUCT_NAME)"
-                            ])],
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "MODULEMAP_PRIVATE_FILE": "module.private.modulemap",
+                                    "GENERATE_TEXT_BASED_STUBS": "YES",
+                                    "PRODUCT_MODULE_NAME": "$(PRODUCT_NAME)",
+                                ]
+                            )
+                        ],
                         buildPhases: [
                             TestSourcesBuildPhase(["Fmwk.m"]),
                             TestHeadersBuildPhase([
@@ -326,10 +353,11 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                                 TestBuildFile("Fmwk_something_private.h", headerVisibility: .private),
                                 TestBuildFile("Fmwk.h", headerVisibility: .public),
                                 TestBuildFile("Fmwk_Private.h", headerVisibility: .private),
-                            ])
+                            ]),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let fmwkSource = SRCROOT.join("Fmwk.m")
@@ -341,21 +369,27 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             let infoPlist = SRCROOT.join("Info.plist")
 
             try tester.fs.createDirectory(SRCROOT)
-            try tester.fs.write(fmwkSource, contents: """
-    #import <Fmwk/Fmwk_something_private.h>
-    int shared = 1;
-    """)
+            try tester.fs.write(
+                fmwkSource,
+                contents: """
+                    #import <Fmwk/Fmwk_something_private.h>
+                    int shared = 1;
+                    """
+            )
             try tester.fs.write(somethingPublicHeader, contents: "// Empty")
             try tester.fs.write(somethingPrivateHeader, contents: "#import <Fmwk/Fmwk_something_public.h>")
             try tester.fs.write(publicFmwkHeader, contents: "#import <Fmwk/Fmwk_something_public.h>")
             try tester.fs.write(privateFmwkHeader, contents: "#import <Fmwk/Fmwk_something_private.h>")
-            try tester.fs.write(privateModuleMap, contents: """
-    framework module Fmwk_Private {
-        umbrella header "Fmwk_Private.h"
-        module * { export * }
-        export *
-    }
-    """)
+            try tester.fs.write(
+                privateModuleMap,
+                contents: """
+                    framework module Fmwk_Private {
+                        umbrella header "Fmwk_Private.h"
+                        module * { export * }
+                        export *
+                    }
+                    """
+            )
             try await tester.fs.writePlist(infoPlist, .plDict([:]))
 
             // Do a first build where everything should be ok.
@@ -364,10 +398,13 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             }
 
             // Modify the source to trigger compilation and linking.
-            try tester.fs.write(fmwkSource, contents: """
-    #import <Fmwk/Fmwk_something_private.h>
-    int shared = 2;
-    """)
+            try tester.fs.write(
+                fmwkSource,
+                contents: """
+                    #import <Fmwk/Fmwk_something_private.h>
+                    int shared = 2;
+                    """
+            )
             // We're not expecting this build to fail.
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in
                 results.checkNoDiagnostics()
@@ -397,12 +434,16 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                         TestFile("Fmwk.m"),
                         TestFile("Fmwk.h"),
                         TestFile("App.m"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "GENERATE_INFOPLIST_FILE": "YES",
-                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -420,11 +461,12 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
                         buildPhases: [
                             TestSourcesBuildPhase(["Fmwk.m"]),
                             TestHeadersBuildPhase([
-                                TestBuildFile("Fmwk.h", headerVisibility: .public),
-                            ])
+                                TestBuildFile("Fmwk.h", headerVisibility: .public)
+                            ]),
                         ]
-                    )
-                ])
+                    ),
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
             let frameworkSource = SRCROOT.join("Fmwk.m")
@@ -432,23 +474,29 @@ fileprivate struct DiscoveredDependenciesBuildOperationTests: CoreBasedTests {
             let appSource = SRCROOT.join("App.m")
 
             try tester.fs.createDirectory(SRCROOT)
-            try tester.fs.write(frameworkSource, contents: """
-                int foo(void) {
-                    return 42;
-                }
-            """)
+            try tester.fs.write(
+                frameworkSource,
+                contents: """
+                        int foo(void) {
+                            return 42;
+                        }
+                    """
+            )
             try tester.fs.write(frameworkHeader, contents: "int foo(void);")
-            try tester.fs.write(appSource, contents: """
-                #import <Foundation/Foundation.h>
-                #import <Fmwk/Fmwk.h>
+            try tester.fs.write(
+                appSource,
+                contents: """
+                        #import <Foundation/Foundation.h>
+                        #import <Fmwk/Fmwk.h>
 
-                int main(int argc, const char * argv[]) {
-                    @autoreleasepool {
-                        printf("%d", foo());
-                    }
-                    return 0;
-                }
-            """)
+                        int main(int argc, const char * argv[]) {
+                            @autoreleasepool {
+                                printf("%d", foo());
+                            }
+                            return 0;
+                        }
+                    """
+            )
 
             // Do a first build where everything should be ok.
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .macOS, persistent: true) { results in

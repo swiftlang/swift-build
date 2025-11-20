@@ -27,28 +27,33 @@ fileprivate struct TaskOrderingTests: CoreBasedTests {
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
-                children: [TestFile("SourceFile.m")]),
+                children: [TestFile("SourceFile.m")]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Release", buildSettings: [
-                    "SKIP_INSTALL": "NO",
-                    "DEFINES_MODULE": "YES",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "RETAIN_RAW_BINARIES": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "SKIP_INSTALL": "NO",
+                        "DEFINES_MODULE": "YES",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "RETAIN_RAW_BINARIES": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Tool",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Release"),
+                        TestBuildConfiguration("Release")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["SourceFile.m"]),
+                        TestSourcesBuildPhase(["SourceFile.m"])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS) { results in
@@ -67,4 +72,3 @@ fileprivate struct TaskOrderingTests: CoreBasedTests {
         }
     }
 }
-

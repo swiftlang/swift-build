@@ -11,9 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #if os(Windows)
-private import Foundation
+    private import Foundation
 #else
-public import Foundation
+    public import Foundation
 #endif
 
 import SwiftDriver
@@ -38,7 +38,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
     public enum Kind: Serializable {
         case target, explicitModule(uniqueID: Int)
 
-        public func serialize<T>(to serializer: T) where T : Serializer {
+        public func serialize<T>(to serializer: T) where T: Serializer {
             serializer.serializeAggregate(2) {
                 switch self {
                 case .target:
@@ -120,7 +120,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
         }.sorted()
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(10) {
             serializer.serialize(kind)
             serializer.serialize(ruleInfoType)
@@ -153,7 +153,6 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
         ([ruleInfoType, moduleName] + displayInputs.map(\.basename)).joined(separator: " ")
     }
 }
-
 
 extension LibSwiftDriver {
 
@@ -198,7 +197,7 @@ extension LibSwiftDriver {
                 self.signature = md5.signature
             }
 
-            public func serialize<T>(to serializer: T) where T : Serializer {
+            public func serialize<T>(to serializer: T) where T: Serializer {
                 serializer.serializeAggregate(5) {
                     serializer.serialize(key)
                     serializer.serialize(driverJob)
@@ -229,10 +228,10 @@ extension LibSwiftDriver {
                 let keyStrConverter: (_ key: JobKey) -> String = { key in
                     let keyStr: String
                     switch key {
-                        case .explicitDependencyJob(let index):
-                            keyStr = ("explicit(\(index))")
-                        case .targetJob(let index):
-                            keyStr = ("target(\(index))")
+                    case .explicitDependencyJob(let index):
+                        keyStr = ("explicit(\(index))")
+                    case .targetJob(let index):
+                        keyStr = ("target(\(index))")
 
                     }
                     return keyStr
@@ -306,7 +305,7 @@ extension LibSwiftDriver {
             }
         }
 
-        private static func evaluateWorkload(_ workload: SwiftDriver.DriverExecutorWorkload, argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver, globalExplicitDependencyJobGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, eagerCompilationEnabled: Bool) throws -> (plannedTargetJobs: [PlannedSwiftDriverJob], originalTargetJobs: [SwiftDriver.Job], incrementalCompilationState: IncrementalCompilationState?, producerMap: [Path: JobKey], explicitModuleBuildJobKeys: Set<JobKey>, compilationRequirementsIndices: Range<JobIndex>, compilationIndices:  Range<JobIndex>, afterCompilationIndices: Range<JobIndex>, verificationIndices: Range<JobIndex>) {
+        private static func evaluateWorkload(_ workload: SwiftDriver.DriverExecutorWorkload, argsResolver: ArgsResolver, explicitModulesResolver: ArgsResolver, globalExplicitDependencyJobGraph: (any SwiftGlobalExplicitDependencyGraph)?, workingDirectory: Path, eagerCompilationEnabled: Bool) throws -> (plannedTargetJobs: [PlannedSwiftDriverJob], originalTargetJobs: [SwiftDriver.Job], incrementalCompilationState: IncrementalCompilationState?, producerMap: [Path: JobKey], explicitModuleBuildJobKeys: Set<JobKey>, compilationRequirementsIndices: Range<JobIndex>, compilationIndices: Range<JobIndex>, afterCompilationIndices: Range<JobIndex>, verificationIndices: Range<JobIndex>) {
             var wrappedJobs: [SwiftDriverJob] = []
             var originalTargetJobs: [SwiftDriver.Job] = []
             let incrementalCompilationState: IncrementalCompilationState?
@@ -334,30 +333,39 @@ extension LibSwiftDriver {
                     /* 2 */ \.categorizer.isGeneratePch,
                     /* 3 */ \.categorizer.isCompile,
                     /* 4 */ \.categorizer.isVerification,
-                    /* 5 */ { _ in true }
+                    /* 5 */ { _ in true },
                 ])
 
+            explicitModuleBuildJobKeys = try addExplicitDependencyBuildJobs(
+                groupedJobs[0],
+                to: explicitDependencyJobGraph,
+                workingDirectory: workingDirectory,
+                producing: &producerMap
+            )
 
-            explicitModuleBuildJobKeys = try addExplicitDependencyBuildJobs(groupedJobs[0],
-                                                                            to: explicitDependencyJobGraph,
-                                                                            workingDirectory: workingDirectory,
-                                                                            producing: &producerMap)
+            compilationRequirementsIndices = try addTargetJobs(
+                groupedJobs[2] + groupedJobs[1] + (eagerCompilationEnabled ? [] : groupedJobs[3]),
+                to: &wrappedJobs,
+                producing: &producerMap
+            )
 
-            compilationRequirementsIndices = try addTargetJobs(groupedJobs[2] + groupedJobs[1] + (eagerCompilationEnabled ? [] : groupedJobs[3]),
-                                                               to: &wrappedJobs,
-                                                               producing: &producerMap)
+            compilationIndices = try addTargetJobs(
+                eagerCompilationEnabled ? groupedJobs[3] : [],
+                to: &wrappedJobs,
+                producing: &producerMap
+            )
 
-            compilationIndices = try addTargetJobs(eagerCompilationEnabled ? groupedJobs[3] : [],
-                                                   to: &wrappedJobs,
-                                                   producing: &producerMap)
+            verificationIndices = try addTargetJobs(
+                groupedJobs[4],
+                to: &wrappedJobs,
+                producing: &producerMap
+            )
 
-            verificationIndices = try addTargetJobs(groupedJobs[4],
-                                                    to: &wrappedJobs,
-                                                    producing: &producerMap)
-
-            afterCompilationIndices = try addTargetJobs(groupedJobs[5],
-                                                        to: &wrappedJobs,
-                                                        producing: &producerMap)
+            afterCompilationIndices = try addTargetJobs(
+                groupedJobs[5],
+                to: &wrappedJobs,
+                producing: &producerMap
+            )
 
             originalTargetJobs = jobsToWrap.filter {
                 !SwiftDriverJobCategorizer($0).isExplicitDependencyBuild
@@ -390,12 +398,17 @@ extension LibSwiftDriver {
         }
 
         @discardableResult
-        private static func addExplicitDependencyBuildJobs(_ explicitDependencyDriverJobs: [SwiftDriverJob],
-                                                           to explicitDependencyJobGraph: any SwiftGlobalExplicitDependencyGraph,
-                                                           workingDirectory: Path, producing producerMap: inout [Path: JobKey]) throws -> Set<JobKey> {
-            return try explicitDependencyJobGraph.addExplicitDependencyBuildJobs(explicitDependencyDriverJobs,
-                                                                                 workingDirectory: workingDirectory,
-                                                                                 producerMap: &producerMap)
+        private static func addExplicitDependencyBuildJobs(
+            _ explicitDependencyDriverJobs: [SwiftDriverJob],
+            to explicitDependencyJobGraph: any SwiftGlobalExplicitDependencyGraph,
+            workingDirectory: Path,
+            producing producerMap: inout [Path: JobKey]
+        ) throws -> Set<JobKey> {
+            return try explicitDependencyJobGraph.addExplicitDependencyBuildJobs(
+                explicitDependencyDriverJobs,
+                workingDirectory: workingDirectory,
+                producerMap: &producerMap
+            )
         }
 
         @discardableResult
@@ -407,22 +420,26 @@ extension LibSwiftDriver {
                 jobs.append(job)
             }
 
-            return initialCount ..< jobs.count
+            return initialCount..<jobs.count
         }
 
-        internal static func addProducts(of job: SwiftDriverJob, index: JobKey, knownJobs: [SwiftDriverJob], to producerMap: inout [Path: JobKey]
+        internal static func addProducts(
+            of job: SwiftDriverJob,
+            index: JobKey,
+            knownJobs: [SwiftDriverJob],
+            to producerMap: inout [Path: JobKey]
         ) throws {
             for output in job.outputs {
                 if let otherJobKey = producerMap.updateValue(index, forKey: output) {
                     // Due to rdar://88393903 emit-module and compile jobs will specify to produce the Objective-C header file of the Swift target. Since we're not tracking outputs yet in llbuild for dynamic tasks it won't matter but we should throw the error again once llbuild starts tracking outputs. (rdar://70881411)
 
                     _ = otherJobKey
-//                    switch otherJobKey {
-//                        case .targetJob(let otherJobIndex):
-//                            throw PlannedBuild.Errors.multipleProducers(output: output, jobs: [job, knownJobs[otherJobIndex]])
-//                        case .explicitDependencyJob(let otherJobIndex):
-//                            throw PlannedBuild.Errors.multipleProducers(output: output, jobs: [job, knownJobs[otherJobIndex]])
-//                    }
+                    //                    switch otherJobKey {
+                    //                        case .targetJob(let otherJobIndex):
+                    //                            throw PlannedBuild.Errors.multipleProducers(output: output, jobs: [job, knownJobs[otherJobIndex]])
+                    //                        case .explicitDependencyJob(let otherJobIndex):
+                    //                            throw PlannedBuild.Errors.multipleProducers(output: output, jobs: [job, knownJobs[otherJobIndex]])
+                    //                    }
                 }
                 producerMap[output] = index
             }
@@ -430,12 +447,12 @@ extension LibSwiftDriver {
 
         private func driverJob(for plannedDriverJob: PlannedSwiftDriverJob) throws -> SwiftDriver.Job {
             switch plannedDriverJob.key {
-                case .targetJob(let index):
-                    guard let job = driverTargetJobs[safe: index] else {
-                        throw StubError.error("Data inconsistency between planned driver jobs and actual jobs. Job \(plannedDriverJob.driverJob) is unknown.")
-                    }
-                    return job
-                case .explicitDependencyJob(_):
+            case .targetJob(let index):
+                guard let job = driverTargetJobs[safe: index] else {
+                    throw StubError.error("Data inconsistency between planned driver jobs and actual jobs. Job \(plannedDriverJob.driverJob) is unknown.")
+                }
+                return job
+            case .explicitDependencyJob(_):
                 throw StubError.error("Querying SwiftDriver.job unsupported for an Explicit Dependency Build job.")
             }
         }
@@ -497,13 +514,13 @@ extension LibSwiftDriver {
         public func dependencies(for job: PlannedSwiftDriverJob) -> [PlannedSwiftDriverJob] {
             return job.dependencies.compactMap { dependencyKey in
                 switch dependencyKey {
-                    case .targetJob(_):
-                        return plannedTargetJob(for: dependencyKey)
-                    case .explicitDependencyJob(_):
-                        guard let explicitDependencyJobGraph = globalExplicitDependencyJobGraph else {
-                            fatalError("Explicit Module build job detected without a globalExplicitDependencyJobGraph.")
-                        }
-                        return explicitDependencyJobGraph.plannedExplicitDependencyBuildJob(for: dependencyKey)
+                case .targetJob(_):
+                    return plannedTargetJob(for: dependencyKey)
+                case .explicitDependencyJob(_):
+                    guard let explicitDependencyJobGraph = globalExplicitDependencyJobGraph else {
+                        fatalError("Explicit Module build job detected without a globalExplicitDependencyJobGraph.")
+                    }
+                    return explicitDependencyJobGraph.plannedExplicitDependencyBuildJob(for: dependencyKey)
                 }
             }
         }
@@ -550,7 +567,7 @@ extension LibSwiftDriver {
             try await dispatchQueue.sync {
                 let driverJob = try self.driverJob(for: job)
                 guard let reproJob = self.jobExecutionDelegate?.getReproducerJob(job: driverJob, output: try VirtualPath(path: dir.str)) else {
-                  return nil
+                    return nil
                 }
                 return try self.argsResolver.resolveArgumentList(for: reproJob, useResponseFiles: .heuristic)
             }
@@ -601,11 +618,11 @@ private extension TSCBasic.ProcessResult.ExitStatus {
         case let .exit(code):
             self = .terminated(code: code)
         case let .uncaughtSignal(signal):
-#if os(Windows)
-            self = .abnormal(exception: UInt32(signal))
-#else
-            self = .signalled(signal: signal)
-#endif
+            #if os(Windows)
+                self = .abnormal(exception: UInt32(signal))
+            #else
+                self = .signalled(signal: signal)
+            #endif
         }
     }
 }
@@ -663,19 +680,16 @@ public extension SwiftDriverJobCategorizer {
     }
 
     var isEmitModule: Bool {
-        containsInputs { ext, _ in ext == "swift" } &&
-        containsOutputs { ext, basename in ext == "swiftmodule" && !basename.contains("~partial") }
+        containsInputs { ext, _ in ext == "swift" } && containsOutputs { ext, basename in ext == "swiftmodule" && !basename.contains("~partial") }
     }
 
     var isCompile: Bool {
         // Compile jobs may not contain .o file if build for IS_ZIPPERED
-        containsInputs { ext, _ in ext == "swift" } &&
-        containsOutputs { ext, _ in ext == "d" || ext == "o" }
+        containsInputs { ext, _ in ext == "swift" } && containsOutputs { ext, _ in ext == "d" || ext == "o" }
     }
 
     var isGeneratePch: Bool {
-        containsInputs { ext, _ in ext == "h" } &&
-        containsOutputs { ext, _ in ext == "pch" }
+        containsInputs { ext, _ in ext == "h" } && containsOutputs { ext, _ in ext == "pch" }
     }
 
     // FIXME: Track the SwiftDriver.Job.Kind of SWBCore.SwiftDriverJobs that are not for explicit modules, and use that to classify verification tasks.
@@ -702,8 +716,7 @@ public extension SwiftDriverJob {
 private extension Array {
     func grouped(by conditionsInOrder: [(Element) -> Bool]) throws -> [[Element]] {
         var result: [[Element]] = .init(repeating: [], count: conditionsInOrder.count)
-    arrayLoop:
-        for element in self {
+        arrayLoop: for element in self {
             for (index, condition) in conditionsInOrder.enumerated() {
                 if condition(element) {
                     result[index].append(element)

@@ -23,22 +23,26 @@ fileprivate struct DependencyValidatorPerfTests: CoreBasedTests, PerfTests {
     func dependencyValidatorBuildOperationPerf(on: Bool) async throws {
         try await withTemporaryDirectory { tmp in
             let targets = (0..<10).map { i in
-                TestStandardTarget("Target_\(i)",
-                                   type: .framework,
-                                   buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: [
-                                        "CODE_SIGNING_ALLOWED": "NO",
-                                        "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "SWIFT_VERSION": "5",
-                                        "SWIFT_COMPILATION_MODE": "wholemodule",
-                                        "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
-                                        "VALIDATE_DEPENDENCIES": on ? "YES" : "NO",
-                                    ])
-                                   ],
-                                   buildPhases: [
-                                    TestSourcesBuildPhase((0..<100).map { i in TestBuildFile("File\(i).swift") })
-                                   ]
+                TestStandardTarget(
+                    "Target_\(i)",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": "5",
+                                "SWIFT_COMPILATION_MODE": "wholemodule",
+                                "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                "VALIDATE_DEPENDENCIES": on ? "YES" : "NO",
+                            ]
+                        )
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase((0..<100).map { i in TestBuildFile("File\(i).swift") })
+                    ]
                 )
             }
 
@@ -46,12 +50,13 @@ fileprivate struct DependencyValidatorPerfTests: CoreBasedTests, PerfTests {
                 "Workspace",
                 sourceRoot: tmp,
                 projects: [
-                    TestProject("aProject",
-                                groupTree: TestGroup("SomeFiles", children: [
-                                ] + (0..<100).map { i in TestFile("File\(i).swift", sourceTree: .buildSetting("SRCROOT")) }),
-                                targets: targets
-                               )
-                ])
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("SomeFiles", children: [] + (0..<100).map { i in TestFile("File\(i).swift", sourceTree: .buildSetting("SRCROOT")) }),
+                        targets: targets
+                    )
+                ]
+            )
             let core = try await getCore()
 
             try await measure {

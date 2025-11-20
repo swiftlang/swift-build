@@ -44,7 +44,7 @@ private struct RandomNumberGenerator: Swift.RandomNumberGenerator {
         // Pick a uniform N less than the sum.
         let sum = weights.reduce(0, +)
         var n = uniform(lessThan: sum)
-        for (i,value) in weights.enumerated() {
+        for (i, value) in weights.enumerated() {
             if n < value {
                 return i
             }
@@ -56,7 +56,7 @@ private struct RandomNumberGenerator: Swift.RandomNumberGenerator {
     /// Split an input into N random pieces.
     mutating func split<T>(into n: Int, piecesOf input: [T]) -> [[T]] {
         // FIXME: This is not efficient.
-        var results = (0 ..< n).map{ _ in [T]() }
+        var results = (0..<n).map { _ in [T]() }
         for item in input {
             results[uniform(lessThan: n)].append(item)
         }
@@ -83,35 +83,45 @@ package final class RandomWorkspaceBuilder {
     /// Generate a random workspace with the current parameters.
     package func generate() -> TestWorkspace {
         // Create all of the input files.
-        let files = (0 ..< numFiles).map{ i -> TestFile in
+        let files = (0..<numFiles).map { i -> TestFile in
             // FIXME: Pick a random file extension.
             let ext = "c"
             return TestFile("File-\(i).\(ext)")
         }
 
         // Create the targets, with files randomly divided.
-        let targets = rng.split(into: numTargets, piecesOf: files).enumerated().map{ (entry) -> TestStandardTarget in
+        let targets = rng.split(into: numTargets, piecesOf: files).enumerated().map { (entry) -> TestStandardTarget in
             let (i, files) = entry
             // FIXME: Pick type randomly.
-            return TestStandardTarget("Target-\(i)", type: .staticLibrary, buildPhases: [
+            return TestStandardTarget(
+                "Target-\(i)",
+                type: .staticLibrary,
+                buildPhases: [
                     // FIXME: Pick phases randomly.
-                    TestSourcesBuildPhase(files.map{ TestBuildFile($0.name) })
-                ])
+                    TestSourcesBuildPhase(files.map { TestBuildFile($0.name) })
+                ]
+            )
         }
 
         // FIXME: Create the random projects.
         assert(numProjects == 1, "FIXME: Unsupported")
-        let project = TestProject("Project-0",
+        let project = TestProject(
+            "Project-0",
             groupTree: TestGroup("Sources", children: files),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                        "PRODUCT_NAME": "$(TARGET_NAME)"]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)"
+                    ]
+                )
             ],
-            targets: targets)
+            targets: targets
+        )
 
         return TestWorkspace("Random", sourceRoot: project.sourceRoot, projects: [project])
     }
 }
 
 @available(*, unavailable)
-extension RandomWorkspaceBuilder: Sendable { }
+extension RandomWorkspaceBuilder: Sendable {}

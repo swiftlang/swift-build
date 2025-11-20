@@ -90,9 +90,12 @@ fileprivate struct InspectBuildDescriptionTests {
                     "MyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        .init("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)"
-                        ])
+                        .init(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
                     ],
                     buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
                 )
@@ -101,9 +104,12 @@ fileprivate struct InspectBuildDescriptionTests {
                     "MyStaticLibrary",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        .init("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)"
-                        ])
+                        .init(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
                     ],
                     buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
                 )
@@ -112,9 +118,12 @@ fileprivate struct InspectBuildDescriptionTests {
                     "MyDynamicLibrary",
                     type: .dynamicLibrary,
                     buildConfigurations: [
-                        .init("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)"
-                        ])
+                        .init(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
                     ],
                     buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
                 )
@@ -123,9 +132,12 @@ fileprivate struct InspectBuildDescriptionTests {
                     "MyExecutable",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        .init("Debug", buildSettings: [
-                            "PRODUCT_NAME": "$(TARGET_NAME)"
-                        ])
+                        .init(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)"
+                            ]
+                        )
                     ],
                     buildPhases: [TestSourcesBuildPhase([TestBuildFile("Foo.swift")])],
                 )

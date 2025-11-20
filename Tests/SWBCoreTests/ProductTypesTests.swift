@@ -22,55 +22,65 @@ fileprivate struct ProductTypesTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func testDeepFramework_FrameworksSymlink() async throws {
         let core = try await getCore()
-        let testWorkspace = TestWorkspace("Workspace",
+        let testWorkspace = TestWorkspace(
+            "Workspace",
             projects: [
                 TestProject(
                     "aProject",
-                    groupTree: TestGroup("SomeFiles", children: [
-                        TestFile("aFramework.m"),
-                        TestFile("embeddedFramework.m"),
-                    ]),
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("aFramework.m"),
+                            TestFile("embeddedFramework.m"),
+                        ]
+                    ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Release", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "$(TARGET_NAME)",
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ])
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Release"),
+                                TestBuildConfiguration("Release")
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["aFramework.m"]),
-                                TestCopyFilesBuildPhase([
-                                    "embeddedFramework.framework",
-                                ], destinationSubfolder: .frameworks),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "embeddedFramework.framework"
+                                    ],
+                                    destinationSubfolder: .frameworks
+                                ),
                                 TestFrameworksBuildPhase([
-                                    "embeddedFramework.framework",
+                                    "embeddedFramework.framework"
                                 ]),
                             ],
                             dependencies: [
-                                "embeddedFramework",
+                                "embeddedFramework"
                             ]
                         ),
                         TestStandardTarget(
                             "embeddedFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Release"),
+                                TestBuildConfiguration("Release")
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase(["embeddedFramework.m"]),
                                 TestFrameworksBuildPhase(),
                             ]
-                        )
+                        ),
                     ]
-                ),
+                )
             ]
         )
 

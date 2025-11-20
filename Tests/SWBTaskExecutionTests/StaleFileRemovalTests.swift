@@ -73,13 +73,13 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                 TestBuildConfiguration(
                                     "Debug",
                                     buildSettings: [
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
                                     ]
                                 ),
                                 TestBuildConfiguration(
                                     "Release",
                                     buildSettings: [
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                                        "PRODUCT_NAME": "$(TARGET_NAME)"
                                     ]
                                 ),
                             ],
@@ -93,14 +93,14 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                     ],
                                     buildPhases: [
                                         TestSourcesBuildPhase([
-                                            "main.m",
+                                            "main.m"
                                         ]),
                                         TestFrameworksBuildPhase([
-                                            "foo.xcframework",
+                                            "foo.xcframework"
                                         ]),
                                     ],
                                     dependencies: [
-                                        "Framework",
+                                        "Framework"
                                     ]
                                 ),
                                 TestStandardTarget(
@@ -112,15 +112,17 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                                     ],
                                     buildPhases: [
                                         TestSourcesBuildPhase([
-                                            "ClassOne.m",
+                                            "ClassOne.m"
                                         ]),
                                         TestFrameworksBuildPhase([
-                                            "foo.xcframework",
+                                            "foo.xcframework"
                                         ]),
                                     ]
                                 ),
-                            ])
-                    ])
+                            ]
+                        )
+                    ]
+                )
                 let workspace = try await testWorkspace.load(getCore())
                 let numTargets = workspace.projects.first?.targets.count ?? 0
                 guard numTargets > 0 else {
@@ -130,13 +132,16 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
 
                 let fs = PseudoFS()
 
-                let xcframework = try XCFramework(version: Version(1, 0), libraries: [
-                    XCFramework.Library(libraryIdentifier: "x86_64-apple-macos11.0", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
-                    XCFramework.Library(libraryIdentifier: "x86_64-apple-ios14.0-maccatalyst", supportedPlatform: "ios", supportedArchitectures: ["x86_64"], platformVariant: "macabi", libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos11.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-                    XCFramework.Library(libraryIdentifier: "arm64-apple-iphonesimulator11.0", supportedPlatform: "ios", supportedArchitectures: ["x86_64"], platformVariant: "simulator", libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-                    XCFramework.Library(libraryIdentifier: "x86_64-apple-driverkit19.0", supportedPlatform: "driverkit", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
-                ])
+                let xcframework = try XCFramework(
+                    version: Version(1, 0),
+                    libraries: [
+                        XCFramework.Library(libraryIdentifier: "x86_64-apple-macos11.0", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Versions/A/Support"), headersPath: nil),
+                        XCFramework.Library(libraryIdentifier: "x86_64-apple-ios14.0-maccatalyst", supportedPlatform: "ios", supportedArchitectures: ["x86_64"], platformVariant: "macabi", libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                        XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos11.0", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                        XCFramework.Library(libraryIdentifier: "arm64-apple-iphonesimulator11.0", supportedPlatform: "ios", supportedArchitectures: ["x86_64"], platformVariant: "simulator", libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                        XCFramework.Library(libraryIdentifier: "x86_64-apple-driverkit19.0", supportedPlatform: "driverkit", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Support.framework"), binaryPath: Path("Support.framework/Support"), headersPath: nil),
+                    ]
+                )
                 let xcframeworkPath = tmpDirPath.join("aProject").join("foo.xcframework")
                 try fs.createDirectory(xcframeworkPath, recursive: true)
                 try await fs.writeXCFramework(xcframeworkPath, xcframework, infoLookup: getCore())

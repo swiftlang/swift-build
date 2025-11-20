@@ -53,7 +53,6 @@ public final class MacroConfigFileParser {
     /// Index of the start of the current line in the byte array.
     private var currentLineStartIdx: Int = 0
 
-
     /// Initializes the macro expression parser with the given string and delegate.  How the string is parsed depends on the particular parse method that’s invoked, such as `parseAsString()` or `parseAsStringList()`, and not on the configuration of the parser.
     public init(byteString: ByteString, path: Path, delegate: (any MacroConfigFileParserDelegate)?) {
         self.delegate = delegate
@@ -70,78 +69,71 @@ public final class MacroConfigFileParser {
     /// Returns the current column number of the parser. Column numbers are one-based.
     public var columnNumber: Int { return currIdx - currentLineStartIdx + 1 }
 
-    /*
-
-    Grammar:
-
-      xcconfig:
-        line
-
-      line:
-        "" // empty
-        "#" directive
-        assignment ';'?
-
-      directive:
-        "include" '\"' string '\"'
-        "include?" '\"' string '\"'
-
-      assignment:
-        macro '='
-        macro '=' value
-        macro conditions '=' value
-
-      conditions:
-        condition
-        conditions condition
-
-      condition:
-        '[' condition-parameter '=' condition-pattern ']'
-
-      condition-parameter:
-        anything-except-equals-sign-and-right-bracket+
-
-      condition-pattern:
-        anything-except-right-bracket+
-
-      comment:
-        '/' '/' anything-except-newline '\n'
-
-      end-of-line:
-        '\n'
-        '\r'
-        '\r' '\n'
-        <unicode line separator>
-        <unicode paragraph separator>
-
-    */
-
+    /**
+     * Grammar:
+     *
+     *   xcconfig:
+     *     line
+     *
+     *   line:
+     *     "" // empty
+     *     "#" directive
+     *     assignment ';'?
+     *
+     *   directive:
+     *     "include" '\"' string '\"'
+     *     "include?" '\"' string '\"'
+     *
+     *   assignment:
+     *     macro '='
+     *     macro '=' value
+     *     macro conditions '=' value
+     *
+     *   conditions:
+     *     condition
+     *     conditions condition
+     *
+     *   condition:
+     *     '[' condition-parameter '=' condition-pattern ']'
+     *
+     *   condition-parameter:
+     *     anything-except-equals-sign-and-right-bracket+
+     *
+     *   condition-pattern:
+     *     anything-except-right-bracket+
+     *
+     *   comment:
+     *     '/' '/' anything-except-newline '\n'
+     *
+     *   end-of-line:
+     *     '\n'
+     *     '\r'
+     *     '\r' '\n'
+     *     <unicode line separator>
+     *     <unicode paragraph separator>
+     *
+     **/
 
     /// Checks whether the cursor is at the end of a line, i.e. either at a line terminator (\n, \r, \r\n, or a UTF8-coded Unicode Line Separator or Paragraph Separator) or at the end of the entire input.
     private var isAtEndOfLine: Bool {
         return isAtEndOfStream || currChar == /* '\n' */ 10 || currChar == /* '\r' */ 13 || (currChar == 0xE2 && nextChar == 0x80 && (nextNextChar == /* Unicode Line Separator */ 0xA8 || nextNextChar == /* Unicode Paragraph Separator */ 0xA9))
     }
 
-
     /// Checks whether the cursor is at the start of a `//` style comment.
     private var isAtStartOfComment: Bool {
         return currChar == /* '/' */ 47 && nextChar == /* '/' */ 47
     }
-
 
     /// If the cursor is at an end-of-line (as determined by `isAtEOL()`), it is advanced past the end-of-line and `currLine` is incremented.  Otherwise this function does nothing.  Note that an end-of-line may be one, two, or three bytes in length.
     private func scanEOL() {
         var advancement = 0
         if currChar == /* '\n' */ 10 {
             advancement = 1
-        }
-        else if currChar == /* '\r' */ 13 {
+        } else if currChar == /* '\r' */ 13 {
             advancement = (nextChar == /* '\n' */ 10) ? 2 : 1
-        }
-        else if currChar == 0xE2 && nextChar == 0x80 && (nextNextChar == 0xA8 || nextNextChar == 0xA9) {
+        } else if currChar == 0xE2 && nextChar == 0x80 && (nextNextChar == 0xA8 || nextNextChar == 0xA9) {
             advancement = 3
-        }
-        else {
+        } else {
             return
         }
         advance(advancement)
@@ -149,12 +141,10 @@ public final class MacroConfigFileParser {
         currentLineStartIdx = currIdx
     }
 
-
     /// Advances the cursor until it reaches the next line terminator or end-of-stream. Does nothing if the cursor is already at the end of a line or of the stream.
     private func skipRestOfLine() {
         while !isAtEndOfLine { advance() }
     }
-
 
     /// Advances the cursor past spaces, tabs, and comments (but doesn’t go past an end-of-line).
     private func skipWhitespaceAndComments() {
@@ -162,12 +152,10 @@ public final class MacroConfigFileParser {
             if currChar.isASCIISpace {
                 // Normal whitespace — skip to the next byte.
                 advance()
-            }
-            else if isAtStartOfComment {
+            } else if isAtStartOfComment {
                 // Start of single-line comment.  Skip the rest of the line.
                 skipRestOfLine()
-            }
-            else {
+            } else {
                 break
             }
         }
@@ -183,7 +171,7 @@ public final class MacroConfigFileParser {
             // FIXME: We should really handle escapes here too.
             let markIdx = currIdx
             scanUntil({ self.isAtEndOfLine || $0 == /* '\"' */ 34 })
-            let fileName = String(decoding: bytes[markIdx ..< currIdx], as: UTF8.self)
+            let fileName = String(decoding: bytes[markIdx..<currIdx], as: UTF8.self)
 
             // If we found a doublequote, we have a string, otherwise we have an unterminated quote.
             if currChar == /* '\"' */ 34 {
@@ -213,8 +201,7 @@ public final class MacroConfigFileParser {
         if isAtEndOfLine {
             // An empty line.
             return
-        }
-        else if currChar != /* '#' */ 35 {
+        } else if currChar != /* '#' */ 35 {
             // We stopped at something other than a ‘#’ character.  That’s unexpected.
             delegate?.handleDiagnostic(MacroConfigFileDiagnostic(kind: .unexpectedCharacter, level: .error, message: "expected a preprocessor directive, but found \(Character(Unicode.Scalar(currChar)))", lineNumber: lineNumber), parser: self)
             skipRestOfLine()
@@ -238,7 +225,7 @@ public final class MacroConfigFileParser {
         // Collect the directive keyword.
         let markIdx = currIdx
         scanUntil({ self.isAtWhitespace })
-        let directive = String(decoding: bytes[markIdx ..< currIdx], as: UTF8.self)
+        let directive = String(decoding: bytes[markIdx..<currIdx], as: UTF8.self)
 
         // Check for known directives.
         var includeIsOptional = false
@@ -263,21 +250,18 @@ public final class MacroConfigFileParser {
 
                         // In order to detect cycles, we need to keep track of when we complete parsing a config file.
                         delegate?.endPreprocessorInclusion()
-                    }
-                    else {
+                    } else {
                         // We couldn't parse the included file, so we return.  (We expected that the delegate would emit any errors.)
                         skipRestOfLine()
                         return
                     }
-                }
-                else {
+                } else {
                     // If we have extra stuff at the end of the line, we report an error.
                     delegate?.handleDiagnostic(MacroConfigFileDiagnostic(kind: .unexpectedCharacter, level: .error, message: "unexpected character at end of line: ‘\(Character(Unicode.Scalar(currChar)))’", lineNumber: lineNumber), parser: self)
                     skipRestOfLine()
                     return
                 }
-            }
-            else {
+            } else {
                 // parseQuotedString has already emitted and error and skipped the rest of the line.
                 return
             }
@@ -300,8 +284,7 @@ public final class MacroConfigFileParser {
         if isAtEndOfLine {
             // An empty line.
             return
-        }
-        else if !isValidMacroName1stChar(currChar) {
+        } else if !isValidMacroName1stChar(currChar) {
             // We stopped at something other than a valid macro name.  That’s unexpected.
             delegate?.handleDiagnostic(MacroConfigFileDiagnostic(kind: .unexpectedCharacter, level: .error, message: "expected a macro name, but found \(Character(Unicode.Scalar(currChar)))", lineNumber: lineNumber), parser: self)
             skipRestOfLine()
@@ -313,7 +296,7 @@ public final class MacroConfigFileParser {
         let markIdx = currIdx
         advance()
         scanUntil({ !isValidMacroNameNthChar($0) })
-        let name = String(decoding: bytes[markIdx ..< currIdx], as: UTF8.self)
+        let name = String(decoding: bytes[markIdx..<currIdx], as: UTF8.self)
 
         // Otherwise, we were able to collect the macro name.  Whitespace is fine at this point.
         skipWhitespaceAndComments()
@@ -331,13 +314,12 @@ public final class MacroConfigFileParser {
             }
             let paramMarkIdx = currIdx
             scanUntil(isAtConditionSeparator)
-            let param = String(decoding: bytes[paramMarkIdx ..< currIdx], as: UTF8.self)
+            let param = String(decoding: bytes[paramMarkIdx..<currIdx], as: UTF8.self)
             if isAtEndOfLine {
                 delegate?.handleDiagnostic(MacroConfigFileDiagnostic(kind: .unexpectedCharacter, level: .error, message: "unterminated macro condition on line \(lineNumber)", lineNumber: lineNumber), parser: self)
                 skipRestOfLine()
                 return
-            }
-            else if currChar == /* ']' */ 93 {
+            } else if currChar == /* ']' */ 93 {
                 delegate?.handleDiagnostic(MacroConfigFileDiagnostic(kind: .unexpectedCharacter, level: .error, message: "expected to find ‘=’ in macro condition", lineNumber: lineNumber), parser: self)
                 skipRestOfLine()
                 return
@@ -350,7 +332,7 @@ public final class MacroConfigFileParser {
             // Collect the condition parameter pattern.
             let patternMarkIdx = currIdx
             scanUntil({ self.isAtEndOfLine || $0 == /* ']' */ 93 })
-            let pattern = String(decoding: bytes[patternMarkIdx ..< currIdx], as: UTF8.self)
+            let pattern = String(decoding: bytes[patternMarkIdx..<currIdx], as: UTF8.self)
             if isAtEndOfLine {
                 delegate?.handleDiagnostic(MacroConfigFileDiagnostic(kind: .unexpectedCharacter, level: .error, message: "unterminated macro condition", lineNumber: lineNumber), parser: self)
                 skipRestOfLine()
@@ -381,13 +363,13 @@ public final class MacroConfigFileParser {
         let startLine = currLine
         let startColumn = currIdx - startOfLine
 
-        var chunks : [String] = []
+        var chunks: [String] = []
         while let chunk = parseNonListAssignmentRHS() {
             // we have already ensured chunk doesn't have trailing spaces
             if chunk.hasSuffix("\\") {
                 // we should drop the line continuation character from the chunk
                 let trimmed = chunk.dropLast().trimmingCharacters(in: .whitespaces)
-                if !trimmed.isEmpty { // no need to add empty lines
+                if !trimmed.isEmpty {  // no need to add empty lines
                     chunks.append(String(trimmed))
                 }
                 // and then we should read yet another line as the new chunk
@@ -413,7 +395,6 @@ public final class MacroConfigFileParser {
         }
         // MARK: by here we know we are not dealing with purely whitespace line.
 
-
         // Now the value. We mostly just collect characters, but one quirk of the Xcode semantics is that `//` will still start a single-line comment.
 
         let valueMarkIdx = currIdx
@@ -426,24 +407,23 @@ public final class MacroConfigFileParser {
         }
 
         // Trim any trailing whitespace off of the end of the value.
-        while endIdx > valueMarkIdx && bytes[endIdx-1].isASCIISpace {
+        while endIdx > valueMarkIdx && bytes[endIdx - 1].isASCIISpace {
             endIdx -= 1
         }
 
         // Trim any trailing semicolon (and preceding whitespace).
-        if bytes[endIdx-1] == /* ';' */ 59 {
+        if bytes[endIdx - 1] == /* ';' */ 59 {
             endIdx -= 1
-            while endIdx > valueMarkIdx && bytes[endIdx-1].isASCIISpace {
+            while endIdx > valueMarkIdx && bytes[endIdx - 1].isASCIISpace {
                 endIdx -= 1
             }
         }
 
         // Make the value into a string.
-        let value = String(decoding: bytes[valueMarkIdx ..< endIdx], as: UTF8.self)
+        let value = String(decoding: bytes[valueMarkIdx..<endIdx], as: UTF8.self)
 
         return value
     }
-
 
     /// Parses the input string as a sequence of lines.  Each line is terminated by one of: \n, \r, \r\n, Unicode Line Separator, or Unicode Paragraph Separator.  Single-line comments starting with `//` are supported and elided from the input text.  Any remaining non-empty line is expected to be either a preprocessor directive (indicated by a `#` as the first non-whitespace character) or a macro value assignment statement (parsed separately).
     public func parse() {
@@ -455,16 +435,13 @@ public final class MacroConfigFileParser {
             // We may have reached the end of the line, or a preprocessor directive, or a macro value assignment.
             if isAtEndOfLine {
                 // A completely empty line.
-            }
-            else if currChar == /* '#' */ 35 {
+            } else if currChar == /* '#' */ 35 {
                 // A preprocessor directive.
                 parsePreprocessorDirective()
-            }
-            else if isValidMacroName1stChar(currChar) {
+            } else if isValidMacroName1stChar(currChar) {
                 // A macro value assignment.
                 parseMacroValueAssignment()
-            }
-            else if !isAtEndOfLine {
+            } else if !isAtEndOfLine {
                 // Anything else is an error.
                 delegate?.handleDiagnostic(MacroConfigFileDiagnostic(kind: .unexpectedCharacter, level: .error, message: "unexpected character ‘\(Character(Unicode.Scalar(currChar)))’", lineNumber: lineNumber), parser: self)
                 skipRestOfLine()
@@ -482,7 +459,6 @@ public final class MacroConfigFileParser {
         finalLineNumber = currLine
         finalColumnNumber = columnNumber
     }
-
 
     /// Returns the UTF-8 byte at the current position, which is zero if the cursor is currently at the very end of the string.
     private var currChar: UInt8 {
@@ -533,7 +509,7 @@ public final class MacroConfigFileParser {
     /// Public static function to parse a macro name (with a possible condition set suffix) into a name string and a condition set.
     public static func parseMacroNameAndConditionSet(_ string: String) -> (String?, [(param: String, pattern: String)]?) {
         // We do this using our existing parsing code.
-        class SingleMacroNameDelegate : MacroConfigFileParserDelegate {
+        class SingleMacroNameDelegate: MacroConfigFileParserDelegate {
             var macroName: String?
             var conditions: [(param: String, pattern: String)]?
             func foundPreprocessorInclusion(_ fileName: String, optional: Bool, parser: MacroConfigFileParser) -> MacroConfigFileParser? {
@@ -556,7 +532,6 @@ public final class MacroConfigFileParser {
     }
 }
 
-
 /// Returns true if and only if `ch` is an uppercase or lowercase letter in the ASCII range (i.e., it matches '[A-Za-z]').
 private func isAlpha(_ ch: UInt8) -> Bool {
     return (ch >= /* 'A' */ 65 && ch <= /* 'Z' */ 90) || (ch >= /* 'a' */ 97 && ch <= /* 'z' */ 122)
@@ -576,7 +551,6 @@ private func isValidMacroName1stChar(_ ch: UInt8) -> Bool {
 private func isValidMacroNameNthChar(_ ch: UInt8) -> Bool {
     return isAlpha(ch) || isDigit(ch) || ch == /* '_' */ 95
 }
-
 
 /// Encapsulates the callbacks that a .xcconfig file parser invokes during a parse.  All methods are optional.  Separating the actions into a protocol allows the .xcconfig parser to be used for a variety of tasks, and makes it easier to test and profile.  The parser is passed to each of the delegate methods, and its `position` property can be used to access the current index in the original string.  The parser is as lenient as possible, and tries to recover from errors as well as possible in order to preserve the Xcode semantics.  The delegate is guaranteed to see the entire contents of the input string, regardless of how many errors are discovered (some of that contents might be misparsed in the wake of errors, however).
 public protocol MacroConfigFileParserDelegate {

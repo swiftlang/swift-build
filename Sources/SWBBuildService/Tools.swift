@@ -155,9 +155,9 @@ private class MsgPackDumpTool {
         // Consume all the objects in the file.
         enum DecoderItem {
             /// A dictionary with N elements remaining.
-        case dict(count: Int, atKey: Bool)
+            case dict(count: Int, atKey: Bool)
             /// An array with N elements remaining.
-        case array(count: Int)
+            case array(count: Int)
         }
         var stack = [DecoderItem]()
         var indent: String {
@@ -193,7 +193,7 @@ private class MsgPackDumpTool {
             }
 
             if decoder.consumedCount == data.count {
-                continue // at EOF, go back through and finish the indenting
+                continue  // at EOF, go back through and finish the indenting
             }
 
             // Read the next item from the decoder.
@@ -228,7 +228,6 @@ private class MsgPackDumpTool {
         return numErrors == 0
     }
 }
-
 
 /// Utilities for working with headermaps.
 private class HeadermapTool {
@@ -475,8 +474,6 @@ private class ClangScanTool {
         return true
     }
 }
-
-
 
 private class SerializedDiagnosticsTool {
     /// The parsed command line options.

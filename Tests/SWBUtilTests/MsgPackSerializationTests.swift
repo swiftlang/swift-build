@@ -102,12 +102,12 @@ import SWBUtil
         #expect(try dsz.deserialize() == Int.max)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as Int
-        }                  // Next element is not an Int
+        }  // Next element is not an Int
         // Bool
         #expect(try dsz.deserialize())
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as Bool
-        }                 // Next element is not a Bool
+        }  // Next element is not a Bool
         // UInt
         #expect(try dsz.deserialize() == 6 as UInt)
         #expect(try dsz.deserialize() == 0 as UInt)
@@ -115,7 +115,7 @@ import SWBUtil
         #expect(try dsz.deserialize() == UInt.max)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as UInt
-        }                 // Next element is not a UInt
+        }  // Next element is not a UInt
         // Int32
         #expect(try dsz.deserialize() as Int32 == Int32.min)
         #expect(try dsz.deserialize() as Int32 == 0 as Int32)
@@ -139,12 +139,12 @@ import SWBUtil
         #expect(try dsz.deserialize() as Float32 == 2.71828)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as Float32
-        }              // Next element is not a Float32
+        }  // Next element is not a Float32
         // Bool again
         #expect(try !dsz.deserialize())
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as Bool
-        }                 // Next element is not a Bool
+        }  // Next element is not a Bool
         // Float64
         #expect(try dsz.deserialize() as Float64 == 6.1)
         #expect(try dsz.deserialize() as Float64 == 0.0)
@@ -152,7 +152,7 @@ import SWBUtil
         #expect(try dsz.deserialize() as Float64 == 3.1415926535)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as Float64
-        }              // Next element is not a Float64
+        }  // Next element is not a Float64
         // String
         #expect(try dsz.deserialize() == "Something")
         #expect(try dsz.deserialize() == "")
@@ -162,7 +162,7 @@ import SWBUtil
         #expect(try dsz.deserialize() == [UInt8]("".utf8))
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as String
-        }               // Next element is not a String
+        }  // Next element is not a String
         // Array
         #expect(try dsz.deserialize() == [1, 2, 3])
 
@@ -178,7 +178,7 @@ import SWBUtil
         #expect(try dsz.deserialize() as IntRawValueType == .that)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as IntRawValueType
-        }      // Next element is not a IntRawValueType
+        }  // Next element is not a IntRawValueType
         #expect(try dsz.deserialize() as StringRawValueType == .thisString)
         #expect(try dsz.deserialize() as StringRawValueType == .thatString)
         // Range
@@ -191,9 +191,8 @@ import SWBUtil
     /// This also exercises the individual simple types' deserialization and init methods.
     @Test
     func simpleArraySerialization() throws {
-        do
-        {
-            let array: [Int] = [13, 6, -6,-33231, 14, 242432, 0, -83]
+        do {
+            let array: [Int] = [13, 6, -6, -33231, 14, 242432, 0, -83]
 
             // Serialize!
             let sz = MsgPackSerializer()
@@ -205,11 +204,10 @@ import SWBUtil
             #expect(dszArray == array)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [Int]
-            }                // Next element is not an Array
+            }  // Next element is not an Array
             // Nothing left to deserialize.
         }
-        do
-        {
+        do {
             let array: [UInt] = [21, 7, 0, 3322, 1]
 
             // Serialize!
@@ -222,11 +220,10 @@ import SWBUtil
             #expect(dszArray == array)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [UInt]
-            }               // Next element is not an Array
+            }  // Next element is not an Array
             // Nothing left to deserialize.
         }
-        do
-        {
+        do {
             let array: [Bool] = [true, true, false, true, false, false, false, false, false]
 
             // Serialize!
@@ -239,11 +236,10 @@ import SWBUtil
             #expect(dszArray == array)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [Bool]
-            }               // Next element is not an Array
+            }  // Next element is not an Array
             // Nothing left to deserialize.
         }
-        do
-        {
+        do {
             let array: [Float32] = [19.0, -66.2, 1.9, 0, -0.00003, 34222.6]
 
             // Serialize!
@@ -256,11 +252,10 @@ import SWBUtil
             #expect(dszArray == array)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [Float32]
-            }               // Next element is not an Array
+            }  // Next element is not an Array
             // Nothing left to deserialize.
         }
-        do
-        {
+        do {
             let array: [Float64] = [-2323.1, 44, 0.0, -0.999999991, 0.0000000072, 23222218, 3]
 
             // Serialize!
@@ -273,11 +268,10 @@ import SWBUtil
             #expect(dszArray == array)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [Float64]
-            }               // Next element is not an Array
+            }  // Next element is not an Array
             // Nothing left to deserialize.
         }
-        do
-        {
+        do {
             let array = ["One thing", "Something else", "Anything", "", "Nothing"]
 
             // Serialize!
@@ -290,7 +284,7 @@ import SWBUtil
             #expect(dszArray == array)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [String]
-            }             // Next element is not an Array
+            }  // Next element is not an Array
             // Nothing left to deserialize.
         }
     }
@@ -310,14 +304,13 @@ import SWBUtil
         #expect(dszDict == dict)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as [String: Int]
-        }        // Next element is not a Dictionary
+        }  // Next element is not a Dictionary
     }
 
     /// Test serializing Range objects.
     @Test
     func simpleObjectSerialization() throws {
-        do
-        {
+        do {
             let r1 = IntRange(uncheckedBounds: (0, 5))
             let r2 = IntRange(uncheckedBounds: (-16, -4))
             let r3 = IntRange(uncheckedBounds: (-6, 6))
@@ -335,13 +328,12 @@ import SWBUtil
             #expect(try dsz.deserialize() as IntRange == r3)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as IntRange
-            }                 // Next element is not an IntRange
+            }  // Next element is not an IntRange
             // Nothing left to deserialize.
         }
 
         // Next serialize an array of Range objects.
-        do
-        {
+        do {
             let array = [
                 IntRange(uncheckedBounds: (-3, 2)),
                 IntRange(uncheckedBounds: (14, 19)),
@@ -360,13 +352,12 @@ import SWBUtil
             #expect(dszArray == array)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [IntRange]
-            }               // Next element is not an Array
+            }  // Next element is not an Array
             // Nothing left to deserialize.
         }
 
         // Serialize a dictionary whose values are Range objects.
-        do
-        {
+        do {
             let dict = [
                 "one": IntRange(uncheckedBounds: (1, 4)),
                 "two": IntRange(uncheckedBounds: (-13, -2)),
@@ -384,13 +375,12 @@ import SWBUtil
             #expect(dszDict == dict)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [String: IntRange]
-            }       // Next element is not a Dictionary
+            }  // Next element is not a Dictionary
             // Nothing left to deserialize.
         }
 
         // Serialize a dictionary whose keys are Range objects.
-        do
-        {
+        do {
             let dict = [
                 IntRange(uncheckedBounds: (4, 9)): 13,
                 IntRange(uncheckedBounds: (-6, 14)): 8,
@@ -407,7 +397,7 @@ import SWBUtil
             #expect(dszDict == dict)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [IntRange: Int]
-            }          // Next element is not a Dictionary
+            }  // Next element is not a Dictionary
             // Nothing left to deserialize.
         }
     }
@@ -433,20 +423,19 @@ import SWBUtil
         #expect(dszArray == array)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as [A]
-        }                  // Next element is not an Array
+        }  // Next element is not an Array
     }
 
     /// Test serializing dictionaries with polymorphic values.
     @Test
     func polymorphicDictionarySerialization() throws {
-        do
-        {
+        do {
             let dict = [
-                "one":      A(name: "one"),
-                "two":      B(name: "two", number: 21),
-                "three":    C(name: "three", truth: true),
-                "four":     A(name: "four"),
-                "five":     C(name: "five", truth: false),
+                "one": A(name: "one"),
+                "two": B(name: "two", number: 21),
+                "three": C(name: "three", truth: true),
+                "four": A(name: "four"),
+                "five": C(name: "five", truth: false),
             ]
 
             // Serialize!
@@ -459,13 +448,12 @@ import SWBUtil
             #expect(dszDict == dict)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [String: A]
-            }      // Next element is not a Dictionary
+            }  // Next element is not a Dictionary
             // Nothing left to deserialize.
         }
 
         // Keys are PolymorphicSerializable, values are Serializable.
-        do
-        {
+        do {
             let dict = [
                 A(name: "ten"): "tenth",
                 B(name: "twenty", number: -27): "twentieth",
@@ -484,13 +472,12 @@ import SWBUtil
             #expect(dszDict == dict)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [String: A]
-            }      // Next element is not a Dictionary
+            }  // Next element is not a Dictionary
             // Nothing left to deserialize.
         }
 
         // Keys and values are PolymorphicSerializable.
-        do
-        {
+        do {
             let dict = [
                 A(name: "umpteen"): C(name: "argl", truth: true),
                 B(name: "vumpteen", number: 666): A(name: "bargl"),
@@ -510,7 +497,7 @@ import SWBUtil
             #expect(dszDict == dict)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as [String: A]
-            }      // Next element is not a Dictionary
+            }  // Next element is not a Dictionary
             // Nothing left to deserialize.
         }
     }
@@ -519,8 +506,7 @@ import SWBUtil
     @Test
     func optionalSerialization() throws {
         var optionality = OptionalTester()
-        do
-        {
+        do {
             // Serialize!
             let sz = MsgPackSerializer()
             sz.serialize(optionality)
@@ -531,21 +517,20 @@ import SWBUtil
             #expect(dszOpt == optionality)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as OptionalTester
-            }       // Next element is not an OptionalTester
+            }  // Next element is not an OptionalTester
             // Nothing left to deserialize.
         }
 
         // Now set up data in some - but not all - of our test object's properties and try that.
         optionality.stringOne = "Some string!"
-        optionality.arrayOne = [ 1, 1, 2, 3, 5, 8, 13, 21 ]
-        optionality.dictOne = [ "a": 4, "b": 19, "c": 0, "dee": -5 ]
+        optionality.arrayOne = [1, 1, 2, 3, 5, 8, 13, 21]
+        optionality.dictOne = ["a": 4, "b": 19, "c": 0, "dee": -5]
         optionality.objectOne = A(name: "ayyyy")
-        optionality.objArrayOne = [ A(name: "aye"), B(name: "bee", number: 7) ]
-        optionality.objDictOne = [ "yes": C(name: "see", truth: true), "no": C(name: "no see", truth: false), "maybe": A(name: "maybe not") ]
-        optionality.objDictThree = [ A(name: "some"): 1, A(name: "none"): 0 ]
-        optionality.objDictFive = [ A(name: "any"): B(name: "many", number: 46), C(name: "nany", truth: false): A(name: "nope") ]
-        do
-        {
+        optionality.objArrayOne = [A(name: "aye"), B(name: "bee", number: 7)]
+        optionality.objDictOne = ["yes": C(name: "see", truth: true), "no": C(name: "no see", truth: false), "maybe": A(name: "maybe not")]
+        optionality.objDictThree = [A(name: "some"): 1, A(name: "none"): 0]
+        optionality.objDictFive = [A(name: "any"): B(name: "many", number: 46), C(name: "nany", truth: false): A(name: "nope")]
+        do {
             // Serialize!
             let sz = MsgPackSerializer()
             sz.serialize(optionality)
@@ -556,7 +541,7 @@ import SWBUtil
             #expect(dszOpt == optionality)
             #expect(throws: (any Error).self) {
                 try dsz.deserialize() as OptionalTester
-            }       // Next element is not an OptionalTester
+            }  // Next element is not an OptionalTester
             // Nothing left to deserialize.
         }
     }
@@ -576,7 +561,7 @@ import SWBUtil
         #expect(dszMsg == msg)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as TestLogMessage
-        }       // Next element is not a TestLogMessage
+        }  // Next element is not a TestLogMessage
     }
 
     /// Test serializing our log objects.
@@ -608,13 +593,12 @@ import SWBUtil
         #expect(dszLog == log)
         #expect(throws: (any Error).self) {
             try dsz.deserialize() as TestLogHeader
-        }        // Next element is not a TestLogHeader
+        }  // Next element is not a TestLogHeader
     }
-
 
     // Uniquing serialization
 
-    let uniqueSerializationTestValue = (1..<10).map{ "\($0)" }.joined()
+    let uniqueSerializationTestValue = (1..<10).map { "\($0)" }.joined()
 
     class UniquingSerializerDelegateImpl: UniquingSerializerDelegate {
         let uniquingCoordinator = UniquingSerializationCoordinator()
@@ -643,7 +627,7 @@ import SWBUtil
 
     @Test
     func uniqueSerializationSizeWin() {
-        let value = (1..<1000).map{ "\($0)" }.joined()
+        let value = (1..<1000).map { "\($0)" }.joined()
 
         let s0 = MsgPackSerializer()
         s0.serialize(value)
@@ -659,32 +643,26 @@ import SWBUtil
     }
 }
 
-
 // MARK: Classes for testing simple objects.
 
-
-private class IntRange: Serializable, Equatable, Hashable, Comparable
-{
+private class IntRange: Serializable, Equatable, Hashable, Comparable {
     let range: Range<Int>
 
-    init(uncheckedBounds bounds: (lower: Int, upper: Int))
-    {
+    init(uncheckedBounds bounds: (lower: Int, upper: Int)) {
         self.range = Range(uncheckedBounds: (bounds.lower, bounds.upper))
     }
 
     var lowerBound: Int { return self.range.lowerBound }
     var upperBound: Int { return self.range.upperBound }
 
-    func serialize<T: Serializer>(to serializer: T)
-    {
+    func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(lowerBound)
         serializer.serialize(upperBound)
         serializer.endAggregate()
     }
 
-    required init(from deserializer: any Deserializer) throws
-    {
+    required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         let lower: Int = try deserializer.deserialize()
         let upper: Int = try deserializer.deserialize()
@@ -701,39 +679,31 @@ private class IntRange: Serializable, Equatable, Hashable, Comparable
     }
 }
 
-
-private func ==(lhs: IntRange, rhs: IntRange) -> Bool
-{
+private func == (lhs: IntRange, rhs: IntRange) -> Bool {
     return lhs.range == rhs.range
 }
 
-
 // MARK: Classes for testing polymorphic collections.
 
-
-private class A: PolymorphicSerializable, Hashable, Comparable, Equatable, CustomStringConvertible
-{
+private class A: PolymorphicSerializable, Hashable, Comparable, Equatable, CustomStringConvertible {
     let name: String
 
-    init(name: String)
-    {
+    init(name: String) {
         self.name = name
     }
 
-    func serialize<T: Serializer>(to serializer: T)
-    {
+    func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(1)
         serializer.serialize(name)
         serializer.endAggregate()
     }
 
-    required init(from deserializer: any Deserializer) throws
-    {
+    required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(1)
         self.name = try deserializer.deserialize()
     }
 
-    static let implementations: [SerializableTypeCode : any PolymorphicSerializable.Type] = [
+    static let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type] = [
         0: A.self,
         1: B.self,
         2: C.self,
@@ -743,8 +713,7 @@ private class A: PolymorphicSerializable, Hashable, Comparable, Equatable, Custo
         hasher.combine(name)
     }
 
-    func equals(_ other: A) -> Bool
-    {
+    func equals(_ other: A) -> Bool {
         return self.name == other.name
     }
 
@@ -755,31 +724,26 @@ private class A: PolymorphicSerializable, Hashable, Comparable, Equatable, Custo
     public var description: String { return "<A:\(name)>" }
 }
 
-private func ==(lhs: A, rhs: A) -> Bool
-{
+private func == (lhs: A, rhs: A) -> Bool {
     return lhs.equals(rhs)
 }
 
-private final class B: A
-{
+private final class B: A {
     let number: Int
 
-    init(name: String, number: Int)
-    {
+    init(name: String, number: Int) {
         self.number = number
         super.init(name: name)
     }
 
-    override func serialize<T: Serializer>(to serializer: T)
-    {
+    override func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(number)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
 
-    required init(from deserializer: any Deserializer) throws
-    {
+    required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         self.number = try deserializer.deserialize()
         try super.init(from: deserializer)
@@ -790,8 +754,7 @@ private final class B: A
         hasher.combine(number)
     }
 
-    func equals(_ other: B) -> Bool
-    {
+    func equals(_ other: B) -> Bool {
         guard super.equals(other) else { return false }
         return self.number == other.number
     }
@@ -799,26 +762,22 @@ private final class B: A
     public override var description: String { return "<B:\(name):\(number)>" }
 }
 
-private final class C: A
-{
+private final class C: A {
     let truth: Bool
 
-    init(name: String, truth: Bool)
-    {
+    init(name: String, truth: Bool) {
         self.truth = truth
         super.init(name: name)
     }
 
-    override func serialize<T: Serializer>(to serializer: T)
-    {
+    override func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(truth)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
 
-    required init(from deserializer: any Deserializer) throws
-    {
+    required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         self.truth = try deserializer.deserialize()
         try super.init(from: deserializer)
@@ -829,8 +788,7 @@ private final class C: A
         hasher.combine(truth)
     }
 
-    func equals(_ other: C) -> Bool
-    {
+    func equals(_ other: C) -> Bool {
         guard super.equals(other) else { return false }
         return self.truth == other.truth
     }
@@ -838,12 +796,9 @@ private final class C: A
     public override var description: String { return "<C:\(name):\(truth)>" }
 }
 
-
 // MARK: Class to test serializing optional values.
 
-
-private struct OptionalTester: Serializable, Equatable
-{
+private struct OptionalTester: Serializable, Equatable {
     // Serializable?
     var stringOne: String?
     var stringTwo: String?
@@ -876,16 +831,24 @@ private struct OptionalTester: Serializable, Equatable
     var objDictFive: [A: A]?
     var objDictSix: [A: A]?
 
-    init(_ stringOne: String? = nil, _ stringTwo: String? = nil,
-         _ arrayOne: [Int]? = nil, _ arrayTwo: [Int]? = nil,
-         _ dictOne: [String: Int]? = nil, _ dictTwo: [String: Int]? = nil,
-         _ objectOne: A? = nil, _ objectTwo: A? = nil,
-         _ objArrayOne: [A]? = nil, _ objArrayTwo: [A]? = nil,
-         _ objDictOne: [String: A]? = nil, _ objDictTwo: [String: A]? = nil,
-         _ objDictThree: [A: Int]? = nil, _ objDictFour: [A: Int]? = nil,
-         _ objDictFive: [A: A]? = nil, _ objDictSix: [A: A]? = nil
-    )
-    {
+    init(
+        _ stringOne: String? = nil,
+        _ stringTwo: String? = nil,
+        _ arrayOne: [Int]? = nil,
+        _ arrayTwo: [Int]? = nil,
+        _ dictOne: [String: Int]? = nil,
+        _ dictTwo: [String: Int]? = nil,
+        _ objectOne: A? = nil,
+        _ objectTwo: A? = nil,
+        _ objArrayOne: [A]? = nil,
+        _ objArrayTwo: [A]? = nil,
+        _ objDictOne: [String: A]? = nil,
+        _ objDictTwo: [String: A]? = nil,
+        _ objDictThree: [A: Int]? = nil,
+        _ objDictFour: [A: Int]? = nil,
+        _ objDictFive: [A: A]? = nil,
+        _ objDictSix: [A: A]? = nil
+    ) {
         self.stringOne = stringOne
         self.stringTwo = stringTwo
         self.arrayOne = arrayOne
@@ -904,8 +867,7 @@ private struct OptionalTester: Serializable, Equatable
         self.objDictSix = objDictSix
     }
 
-    func serialize<T: Serializer>(to serializer: T)
-    {
+    func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(16)
         serializer.serialize(stringOne)
         serializer.serialize(stringTwo)
@@ -926,8 +888,7 @@ private struct OptionalTester: Serializable, Equatable
         serializer.endAggregate()
     }
 
-    init(from deserializer: any Deserializer) throws
-    {
+    init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(16)
         self.stringOne = try deserializer.deserialize()
         self.stringTwo = try deserializer.deserialize()
@@ -948,10 +909,8 @@ private struct OptionalTester: Serializable, Equatable
     }
 }
 
-private func ==(lhs: OptionalTester, rhs: OptionalTester) -> Bool
-{
-    func optionalArraysAreEqual<T: Equatable>(_ lhoa: [T]?, _ rhoa: [T]?) -> Bool
-    {
+private func == (lhs: OptionalTester, rhs: OptionalTester) -> Bool {
+    func optionalArraysAreEqual<T: Equatable>(_ lhoa: [T]?, _ rhoa: [T]?) -> Bool {
         switch (lhoa, rhoa)
         {
         case let (lha?, rha?): return lha == rha
@@ -960,8 +919,7 @@ private func ==(lhs: OptionalTester, rhs: OptionalTester) -> Bool
         }
     }
 
-    func optionalDictionariesAreEqual<T, U: Equatable>(_ lhod: [T: U]?, _ rhod: [T: U]?) -> Bool
-    {
+    func optionalDictionariesAreEqual<T, U: Equatable>(_ lhod: [T: U]?, _ rhod: [T: U]?) -> Bool {
         switch (lhod, rhod)
         {
         case let (lhd?, rhd?): return lhd == rhd
@@ -989,155 +947,130 @@ private func ==(lhs: OptionalTester, rhs: OptionalTester) -> Bool
     return true
 }
 
-
 // MARK: Classes to test serializing custom objects.
 // Conceptually this is a simple log hierarchy.
 // FIXME: I would like to get a Dictionary in here too.
 
-
-private class TestLogEntry: PolymorphicSerializable, Equatable
-{
+private class TestLogEntry: PolymorphicSerializable, Equatable {
     let title: String
 
-    init(_ title: String)
-    {
+    init(_ title: String) {
         self.title = title
     }
 
-    func serialize<T: Serializer>(to serializer: T)
-    {
+    func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(1)
         serializer.serialize(title)
         serializer.endAggregate()
     }
 
-    required init(from deserializer: any Deserializer) throws
-    {
+    required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(1)
         self.title = try deserializer.deserialize()
     }
 
-    static let implementations: [SerializableTypeCode : any PolymorphicSerializable.Type] = [
+    static let implementations: [SerializableTypeCode: any PolymorphicSerializable.Type] = [
         0: TestLogEntry.self,
         1: TestLogHeader.self,
         2: TestLogSection.self,
     ]
 
-    func equals(_ other: TestLogEntry) -> Bool
-    {
+    func equals(_ other: TestLogEntry) -> Bool {
         return self.title == other.title
     }
 }
 
-private func ==(lhs: TestLogEntry, rhs: TestLogEntry) -> Bool
-{
+private func == (lhs: TestLogEntry, rhs: TestLogEntry) -> Bool {
     return lhs.equals(rhs)
 }
 
-private final class TestLogHeader: TestLogEntry
-{
+private final class TestLogHeader: TestLogEntry {
     var subsections: [TestLogEntry]
 
-    override init(_ title: String)
-    {
+    override init(_ title: String) {
         subsections = [TestLogEntry]()
         super.init(title)
     }
 
     func addEntry(_ entry: TestLogEntry) { subsections.append(entry) }
 
-    override func serialize<T: Serializer>(to serializer: T)
-    {
+    override func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(subsections)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
 
-    required init(from deserializer: any Deserializer) throws
-    {
+    required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         self.subsections = try deserializer.deserialize()
         try super.init(from: deserializer)
     }
 
-    override func equals(_ other: TestLogEntry) -> Bool
-    {
+    override func equals(_ other: TestLogEntry) -> Bool {
         guard super.equals(other) else { return false }
-        if let otherHeader = other as? TestLogHeader
-        {
+        if let otherHeader = other as? TestLogHeader {
             return subsections == otherHeader.subsections
         }
         return false
     }
 }
 
-private final class TestLogSection: TestLogEntry
-{
+private final class TestLogSection: TestLogEntry {
     var messages: [TestLogMessage]
 
-    override init(_ title: String)
-    {
+    override init(_ title: String) {
         messages = [TestLogMessage]()
         super.init(title)
     }
 
     func addMessage(_ message: TestLogMessage) { messages.append(message) }
 
-    override func serialize<T: Serializer>(to serializer: T)
-    {
+    override func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(messages)
         super.serialize(to: serializer)
         serializer.endAggregate()
     }
 
-    required init(from deserializer: any Deserializer) throws
-    {
+    required init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         self.messages = try deserializer.deserialize()
         try super.init(from: deserializer)
     }
 
-    override func equals(_ other: TestLogEntry) -> Bool
-    {
+    override func equals(_ other: TestLogEntry) -> Bool {
         guard super.equals(other) else { return false }
-        if let otherSection = other as? TestLogSection
-        {
+        if let otherSection = other as? TestLogSection {
             return messages == otherSection.messages
         }
         return false
     }
 }
 
-private enum TestLogMessageType: String
-{
+private enum TestLogMessageType: String {
     case error
     case warning
     case note
 }
 
-private final class TestLogMessage: Serializable, Equatable
-{
+private final class TestLogMessage: Serializable, Equatable {
     let type: TestLogMessageType
     let message: String
 
-    init(type: TestLogMessageType, message: String)
-    {
+    init(type: TestLogMessageType, message: String) {
         self.type = type
         self.message = message
     }
 
-    func serialize<T: Serializer>(to serializer: T)
-    {
+    func serialize<T: Serializer>(to serializer: T) {
         serializer.beginAggregate(2)
         serializer.serialize(type.rawValue)
         serializer.serialize(message)
         serializer.endAggregate()
     }
 
-    init(from deserializer: any Deserializer) throws
-    {
+    init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(2)
         guard let type = TestLogMessageType(rawValue: try deserializer.deserialize()) else { throw DeserializerError.deserializationFailed("Invalid TestLogMessageType.") }
         self.type = type
@@ -1145,7 +1078,6 @@ private final class TestLogMessage: Serializable, Equatable
     }
 }
 
-private func ==(lhs: TestLogMessage, rhs: TestLogMessage) -> Bool
-{
+private func == (lhs: TestLogMessage, rhs: TestLogMessage) -> Bool {
     return lhs.type == rhs.type && lhs.message == rhs.message
 }

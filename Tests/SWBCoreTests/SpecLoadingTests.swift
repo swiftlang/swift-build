@@ -20,7 +20,7 @@ import SWBMacro
 @Suite fileprivate struct SpecLoadingTests: CoreBasedTests {
     var specDataCaches = Registry<Spec, any SpecDataCache>()
 
-    final class TestDataDelegate : SpecParserDelegate {
+    final class TestDataDelegate: SpecParserDelegate {
         final class MockSpecRegistryDelegate: SpecRegistryDelegate, Sendable {
             private let _diagnosticsEngine: DiagnosticsEngine
 
@@ -71,7 +71,7 @@ import SWBMacro
         }
     }
 
-    private func parseTestSpec<T : SpecType>(_ type: T.Type, _ specData: [String: PropertyListItem], _ baseSpec: Spec? = nil, namespace: MacroNamespace? = nil) async throws -> (T, [String], [String]) {
+    private func parseTestSpec<T: SpecType>(_ type: T.Type, _ specData: [String: PropertyListItem], _ baseSpec: Spec? = nil, namespace: MacroNamespace? = nil) async throws -> (T, [String], [String]) {
         let core = try await getCore()
         // Create a mock proxy for the data.
         var identifier = "test"
@@ -196,11 +196,14 @@ import SWBMacro
 
     @Test
     func packageTypeSpecLoading() async throws {
-        let (spec, _, errors) = try await parseTestSpec(PackageTypeSpec.self, [
-            "Identifier": "com.apple.package-type.wrapper.framework",
-            "DefaultBuildSettings": [:],
-            "ProductReference": ["Name": "$(WRAPPER_NAME)", "FileType": "wrapper.framework", "IsLaunchable": "NO"]
-        ])
+        let (spec, _, errors) = try await parseTestSpec(
+            PackageTypeSpec.self,
+            [
+                "Identifier": "com.apple.package-type.wrapper.framework",
+                "DefaultBuildSettings": [:],
+                "ProductReference": ["Name": "$(WRAPPER_NAME)", "FileType": "wrapper.framework", "IsLaunchable": "NO"],
+            ]
+        )
         #expect(spec.identifier == "com.apple.package-type.wrapper.framework")
         #expect(spec.productReferenceFileTypeIdentifier == "wrapper.framework")
         #expect(errors.count == 0)
@@ -212,22 +215,33 @@ import SWBMacro
         let foo = try testNamespace.declareStringListMacro("FOO")
         let bar = try testNamespace.declareStringMacro("BAR")
 
-        let (rootspec, rw, re) = try await parseTestSpec(ProductTypeSpec.self, [
-            "DefaultBuildProperties": [
-                "FOO" : "$(inherited) no",
-                "BAR" : "i386"
+        let (rootspec, rw, re) = try await parseTestSpec(
+            ProductTypeSpec.self,
+            [
+                "DefaultBuildProperties": [
+                    "FOO": "$(inherited) no",
+                    "BAR": "i386",
+                ],
+                "PackageTypes": ["com.apple.product-type.bundle.ui-testing"],
             ],
-            "PackageTypes": ["com.apple.product-type.bundle.ui-testing"]], namespace: testNamespace)
+            namespace: testNamespace
+        )
         #expect(rootspec.defaultPackageTypeIdentifier == "com.apple.product-type.bundle.ui-testing")
         #expect(re == [])
         #expect(rw == [])
         #expect(rootspec.buildSettings.valueAssignments.count == 2)
 
-        let (spec, warnings, errors) = try await parseTestSpec(ProductTypeSpec.self, [
-            "DefaultBuildProperties": [
-                "FOO" : "$(inherited) yes"
+        let (spec, warnings, errors) = try await parseTestSpec(
+            ProductTypeSpec.self,
+            [
+                "DefaultBuildProperties": [
+                    "FOO": "$(inherited) yes"
+                ],
+                "PackageTypes": ["com.apple.product-type.bundle.ui-testing"],
             ],
-            "PackageTypes": ["com.apple.product-type.bundle.ui-testing"]], rootspec, namespace: testNamespace)
+            rootspec,
+            namespace: testNamespace
+        )
         #expect(spec.defaultPackageTypeIdentifier == "com.apple.product-type.bundle.ui-testing")
         #expect(errors == [])
         #expect(warnings == [])
@@ -240,10 +254,14 @@ import SWBMacro
 
     @Test
     func productTypeSpecLoadingWithErrorForMissingDeprecationReason() async throws {
-        let (spec, warnings, errors) = try await parseTestSpec(ProductTypeSpec.self, [
-            "DeprecationLevel" : "error",
-            "DefaultBuildProperties": [:],
-            "PackageTypes": ["com.apple.product-type.bundle.ui-testing"]])
+        let (spec, warnings, errors) = try await parseTestSpec(
+            ProductTypeSpec.self,
+            [
+                "DeprecationLevel": "error",
+                "DefaultBuildProperties": [:],
+                "PackageTypes": ["com.apple.product-type.bundle.ui-testing"],
+            ]
+        )
         #expect(spec.deprecationInfo == nil)
         #expect(warnings.count == 0)
         #expect(errors.count == 1)
@@ -252,11 +270,15 @@ import SWBMacro
 
     @Test
     func productTypeSpecLoadingWithErrorForInvalidDeprecationReason() async throws {
-        let (spec, warnings, errors) = try await parseTestSpec(ProductTypeSpec.self, [
-            "DeprecationReason" : "no longer supported",
-            "DeprecationLevel" : "err",
-            "DefaultBuildProperties": [:],
-            "PackageTypes": ["com.apple.product-type.bundle.ui-testing"]])
+        let (spec, warnings, errors) = try await parseTestSpec(
+            ProductTypeSpec.self,
+            [
+                "DeprecationReason": "no longer supported",
+                "DeprecationLevel": "err",
+                "DefaultBuildProperties": [:],
+                "PackageTypes": ["com.apple.product-type.bundle.ui-testing"],
+            ]
+        )
         #expect(spec.deprecationInfo == nil)
         #expect(warnings.count == 0)
         #expect(errors.count == 1)
@@ -265,11 +287,15 @@ import SWBMacro
 
     @Test
     func productTypeSpecLoadingWithDeprecatedAsErrorValues() async throws {
-        let (spec, warnings, errors) = try await parseTestSpec(ProductTypeSpec.self, [
-            "DeprecationReason" : "no longer supported",
-            "DeprecationLevel" : "ErrOR",
-            "DefaultBuildProperties": [:],
-            "PackageTypes": ["com.apple.product-type.bundle.ui-testing"]])
+        let (spec, warnings, errors) = try await parseTestSpec(
+            ProductTypeSpec.self,
+            [
+                "DeprecationReason": "no longer supported",
+                "DeprecationLevel": "ErrOR",
+                "DefaultBuildProperties": [:],
+                "PackageTypes": ["com.apple.product-type.bundle.ui-testing"],
+            ]
+        )
         #expect(spec.deprecationInfo != nil)
         #expect(spec.deprecationInfo?.level == .error)
         #expect(spec.deprecationInfo?.reason == "no longer supported")
@@ -279,11 +305,15 @@ import SWBMacro
 
     @Test
     func productTypeSpecLoadingWithDeprecatedAsWarningValues() async throws {
-        let (spec, warnings, errors) = try await parseTestSpec(ProductTypeSpec.self, [
-            "DeprecationReason" : "no longer supported",
-            "DeprecationLevel" : "warNing",
-            "DefaultBuildProperties": [:],
-            "PackageTypes": ["com.apple.product-type.bundle.ui-testing"]])
+        let (spec, warnings, errors) = try await parseTestSpec(
+            ProductTypeSpec.self,
+            [
+                "DeprecationReason": "no longer supported",
+                "DeprecationLevel": "warNing",
+                "DefaultBuildProperties": [:],
+                "PackageTypes": ["com.apple.product-type.bundle.ui-testing"],
+            ]
+        )
         #expect(spec.deprecationInfo != nil)
         #expect(spec.deprecationInfo?.level == .warning)
         #expect(spec.deprecationInfo?.reason == "no longer supported")
@@ -301,21 +331,21 @@ import SWBMacro
         #expect(errors.count >= 1)
         XCTAssertMatch(errors[0], .prefix("expected build option definition dictionary"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ ["Name": ["bad"]] ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [["Name": ["bad"]]]])
         #expect(errors.count == 2)
         XCTAssertMatch(errors[0], .prefix("expected string value for build option key 'Name'"))
         XCTAssertMatch(errors[1], .prefix("missing build option key 'Name'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ ["Foo": "Bar"] ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [["Foo": "Bar"]]])
         #expect(errors.count == 2)
         XCTAssertMatch(errors[0], .prefix("unknown build option key 'Foo'"))
         XCTAssertMatch(errors[1], .prefix("missing build option key 'Name'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ ["Name": "Foo", "Type": ["bad"] as PropertyListItem]]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [["Name": "Foo", "Type": ["bad"] as PropertyListItem]]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("invalid build option key 'Type'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ ["Name": "Foo", "Type": "Missing"] ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [["Name": "Foo", "Type": "Missing"]]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("unknown build option type 'Missing'"))
     }
@@ -325,7 +355,7 @@ import SWBMacro
         var result: [String: PropertyListItem] = [:]
         result["Name"] = .plString(name)
         result["Type"] = .plString(type)
-        for (key,value) in data {
+        for (key, value) in data {
             result[key] = value
         }
         return result
@@ -333,18 +363,25 @@ import SWBMacro
 
     @Test
     func propertyDomainSpecPropertiesValuesParsing() async throws {
-        var (_, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "Enumeration", [:]) ]])
+        var (_, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "Enumeration", [:])]])
         #expect(warnings.count == 1)
         #expect(errors.count == 0)
         XCTAssertMatch(warnings[0], .prefix("missing required build option key 'Values'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["Values": []]) ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["Values": []])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("invalid build option key 'Values' used with type 'String'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "Enumeration", ["Values": [], "AllowedValues": []]),
-                                                                                  OptionData("Foo1", "Enumeration", ["Values": "bad"])],
-                                                                  "Options": []])
+        (_, _, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData("Foo", "Enumeration", ["Values": [], "AllowedValues": []]),
+                    OptionData("Foo1", "Enumeration", ["Values": "bad"]),
+                ],
+                "Options": [],
+            ]
+        )
         #expect(errors.count == 3)
         XCTAssertMatch(errors[0], .prefix("cannot define both 'Properties' and 'Options'"))
         XCTAssertMatch(errors[1], .prefix("cannot specify both 'AllowedValues' and 'Values'"))
@@ -353,7 +390,7 @@ import SWBMacro
 
     @Test
     func propertyDomainSpecPropertiesCommandLineKeysParsing() async throws {
-        var (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["CommandLineArgs": [], "CommandLineFlag": "foo", "CommandLinePrefixFlag": "foo"]) ]])
+        var (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["CommandLineArgs": [], "CommandLineFlag": "foo", "CommandLinePrefixFlag": "foo"])]])
         #expect(errors.count == 2)
         // FIXME: This order is technically non-deterministic, need a fuzzy comparison.
         XCTAssertMatch(errors[0], .prefix("invalid build option key"))
@@ -361,54 +398,66 @@ import SWBMacro
         XCTAssertMatch(errors[1], .prefix("invalid build option key"))
         XCTAssertMatch(errors[1], .contains("cannot combine with"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["CommandLineFlag": "foo", "CommandLinePrefixFlag": "foo"]) ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["CommandLineFlag": "foo", "CommandLinePrefixFlag": "foo"])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("invalid build option key"))
         XCTAssertMatch(errors[0], .contains("cannot combine with"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["CommandLineArgs": PropertyListItem.plData(Array("bad".utf8))]) ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["CommandLineArgs": PropertyListItem.plData(Array("bad".utf8))])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("expected string, array, or dict value for build option key 'CommandLineArgs'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["CommandLineFlag": ["bad"]]) ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["CommandLineFlag": ["bad"]])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("expected string value for build option key 'CommandLineFlag'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["CommandLinePrefixFlag": ["bad"]]) ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["CommandLinePrefixFlag": ["bad"]])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("expected string value for build option key 'CommandLinePrefixFlag'"))
     }
 
     @Test
     func propertyDomainSpecPropertiesCommandLineKeysListTypeParsing() async throws {
-        var (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "StringList", ["Values": []]) ]])
+        var (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "StringList", ["Values": []])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("invalid build option key 'Values' used with type 'StringList'"))
 
         // Check list arguments.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Foo", "StringList", ["CommandLineArgs": "foo"]),
-            OptionData("Foo2", "StringList", ["CommandLineArgs": ["foo2"]]),
-            OptionData("Foo3", "StringList", ["CommandLineArgs": ""]),
-            OptionData("Foo4", "StringList", ["CommandLineArgs": [["bad"]]]) ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData("Foo", "StringList", ["CommandLineArgs": "foo"]),
+                    OptionData("Foo2", "StringList", ["CommandLineArgs": ["foo2"]]),
+                    OptionData("Foo3", "StringList", ["CommandLineArgs": ""]),
+                    OptionData("Foo4", "StringList", ["CommandLineArgs": [["bad"]]]),
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 1)
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("expected string in 'CommandLineArgs' for option 'Foo4'"))
         #expect(spec.buildOptions.count == 4)
         #expect(spec.buildOptions[0].name == "Foo")
-        guard case .args(let fooArg)? = spec.buildOptions[0].otherValueDefn?.commandLineTemplate, fooArg.stringRep == "foo"  else { fatalError("unexpected template") }
+        guard case .args(let fooArg)? = spec.buildOptions[0].otherValueDefn?.commandLineTemplate, fooArg.stringRep == "foo" else { fatalError("unexpected template") }
         #expect(spec.buildOptions[1].name == "Foo2")
         guard case .args(let foo2Args)? = spec.buildOptions[1].otherValueDefn?.commandLineTemplate, foo2Args.stringRep == "foo2" else { fatalError("unexpected template") }
         #expect(spec.buildOptions[2].name == "Foo3")
         guard case .empty? = spec.buildOptions[2].otherValueDefn?.commandLineTemplate else { fatalError() }
 
         // Check flag arguments.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Foo", "StringList", ["CommandLineFlag": ""]),
-            OptionData("Foo2", "StringList", ["CommandLineFlag": "foo2flag"]),
-            OptionData("Bar", "StringList", ["CommandLinePrefixFlag": ""]),
-            OptionData("Bar2", "StringList", ["CommandLinePrefixFlag": "bar2flag"]),]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData("Foo", "StringList", ["CommandLineFlag": ""]),
+                    OptionData("Foo2", "StringList", ["CommandLineFlag": "foo2flag"]),
+                    OptionData("Bar", "StringList", ["CommandLinePrefixFlag": ""]),
+                    OptionData("Bar2", "StringList", ["CommandLinePrefixFlag": "bar2flag"]),
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 0)
         #expect(spec.buildOptions.count == 4)
@@ -419,22 +468,28 @@ import SWBMacro
         #expect(spec.buildOptions[2].name == "Bar")
         guard case .literal? = spec.buildOptions[2].otherValueDefn?.commandLineTemplate else { fatalError("unexpected template") }
         #expect(spec.buildOptions[3].name == "Bar2")
-        guard case  .prefixFlag(let bar2expr)? = spec.buildOptions[3].otherValueDefn?.commandLineTemplate, bar2expr.stringRep == "bar2flag" else { fatalError("unexpected template") }
+        guard case .prefixFlag(let bar2expr)? = spec.buildOptions[3].otherValueDefn?.commandLineTemplate, bar2expr.stringRep == "bar2flag" else { fatalError("unexpected template") }
     }
 
     @Test
     func propertyDomainSpecPropertiesCommandLineKeysScalarTypeValuesParsing() async throws {
-        let z = OptionData("Opt", "Enumeration", ["Values": [
-            [ "Foo1": "Bar"],
-            [ "Value": "Foo2", "Foo1": "Bar" ],
-            [ "Value": "Foo2" ],
-            [ "Value": "Foo3", "DisplayName": "X", "Outputs": "X" ] as PropertyListItem,
-            [ "Value": "Foo4", "CommandLine": ["bad"]] as PropertyListItem,
-            [ "Value": "Foo5", "CommandLine": "good thing", "CommandLineFlag": "bad" ] as PropertyListItem,
-            "Foo5",
-            PropertyListItem.plData(Array("bad".utf8)),
-        ]])
-        var (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ z ]])
+        let z = OptionData(
+            "Opt",
+            "Enumeration",
+            [
+                "Values": [
+                    ["Foo1": "Bar"],
+                    ["Value": "Foo2", "Foo1": "Bar"],
+                    ["Value": "Foo2"],
+                    ["Value": "Foo3", "DisplayName": "X", "Outputs": "X"] as PropertyListItem,
+                    ["Value": "Foo4", "CommandLine": ["bad"]] as PropertyListItem,
+                    ["Value": "Foo5", "CommandLine": "good thing", "CommandLineFlag": "bad"] as PropertyListItem,
+                    "Foo5",
+                    PropertyListItem.plData(Array("bad".utf8)),
+                ]
+            ]
+        )
+        var (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [z]])
         #expect(warnings.count == 0)
         #expect(errors.count == 8)
         XCTAssertMatch(errors[0], .prefix("unknown build option value key 'Foo1' for value '<UNKNOWN>' in option 'Opt'"))
@@ -458,11 +513,23 @@ import SWBMacro
         // The state of Foo5 is undefined due to the error reported above.
 
         // Check CommandLineArgs.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Opt", "Enumeration", [
-            "Values": [
-                [ "Value": "Foo1", "CommandLineArgs": "bad" ] as PropertyListItem,
-                [ "Value": "Foo2", "CommandLineArgs": ["thing1 thing2", "thing3", ["bad"]] as PropertyListItem] as PropertyListItem,
-            ] as PropertyListItem]) ] as PropertyListItem])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData(
+                        "Opt",
+                        "Enumeration",
+                        [
+                            "Values": [
+                                ["Value": "Foo1", "CommandLineArgs": "bad"] as PropertyListItem,
+                                ["Value": "Foo2", "CommandLineArgs": ["thing1 thing2", "thing3", ["bad"]] as PropertyListItem] as PropertyListItem,
+                            ] as PropertyListItem
+                        ]
+                    )
+                ] as PropertyListItem
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 2)
         XCTAssertMatch(errors[0], .prefix("expected array value for build option value key 'CommandLineArgs'"))
@@ -476,12 +543,24 @@ import SWBMacro
         guard case .args(let foo2items)? = values["Foo2"]!.commandLineTemplate, foo2items.stringRep == "thing1\\ thing2 thing3" else { fatalError() }
 
         // Check CommandLineFlag.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Opt", "Enumeration", [
-            "Values": [
-                [ "Value": ["Bad"]],
-                [ "Value": "Foo1", "CommandLineFlag": ["bad"]] as PropertyListItem,
-                [ "Value": "Foo2", "CommandLineFlag": "good" ] as PropertyListItem,
-            ]]) ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData(
+                        "Opt",
+                        "Enumeration",
+                        [
+                            "Values": [
+                                ["Value": ["Bad"]],
+                                ["Value": "Foo1", "CommandLineFlag": ["bad"]] as PropertyListItem,
+                                ["Value": "Foo2", "CommandLineFlag": "good"] as PropertyListItem,
+                            ]
+                        ]
+                    )
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 3)
         XCTAssertMatch(errors[0], .prefix("invalid build option value key 'Value'"))
@@ -496,8 +575,22 @@ import SWBMacro
         guard case .flag(let foo2expr)? = values["Foo2"]!.commandLineTemplate, foo2expr.stringRep == "good" else { fatalError() }
 
         // Check Boolean specific checks.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Opt", "Boolean", ["Values": [
-            [ "Value": "Hello" ], [ "Value": "NO" ], [ "Value": "YES" ] ]]) ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData(
+                        "Opt",
+                        "Boolean",
+                        [
+                            "Values": [
+                                ["Value": "Hello"], ["Value": "NO"], ["Value": "YES"],
+                            ]
+                        ]
+                    )
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("unexpected 'Hello' value definition"))
@@ -505,13 +598,18 @@ import SWBMacro
 
     @Test
     func propertyDomainSpecPropertiesCommandLineKeysScalarTypeCommandLineArgsParsing() async throws {
-        var (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Opt0", "String", ["CommandLineArgs": []]),
-            OptionData("Opt1", "String", ["CommandLineArgs": ""]),
-            OptionData("Opt2", "String", ["CommandLineFlag": ""]),
-            OptionData("Opt3", "String", ["CommandLinePrefixFlag": ""]),
-            OptionData("Opt4", "String", [:]),
-        ]])
+        var (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData("Opt0", "String", ["CommandLineArgs": []]),
+                    OptionData("Opt1", "String", ["CommandLineArgs": ""]),
+                    OptionData("Opt2", "String", ["CommandLineFlag": ""]),
+                    OptionData("Opt3", "String", ["CommandLinePrefixFlag": ""]),
+                    OptionData("Opt4", "String", [:]),
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 0)
 
@@ -529,12 +627,17 @@ import SWBMacro
         #expect(spec.buildOptions[4].otherValueDefn == nil)
 
         // This is split just for compile time reasons. :(
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Opt4", "String", ["CommandLineArgs": ["foo"]]),
-            OptionData("Opt5", "String", ["CommandLineArgs": "foo"]),
-            OptionData("Opt6", "String", ["CommandLineFlag": "foo"]),
-            OptionData("Opt7", "String", ["CommandLinePrefixFlag": "foo"]),
-        ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData("Opt4", "String", ["CommandLineArgs": ["foo"]]),
+                    OptionData("Opt5", "String", ["CommandLineArgs": "foo"]),
+                    OptionData("Opt6", "String", ["CommandLineFlag": "foo"]),
+                    OptionData("Opt7", "String", ["CommandLinePrefixFlag": "foo"]),
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 0)
         #expect(spec.buildOptions.count == 4)
@@ -547,19 +650,31 @@ import SWBMacro
         #expect(spec.buildOptions[2].name == "Opt6")
         guard case .flag(let opt2expr)? = spec.buildOptions[2].otherValueDefn?.commandLineTemplate, opt2expr.stringRep == "foo" else { fatalError() }
         #expect(spec.buildOptions[3].name == "Opt7")
-        guard case  .prefixFlag(let opt3expr)? = spec.buildOptions[3].otherValueDefn?.commandLineTemplate, opt3expr.stringRep == "foo" else { fatalError() }
+        guard case .prefixFlag(let opt3expr)? = spec.buildOptions[3].otherValueDefn?.commandLineTemplate, opt3expr.stringRep == "foo" else { fatalError() }
 
         // Check string dict args handling.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Opt0", "String", ["CommandLineArgs": [
-                "": "",
-                "foo0": "",
-                "foo1": [] as PropertyListItem,
-                "foo2": "hello little",
-                "foo3": ["hello little", ["bad"], "world"] as PropertyListItem,
-                "foo4": ["bad": "bad"],
-                "<<otherwise>>": "otherwise" ] as PropertyListItem]),
-        ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData(
+                        "Opt0",
+                        "String",
+                        [
+                            "CommandLineArgs": [
+                                "": "",
+                                "foo0": "",
+                                "foo1": [] as PropertyListItem,
+                                "foo2": "hello little",
+                                "foo3": ["hello little", ["bad"], "world"] as PropertyListItem,
+                                "foo4": ["bad": "bad"],
+                                "<<otherwise>>": "otherwise",
+                            ] as PropertyListItem
+                        ]
+                    )
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 2)
         XCTAssertMatch(errors[0], .prefix("expected string for 'foo3' in 'CommandLineArgs'"))
@@ -574,11 +689,23 @@ import SWBMacro
         guard case .args(let foo3args)? = values["foo3"]?.commandLineTemplate, foo3args.stringRep == "hello\\ little world" else { fatalError() }
 
         // Check boolean dict args handling.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Opt0", "Boolean", ["CommandLineArgs": [
-                "NO": "thisisno",
-                "YES": "thisisyes" ]])
-        ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData(
+                        "Opt0",
+                        "Boolean",
+                        [
+                            "CommandLineArgs": [
+                                "NO": "thisisno",
+                                "YES": "thisisyes",
+                            ]
+                        ]
+                    )
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 0)
         #expect(spec.buildOptions.count == 1)
@@ -586,14 +713,25 @@ import SWBMacro
         guard case .args(let yesArgs)? = spec.buildOptions[0].otherValueDefn?.commandLineTemplate, yesArgs.stringRep == "thisisyes" else { fatalError() }
 
         // Check dict value merging.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Opt0", "Enumeration", ["Values": [
-                ["Value": "Value0"],
-                ["Value": "Value1", "CommandLineFlag": "OK"],
-                ["Value": "Value2"],
-                ["Value": "Empty", "CommandLineFlag": ""]
-            ], "CommandLineArgs": ["Value0": "", "Value1": "BAD", "Value2": "INHERITED", "Value3": "INHERITED2"]]),
-        ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData(
+                        "Opt0",
+                        "Enumeration",
+                        [
+                            "Values": [
+                                ["Value": "Value0"],
+                                ["Value": "Value1", "CommandLineFlag": "OK"],
+                                ["Value": "Value2"],
+                                ["Value": "Empty", "CommandLineFlag": ""],
+                            ], "CommandLineArgs": ["Value0": "", "Value1": "BAD", "Value2": "INHERITED", "Value3": "INHERITED2"],
+                        ]
+                    )
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("invalid key 'Value1' in 'CommandLineArgs', a command line template was already defined"))
@@ -606,13 +744,24 @@ import SWBMacro
         guard case .empty? = values["Empty"]!.commandLineTemplate else { fatalError() }
 
         // Check array value merging.
-        (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Opt0", "Enumeration", ["Values": [
-                ["Value": "Value0"],
-                ["Value": "Value4", "CommandLineFlag": "OK"],
-                ["Value": "Empty", "CommandLineFlag": ""]
-            ], "CommandLineArgs": ["INHERITED"]]),
-        ]])
+        (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData(
+                        "Opt0",
+                        "Enumeration",
+                        [
+                            "Values": [
+                                ["Value": "Value0"],
+                                ["Value": "Value4", "CommandLineFlag": "OK"],
+                                ["Value": "Empty", "CommandLineFlag": ""],
+                            ], "CommandLineArgs": ["INHERITED"],
+                        ]
+                    )
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 0)
         values = spec.buildOptions[0].valueDefns!
@@ -624,14 +773,14 @@ import SWBMacro
 
     @Test
     func propertyDomainSpecPropertiesCommandConditionParsing() async throws {
-        var (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["Condition": "$(Bar) == bar"]) ]])
+        var (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["Condition": "$(Bar) == bar"])]])
         #expect(errors.count == 0)
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["Condition": ["$(Bar) == bar"]]) ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["Condition": ["$(Bar) == bar"]])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("expected string value for build option key \'Condition\'"))
 
-        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [ OptionData("Foo", "String", ["Condition": "$(Bar == bar"]) ]])
+        (_, _, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [OptionData("Foo", "String", ["Condition": "$(Bar == bar"])]])
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("unable to parse value for build option key \'Condition\'"))
     }
@@ -639,17 +788,27 @@ import SWBMacro
     @Test
     func propertyDomainSpecPropertiesAdditionalLinkerArgsParsing() async throws {
         do {
-            let (_, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-                OptionData("Opt0", "String", ["AdditionalLinkerArgs": []]),
-            ]])
+            let (_, warnings, errors) = try await parseTestSpec(
+                BuildSystemSpec.self,
+                [
+                    "Properties": [
+                        OptionData("Opt0", "String", ["AdditionalLinkerArgs": []])
+                    ]
+                ]
+            )
             #expect(warnings == [])
             XCTAssertMatch(errors, [.prefix("expected dictionary value for build option key 'AdditionalLinkerArgs'")])
         }
 
         do {
-            let (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-                OptionData("Opt0", "Enumeration", ["Values": [], "AdditionalLinkerArgs": ["SomeKey": "Value"]]),
-            ]])
+            let (spec, warnings, errors) = try await parseTestSpec(
+                BuildSystemSpec.self,
+                [
+                    "Properties": [
+                        OptionData("Opt0", "Enumeration", ["Values": [], "AdditionalLinkerArgs": ["SomeKey": "Value"]])
+                    ]
+                ]
+            )
             #expect(warnings == [])
             XCTAssertMatch(errors, [])
             #expect(spec.buildOptions.count == 1)
@@ -663,12 +822,24 @@ import SWBMacro
         }
 
         do {
-            let (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-                OptionData("Opt0", "Boolean", ["AdditionalLinkerArgs": [
-                    "NO": "NOValue",
-                    "YES": ["YESValue"],
-                    "BAD": "BADValue"]]),
-            ]])
+            let (spec, warnings, errors) = try await parseTestSpec(
+                BuildSystemSpec.self,
+                [
+                    "Properties": [
+                        OptionData(
+                            "Opt0",
+                            "Boolean",
+                            [
+                                "AdditionalLinkerArgs": [
+                                    "NO": "NOValue",
+                                    "YES": ["YESValue"],
+                                    "BAD": "BADValue",
+                                ]
+                            ]
+                        )
+                    ]
+                ]
+            )
             #expect(warnings == [])
             XCTAssertMatch(errors, [.prefix("unexpected 'BAD' linker args")])
             #expect(spec.buildOptions.count == 1)
@@ -688,18 +859,30 @@ import SWBMacro
         }
 
         do {
-            let (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-                OptionData("Opt0", "String", [
-                    "CommandLineArgs": [
-                        "": ["xxx"],
-                        "defined": ["xxx"],
-                        "undefined": ["xxx"],
-                        "<<otherwise>>": ["xxx"]],
-                    "AdditionalLinkerArgs": [
-                        "": "EmptyValue",
-                        "defined": ["DefinedValue"],
-                        "<<otherwise>>": ["OtherValue"]]]),
-            ]])
+            let (spec, warnings, errors) = try await parseTestSpec(
+                BuildSystemSpec.self,
+                [
+                    "Properties": [
+                        OptionData(
+                            "Opt0",
+                            "String",
+                            [
+                                "CommandLineArgs": [
+                                    "": ["xxx"],
+                                    "defined": ["xxx"],
+                                    "undefined": ["xxx"],
+                                    "<<otherwise>>": ["xxx"],
+                                ],
+                                "AdditionalLinkerArgs": [
+                                    "": "EmptyValue",
+                                    "defined": ["DefinedValue"],
+                                    "<<otherwise>>": ["OtherValue"],
+                                ],
+                            ]
+                        )
+                    ]
+                ]
+            )
             #expect(warnings == [])
             #expect(errors == [])
             #expect(spec.buildOptions.count == 1)
@@ -709,8 +892,7 @@ import SWBMacro
                 #expect(valueDefns.count == 2)
                 #expect(valueDefns["defined"]?.additionalLinkerArgs?.stringRep == "DefinedValue")
                 #expect(valueDefns["undefined"]?.additionalLinkerArgs?.stringRep == "OtherValue")
-            }
-            else {
+            } else {
                 Issue.record("opt.valueDefns is unexpectedly nil")
             }
 
@@ -727,15 +909,27 @@ import SWBMacro
 
         // Test an edge case where there is only an empty and an otherwise definition.
         do {
-            let (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-                OptionData("Opt0", "String", [
-                    "CommandLineArgs": [
-                        "": ["xxx"],
-                        "<<otherwise>>": ["xxx"]],
-                    "AdditionalLinkerArgs": [
-                        "": "EmptyValue",
-                        "<<otherwise>>": ["OtherValue"]]]),
-            ]])
+            let (spec, warnings, errors) = try await parseTestSpec(
+                BuildSystemSpec.self,
+                [
+                    "Properties": [
+                        OptionData(
+                            "Opt0",
+                            "String",
+                            [
+                                "CommandLineArgs": [
+                                    "": ["xxx"],
+                                    "<<otherwise>>": ["xxx"],
+                                ],
+                                "AdditionalLinkerArgs": [
+                                    "": "EmptyValue",
+                                    "<<otherwise>>": ["OtherValue"],
+                                ],
+                            ]
+                        )
+                    ]
+                ]
+            )
             #expect(warnings == [])
             #expect(errors == [])
             #expect(spec.buildOptions.count == 1)
@@ -757,11 +951,17 @@ import SWBMacro
 
     @Test
     func propertyDomainSpecMacroBinding() async throws {
-        let (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Foo", "Boolean", [:]),
-            OptionData("Foo2", "String", [:]),
-            OptionData("Foo3", "StringList", [:]),
-            OptionData("Foo3", "String", [:])]])
+        let (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData("Foo", "Boolean", [:]),
+                    OptionData("Foo2", "String", [:]),
+                    OptionData("Foo3", "StringList", [:]),
+                    OptionData("Foo3", "String", [:]),
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("unable to declare macro for option 'Foo3'"))
@@ -782,9 +982,15 @@ import SWBMacro
 
     @Test
     func propertyDomainSpecMacroDefaultValues() async throws {
-        let (spec, warnings, errors) = try await parseTestSpec(BuildSystemSpec.self, ["Properties": [
-            OptionData("Foo", "Boolean", ["DefaultValue": "NO"]),
-            OptionData("Foo2", "String", ["DefaultValue": ["bad"]])]])
+        let (spec, warnings, errors) = try await parseTestSpec(
+            BuildSystemSpec.self,
+            [
+                "Properties": [
+                    OptionData("Foo", "Boolean", ["DefaultValue": "NO"]),
+                    OptionData("Foo2", "String", ["DefaultValue": ["bad"]]),
+                ]
+            ]
+        )
         #expect(warnings.count == 0)
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("expected string value for build option key 'DefaultValue' for option 'Foo2'"))
@@ -799,15 +1005,28 @@ import SWBMacro
 
     @Test
     func buildSettingWithBasedOnSpec() async throws {
-        let (rootspec, rw, re) = try await parseTestSpec(BuildSettingsSpec.self, ["Properties": [
-            OptionData("FOO", "String", ["DefaultValue": "$(inherited) no"]),
-            OptionData("BAR", "String", ["DefaultValue": "i386"])]])
+        let (rootspec, rw, re) = try await parseTestSpec(
+            BuildSettingsSpec.self,
+            [
+                "Properties": [
+                    OptionData("FOO", "String", ["DefaultValue": "$(inherited) no"]),
+                    OptionData("BAR", "String", ["DefaultValue": "i386"]),
+                ]
+            ]
+        )
         #expect(rootspec.buildOptions.count == 2)
         #expect(rw.count == 0)
         #expect(re.count == 0)
 
-        let (spec, warnings, errors) = try await parseTestSpec(BuildSettingsSpec.self, ["Properties": [
-            OptionData("FOO", "String", ["DefaultValue": "$(inherited) yes"])]], rootspec)
+        let (spec, warnings, errors) = try await parseTestSpec(
+            BuildSettingsSpec.self,
+            [
+                "Properties": [
+                    OptionData("FOO", "String", ["DefaultValue": "$(inherited) yes"])
+                ]
+            ],
+            rootspec
+        )
         #expect(spec.buildOptions.count == 1)
         #expect(warnings.count == 0)
         #expect(errors.count == 0)
@@ -824,20 +1043,30 @@ import SWBMacro
 
     @Test
     func buildPropertiesWithConditionsAndBasedOnSpec() async throws {
-        let (rootspec, rw, re) = try await parseTestSpec(PackageTypeSpec.self, [
-            "DefaultBuildSettings": [
-                "OTHER_CFLAGS": "$(inherited) base_flags",
-                "OTHER_CFLAGS[sdk=iphoneos]": "$(inherited) base_iphoneos",
-                "OTHER_LDFLAGS": "base"
-            ]])
+        let (rootspec, rw, re) = try await parseTestSpec(
+            PackageTypeSpec.self,
+            [
+                "DefaultBuildSettings": [
+                    "OTHER_CFLAGS": "$(inherited) base_flags",
+                    "OTHER_CFLAGS[sdk=iphoneos]": "$(inherited) base_iphoneos",
+                    "OTHER_LDFLAGS": "base",
+                ]
+            ]
+        )
         #expect(rootspec.buildSettings.valueAssignments.count == 3)
         #expect(rw.count == 0)
         #expect(re.count == 0)
 
-        let (spec, warnings, errors) = try await parseTestSpec(PackageTypeSpec.self, [
-            "DefaultBuildSettings": [
-                "OTHER_CFLAGS": "$(inherited) super_flags",
-                "OTHER_CFLAGS[sdk=iphoneos]": "$(inherited) super_iphoneos"]], rootspec)
+        let (spec, warnings, errors) = try await parseTestSpec(
+            PackageTypeSpec.self,
+            [
+                "DefaultBuildSettings": [
+                    "OTHER_CFLAGS": "$(inherited) super_flags",
+                    "OTHER_CFLAGS[sdk=iphoneos]": "$(inherited) super_iphoneos",
+                ]
+            ],
+            rootspec
+        )
         #expect(spec.buildSettings.valueAssignments.count == 3)
         #expect(warnings.count == 0)
         #expect(errors.count == 0)
@@ -859,14 +1088,16 @@ import SWBMacro
 
         // Check diagnostics using synthetic data.
         do {
-            let (spec, warnings, errors) = try await parseTestSpec(GenericCommandLineToolSpec.self,
-                                                             [
-                                                                "Name": "Mock",
-                                                                "RuleName": "Mock [output] [input]",
-                                                                "Type": "Compiler",
-                                                                "CommandLine": ["foo"],
-                                                                "Outputs": ["$(((bogus", "$(OutputPath)"]
-                                                             ])
+            let (spec, warnings, errors) = try await parseTestSpec(
+                GenericCommandLineToolSpec.self,
+                [
+                    "Name": "Mock",
+                    "RuleName": "Mock [output] [input]",
+                    "Type": "Compiler",
+                    "CommandLine": ["foo"],
+                    "Outputs": ["$(((bogus", "$(OutputPath)"],
+                ]
+            )
             #expect(warnings == [])
             XCTAssertMatch(errors, [.prefix("macro parsing error in 'Outputs'")])
 
@@ -888,7 +1119,7 @@ import SWBMacro
         #expect(errors.isEmpty, "Parsing compiler spec resulted in errors: \(errors)")
 
         // Check that unsupported values result in errors.
-        (_, _, errors) = try await parseTestSpec(GenericCompilerSpec.self, ["CommandLine": "", "RuleName": "", "Architectures": "arm64e"])            // Other string values not supported.
+        (_, _, errors) = try await parseTestSpec(GenericCompilerSpec.self, ["CommandLine": "", "RuleName": "", "Architectures": "arm64e"])  // Other string values not supported.
         #expect(errors.count == 1)
         XCTAssertMatch(errors[0], .prefix("unexpected item: \"arm64e\" while parsing key Architectures"))
     }
@@ -927,7 +1158,7 @@ import SWBMacro
 
         // Validate loading of supported language versions
         let swiftCompilerSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
-        #expect(swiftCompilerSpec.supportedLanguageVersions == [ Version(4,0), Version(4,2), Version(5,0), Version(6, 0)])
+        #expect(swiftCompilerSpec.supportedLanguageVersions == [Version(4, 0), Version(4, 2), Version(5, 0), Version(6, 0)])
     }
 
     @Test

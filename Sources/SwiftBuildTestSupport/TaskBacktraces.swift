@@ -23,13 +23,15 @@ import Foundation
 
 extension BuildOperationTester.BuildResults {
     private func getBacktraceID(_ task: Task, sourceLocation: SourceLocation = #_sourceLocation) -> BuildOperationBacktraceFrameEmitted.Identifier? {
-        guard let frameID: BuildOperationBacktraceFrameEmitted.Identifier = events.compactMap ({ (event) -> BuildOperationBacktraceFrameEmitted.Identifier? in
-            guard case .emittedBuildBacktraceFrame(let frame) = event, case .task(let signature) = frame.identifier, BuildOperationTaskSignature.taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)) == signature else {
-                return nil
-            }
-            return frame.identifier
-            // Iff the task is a dynamic task, there may be more than one corresponding frame if it was requested multiple times, in which case we choose the first. Non-dynamic tasks always have a 1-1 relationship with frames.
-        }).sorted().first else {
+        guard
+            let frameID: BuildOperationBacktraceFrameEmitted.Identifier = events.compactMap({ (event) -> BuildOperationBacktraceFrameEmitted.Identifier? in
+                guard case .emittedBuildBacktraceFrame(let frame) = event, case .task(let signature) = frame.identifier, BuildOperationTaskSignature.taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)) == signature else {
+                    return nil
+                }
+                return frame.identifier
+                // Iff the task is a dynamic task, there may be more than one corresponding frame if it was requested multiple times, in which case we choose the first. Non-dynamic tasks always have a 1-1 relationship with frames.
+            }).sorted().first
+        else {
             Issue.record("Did not find a single build backtrace frame for task: \(task.identifier)", sourceLocation: sourceLocation)
             return nil
         }
@@ -92,7 +94,7 @@ extension BuildOperationTester.BuildResults {
 
 extension BuildOperationTester {
     /// Ensure that the build is a null build.
-    package func checkNullBuild(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, excludedTasks: Set<String> = ["ClangStatCache", "LinkAssetCatalogSignature"], diagnosticsToValidate: Set<DiagnosticKind> = [.note, .error, .warning], sourceLocation: SourceLocation = #_sourceLocation) async throws {
+    package func checkNullBuild(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String: String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, excludedTasks: Set<String> = ["ClangStatCache", "LinkAssetCatalogSignature"], diagnosticsToValidate: Set<DiagnosticKind> = [.note, .error, .warning], sourceLocation: SourceLocation = #_sourceLocation) async throws {
 
         func body(results: BuildResults) throws -> Void {
             results.consumeTasksMatchingRuleTypes(excludedTasks)

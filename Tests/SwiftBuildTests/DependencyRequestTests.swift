@@ -28,8 +28,8 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let f1Target = TestStandardTarget(
@@ -41,11 +41,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ]
                 )
@@ -59,11 +60,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ],
                     dependencies: [.init("F1")]
@@ -78,11 +80,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ]
                 )
@@ -96,52 +99,65 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ],
                     dependencies: [.init("F2"), .init("F3")]
                 )
 
-                try await testSession.session.sendPIF(.init(TestWorkspace("Test", sourceRoot: tmpDirPath, projects: [
-                    TestProject(
-                        "Test",
-                        groupTree: TestGroup("Test", children: [
-                            TestFile("TestFile1.c"),
-                        ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug")
-                        ],
-                        targets: [
-                            f1Target,
-                            f2Target,
-                            f3Target,
-                            appTarget
-                        ]
+                try await testSession.session.sendPIF(
+                    .init(
+                        TestWorkspace(
+                            "Test",
+                            sourceRoot: tmpDirPath,
+                            projects: [
+                                TestProject(
+                                    "Test",
+                                    groupTree: TestGroup(
+                                        "Test",
+                                        children: [
+                                            TestFile("TestFile1.c")
+                                        ]
+                                    ),
+                                    buildConfigurations: [
+                                        TestBuildConfiguration("Debug")
+                                    ],
+                                    targets: [
+                                        f1Target,
+                                        f2Target,
+                                        f3Target,
+                                        appTarget,
+                                    ]
+                                )
+                            ]
+                        ).toObjects().propertyListItem
                     )
-                ]).toObjects().propertyListItem))
+                )
 
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [f1Target.guid, f2Target.guid, f3Target.guid, appTarget.guid])
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f2Target.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [f1Target.guid, f2Target.guid])
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f3Target.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [f3Target.guid])
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [f1Target.guid, f2Target.guid, f3Target.guid, appTarget.guid])
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f2Target.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [f1Target.guid, f2Target.guid])
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [f3Target.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [f3Target.guid])
 
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid), SWBTargetGUID(rawValue: f3Target.guid)],
-                         SWBTargetGUID(rawValue: f3Target.guid): [],
-                         SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
-                         SWBTargetGUID(rawValue: f1Target.guid): []
-                        ])
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f2Target.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
-                         SWBTargetGUID(rawValue: f1Target.guid): []])
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f3Target.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [SWBTargetGUID(rawValue: f3Target.guid): []])
+                #expect(
+                    try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [
+                        SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid), SWBTargetGUID(rawValue: f3Target.guid)],
+                        SWBTargetGUID(rawValue: f3Target.guid): [],
+                        SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
+                        SWBTargetGUID(rawValue: f1Target.guid): [],
+                    ]
+                )
+                #expect(
+                    try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f2Target.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [
+                        SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
+                        SWBTargetGUID(rawValue: f1Target.guid): [],
+                    ]
+                )
+                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: f3Target.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [SWBTargetGUID(rawValue: f3Target.guid): []])
             }
         }
     }
@@ -154,8 +170,8 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let f1Target = TestStandardTarget(
@@ -168,11 +184,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "auto",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ]
                 )
@@ -187,11 +204,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "auto",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ],
                     dependencies: [.init("F1")]
@@ -207,11 +225,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "auto",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ]
                 )
@@ -226,46 +245,62 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "auto",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ],
                     dependencies: [.init("F2", platformFilters: PlatformFilter.macOSFilters), .init("F3", platformFilters: PlatformFilter.iOSFilters)]
                 )
 
-                try await testSession.session.sendPIF(.init(TestWorkspace("Test", sourceRoot: tmpDirPath, projects: [
-                    TestProject(
-                        "Test",
-                        groupTree: TestGroup("Test", children: [
-                            TestFile("TestFile1.c"),
-                        ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug")
-                        ],
-                        targets: [
-                            f1Target,
-                            f2Target,
-                            f3Target,
-                            appTarget
-                        ]
+                try await testSession.session.sendPIF(
+                    .init(
+                        TestWorkspace(
+                            "Test",
+                            sourceRoot: tmpDirPath,
+                            projects: [
+                                TestProject(
+                                    "Test",
+                                    groupTree: TestGroup(
+                                        "Test",
+                                        children: [
+                                            TestFile("TestFile1.c")
+                                        ]
+                                    ),
+                                    buildConfigurations: [
+                                        TestBuildConfiguration("Debug")
+                                    ],
+                                    targets: [
+                                        f1Target,
+                                        f2Target,
+                                        f3Target,
+                                        appTarget,
+                                    ]
+                                )
+                            ]
+                        ).toObjects().propertyListItem
                     )
-                ]).toObjects().propertyListItem))
+                )
 
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyMac), includeImplicitDependencies: true) ==
-                        [f1Target.guid, f2Target.guid, appTarget.guid])
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice), includeImplicitDependencies: true) ==
-                        [f3Target.guid, appTarget.guid])
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyMac), includeImplicitDependencies: true) == [f1Target.guid, f2Target.guid, appTarget.guid])
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice), includeImplicitDependencies: true) == [f3Target.guid, appTarget.guid])
 
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyMac), includeImplicitDependencies: true) ==
-                        [SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid)],
-                         SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
-                         SWBTargetGUID(rawValue: f1Target.guid): []])
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice), includeImplicitDependencies: true) ==
-                        [SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f3Target.guid)],
-                         SWBTargetGUID(rawValue: f3Target.guid): []])
+                #expect(
+                    try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyMac), includeImplicitDependencies: true) == [
+                        SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid)],
+                        SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
+                        SWBTargetGUID(rawValue: f1Target.guid): [],
+                    ]
+                )
+                #expect(
+                    try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(configuration: "Debug", activeRunDestination: .anyiOSDevice), includeImplicitDependencies: true) == [
+                        SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f3Target.guid)],
+                        SWBTargetGUID(rawValue: f3Target.guid): [],
+                    ]
+                )
             }
         }
     }
@@ -278,8 +313,8 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                 let testSession = try await TestSWBSession(temporaryDirectory: temporaryDirectory)
                 await deferrable.addBlock {
                     await #expect(throws: Never.self) {
-                            try await testSession.close()
-                        }
+                        try await testSession.close()
+                    }
                 }
 
                 let f1Target = TestStandardTarget(
@@ -291,11 +326,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ]
                 )
@@ -309,13 +345,14 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ]),
-                        TestFrameworksBuildPhase([.init("F1.framework")])
+                        TestFrameworksBuildPhase([.init("F1.framework")]),
                     ]
                 )
 
@@ -328,11 +365,12 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ]
                 )
@@ -346,50 +384,64 @@ fileprivate struct DependencyClosureTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SDKROOT": "iphoneos",
-                            ])
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("TestFile1.c"),
+                            TestBuildFile("TestFile1.c")
                         ])
                     ],
                     dependencies: [.init("F2"), .init("F3")]
                 )
 
-                try await testSession.session.sendPIF(.init(TestWorkspace("Test", sourceRoot: tmpDirPath, projects: [
-                    TestProject(
-                        "Test",
-                        groupTree: TestGroup("Test", children: [
-                            TestFile("TestFile1.c"),
-                        ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration("Debug")
-                        ],
-                        targets: [
-                            f1Target,
-                            f2Target,
-                            f3Target,
-                            appTarget
-                        ]
+                try await testSession.session.sendPIF(
+                    .init(
+                        TestWorkspace(
+                            "Test",
+                            sourceRoot: tmpDirPath,
+                            projects: [
+                                TestProject(
+                                    "Test",
+                                    groupTree: TestGroup(
+                                        "Test",
+                                        children: [
+                                            TestFile("TestFile1.c")
+                                        ]
+                                    ),
+                                    buildConfigurations: [
+                                        TestBuildConfiguration("Debug")
+                                    ],
+                                    targets: [
+                                        f1Target,
+                                        f2Target,
+                                        f3Target,
+                                        appTarget,
+                                    ]
+                                )
+                            ]
+                        ).toObjects().propertyListItem
                     )
-                ]).toObjects().propertyListItem))
+                )
 
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [f1Target.guid, f2Target.guid, f3Target.guid, appTarget.guid])
-                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: false) ==
-                        [f2Target.guid, f3Target.guid, appTarget.guid])
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [f1Target.guid, f2Target.guid, f3Target.guid, appTarget.guid])
+                #expect(try await testSession.session.computeDependencyClosure(targetGUIDs: [appTarget.guid], buildParameters: SWBBuildParameters(), includeImplicitDependencies: false) == [f2Target.guid, f3Target.guid, appTarget.guid])
 
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) ==
-                        [SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid), SWBTargetGUID(rawValue: f3Target.guid)],
-                         SWBTargetGUID(rawValue: f3Target.guid): [],
-                         SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
-                         SWBTargetGUID(rawValue: f1Target.guid): []
-                        ])
-                #expect(try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: false) ==
-                        [SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid), SWBTargetGUID(rawValue: f3Target.guid)],
-                         SWBTargetGUID(rawValue: f3Target.guid): [],
-                         SWBTargetGUID(rawValue: f2Target.guid): [],
-                        ])
+                #expect(
+                    try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: true) == [
+                        SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid), SWBTargetGUID(rawValue: f3Target.guid)],
+                        SWBTargetGUID(rawValue: f3Target.guid): [],
+                        SWBTargetGUID(rawValue: f2Target.guid): [SWBTargetGUID(rawValue: f1Target.guid)],
+                        SWBTargetGUID(rawValue: f1Target.guid): [],
+                    ]
+                )
+                #expect(
+                    try await testSession.session.computeDependencyGraph(targetGUIDs: [SWBTargetGUID(rawValue: appTarget.guid)], buildParameters: SWBBuildParameters(), includeImplicitDependencies: false) == [
+                        SWBTargetGUID(rawValue: appTarget.guid): [SWBTargetGUID(rawValue: f2Target.guid), SWBTargetGUID(rawValue: f3Target.guid)],
+                        SWBTargetGUID(rawValue: f3Target.guid): [],
+                        SWBTargetGUID(rawValue: f2Target.guid): [],
+                    ]
+                )
             }
         }
     }

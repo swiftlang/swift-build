@@ -17,35 +17,35 @@ import Foundation
 struct RunXcodebuild: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
         #if !os(macOS)
-        throw RunXcodebuildError.unsupportedPlatform
+            throw RunXcodebuildError.unsupportedPlatform
         #else
-        var args = ArgumentExtractor(arguments)
-        var configuration: PackageManager.BuildConfiguration = .debug
-        // --release
-        if args.extractFlag(named: "release") > 0 {
-            configuration = .release
-        } else {
-            // --configuration release
-            let configurationOptions = args.extractOption(named: "configuration")
-            if configurationOptions.contains("release") {
+            var args = ArgumentExtractor(arguments)
+            var configuration: PackageManager.BuildConfiguration = .debug
+            // --release
+            if args.extractFlag(named: "release") > 0 {
                 configuration = .release
+            } else {
+                // --configuration release
+                let configurationOptions = args.extractOption(named: "configuration")
+                if configurationOptions.contains("release") {
+                    configuration = .release
+                }
             }
-        }
 
-        let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(configuration: configuration, echoLogs: true))
-        guard buildResult.succeeded else { return }
-        guard let buildServiceURL = buildResult.builtArtifacts.map({ $0.url }).filter({ $0.lastPathComponent == "SWBBuildServiceBundle" }).first else {
-            throw RunXcodebuildError.buildServiceURLNotFound
-        }
+            let buildResult = try packageManager.build(.all(includingTests: false), parameters: .init(configuration: configuration, echoLogs: true))
+            guard buildResult.succeeded else { return }
+            guard let buildServiceURL = buildResult.builtArtifacts.map({ $0.url }).filter({ $0.lastPathComponent == "SWBBuildServiceBundle" }).first else {
+                throw RunXcodebuildError.buildServiceURLNotFound
+            }
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        process.arguments = ["xcodebuild"] + args.remainingArguments
-        process.environment = ProcessInfo.processInfo.environment.merging(["XCBBUILDSERVICE_PATH": buildServiceURL.path()]) { _, new in new }
-        try await process.run()
-        if process.terminationStatus != 0 {
-            throw RunXcodebuildError.xcodebuildError(terminationReason: process.terminationReason, terminationStatus: process.terminationStatus)
-        }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+            process.arguments = ["xcodebuild"] + args.remainingArguments
+            process.environment = ProcessInfo.processInfo.environment.merging(["XCBBUILDSERVICE_PATH": buildServiceURL.path()]) { _, new in new }
+            try await process.run()
+            if process.terminationStatus != 0 {
+                throw RunXcodebuildError.xcodebuildError(terminationReason: process.terminationReason, terminationStatus: process.terminationStatus)
+            }
         #endif
     }
 }
@@ -62,14 +62,15 @@ enum RunXcodebuildError: Error, CustomStringConvertible {
         case .buildServiceURLNotFound:
             return "Failed to determine path to built SWBBuildServiceBundle"
         case let .xcodebuildError(terminationReason, terminationStatus):
-            let reason = switch terminationReason {
-            case .exit:
-                "status code"
-            case .uncaughtSignal:
-                "uncaught signal"
-            @unknown default:
-                preconditionFailure()
-            }
+            let reason =
+                switch terminationReason {
+                case .exit:
+                    "status code"
+                case .uncaughtSignal:
+                    "uncaught signal"
+                @unknown default:
+                    preconditionFailure()
+                }
             return "xcodebuild exited with \(reason) \(terminationStatus), did you remember to pass `--disable-sandbox`?"
         }
     }

@@ -6,11 +6,13 @@ let package = Package(
     products: [
         .executable(
             name: "CommandLineToolPackage",
-            targets: ["CommandLineToolPackage"]),
+            targets: ["CommandLineToolPackage"]
+        )
     ],
     targets: [
         .target(
             name: "CommandLineToolPackage",
-            dependencies: []),
+            dependencies: []
+        )
     ]
 )

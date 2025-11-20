@@ -27,7 +27,8 @@ fileprivate struct MetalTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("File1.metal")
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Test",
@@ -42,13 +43,14 @@ fileprivate struct MetalTests: CoreBasedTests {
                                     "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                     "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
                                 ]
-                            ),
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["File1.metal"]),
+                            TestSourcesBuildPhase(["File1.metal"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
@@ -74,7 +76,7 @@ fileprivate struct MetalTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
-    func  indexOptionsNotAddedIfIndexingIsDisabled() async throws {
+    func indexOptionsNotAddedIfIndexingIsDisabled() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testProject = TestProject(
                 "ProjectName",
@@ -83,7 +85,8 @@ fileprivate struct MetalTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("File1.metal")
-                    ]),
+                    ]
+                ),
                 targets: [
                     TestStandardTarget(
                         "Test",
@@ -98,13 +101,14 @@ fileprivate struct MetalTests: CoreBasedTests {
                                     "INDEX_STORE_ONLY_PROJECT_FILES": "YES",
                                     "CLANG_INDEX_STORE_IGNORE_MACROS": "YES",
                                 ]
-                            ),
+                            )
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["File1.metal"]),
+                            TestSourcesBuildPhase(["File1.metal"])
                         ]
                     )
-                ])
+                ]
+            )
 
             let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)

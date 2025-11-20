@@ -28,7 +28,7 @@ package extension BuildPlan {
         // Emit a separate file for each target, inside a separate subdirectory for each project.
         for (target, plannedTasks) in tasksByTarget {
             // Get a hold of the product plan and macro evaluation scope.
-            let productPlan = productPlans.first{ $0.forTarget == target }!
+            let productPlan = productPlans.first { $0.forTarget == target }!
             let scope = target.map { target in productPlan.taskProducerContext.globalProductPlan.getTargetSettings(target).globalScope } ?? productPlan.taskProducerContext.globalProductPlan.getWorkspaceSettings().globalScope
 
             // Figure out the name of the project.
@@ -65,9 +65,12 @@ package extension BuildPlan {
 
                 // Emit a version of the command line arguments array that back-maps as many strings as possible to macro refs.
                 let commandLine = task.execTask.commandLineAsStrings.map { (commandLineArg: String) -> String in
-                    literalPathsFromLongestToShortest.reduce(commandLineArg, { (result: String, path: String) -> String in
-                        result.replacingOccurrences(of: path, with: literalPathsToMacroRefs[path]!)
-                    })
+                    literalPathsFromLongestToShortest.reduce(
+                        commandLineArg,
+                        { (result: String, path: String) -> String in
+                            result.replacingOccurrences(of: path, with: literalPathsToMacroRefs[path]!)
+                        }
+                    )
                 }
                 output <<< "command: \(commandLine.quotedStringListRepresentation)\n"
             }

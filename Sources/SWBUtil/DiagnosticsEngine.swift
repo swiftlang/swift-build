@@ -33,7 +33,7 @@ public enum Component: Serializable, Equatable, Hashable, Sendable, Codable {
         case "targetIntegrity":
             self = .targetIntegrity
 
-            // Compatibility cases
+        // Compatibility cases
         case "swiftCompiler":
             self = .clangCompiler(categoryName: "Swift Compiler Error")
         case "parseIssue":
@@ -61,7 +61,7 @@ public enum Component: Serializable, Equatable, Hashable, Sendable, Codable {
         }
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serialize(name)
     }
 
@@ -103,7 +103,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
         /// - parameter identifier: An opaque string identifying the object.
         case object(identifier: String)
 
-        public func serialize<T>(to serializer: T) where T : Serializer {
+        public func serialize<T>(to serializer: T) where T: Serializer {
             serializer.serializeAggregate(2) {
                 switch self {
                 case let .textual(line, column):
@@ -224,7 +224,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
                 switch self {
                 case .unknown:
                     serializer.serialize(LocationType.unknown)
-                    serializer.serialize("") // This is needed so that the number of items in the aggregate is constant no matter the case.
+                    serializer.serialize("")  // This is needed so that the number of items in the aggregate is constant no matter the case.
                 case let .path(path, fileLocation):
                     serializer.serialize(LocationType.path)
                     serializer.beginAggregate(2)
@@ -250,19 +250,23 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
             try deserializer.beginAggregate(2)
             switch try deserializer.deserialize() as LocationType {
             case .unknown:
-                _ = try deserializer.deserialize() as String // This is just a mock for the aggregate and we can ignore the value.
+                _ = try deserializer.deserialize() as String  // This is just a mock for the aggregate and we can ignore the value.
                 self = .unknown
             case .path:
                 try deserializer.beginAggregate(2)
-                self = .path(try deserializer.deserialize(),
-                             fileLocation: try deserializer.deserialize())
+                self = .path(
+                    try deserializer.deserialize(),
+                    fileLocation: try deserializer.deserialize()
+                )
             case .buildSettings:
                 try deserializer.beginAggregate(1)
                 self = .buildSettings(names: try deserializer.deserialize())
             case .buildFiles:
                 try deserializer.beginAggregate(2)
-                self = .buildFiles(try deserializer.deserialize(),
-                                   targetGUID: try deserializer.deserialize())
+                self = .buildFiles(
+                    try deserializer.deserialize(),
+                    targetGUID: try deserializer.deserialize()
+                )
             }
         }
     }
@@ -323,7 +327,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
         public let endLine: Int
         public let endColumn: Int
 
-        public func serialize<T>(to serializer: T) where T : Serializer {
+        public func serialize<T>(to serializer: T) where T: Serializer {
             serializer.serializeAggregate(5) {
                 serializer.serialize(path)
                 serializer.serialize(startLine)
@@ -539,7 +543,7 @@ public struct Diagnostic: Equatable, Hashable, Serializable, Sendable, Codable {
         self.childDiagnostics = try deserializer.deserialize()
     }
 
-    public static func ==(lhs: Diagnostic, rhs: Diagnostic) -> Bool {
+    public static func == (lhs: Diagnostic, rhs: Diagnostic) -> Bool {
         // Not the best for performance, but this is only used in unit tests, and making DiagnosticID and DiagnosticData conform to Equatable is nontrivial.
         lhs.formatLocalizedDescription(.debug) == rhs.formatLocalizedDescription(.debug)
     }

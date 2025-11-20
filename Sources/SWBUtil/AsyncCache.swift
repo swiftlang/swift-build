@@ -24,7 +24,7 @@ public actor AsyncCache<Key: Hashable & Sendable, Value: Sendable> {
     private var cache: [Key: KeyState] = [:]
 
     /// Creates a new cache.
-    public init() { }
+    public init() {}
 
     /// Retrieves the value for the specified key, invoking the `body` closure to cache the value if it is not already present.
     ///

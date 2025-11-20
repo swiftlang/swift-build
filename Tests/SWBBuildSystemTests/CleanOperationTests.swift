@@ -23,9 +23,11 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
         return ArenaInfo(derivedDataPath: path.dirname, buildProductsPath: path, buildIntermediatesPath: path, pchPath: path, indexRegularBuildProductsPath: nil, indexRegularBuildIntermediatesPath: nil, indexPCHPath: path, indexDataStoreFolderPath: nil, indexEnableDataStore: false)
     }
 
-    private func withTestHarness(install: Bool = false,
-                                 useRootDstroot: Bool = false,
-                                 perform: (BuildOperationTester,  Path, Path) async throws -> Void) async throws {
+    private func withTestHarness(
+        install: Bool = false,
+        useRootDstroot: Bool = false,
+        perform: (BuildOperationTester, Path, Path) async throws -> Void
+    ) async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let dstRoot = useRootDstroot ? tmpDirPath : tmpDirPath.join("dest")
             let testWorkspace = try await TestWorkspace(
@@ -35,37 +37,45 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", children: [
+                            "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
                                 TestFile("Thing.swift"),
                                 TestFile("Info.plist"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "VERSIONING_SYSTEM": "apple-generic",
-                                "CURRENT_PROJECT_VERSION": "3.1",
-                                "INFOPLIST_FILE": "Info.plist",
-                                "DEFINES_MODULE": "YES",
-                                "ALWAYS_SEARCH_USER_PATHS": "NO",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "SWIFT_VERSION": swiftVersion,
-                                "DSTROOT": dstRoot.str,
-                                "DEPLOYMENT_LOCATION": install ? "YES" : "NO",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "VERSIONING_SYSTEM": "apple-generic",
+                                    "CURRENT_PROJECT_VERSION": "3.1",
+                                    "INFOPLIST_FILE": "Info.plist",
+                                    "DEFINES_MODULE": "YES",
+                                    "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                    "CLANG_ENABLE_MODULES": "YES",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "DSTROOT": dstRoot.str,
+                                    "DEPLOYMENT_LOCATION": install ? "YES" : "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m", "Thing.swift"]),
                                     TestFrameworksBuildPhase([]),
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ])
-                        ])
-                ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
@@ -88,13 +98,16 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Test without an arena - should fail because no projects and no workspace arena provides no means to get the build intermediates path.
-            await #expect(performing: {
-                try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug"), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular)), persistent: true) { results in
-                    results.checkNoDiagnostics()
+            await #expect(
+                performing: {
+                    try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug"), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular)), persistent: true) { results in
+                        results.checkNoDiagnostics()
+                    }
+                },
+                throws: { error in
+                    String(describing: error) == "There is no workspace arena to determine the build cache directory path."
                 }
-            }, throws: { error in
-                String(describing: error) == "There is no workspace arena to determine the build cache directory path."
-            })
+            )
 
             // Test with an arena - should succeed because while there are no projects, we can still get the build intermediates path from the workspace arena.
             try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: BuildParameters(configuration: "Debug", arena: arenaInfo(from: tmpDirPath.join("build"))), buildTargets: [], continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false, buildCommand: .cleanBuildFolder(style: .regular)), persistent: true) { results in
@@ -106,7 +119,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanFramework() async throws {
         try await withTestHarness { tester, tmpDirPath, _ in
-            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
+            let buildFolderPaths = [tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
@@ -136,7 +149,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanFrameworkInstall() async throws {
         try await withTestHarness(install: true) { tester, tmpDirPath, dstRoot in
-            let buildFolderPaths = [ dstRoot, tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
+            let buildFolderPaths = [dstRoot, tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
@@ -166,7 +179,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanLegacy() async throws {
         try await withTemporaryDirectory { tmpDirPath in
-            let buildFolderPaths = [ tmpDirPath.join("build/a"), tmpDirPath.join("build/b") ]
+            let buildFolderPaths = [tmpDirPath.join("build/a"), tmpDirPath.join("build/b")]
 
             let testWorkspace = TestWorkspace(
                 "Test",
@@ -174,25 +187,35 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                 projects: [
                     TestProject(
                         "aProject",
-                        groupTree: TestGroup("Sources", children: [ TestFile("foo.c") ]),
+                        groupTree: TestGroup("Sources", children: [TestFile("foo.c")]),
                         buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)"])],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug",
-                                        buildSettings: ["OBJROOT": buildFolderPaths[0].str, "SYMROOT": buildFolderPaths[0].str, "DSTROOT": buildFolderPaths[0].str])],
-                                buildPhases: [ TestSourcesBuildPhase(["foo.c"]) ]),
+                                        buildSettings: ["OBJROOT": buildFolderPaths[0].str, "SYMROOT": buildFolderPaths[0].str, "DSTROOT": buildFolderPaths[0].str]
+                                    )
+                                ],
+                                buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                            ),
                             TestStandardTarget(
-                                "OtherFramework", type: .framework,
+                                "OtherFramework",
+                                type: .framework,
                                 buildConfigurations: [
                                     TestBuildConfiguration(
                                         "Debug",
-                                        buildSettings: ["OBJROOT": buildFolderPaths[1].str, "SYMROOT": buildFolderPaths[1].str, "DSTROOT": buildFolderPaths[1].str])],
-                                buildPhases: [ TestSourcesBuildPhase(["foo.c"]) ]),
-                        ])
-                ])
+                                        buildSettings: ["OBJROOT": buildFolderPaths[1].str, "SYMROOT": buildFolderPaths[1].str, "DSTROOT": buildFolderPaths[1].str]
+                                    )
+                                ],
+                                buildPhases: [TestSourcesBuildPhase(["foo.c"])]
+                            ),
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/foo.c")) { _ in }
@@ -234,7 +257,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanDoesNotDeleteManuallyCreatedFolders() async throws {
         try await withTestHarness { tester, tmpDirPath, _ in
-            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
+            let buildFolderPaths = [tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
 
             for folder in buildFolderPaths {
                 try tester.fs.createDirectory(folder, recursive: true)
@@ -293,8 +316,10 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
                         buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [:])],
                         targets: [
                             TestExternalTarget("external", toolPath: "\(try await getCore().developerPath.path.str)/usr/bin/make", arguments: "$(ACTION)", workingDirectory: sourceRoot.str, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: [:])], dependencies: [], passBuildSettingsInEnvironment: true)
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             try await perform(tester, tmpDirPath, sourceRoot)
         }

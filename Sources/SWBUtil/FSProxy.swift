@@ -13,9 +13,9 @@
 import SWBLibc
 
 #if canImport(System)
-public import System
+    public import System
 #else
-public import SystemPackage
+    public import SystemPackage
 #endif
 
 public import struct Foundation.CocoaError
@@ -34,13 +34,12 @@ public import struct Foundation.FileAttributeKey
 public import struct Foundation.TimeInterval
 public import class Foundation.NSDictionary
 #if canImport(Darwin)
-import struct ObjectiveC.ObjCBool
+    import struct ObjectiveC.ObjCBool
 #endif
 
 #if os(Windows)
-public import struct WinSDK.HANDLE
+    public import struct WinSDK.HANDLE
 #endif
-
 
 /// File system information for a particular file.
 ///
@@ -112,7 +111,7 @@ public struct FileInfo: Equatable, Sendable {
         return _readFileAttributePrimitive(fileAttrs[.systemNumber], as: Int32.self) ?? 0
     }
 
-    public static func ==(lhs: FileInfo, rhs: FileInfo) -> Bool {
+    public static func == (lhs: FileInfo, rhs: FileInfo) -> Bool {
         return NSDictionary(dictionary: lhs.fileAttrs).isEqual(NSDictionary(dictionary: rhs.fileAttrs))
     }
 }
@@ -357,10 +356,10 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     public func moveInSameVolume(_ path: Path, to: Path) throws {
         #if canImport(Darwin)
-        _ = try fileManager.replaceItemAt(URL(fileURLWithPath: to.str), withItemAt: URL(fileURLWithPath: path.str), options: FileManager.ItemReplacementOptions.usingNewMetadataOnly)
+            _ = try fileManager.replaceItemAt(URL(fileURLWithPath: to.str), withItemAt: URL(fileURLWithPath: path.str), options: FileManager.ItemReplacementOptions.usingNewMetadataOnly)
         #else
-        // `replaceItemAt` doesn't work on swift-corelibs-foundation
-        try move(path, to: to)
+            // `replaceItemAt` doesn't work on swift-corelibs-foundation
+            try move(path, to: to)
         #endif
     }
 
@@ -373,17 +372,17 @@ class LocalFS: FSProxy, @unchecked Sendable {
     ///
     /// If the given path is a symlink to a directory, then this will return true if the destination of the symlink is a directory.
     func isDirectory(_ path: Path) -> Bool {
-#if canImport(Darwin)
-        var isDirectory: ObjCBool = false
-        if fileManager.fileExists(atPath: path.str, isDirectory: &isDirectory) {
-            return isDirectory.boolValue
-        }
-#else
-        var isDirectory = false
-        if fileManager.fileExists(atPath: path.str, isDirectory: &isDirectory) {
-            return isDirectory
-        }
-#endif
+        #if canImport(Darwin)
+            var isDirectory: ObjCBool = false
+            if fileManager.fileExists(atPath: path.str, isDirectory: &isDirectory) {
+                return isDirectory.boolValue
+            }
+        #else
+            var isDirectory = false
+            if fileManager.fileExists(atPath: path.str, isDirectory: &isDirectory) {
+                return isDirectory
+            }
+        #endif
         return false
     }
 
@@ -419,19 +418,16 @@ class LocalFS: FSProxy, @unchecked Sendable {
                 if isDirectory(path) {
                     // If the item at the path is a directory, then we're good.  This includes if it's a symlink which points to a directory.
                     return
-                }
-                else if isSymlink(path, &destinationExists) {
+                } else if isSymlink(path, &destinationExists) {
                     // If the item at the path is a symlink, then we check whether it's a broken symlink or points to something that is not a directory.
                     if destinationExists {
                         // The destination does exist, so it's not a directory.
                         throw StubError.error("File is a symbolic link which references a path which is not a directory: \(path.str)")
-                    }
-                    else {
+                    } else {
                         // The destination does not exist - throw an exception because we have a broken symlink.
                         throw StubError.error("File is a broken symbolic link: \(path.str)")
                     }
-                }
-                else {
+                } else {
                     /// The path exists but is not a directory
                     throw StubError.error("File exists but is not a directory: \(path.str)")
                 }
@@ -458,26 +454,26 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func createTemporaryDirectory(parent: Path) throws -> Path {
         #if os(Windows)
-        return parent.join("swbuild.tmp." + UUID().description)
+            return parent.join("swbuild.tmp." + UUID().description)
         #else
-        // FIXME: This is an inappropriate location for general purpose infrastructure.
-        let template = [UInt8](parent.join("swbuild.tmp.XXXXXXXX").str.utf8)
+            // FIXME: This is an inappropriate location for general purpose infrastructure.
+            let template = [UInt8](parent.join("swbuild.tmp.XXXXXXXX").str.utf8)
 
-        // Create the temp path.
-        let name = UnsafeMutablePointer<CChar>.allocate(capacity: template.count + 1)
-        template.withUnsafeBufferPointer { buf in
-            memcpy(name, buf.baseAddress!, buf.count)
-            name[buf.count] = 0
-        }
+            // Create the temp path.
+            let name = UnsafeMutablePointer<CChar>.allocate(capacity: template.count + 1)
+            template.withUnsafeBufferPointer { buf in
+                memcpy(name, buf.baseAddress!, buf.count)
+                name[buf.count] = 0
+            }
 
-        defer { name.deallocate() }
+            defer { name.deallocate() }
 
-        // Create the temporary directory.
-        guard mkdtemp(name) != nil else {
-            throw POSIXError(errno, context: "mkdtemp", String(cString: name))
-        }
+            // Create the temporary directory.
+            guard mkdtemp(name) != nil else {
+                throw POSIXError(errno, context: "mkdtemp", String(cString: name))
+            }
 
-        return Path(String(cString: name))
+            return Path(String(cString: name))
         #endif
     }
 
@@ -645,108 +641,108 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func listExtendedAttributes(_ path: Path) throws -> [String] {
         #if os(Windows)
-        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
-        return []
+            // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+            return []
         #elseif os(FreeBSD)
-        // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
-        return []
+            // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
+            return []
         #elseif os(OpenBSD)
-        // OpenBSD no longer supports extended attributes
-        return []
+            // OpenBSD no longer supports extended attributes
+            return []
         #else
-        #if canImport(Darwin)
-        var size = listxattr(path.str, nil, 0, 0)
-        #else
-        var size = listxattr(path.str, nil, 0)
-        #endif
-        if size == -1 {
-            throw POSIXError(errno, context: "listxattr", path.str)
-        }
-        guard size > 0 else { return [] }
-        let keyList = UnsafeMutableBufferPointer<CChar>.allocate(capacity: size)
-        defer { keyList.deallocate() }
-        #if canImport(Darwin)
-        size = listxattr(path.str, keyList.baseAddress!, size, 0)
-        #else
-        size = listxattr(path.str, keyList.baseAddress!, size)
-        #endif
-        if size == -1 {
-            throw POSIXError(errno, context: "listxattr", path.str)
-        }
-        guard size > 0 else { return [] }
+            #if canImport(Darwin)
+                var size = listxattr(path.str, nil, 0, 0)
+            #else
+                var size = listxattr(path.str, nil, 0)
+            #endif
+            if size == -1 {
+                throw POSIXError(errno, context: "listxattr", path.str)
+            }
+            guard size > 0 else { return [] }
+            let keyList = UnsafeMutableBufferPointer<CChar>.allocate(capacity: size)
+            defer { keyList.deallocate() }
+            #if canImport(Darwin)
+                size = listxattr(path.str, keyList.baseAddress!, size, 0)
+            #else
+                size = listxattr(path.str, keyList.baseAddress!, size)
+            #endif
+            if size == -1 {
+                throw POSIXError(errno, context: "listxattr", path.str)
+            }
+            guard size > 0 else { return [] }
 
-        var extendedAttrs: [String] = []
-        var current = keyList.baseAddress!
-        let end = keyList.baseAddress!.advanced(by: keyList.count)
-        while current < end {
-            let currentKey = String(cString: current)
-            defer { current = current.advanced(by: currentKey.utf8.count) + 1 /* pass null byte */ }
-            extendedAttrs.append(currentKey)
-        }
-        return extendedAttrs
+            var extendedAttrs: [String] = []
+            var current = keyList.baseAddress!
+            let end = keyList.baseAddress!.advanced(by: keyList.count)
+            while current < end {
+                let currentKey = String(cString: current)
+                defer { current = current.advanced(by: currentKey.utf8.count) + 1 /* pass null byte */ }
+                extendedAttrs.append(currentKey)
+            }
+            return extendedAttrs
         #endif
     }
 
     func setExtendedAttribute(_ path: Path, key: String, value: ByteString) throws {
         #if os(Windows)
-        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+            // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
         #elseif os(FreeBSD)
-        // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
+            // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
         #elseif os(OpenBSD)
-        // OpenBSD no longer supports extended attributes
+            // OpenBSD no longer supports extended attributes
         #else
-        try value.bytes.withUnsafeBufferPointer { buf throws -> Void in
-            #if canImport(Darwin)
-            let result = setxattr(path.str, key, buf.baseAddress, buf.count, 0, XATTR_NOFOLLOW)
-            #else
-            let result = lsetxattr(path.str, key, buf.baseAddress, buf.count, 0)
-            #endif
-            guard result == 0 else {
-                throw POSIXError(errno, context: "setxattr", path.str, key, value.unsafeStringValue)
+            try value.bytes.withUnsafeBufferPointer { buf throws -> Void in
+                #if canImport(Darwin)
+                    let result = setxattr(path.str, key, buf.baseAddress, buf.count, 0, XATTR_NOFOLLOW)
+                #else
+                    let result = lsetxattr(path.str, key, buf.baseAddress, buf.count, 0)
+                #endif
+                guard result == 0 else {
+                    throw POSIXError(errno, context: "setxattr", path.str, key, value.unsafeStringValue)
+                }
             }
-        }
         #endif
     }
 
     func getExtendedAttribute(_ path: Path, key: String) throws -> ByteString? {
         #if os(Windows)
-        // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
-        return nil
+            // Implement ADS on Windows? See also https://github.com/swiftlang/swift-foundation/issues/1166
+            return nil
         #elseif os(FreeBSD)
-        // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
-        return nil
+            // FreeBSD blocked on https://github.com/swiftlang/swift/pull/77836
+            return nil
         #elseif os(OpenBSD)
-        // OpenBSD no longer supports extended attributes
-        return nil
+            // OpenBSD no longer supports extended attributes
+            return nil
         #else
-        var bufferSize = 4096
-        repeat {
-            var data = [UInt8].init(repeating: 0, count: bufferSize)
-            let count: ssize_t = data.withUnsafeMutableBytes {
-                #if canImport(Darwin)
-                return getxattr(path.str, key, $0.baseAddress, $0.count, 0, XATTR_NOFOLLOW)
-                #else
-                return lgetxattr(path.str, key, $0.baseAddress, $0.count)
-                #endif
-            }
-            if count < 0 {
-                switch errno {
-                #if os(Linux) || os(Android)
-                case ENODATA:
-                    return nil
-                #else
-                case ENOATTR:
-                    return nil
-                #endif
-                case ERANGE:
-                    bufferSize *= 2
-                    continue
-                default:
-                    throw POSIXError(errno, context: "getxattr", path.str, key)
+            var bufferSize = 4096
+            repeat {
+                var data = [UInt8].init(repeating: 0, count: bufferSize)
+                let count: ssize_t = data.withUnsafeMutableBytes {
+                    #if canImport(Darwin)
+                        return getxattr(path.str, key, $0.baseAddress, $0.count, 0, XATTR_NOFOLLOW)
+                    #else
+                        return lgetxattr(path.str, key, $0.baseAddress, $0.count)
+                    #endif
                 }
-            }
-            return ByteString(data[0..<count])
-        } while true
+                if count < 0 {
+                    switch errno {
+                    #if os(Linux) || os(Android)
+                        case ENODATA:
+                            return nil
+                    #else
+                        case ENOATTR:
+                            return nil
+                    #endif
+                    case ERANGE:
+                        bufferSize *= 2
+                        continue
+                    default:
+                        throw POSIXError(errno, context: "getxattr", path.str, key)
+                    }
+                }
+                return ByteString(data[0..<count])
+            } while true
         #endif
     }
 
@@ -770,14 +766,14 @@ class LocalFS: FSProxy, @unchecked Sendable {
 
     func isOnPotentiallyRemoteFileSystem(_ path: Path) -> Bool {
         #if os(macOS)
-        var fs = statfs()
-        guard statfs(path.str, &fs) == 0 else {
-            // Conservatively assume path may be remote.
-            return true
-        }
-        return (fs.f_flags & UInt32(bitPattern: MNT_LOCAL)) == 0
+            var fs = statfs()
+            guard statfs(path.str, &fs) == 0 else {
+                // Conservatively assume path may be remote.
+                return true
+            }
+            return (fs.f_flags & UInt32(bitPattern: MNT_LOCAL)) == 0
         #else
-        return false
+            return false
         #endif
     }
 
@@ -793,7 +789,6 @@ class LocalFS: FSProxy, @unchecked Sendable {
         return ByteCount(freeSpace)
     }
 }
-
 
 /// Concrete FSProxy implementation which simulates an empty disk.
 ///
@@ -820,8 +815,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
             for item in try listdir(path) {
                 try _copy(path.join(item), to: to.join(item))
             }
-        }
-        else {
+        } else {
             try _copy(path, to: to)
         }
     }
@@ -917,7 +911,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
         var device: dev_t
 
         // The extended attributes of the node.
-        var xattrs = [String:ByteString]()
+        var xattrs = [String: ByteString]()
 
         init(_ contents: NodeContents, permissions: Int, timestamp: Int, inode: ino_t, device: dev_t = 1) {
             self.contents = contents
@@ -1066,7 +1060,6 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
             throw POSIXError(ENOTDIR)
         }
 
-
         // Check if the node already exists.
         if let node = directory.contents[path.basename] {
             // Verify it is a directory.
@@ -1191,8 +1184,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
         if let node = directory.contents[path.basename] {
             guard case let .file(fileContents) = node.contents else { throw POSIXError(EISDIR) }
             existingContents = append ? fileContents : ByteString()
-        }
-        else {
+        } else {
             existingContents = ByteString()
         }
 
@@ -1237,7 +1229,8 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
             // Get the parent node's content if its a directory.
             guard let parent = getNode(path.dirname),
-                  case .directory(let contents) = parent.contents else {
+                case .directory(let contents) = parent.contents
+            else {
                 return
             }
             // Set it to nil to release the contents.
@@ -1264,12 +1257,13 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
             }
 
             let info: [FileAttributeKey: any Sendable] = [
-                .modificationDate : Date(timeIntervalSince1970: TimeInterval(node.timestamp)),
+                .modificationDate: Date(timeIntervalSince1970: TimeInterval(node.timestamp)),
                 .type: type,
                 .size: size,
                 .posixPermissions: node.permissions,
                 .systemNumber: node.device,
-                .systemFileNumber: node.inode]
+                .systemFileNumber: node.inode,
+            ]
             return createFileInfo(info)
         }
     }
@@ -1387,37 +1381,37 @@ public func createFS(simulated: Bool, ignoreFileSystemDeviceInodeChanges: Bool) 
 }
 
 #if os(Windows)
-extension HANDLE {
-    /// Runs a closure and then closes the HANDLE, even if an error occurs.
-    ///
-    /// - Parameter body: The closure to run.
-    ///   If the closure throws an error,
-    ///   this method closes the file descriptor before it rethrows that error.
-    ///
-    /// - Returns: The value returned by the closure.
-    ///
-    /// If `body` throws an error
-    /// or an error occurs while closing the file descriptor,
-    /// this method rethrows that error.
-    public func closeAfter<R>(_ body: () throws -> R) throws -> R {
-        // No underscore helper, since the closure's throw isn't necessarily typed.
-        let result: R
-        do {
-            result = try body()
-        } catch {
-            _ = try? self.close() // Squash close error and throw closure's
-            throw error
+    extension HANDLE {
+        /// Runs a closure and then closes the HANDLE, even if an error occurs.
+        ///
+        /// - Parameter body: The closure to run.
+        ///   If the closure throws an error,
+        ///   this method closes the file descriptor before it rethrows that error.
+        ///
+        /// - Returns: The value returned by the closure.
+        ///
+        /// If `body` throws an error
+        /// or an error occurs while closing the file descriptor,
+        /// this method rethrows that error.
+        public func closeAfter<R>(_ body: () throws -> R) throws -> R {
+            // No underscore helper, since the closure's throw isn't necessarily typed.
+            let result: R
+            do {
+                result = try body()
+            } catch {
+                _ = try? self.close()  // Squash close error and throw closure's
+                throw error
+            }
+            try self.close()
+            return result
         }
-        try self.close()
-        return result
-    }
 
-    fileprivate func close() throws {
-        if !CloseHandle(self) {
-            throw Win32Error(GetLastError())
+        fileprivate func close() throws {
+            if !CloseHandle(self) {
+                throw Win32Error(GetLastError())
+            }
         }
     }
-}
 #endif
 
 extension FileDescriptor {
@@ -1438,7 +1432,7 @@ extension FileDescriptor {
         do {
             result = try await body()
         } catch {
-            _ = try? self.close() // Squash close error and throw closure's
+            _ = try? self.close()  // Squash close error and throw closure's
             throw error
         }
         try self.close()

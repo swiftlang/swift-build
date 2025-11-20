@@ -114,10 +114,12 @@ fileprivate struct AppClipsTests: CoreBasedTests {
                         results.checkError(.equal("App Clips are not available when building for Mac Catalyst."))
                         results.checkNoFailedTasks()
                     } else {
-                        results.checkError(.or(
-                            .prefix("Your target is built for macOS but contains embedded content built for the iOS platform (BarClip.app), which is not allowed."),
-                            .prefix("This target is built for macOS but contains embedded content (BarClip.app) built for iOS, which is not allowed.")
-                        ))
+                        results.checkError(
+                            .or(
+                                .prefix("Your target is built for macOS but contains embedded content built for the iOS platform (BarClip.app), which is not allowed."),
+                                .prefix("This target is built for macOS but contains embedded content (BarClip.app) built for iOS, which is not allowed.")
+                            )
+                        )
                     }
                     results.checkNoDiagnostics()
                 }
@@ -146,15 +148,17 @@ fileprivate struct AppClipsTests: CoreBasedTests {
         // Simulated implementation of the provisioning system which ad-hoc signs with the product type + project entitlements
         // FIXME: Find a way to call the real thing, perhaps in the future this is `xcsigningtool`
         func provisioningTaskInputs(targetGUID: String, provisioningSourceData: SWBProvisioningTaskInputsSourceData) async -> SWBProvisioningTaskInputs {
-            let signedEntitlements = provisioningSourceData.entitlementsDestination == "Signature"
-            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-            : [:]
+            let signedEntitlements =
+                provisioningSourceData.entitlementsDestination == "Signature"
+                ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+                : [:]
 
-            let simulatedEntitlements = provisioningSourceData.entitlementsDestination == "__entitlements"
-            ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
-            : [:]
+            let simulatedEntitlements =
+                provisioningSourceData.entitlementsDestination == "__entitlements"
+                ? provisioningSourceData.productTypeEntitlements.merging(["application-identifier": .plString(provisioningSourceData.bundleIdentifier)], uniquingKeysWith: { _, new in new }).merging(provisioningSourceData.projectEntitlements ?? [:], uniquingKeysWith: { _, new in new })
+                : [:]
 
-            return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new  in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: isEnterpriseTeam, keychainPath: nil, errors: [], warnings: [])
+            return SWBProvisioningTaskInputs(identityHash: "-", identityName: "-", profileName: nil, profileUUID: nil, profilePath: nil, designatedRequirements: nil, signedEntitlements: signedEntitlements.merging(provisioningSourceData.sdkRoot.contains("simulator") ? ["get-task-allow": .plBool(true)] : [:], uniquingKeysWith: { _, new in new }), simulatedEntitlements: simulatedEntitlements, appIdentifierPrefix: nil, teamIdentifierPrefix: nil, isEnterpriseTeam: isEnterpriseTeam, keychainPath: nil, errors: [], warnings: [])
         }
 
         func executeExternalTool(commandLine: [String], workingDirectory: String?, environment: [String: String]) async throws -> SWBExternalToolResult {

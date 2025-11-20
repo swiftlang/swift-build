@@ -54,5 +54,5 @@ public struct LocalizationInfoResponse: Message, Equatable, SerializableCodable 
 
 let localizationMessageTypes: [any Message.Type] = [
     LocalizationInfoRequest.self,
-    LocalizationInfoResponse.self
+    LocalizationInfoResponse.self,
 ]

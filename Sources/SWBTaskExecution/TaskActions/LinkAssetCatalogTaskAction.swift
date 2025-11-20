@@ -147,7 +147,7 @@ public final class LinkAssetCatalogTaskAction: TaskAction {
                     try executionDelegate.fs.remove(path)
                 }
                 try executionDelegate.fs.copy(sourceDependencies, to: path)
-            case .makefile, .makefiles, .makefileIgnoringSubsequentOutputs,  nil:
+            case .makefile, .makefiles, .makefileIgnoringSubsequentOutputs, nil:
                 throw StubError.error("Unexpected dependency data style")
             }
 
@@ -203,14 +203,16 @@ extension FSProxy {
     }
 
     func relativeFilePaths(directory: Path) throws -> Set<Path> {
-        try Set(traverse(directory) { path -> Path? in
-            guard !isDirectory(path) else {
-                return nil
+        try Set(
+            traverse(directory) { path -> Path? in
+                guard !isDirectory(path) else {
+                    return nil
+                }
+                guard let subpath = path.relativeSubpath(from: directory) else {
+                    throw StubError.error("Could not compute path of \(path.str) relative to \(directory.str)")
+                }
+                return Path(subpath)
             }
-            guard let subpath = path.relativeSubpath(from: directory) else {
-                throw StubError.error("Could not compute path of \(path.str) relative to \(directory.str)")
-            }
-            return Path(subpath)
-        })
+        )
     }
 }

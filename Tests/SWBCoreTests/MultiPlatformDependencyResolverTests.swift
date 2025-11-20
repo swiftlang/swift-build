@@ -40,7 +40,6 @@ extension TestTargetDependency: DependencyFilter {
     var value: String { return self.name }
 }
 
-
 extension SWBCore.Workspace {
     /// Finds the target with the given name.
     /// - Precondition: There are no duplicate targets with the given name.
@@ -64,9 +63,9 @@ extension SWBCore.Workspace {
     }
 
     /// Used to create the test workspace to test with multiple top-level targets and shared targets across multiple projects.
-    func createCoreScenarioTestWorkspace(useImplicitDependencies: Bool, overrides: [String:String] = [:]) async throws -> SWBCore.Workspace {
+    func createCoreScenarioTestWorkspace(useImplicitDependencies: Bool, overrides: [String: String] = [:]) async throws -> SWBCore.Workspace {
         let core = try await getCore()
-        let defaultSettings: [String:String] = try await [
+        let defaultSettings: [String: String] = try await [
             "ARCHS": "$(ARCHS_STANDARD)",
             "ENABLE_ON_DEMAND_RESOURCES": "NO",
             "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -86,24 +85,31 @@ extension SWBCore.Workspace {
             "aProject",
             groupTree: TestGroup("Sources"),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: defaultSettings),
+                TestBuildConfiguration("Debug", buildSettings: defaultSettings)
             ],
             targets: [
                 TestStandardTarget(
                     "Watchable",
                     type: .watchKitAppContainer,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTED_PLATFORMS": "iphoneos",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTED_PLATFORMS": "iphoneos",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             // The target must at least HAVE an empty phase for the automatic asset catalog and storyboard to work
                         ]),
-                        TestCopyFilesBuildPhase(["Watchable WatchKit App.app"], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch", onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            ["Watchable WatchKit App.app"],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch",
+                            onlyForDeployment: false
+                        ),
                     ],
                     dependencies: deps(["Watchable WatchKit App"], useImplicitDependencies: useImplicitDependencies)
                 ),
@@ -111,19 +117,25 @@ extension SWBCore.Workspace {
                     "Watchable WatchKit App",
                     type: .watchKitApp,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
-                            "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                            "SDKROOT": "watchos",
-                            "TARGETED_DEVICE_FAMILY": "4",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                                "SDKROOT": "watchos",
+                                "TARGETED_DEVICE_FAMILY": "4",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             // The target must at least HAVE an empty phase for the automatic asset catalog and storyboard to work
                         ]),
-                        TestCopyFilesBuildPhase(["Watchable WatchKit Extension.appex"], destinationSubfolder: .plugins, onlyForDeployment: false
-                                               ),
+                        TestCopyFilesBuildPhase(
+                            ["Watchable WatchKit Extension.appex"],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
                         TestFrameworksBuildPhase([
                             TestBuildFile(.target("Shared Framework")),
                             TestBuildFile(.target("SharedPkgTarget")),
@@ -137,28 +149,34 @@ extension SWBCore.Workspace {
                     "Watchable WatchKit Extension",
                     type: .watchKitExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                            "SDKROOT": "watchos",
-                            "TARGETED_DEVICE_FAMILY": "4",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                "SDKROOT": "watchos",
+                                "TARGETED_DEVICE_FAMILY": "4",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             // The target must at least HAVE an empty phase for the automatic asset catalog and storyboard to work
-                        ]),
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "iOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                            "SDKROOT": "iphoneos",
-                            "TARGETED_DEVICE_FAMILY": "1",
-                            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                "SDKROOT": "iphoneos",
+                                "TARGETED_DEVICE_FAMILY": "1",
+                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
@@ -177,13 +195,16 @@ extension SWBCore.Workspace {
                     "macCatalyst App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTS_MACCATALYST": "YES",
-                            "TARGETED_DEVICE_FAMILY": "2,6",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "YES",
+                                "TARGETED_DEVICE_FAMILY": "2,6",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestFrameworksBuildPhase([
@@ -193,16 +214,19 @@ extension SWBCore.Workspace {
                             TestBuildFile(.target("OtherSharedPkgTarget")),
                         ])
                     ],
-                    dependencies: deps([TestTargetDependency("Shared Framework"), TestTargetDependency("Other Shared Framework"), ], useImplicitDependencies: useImplicitDependencies).appending(contentsOf: [TestTargetDependency("SharedPkgTarget"), TestTargetDependency("OtherSharedPkgTarget")])
+                    dependencies: deps([TestTargetDependency("Shared Framework"), TestTargetDependency("Other Shared Framework")], useImplicitDependencies: useImplicitDependencies).appending(contentsOf: [TestTargetDependency("SharedPkgTarget"), TestTargetDependency("OtherSharedPkgTarget")])
                 ),
                 TestStandardTarget(
                     "macOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
@@ -221,20 +245,27 @@ extension SWBCore.Workspace {
                     "Shared Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     buildPhases: []
                 ),
                 TestStandardTarget(
-                    "MacAppEmbeddingiOSApp", type: .application,
+                    "MacAppEmbeddingiOSApp",
+                    type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
@@ -246,16 +277,18 @@ extension SWBCore.Workspace {
                             TestBuildFile(.target("SharedPkgTarget")),
                             TestBuildFile(.target("OtherSharedPkgTarget")),
                         ]),
-                        TestCopyFilesBuildPhase([TestBuildFile(.target("iOS App"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "Samples")
+                        TestCopyFilesBuildPhase([TestBuildFile(.target("iOS App"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "Samples"),
                     ],
-                    dependencies: deps([TestTargetDependency("Shared Framework"), TestTargetDependency("Other Shared Framework")], useImplicitDependencies: useImplicitDependencies).appending(contentsOf: [TestTargetDependency("SharedPkgTarget"), TestTargetDependency("OtherSharedPkgTarget"),  TestTargetDependency("iOS App")])
-                )
-            ])
+                    dependencies: deps([TestTargetDependency("Shared Framework"), TestTargetDependency("Other Shared Framework")], useImplicitDependencies: useImplicitDependencies).appending(contentsOf: [TestTargetDependency("SharedPkgTarget"), TestTargetDependency("OtherSharedPkgTarget"), TestTargetDependency("iOS App")])
+                ),
+            ]
+        )
 
         let packageProject = TestPackageProject(
-            "Package", groupTree: TestGroup("Sources"),
+            "Package",
+            groupTree: TestGroup("Sources"),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: defaultSettings),
+                TestBuildConfiguration("Debug", buildSettings: defaultSettings)
             ],
             targets: [
                 TestPackageProductTarget(
@@ -264,52 +297,64 @@ extension SWBCore.Workspace {
                         TestBuildFile(.target("SharedPkgTarget"))
                     ]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SUPPORTS_MACCATALYST": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     dependencies: deps(["SharedPkgTarget", "OtherSharedPkgTarget"], useImplicitDependencies: useImplicitDependencies)
                 ),
                 TestStandardTarget(
-                    "SharedPkgTarget", type: .framework,
+                    "SharedPkgTarget",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SUPPORTS_MACCATALYST": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     buildPhases: []
                 ),
-            ])
+            ]
+        )
 
         let otherProject = TestProject(
             "otherProject",
             groupTree: TestGroup("Sources"),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: defaultSettings),
+                TestBuildConfiguration("Debug", buildSettings: defaultSettings)
             ],
             targets: [
                 TestStandardTarget(
                     "Other Shared Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     buildPhases: []
-                ),
-            ])
+                )
+            ]
+        )
 
         let otherPackageProject = TestPackageProject(
             "OtherPackage",
             groupTree: TestGroup("Sources"),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: defaultSettings),
+                TestBuildConfiguration("Debug", buildSettings: defaultSettings)
             ],
             targets: [
                 TestPackageProductTarget(
@@ -318,26 +363,34 @@ extension SWBCore.Workspace {
                         TestBuildFile(.target("SharedPkgTarget"))
                     ]),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SUPPORTS_MACCATALYST": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     dependencies: deps(["OtherSharedPkgTarget"], useImplicitDependencies: useImplicitDependencies)
                 ),
                 TestStandardTarget(
-                    "OtherSharedPkgTarget", type: .framework,
+                    "OtherSharedPkgTarget",
+                    type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SUPPORTS_MACCATALYST": "YES",
-                        ].addingContents(of: overrides)),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SUPPORTS_MACCATALYST": "YES",
+                            ].addingContents(of: overrides)
+                        )
                     ],
                     buildPhases: []
-                )
-            ])
+                ),
+            ]
+        )
 
         return try TestWorkspace("Workspace", projects: [testProject, packageProject, otherProject, otherPackageProject]).load(core)
     }
@@ -381,11 +434,13 @@ extension SWBCore.Workspace {
             #expect(deps.map(\.nameAndPlatform).sorted() == expectedDeps)
 
             for dep in deps {
-                #expect(dep.parameters.overrides == [
-                    "SDKROOT": "macosx",
-                    "SDK_VARIANT": "macos",
-                    "SUPPORTS_MACCATALYST": "NO",
-                ])
+                #expect(
+                    dep.parameters.overrides == [
+                        "SDKROOT": "macosx",
+                        "SDK_VARIANT": "macos",
+                        "SUPPORTS_MACCATALYST": "NO",
+                    ]
+                )
             }
         }
     }
@@ -414,11 +469,13 @@ extension SWBCore.Workspace {
             #expect(deps.map(\.nameAndPlatform).sorted() == expectedDeps)
 
             for dep in deps {
-                #expect(dep.parameters.overrides == [
-                    "SDKROOT": "iphoneos",
-                    "SDK_VARIANT": "iphoneos",
-                    "SUPPORTS_MACCATALYST": "NO",
-                ])
+                #expect(
+                    dep.parameters.overrides == [
+                        "SDKROOT": "iphoneos",
+                        "SDK_VARIANT": "iphoneos",
+                        "SUPPORTS_MACCATALYST": "NO",
+                    ]
+                )
             }
         }
     }
@@ -446,11 +503,13 @@ extension SWBCore.Workspace {
             #expect(deps.map(\.nameAndPlatform).sorted() == expectedDeps)
 
             for dep in deps {
-                #expect(dep.parameters.overrides == [
-                    "SDKROOT": "macosx",
-                    "SDK_VARIANT": "iosmac",
-                    "SUPPORTS_MACCATALYST": "YES",
-                ])
+                #expect(
+                    dep.parameters.overrides == [
+                        "SDKROOT": "macosx",
+                        "SDK_VARIANT": "iosmac",
+                        "SUPPORTS_MACCATALYST": "YES",
+                    ]
+                )
             }
         }
     }
@@ -469,7 +528,7 @@ extension SWBCore.Workspace {
         try await _testCoreScenario(targetName: "Watchable", destination: .watchOS, useImplicitDependencies: false) { target, graph in
 
             let expectedDeps1 = [
-                "Watchable WatchKit App-watchos",
+                "Watchable WatchKit App-watchos"
             ]
             let deps1 = try graph.dependencies(target)
             #expect(deps1.map(\.nameAndPlatform).sorted() == expectedDeps1)
@@ -488,13 +547,14 @@ extension SWBCore.Workspace {
             for dep in deps1.appending(contentsOf: deps2) {
                 if noOverrides.contains(dep.nameAndPlatform) {
                     #expect(dep.parameters.overrides == [:])
-                }
-                else {
-                    #expect(dep.parameters.overrides == [
-                        "SDKROOT": "watchos",
-                        "SDK_VARIANT": "watchos",
-                        "SUPPORTS_MACCATALYST": "NO",
-                    ])
+                } else {
+                    #expect(
+                        dep.parameters.overrides == [
+                            "SDKROOT": "watchos",
+                            "SDK_VARIANT": "watchos",
+                            "SUPPORTS_MACCATALYST": "NO",
+                        ]
+                    )
                 }
             }
         }
@@ -528,11 +588,14 @@ extension SWBCore.Workspace {
                 #expect(deps.map(\.nameAndPlatform).sorted() == expectedDeps)
 
                 for dep in deps {
-                    #expect(dep.parameters.overrides == [
-                        "SDKROOT": "macosx",
-                        "SDK_VARIANT": "macos",
-                        "SUPPORTS_MACCATALYST": "NO",
-                    ].addingContents(of: destination == .macOS || destination == .macCatalyst ? [:] : ["SUPPORTED_PLATFORMS": "macosx"]))
+                    #expect(
+                        dep.parameters.overrides
+                            == [
+                                "SDKROOT": "macosx",
+                                "SDK_VARIANT": "macos",
+                                "SUPPORTS_MACCATALYST": "NO",
+                            ].addingContents(of: destination == .macOS || destination == .macCatalyst ? [:] : ["SUPPORTED_PLATFORMS": "macosx"])
+                    )
                 }
             }
 
@@ -551,11 +614,14 @@ extension SWBCore.Workspace {
                 #expect(deps.map(\.nameAndPlatform).sorted() == expectedDeps)
 
                 for dep in deps {
-                    #expect(dep.parameters.overrides == [
-                        "SDKROOT": "iphoneos",
-                        "SDK_VARIANT": "iphoneos",
-                        "SUPPORTS_MACCATALYST": "NO",
-                    ].addingContents(of: destination == .iOS ? [:] : ["SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"]))
+                    #expect(
+                        dep.parameters.overrides
+                            == [
+                                "SDKROOT": "iphoneos",
+                                "SDK_VARIANT": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "NO",
+                            ].addingContents(of: destination == .iOS ? [:] : ["SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])
+                    )
                 }
             }
 
@@ -574,12 +640,15 @@ extension SWBCore.Workspace {
                 #expect(deps.map(\.nameAndPlatform).sorted() == expectedDeps)
 
                 for dep in deps {
-                    #expect(dep.parameters.overrides == [
-                        "SDKROOT": "\([.iOS, .macOS, nil].contains(destination) ? "iphoneos" : "macosx")",
-                        "SDK_VARIANT": "\([.iOS, .macOS, nil].contains(destination) ? "iphoneos" : "iosmac")",
-                    ]
-                        .addingContents(of: [.iOS, .macCatalyst].contains(destination) ? [:] : ["SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])
-                        .addingContents(of: destination == .macCatalyst ? ["SUPPORTS_MACCATALYST": "YES"] : ["SUPPORTS_MACCATALYST": "NO"]))
+                    #expect(
+                        dep.parameters.overrides
+                            == [
+                                "SDKROOT": "\([.iOS, .macOS, nil].contains(destination) ? "iphoneos" : "macosx")",
+                                "SDK_VARIANT": "\([.iOS, .macOS, nil].contains(destination) ? "iphoneos" : "iosmac")",
+                            ]
+                            .addingContents(of: [.iOS, .macCatalyst].contains(destination) ? [:] : ["SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])
+                            .addingContents(of: destination == .macCatalyst ? ["SUPPORTS_MACCATALYST": "YES"] : ["SUPPORTS_MACCATALYST": "NO"])
+                    )
                 }
             }
 
@@ -588,7 +657,7 @@ extension SWBCore.Workspace {
                 let target = try #require(targets.filter({ $0.target.name == "Watchable" }).first)
 
                 let expectedDeps1 = [
-                    "Watchable WatchKit App-\(destination?.sdkVariant ?? "")",
+                    "Watchable WatchKit App-\(destination?.sdkVariant ?? "")"
                 ]
                 let deps1 = try graph.dependencies(target)
                 #expect(deps1.map(\.nameAndPlatform).sorted() == expectedDeps1)
@@ -598,7 +667,7 @@ extension SWBCore.Workspace {
                     "OtherSharedPkgTarget-watchos",
                     "Shared Framework-watchos",
                     "SharedPkgTarget-watchos",
-                    "Watchable WatchKit Extension-\(destination?.sdkVariant ?? "")", // why is this empty?
+                    "Watchable WatchKit Extension-\(destination?.sdkVariant ?? "")",  // why is this empty?
                 ]
                 let deps2 = graph.dependencies(of: deps1[0])
                 #expect(deps2.map(\.nameAndPlatform).sorted() == expectedDeps2)
@@ -607,18 +676,18 @@ extension SWBCore.Workspace {
                 for dep in deps2 {
                     if noOverrides.contains(dep.nameAndPlatform) {
                         #expect(dep.parameters.overrides == [:])
-                    }
-                    else {
+                    } else {
                         if dep.nameAndPlatform.starts(with: "Watchable WatchKit Extension-") {
                             #expect(dep.parameters.overrides == [:])
-                        }
-                        else {
-                            #expect(dep.parameters.overrides == [
-                                "SDKROOT": "watchos",
-                                "SDK_VARIANT": "watchos",
-                                "SUPPORTED_PLATFORMS": "watchos watchsimulator",
-                                "SUPPORTS_MACCATALYST": "NO",
-                            ])
+                        } else {
+                            #expect(
+                                dep.parameters.overrides == [
+                                    "SDKROOT": "watchos",
+                                    "SDK_VARIANT": "watchos",
+                                    "SUPPORTED_PLATFORMS": "watchos watchsimulator",
+                                    "SUPPORTS_MACCATALYST": "NO",
+                                ]
+                            )
                         }
                     }
                 }
@@ -654,7 +723,7 @@ extension SWBCore.Workspace {
     // Helper test method to verify that SUPPORTED_PLATFORMS properly filters potential dependencies.
     func _testNarrowSpecialization(useImplicitDependencies: Bool) async throws {
         let core = try await getCore()
-        let defaultSettings: [String:String] = try await [
+        let defaultSettings: [String: String] = try await [
             "ARCHS": "$(ARCHS_STANDARD)",
             "ENABLE_ON_DEMAND_RESOURCES": "NO",
             "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -672,26 +741,29 @@ extension SWBCore.Workspace {
             "aProject",
             groupTree: TestGroup("Sources"),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: defaultSettings),
+                TestBuildConfiguration("Debug", buildSettings: defaultSettings)
             ],
             targets: [
                 TestStandardTarget(
                     "iOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                            "SDKROOT": "iphoneos",
-                            "TARGETED_DEVICE_FAMILY": "1",
-                            "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                "SDKROOT": "iphoneos",
+                                "TARGETED_DEVICE_FAMILY": "1",
+                                "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             // The target must at least HAVE an empty phase for the automatic asset catalog and storyboard to work
                         ]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("Shared Framework")),
+                            TestBuildFile(.target("Shared Framework"))
                         ]),
                     ],
                     dependencies: deps([TestTargetDependency("Shared Framework")], useImplicitDependencies: useImplicitDependencies)
@@ -700,17 +772,20 @@ extension SWBCore.Workspace {
                     "macOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestResourcesBuildPhase([
                             // The target must at least HAVE an empty phase for the automatic asset catalog and storyboard to work
                         ]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile(.target("Shared Framework")),
+                            TestBuildFile(.target("Shared Framework"))
                         ]),
                     ],
                     dependencies: deps([TestTargetDependency("Shared Framework")], useImplicitDependencies: useImplicitDependencies)
@@ -719,15 +794,19 @@ extension SWBCore.Workspace {
                     "Shared Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "SUPPORTED_PLATFORMS": "macosx appletvos",
-                            "SDKROOT": "macosx",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "SUPPORTED_PLATFORMS": "macosx appletvos",
+                                "SDKROOT": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: []
-                )
-            ])
+                ),
+            ]
+        )
 
         let workspace = try TestWorkspace("aWorkspace", projects: [testProject]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -789,36 +868,42 @@ extension SWBCore.Workspace {
             "aProject",
             groupTree: TestGroup("Sources"),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: defaultSettings),
+                TestBuildConfiguration("Debug", buildSettings: defaultSettings)
             ],
             targets: [
                 TestStandardTarget(
                     "macOS App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestFrameworksBuildPhase([
                             "shared.framework"
-                        ]),
+                        ])
                     ]
                 ),
                 TestStandardTarget(
                     "macCatalyst App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "ALWAYS_SEARCH_USER_PATHS": "NO",
-                            "CODE_SIGNING_ALLOWED": "NO",
-                            "SDKROOT": "iphoneos",
-                            "SUPPORTS_MACCATALYST": "YES",
-                            "TARGETED_DEVICE_FAMILY": "2,6",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "ALWAYS_SEARCH_USER_PATHS": "NO",
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "SDKROOT": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "YES",
+                                "TARGETED_DEVICE_FAMILY": "2,6",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestFrameworksBuildPhase([
@@ -830,11 +915,14 @@ extension SWBCore.Workspace {
                     "Shared Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "shared",
-                            "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                            "SDKROOT": "macosx",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "shared",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                "SDKROOT": "macosx",
+                            ]
+                        )
                     ],
                     buildPhases: []
                 ),
@@ -842,16 +930,20 @@ extension SWBCore.Workspace {
                     "Other Shared Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "shared",
-                            "SUPPORTED_PLATFORMS": "iphoneos",
-                            "SUPPORTS_MACCATALYST": "YES",
-                            "SDKROOT": "iphoneos",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "shared",
+                                "SUPPORTED_PLATFORMS": "iphoneos",
+                                "SUPPORTS_MACCATALYST": "YES",
+                                "SDKROOT": "iphoneos",
+                            ]
+                        )
                     ],
                     buildPhases: []
-                )
-            ])
+                ),
+            ]
+        )
 
         let workspace = try TestWorkspace("aWorkspace", projects: [testProject]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -872,8 +964,7 @@ extension SWBCore.Workspace {
 
             if workspaceContext.userPreferences.enableDebugActivityLogs {
                 // ignore the rejection diagnostics
-            }
-            else {
+            } else {
                 delegate.checkNoDiagnostics()
             }
         }
@@ -891,8 +982,7 @@ extension SWBCore.Workspace {
 
             if workspaceContext.userPreferences.enableDebugActivityLogs {
                 // ignore the rejection diagnostics
-            }
-            else {
+            } else {
                 delegate.checkNoDiagnostics()
             }
         }

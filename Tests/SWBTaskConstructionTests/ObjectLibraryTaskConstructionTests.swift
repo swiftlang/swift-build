@@ -28,26 +28,31 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("a.c"),
                     TestFile("b.c"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SWIFT_EXEC": try await swiftCompilerPath.str,
-                    "SWIFT_VERSION": try await swiftVersion
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": try await swiftCompilerPath.str,
+                        "SWIFT_VERSION": try await swiftVersion,
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "Library",
                     type: .objectLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["a.c", "b.c"]),
+                        TestSourcesBuildPhase(["a.c", "b.c"])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -61,7 +66,7 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
                     .suffix("a.o"),
                     .suffix("b.o"),
                     "--output",
-                    .suffix("Library.objlib")
+                    .suffix("Library.objlib"),
                 ])
                 task.checkInputs([
                     .pathPattern(.suffix("a.o")),
@@ -88,7 +93,8 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
                         children: [
                             TestFile("a.swift"),
                             TestFile("b.swift"),
-                        ]),
+                        ]
+                    ),
                     buildConfigurations: [
                         TestBuildConfiguration(
                             "Debug",
@@ -96,8 +102,9 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
                                 "CODE_SIGNING_ALLOWED": "NO",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "SWIFT_VERSION": try await swiftVersion,
-                                "SWIFT_EXEC": try await swiftCompilerPath.str
-                            ]),
+                                "SWIFT_EXEC": try await swiftCompilerPath.str,
+                            ]
+                        )
                     ],
                     targets: [
                         TestStandardTarget(
@@ -105,14 +112,14 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
                             type: .commandLineTool,
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    "b.swift",
+                                    "b.swift"
                                 ]),
                                 TestFrameworksBuildPhase([
                                     "Library.objlib"
-                                ])
+                                ]),
                             ],
                             dependencies: [
-                                "Library",
+                                "Library"
                             ]
                         ),
                         TestStandardTarget(
@@ -120,12 +127,14 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
                             type: .objectLibrary,
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    "a.swift",
-                                ]),
+                                    "a.swift"
+                                ])
                             ]
                         ),
-                    ])
-            ])
+                    ]
+                )
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testWorkspace)

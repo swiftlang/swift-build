@@ -120,6 +120,6 @@ public func withExtendedLifetime<T: ~Copyable, E: Error, Result: ~Copyable>(
     _ x: borrowing T,
     _ body: (borrowing T) async throws(E) -> Result
 ) async throws(E) -> Result {
-    defer { withExtendedLifetime(x) { } }
+    defer { withExtendedLifetime(x) {} }
     return try await body(x)
 }

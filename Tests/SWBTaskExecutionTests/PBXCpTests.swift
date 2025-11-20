@@ -17,9 +17,9 @@ import SWBTestSupport
 import SWBCore
 
 #if canImport(System)
-import System
+    import System
 #else
-import SystemPackage
+    import SystemPackage
 #endif
 
 @Suite
@@ -64,10 +64,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 let dst = tmp.join("dst1")
                 let result = await pbxcp(["builtin-copy", "-exclude", "exclude*", "-v", src.str + Path.pathSeparatorString, src.join("exclude").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying src/...\n" +
-                    "copying exclude...\n" +
-                    " 7 bytes\n"))
+                #expect(result.output == ("copying src/...\n" + "copying exclude...\n" + " 7 bytes\n"))
                 #expect(try fs.listdir(dst).sorted() == ["a", "exclude", "subdir"])
                 #expect(try fs.listdir(dst.join("subdir")).sorted() == ["nonexclude"])
                 #expect(try fs.read(dst.join("a")) == "A")
@@ -109,8 +106,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-exclude_subpath", "Any", "-v", src.join("Any.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Any.framework/...\n"))
+                #expect(result.output == ("copying Any.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Any.framework"])
                 #expect(try fs.listdir(dst.join("Any.framework")).sorted() == ["Many", "Resources"])
                 #expect(try fs.listdir(dst.join("Any.framework").join("Resources")).sorted() == ["A", "B"])
@@ -122,8 +118,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-exclude_subpath", "Resources", "-v", src.join("Any.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Any.framework/...\n"))
+                #expect(result.output == ("copying Any.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Any.framework"])
                 #expect(try fs.listdir(dst.join("Any.framework")).sorted() == ["Any", "Many"])
             }
@@ -133,8 +128,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-exclude_subpath", "Resources/A", "-v", src.join("Any.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Any.framework/...\n"))
+                #expect(result.output == ("copying Any.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Any.framework"])
                 #expect(try fs.listdir(dst.join("Any.framework")).sorted() == ["Any", "Many", "Resources"])
                 #expect(try fs.listdir(dst.join("Any.framework").join("Resources")).sorted() == ["B"])
@@ -145,16 +139,13 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-exclude_subpath", "Resources/A", "-exclude_subpath", "Many", "-v", src.join("Any.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Any.framework/...\n"))
+                #expect(result.output == ("copying Any.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Any.framework"])
                 #expect(try fs.listdir(dst.join("Any.framework")).sorted() == ["Any", "Resources"])
                 #expect(try fs.listdir(dst.join("Any.framework").join("Resources")).sorted() == ["B"])
             }
         }
     }
-
-
 
     /// Test the `-resolve-src-symlink` option.
     @Test
@@ -178,8 +169,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 #expect(result.success == true)
                 #expect(fs.exists(dst.join("SymLinked")))
                 #expect(try fs.read(dst.join("SymLinked")) == "Anything")
-                #expect(result.output == (
-                    "copying File...\n 8 bytes\n"))
+                #expect(result.output == ("copying File...\n 8 bytes\n"))
             }
 
             do {
@@ -196,8 +186,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 #expect(result.success == true)
                 #expect(fs.exists(dst.join("SymLinked")))
                 #expect(try fs.read(dst.join("SymLinked")) == "Anything")
-                #expect(result.output == (
-                    "copying File...\n 8 bytes\n"))
+                #expect(result.output == ("copying File...\n 8 bytes\n"))
             }
         }
     }
@@ -231,8 +220,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-include_only_subpath", "Versions/A/Any", "-v", src.join("Any.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Any.framework/...\n"))
+                #expect(result.output == ("copying Any.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Any.framework"])
                 #expect(try fs.listdir(dst.join("Any.framework")).sorted() == ["Versions"])
                 #expect(try fs.listdir(dst.join("Any.framework").join("Versions")).sorted() == ["A"])
@@ -246,8 +234,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-include_only_subpath", "Versions/A/Any", "-include_only_subpath", "Versions/A/_CodeSignature", "-v", src.join("Any.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Any.framework/...\n"))
+                #expect(result.output == ("copying Any.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Any.framework"])
                 #expect(try fs.listdir(dst.join("Any.framework")).sorted() == ["Versions"])
                 #expect(try fs.listdir(dst.join("Any.framework").join("Versions")).sorted() == ["A"])
@@ -262,8 +249,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-include_only_subpath", "Versions/A/Any", "-include_only_subpath", "Versions/A/_CodeSignature", "-include_only_subpath", "Any", "-include_only_subpath", "Versions/Current", "-v", src.join("Any.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Any.framework/...\n"))
+                #expect(result.output == ("copying Any.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Any.framework"])
                 #expect(try fs.listdir(dst.join("Any.framework")).sorted() == ["Any", "Versions"])
                 #expect(try fs.listdir(dst.join("Any.framework").join("Versions")).sorted() == ["A", "Current"])
@@ -274,7 +260,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             // Create an iOS-style framework bundle so we can test copying (or not copying) things at the same level as the binary.
             try fs.createDirectory(src.join("Again.framework"))
             try fs.write(src.join("Again.framework").join("Again"), contents: "Something")
-            try fs.write(src.join("Again.framework").join("Again.car"), contents: "Assets")         // Should not be copied
+            try fs.write(src.join("Again.framework").join("Again.car"), contents: "Assets")  // Should not be copied
             try fs.createDirectory(src.join("Again.framework").join("_CodeSignature"))
             try fs.write(src.join("Again.framework").join("_CodeSignature").join("CodeResources"), contents: "Signing Resources")
             try fs.createDirectory(src.join("Again.framework").join("Resources"))
@@ -288,8 +274,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 try fs.createDirectory(dst)
                 let result = await pbxcp(["builtin-copy", "-include_only_subpath", "Again", "-include_only_subpath", "_CodeSignature", "-v", src.join("Again.framework").str, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying Again.framework/...\n"))
+                #expect(result.output == ("copying Again.framework/...\n"))
                 #expect(try fs.listdir(dst).sorted() == ["Again.framework"])
                 #expect(try fs.listdir(dst.join("Again.framework")).sorted() == ["Again", "_CodeSignature"])
                 #expect(try fs.listdir(dst.join("Again.framework").join("_CodeSignature")).sorted() == ["CodeResources"])
@@ -317,14 +302,12 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 // Check that we run the strip tool and capture its output.
                 let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-tool", "echo", "-strip-unsigned-binaries", "-v", src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying src/...\n" +
-                    "echo -S -no_atom_info \(src.join("fake-bin").str) -o \(dst.join("fake-bin").str)\n"))
+                #expect(result.output == ("copying src/...\n" + "echo -S -no_atom_info \(src.join("fake-bin").str) -o \(dst.join("fake-bin").str)\n"))
             }
         }
     }
 
-     @Test
+    @Test
     func relativeDestinationToCWD() async throws {
         try await withTemporaryDirectory { tmp in
             let src = tmp.join("src")
@@ -341,22 +324,17 @@ fileprivate struct PBXCpTests: CoreBasedTests {
                 // Check that we run the strip tool and capture its output.
                 let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-tool", "echo", "-strip-unsigned-binaries", "-v", src.str + Path.pathSeparatorString, ""], cwd: dst)
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying src/...\n" +
-                    "echo -S -no_atom_info \(src.join("fake-bin").str) -o \(dst.join("fake-bin").str)\n"))
+                #expect(result.output == ("copying src/...\n" + "echo -S -no_atom_info \(src.join("fake-bin").str) -o \(dst.join("fake-bin").str)\n"))
             }
 
             do {
                 // Check that we run the strip tool and capture its output.
                 let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-tool", "echo", "-strip-unsigned-binaries", "-v", src.str + Path.pathSeparatorString, ""], cwd: dst)
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying src/...\n" +
-                    "echo -S -no_atom_info \(src.join("fake-bin").str) -o \(dst.join("fake-bin").str)\n"))
+                #expect(result.output == ("copying src/...\n" + "echo -S -no_atom_info \(src.join("fake-bin").str) -o \(dst.join("fake-bin").str)\n"))
             }
         }
     }
-
 
     /// Check that we can invoke `strip` to copy a specific subopath and nothing else.
     @Test
@@ -380,9 +358,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             do {
                 let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-tool", "echo", "-strip_subpath", "\(fwkName)/fwk", "-v", fwk.str + Path.pathSeparatorString, dst.join(fwkName).str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying \(fwkName)/...\n" +
-                    "echo -S -no_atom_info \(fwk.join("fwk").str) -o \(dst.join(fwkName).join("fwk").str)\n"                ))
+                #expect(result.output == ("copying \(fwkName)/...\n" + "echo -S -no_atom_info \(fwk.join("fwk").str) -o \(dst.join(fwkName).join("fwk").str)\n"))
             }
 
             // Test stripping a standalone binary.
@@ -395,11 +371,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             do {
                 let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-tool", "echo", "-strip_subpath", binaryName, "-v", bin.str + Path.pathSeparatorString, dst.join(binaryName).str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying and stripping \(binaryName)...\n" +
-                    "echo -S -no_atom_info \(bin.str) -o \(dst.join(binaryName).str)\n" +
-                    " 12 bytes\n"
-                ))
+                #expect(result.output == ("copying and stripping \(binaryName)...\n" + "echo -S -no_atom_info \(bin.str) -o \(dst.join(binaryName).str)\n" + " 12 bytes\n"))
             }
         }
     }
@@ -428,12 +400,10 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             do {
                 let result = await pbxcp(["builtin-copy", "-strip-tool", "/bin/echo", "-v", fwk.str + Path.pathSeparatorString, dst.join(fwkName).str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying \(fwkName)/...\n"
-                ))
+                #expect(result.output == ("copying \(fwkName)/...\n"))
                 if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
                     let dstPerm = try fs.getFilePermissions(dst.join(fwkName).join(fName))
-                    #expect(dstPerm == 0o755) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
+                    #expect(dstPerm == 0o755)  // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
                 }
             }
         }
@@ -463,7 +433,6 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             let dst = tmp.join("dst")
             let dName = dst.join("file")
 
-
             try fs.createDirectory(src, recursive: true)
             var size = 0
             try await fs.write(sName) { fd in
@@ -477,19 +446,16 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             do {
                 let result = await pbxcp(["builtin-copy", "-V", src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
                 #expect(result.success == true)
-                #expect(result.output == (
-                    "copying src/...\n   copying file...\n    \(size) bytes\n"
-                ))
+                #expect(result.output == ("copying src/...\n   copying file...\n    \(size) bytes\n"))
                 // Check permissions
                 if try ProcessInfo.processInfo.hostOperatingSystem() != .windows {
                     let dstPerm = try fs.getFilePermissions(dName)
-                    #expect(dstPerm == 0o644) // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
+                    #expect(dstPerm == 0o644)  // files are created with u+rw, g+wr, o+rw (and +x if src is executable) permissions and umask will adjust
                 }
                 #expect(FileManager.default.contentsEqual(atPath: sName.str, andPath: dName.str))
             }
         }
     }
-
 
     /// Check that we can invoke `bitcode_strip`.
     @Test
@@ -511,9 +477,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             // Note that we always strip all bitcode (-r), even if 'replace-with-marker' is passed.
             let result = await pbxcp(["builtin-copy", "-dry-run", "-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", bitcodeStripPath.str, src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
             #expect(result.success == true)
-            #expect(result.output == (
-                bitcodeStripPath.str +
-                " \(src.join("fake-bin").str) -r -o \(dst.join("fake-bin").str)\n"))
+            #expect(result.output == (bitcodeStripPath.str + " \(src.join("fake-bin").str) -r -o \(dst.join("fake-bin").str)\n"))
         }
     }
 
@@ -536,9 +500,11 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             // Note that we always strip all bitcode (-r), even if 'replace-with-marker' is passed.
             let result = await pbxcp(["builtin-copy", "-dry-run", "-strip-unsigned-binaries", "-bitcode-strip", "replace-with-marker", "-bitcode-strip-tool", bitcodeStripPath.str, src.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
             #expect(result.success == true)
-            #expect(result.output.contains(
-                bitcodeStripPath.str +
-                " \(dst.join("fake-bin").str) -r -o \(dst.join("fake-bin").str)\n"))
+            #expect(
+                result.output.contains(
+                    bitcodeStripPath.str + " \(dst.join("fake-bin").str) -r -o \(dst.join("fake-bin").str)\n"
+                )
+            )
         }
     }
 
@@ -561,8 +527,7 @@ fileprivate struct PBXCpTests: CoreBasedTests {
 
             let successResult = await pbxcp(["builtin-copy", "-ignore-missing-inputs", missingFile.str + Path.pathSeparatorString, dst.str], cwd: Path("/"))
             #expect(successResult.success == true)
-            #expect(successResult.output == (
-                "note: ignoring missing input \'\(missingFile.str)\'\n"))
+            #expect(successResult.output == ("note: ignoring missing input \'\(missingFile.str)\'\n"))
         }
     }
 
@@ -635,17 +600,27 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             try fs.createDirectory(srcDir)
             let srcFile = srcDir.join("fndr-and-rsrc")
             try fs.write(srcFile, contents: "abcdef")
-#if canImport(Darwin)
-            try fs.setExtendedAttribute(srcFile, key: XATTR_FINDERINFO_NAME, value: [
-                0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x40, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-            ])
-            try fs.setExtendedAttribute(srcFile, key: XATTR_RESOURCEFORK_NAME, value:
-                                            "fake"
-            )
-#endif
-            try fs.setExtendedAttribute(srcFile, key: "foo.bar", value:
-                                            "should-not-be-copied"
+            #if canImport(Darwin)
+                try fs.setExtendedAttribute(
+                    srcFile,
+                    key: XATTR_FINDERINFO_NAME,
+                    value: [
+                        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x40, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    ]
+                )
+                try fs.setExtendedAttribute(
+                    srcFile,
+                    key: XATTR_RESOURCEFORK_NAME,
+                    value:
+                        "fake"
+                )
+            #endif
+            try fs.setExtendedAttribute(
+                srcFile,
+                key: "foo.bar",
+                value:
+                    "should-not-be-copied"
             )
 
             // Create the empty destination directory.
@@ -662,10 +637,10 @@ fileprivate struct PBXCpTests: CoreBasedTests {
             #expect(try localFS.read(dstFile) == localFS.read(srcFile))
 
             // Make sure that the Finder Info and Resource Fork were copied.
-#if canImport(Darwin)
-            #expect(try localFS.getExtendedAttribute(dstFile, key: XATTR_FINDERINFO_NAME) == localFS.getExtendedAttribute(srcFile, key: XATTR_FINDERINFO_NAME))
-            #expect(try localFS.getExtendedAttribute(dstFile, key: XATTR_RESOURCEFORK_NAME) == localFS.getExtendedAttribute(srcFile, key: XATTR_RESOURCEFORK_NAME))
-#endif
+            #if canImport(Darwin)
+                #expect(try localFS.getExtendedAttribute(dstFile, key: XATTR_FINDERINFO_NAME) == localFS.getExtendedAttribute(srcFile, key: XATTR_FINDERINFO_NAME))
+                #expect(try localFS.getExtendedAttribute(dstFile, key: XATTR_RESOURCEFORK_NAME) == localFS.getExtendedAttribute(srcFile, key: XATTR_RESOURCEFORK_NAME))
+            #endif
 
             // Make sure that arbitrary extended attributes were not copied.
             #expect(try localFS.getExtendedAttribute(dstFile, key: "foo.bar") == nil)

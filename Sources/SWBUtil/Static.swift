@@ -30,7 +30,7 @@ public struct StaticStorageKey: Hashable, Sendable {
         hasher.combine(column)
     }
 
-    public static func ==(lhs: StaticStorageKey, rhs: StaticStorageKey) -> Bool {
+    public static func == (lhs: StaticStorageKey, rhs: StaticStorageKey) -> Bool {
         return lhs.file.utf8Start == rhs.file.utf8Start && lhs.line == rhs.line && lhs.column == rhs.column
     }
 }

@@ -25,42 +25,48 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
     func swiftModuleOnlyArchsDynamicLibraryDebugBuild() async throws {
         try await checkSwiftModuleOnlyArchsAllPlatforms(
             targetType: .dynamicLibrary,
-            buildConfiguration: "Debug")
+            buildConfiguration: "Debug"
+        )
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
     func swiftModuleOnlyArchsDynamicLibraryReleaseBuild() async throws {
         try await checkSwiftModuleOnlyArchsAllPlatforms(
             targetType: .dynamicLibrary,
-            buildConfiguration: "Release")
+            buildConfiguration: "Release"
+        )
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
     func swiftModuleOnlyArchsStaticLibraryDebugBuild() async throws {
         try await checkSwiftModuleOnlyArchsAllPlatforms(
             targetType: .staticLibrary,
-            buildConfiguration: "Debug")
+            buildConfiguration: "Debug"
+        )
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
     func swiftModuleOnlyArchsStaticLibraryReleaseBuild() async throws {
         try await checkSwiftModuleOnlyArchsAllPlatforms(
             targetType: .staticLibrary,
-            buildConfiguration: "Release")
+            buildConfiguration: "Release"
+        )
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
     func swiftModuleOnlyArchsFrameworkDebugBuild() async throws {
         try await checkSwiftModuleOnlyArchsAllPlatforms(
             targetType: .framework,
-            buildConfiguration: "Debug")
+            buildConfiguration: "Debug"
+        )
     }
 
     @Test(.requireSDKs(.macOS, .iOS))
     func swiftModuleOnlyArchsFrameworkReleaseBuild() async throws {
         try await checkSwiftModuleOnlyArchsAllPlatforms(
             targetType: .framework,
-            buildConfiguration: "Release")
+            buildConfiguration: "Release"
+        )
     }
 
     /// Check swiftmodule content when overloading arch-specific deployment targets
@@ -80,8 +86,10 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.13",
                 moduleOnlyArchs: ["i386"],
                 archDeploymentTargets: [
-                    "i386": "10.14.4",
-                ]))
+                    "i386": "10.14.4"
+                ]
+            )
+        )
 
         // macOS (Zippered)
         try await checkSwiftModuleOnlyArchs(
@@ -95,13 +103,15 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.13",
                 moduleOnlyArchs: ["x86_64h"],
                 archDeploymentTargets: [
-                    "x86_64h": "10.14.4",
+                    "x86_64h": "10.14.4"
                 ],
                 zipperedDeploymentTarget: "13.0",
                 zipperedModuleOnlyDeploymentTarget: "10.0",
                 zipperedArchDeploymentTargets: [
-                    "x86_64": "10.3",
-                ]))
+                    "x86_64": "10.3"
+                ]
+            )
+        )
 
         // Mac Catalyst
         try await checkSwiftModuleOnlyArchs(
@@ -115,7 +125,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyArchs: ["x86_64h"],
                 archDeploymentTargets: [
                     "x86_64h": "10.3"
-                ]))
+                ]
+            )
+        )
 
         // Mac Catalyst (Zippered)
         try await checkSwiftModuleOnlyArchs(
@@ -134,8 +146,10 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 zipperedDeploymentTarget: "10.15",
                 zipperedModuleOnlyDeploymentTarget: "10.13",
                 zipperedArchDeploymentTargets: [
-                    "x86_64": "10.14.4",
-                ]))
+                    "x86_64": "10.14.4"
+                ]
+            )
+        )
 
         // iOS
         try await checkSwiftModuleOnlyArchs(
@@ -150,7 +164,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 archDeploymentTargets: [
                     "armv7": "10.1",
                     "armv7s": "10.2",
-                ]))
+                ]
+            )
+        )
 
         // iOS Simulator
         try await checkSwiftModuleOnlyArchs(
@@ -163,8 +179,10 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.0",
                 moduleOnlyArchs: ["x86_64"],
                 archDeploymentTargets: [
-                    "x86_64": "10.3",
-                ]))
+                    "x86_64": "10.3"
+                ]
+            )
+        )
     }
 
     /// Check no Swift module-only tasks are generated for 32-bit architectures
@@ -182,7 +200,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 deploymentTarget: "10.15",
                 archs: ["x86_64", "x86_64h"],
                 moduleOnlyDeploymentTarget: "10.13",
-                moduleOnlyArchs: ["i386"]))
+                moduleOnlyArchs: ["i386"]
+            )
+        )
 
         // macOS (Zippered)
         try await checkSwiftModuleOnly32bitTasks(
@@ -196,7 +216,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.13",
                 moduleOnlyArchs: ["i386"],
                 zipperedDeploymentTarget: "13.0",
-                zipperedModuleOnlyDeploymentTarget: "10.3"))
+                zipperedModuleOnlyDeploymentTarget: "10.3"
+            )
+        )
 
         // Mac Catalyst
         try await checkSwiftModuleOnly32bitTasks(
@@ -207,7 +229,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 deploymentTarget: "13.0",
                 archs: ["x86_64", "x86_64h"],
                 moduleOnlyDeploymentTarget: "10.3",
-                moduleOnlyArchs: ["i386"]))
+                moduleOnlyArchs: ["i386"]
+            )
+        )
 
         // Mac Catalyst (Zippered)
         try await checkSwiftModuleOnly32bitTasks(
@@ -221,7 +245,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.3",
                 moduleOnlyArchs: ["i386"],
                 zipperedDeploymentTarget: "10.15",
-                zipperedModuleOnlyDeploymentTarget: "10.13"))
+                zipperedModuleOnlyDeploymentTarget: "10.13"
+            )
+        )
     }
 
     /// Check no 'RuleScriptExecution' tasks are generated
@@ -245,9 +271,10 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
             script: "fake-langc",
             inputs: [],
             outputs: [
-                buildDir.join("$(INPUT_FILE_REGION_PATH_COMPONENT)-$(INPUT_FILE_BASE).o").str,
+                buildDir.join("$(INPUT_FILE_REGION_PATH_COMPONENT)-$(INPUT_FILE_BASE).o").str
             ],
-            runOncePerArchitecture: true)
+            runOncePerArchitecture: true
+        )
 
         // macOS
         try await checkNoSwiftModuleOnlyRuleScriptExecutionTasks(
@@ -260,7 +287,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.13",
                 moduleOnlyArchs: ["x86_64h"],
                 inputFiles: inputFiles,
-                buildRules: [customBuildRule]))
+                buildRules: [customBuildRule]
+            )
+        )
 
         // macOS (Zippered)
         try await checkNoSwiftModuleOnlyRuleScriptExecutionTasks(
@@ -276,7 +305,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 zipperedDeploymentTarget: "13.0",
                 zipperedModuleOnlyDeploymentTarget: "10.0",
                 inputFiles: inputFiles,
-                buildRules: [customBuildRule]))
+                buildRules: [customBuildRule]
+            )
+        )
 
         // Mac Catalyst
         try await checkNoSwiftModuleOnlyRuleScriptExecutionTasks(
@@ -289,7 +320,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.0",
                 moduleOnlyArchs: ["x86_64h"],
                 inputFiles: inputFiles,
-                buildRules: [customBuildRule]))
+                buildRules: [customBuildRule]
+            )
+        )
 
         // Mac Catalyst (Zippered)
         try await checkNoSwiftModuleOnlyRuleScriptExecutionTasks(
@@ -305,7 +338,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 zipperedDeploymentTarget: "10.15",
                 zipperedModuleOnlyDeploymentTarget: "10.13",
                 inputFiles: inputFiles,
-                buildRules: [customBuildRule]))
+                buildRules: [customBuildRule]
+            )
+        )
 
         // iOS
         try await checkNoSwiftModuleOnlyRuleScriptExecutionTasks(
@@ -318,7 +353,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.3",
                 moduleOnlyArchs: ["armv7", "armv7s"],
                 inputFiles: inputFiles,
-                buildRules: [customBuildRule]))
+                buildRules: [customBuildRule]
+            )
+        )
 
         // iOS Simulator
         try await checkNoSwiftModuleOnlyRuleScriptExecutionTasks(
@@ -331,7 +368,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.0",
                 moduleOnlyArchs: ["x86_64"],
                 inputFiles: inputFiles,
-                buildRules: [customBuildRule]))
+                buildRules: [customBuildRule]
+            )
+        )
     }
 
     // MARK: - Private test constants.
@@ -340,7 +379,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         "CompileSwift",
         "CompileSwiftSources",
         "Ld",
-        "CreateUniversalBinary"
+        "CreateUniversalBinary",
     ]
 
     // MARK: Private structs and helper methods.
@@ -356,11 +395,11 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         var archs: [String]
         var moduleOnlyDeploymentTarget: String?
         var moduleOnlyArchs: [String]
-        var archDeploymentTargets: [String:String] = [:]
+        var archDeploymentTargets: [String: String] = [:]
 
         var zipperedDeploymentTarget: String? = nil
         var zipperedModuleOnlyDeploymentTarget: String? = nil
-        var zipperedArchDeploymentTargets: [String:String] = [:]
+        var zipperedArchDeploymentTargets: [String: String] = [:]
 
         var inputFiles: [String] = ["File1.swift", "File2.swift"]
         var buildRules: [TestBuildRule] = []
@@ -407,8 +446,10 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    private func buildTestProject(testProjectConfig tpc: TestProjectConfig,
-                                  overrides: [String:String] = [:]) async throws -> TestProject {
+    private func buildTestProject(
+        testProjectConfig tpc: TestProjectConfig,
+        overrides: [String: String] = [:]
+    ) async throws -> TestProject {
         let infoLookup = try await getCore()
 
         var buildSettings = try await [
@@ -458,24 +499,28 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 path: "Sources",
-                children: tpc.inputFiles.map { TestFile($0) }),
+                children: tpc.inputFiles.map { TestFile($0) }
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     tpc.buildConfiguration,
-                    buildSettings: buildSettings.addingContents(of: overrides)),
+                    buildSettings: buildSettings.addingContents(of: overrides)
+                )
             ],
             targets: [
                 TestStandardTarget(
                     tpc.targetName,
                     type: tpc.targetType,
                     buildConfigurations: [
-                        TestBuildConfiguration(tpc.buildConfiguration),
+                        TestBuildConfiguration(tpc.buildConfiguration)
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(tpc.inputFiles.map { TestBuildFile($0) }),
+                        TestSourcesBuildPhase(tpc.inputFiles.map { TestBuildFile($0) })
                     ],
-                    buildRules: tpc.buildRules),
-            ])
+                    buildRules: tpc.buildRules
+                )
+            ]
+        )
     }
 
     private struct TestContext {
@@ -517,12 +562,12 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
 
             if testProjectConfig.archs.contains(arch) {
                 return testProjectConfig.archDeploymentTargets[arch]
-                ?? testProjectConfig.deploymentTarget
+                    ?? testProjectConfig.deploymentTarget
             }
 
             if testProjectConfig.moduleOnlyArchs.contains(arch) {
                 return testProjectConfig.archDeploymentTargets[arch]
-                ?? testProjectConfig.moduleOnlyDeploymentTarget
+                    ?? testProjectConfig.moduleOnlyDeploymentTarget
             }
 
             return nil
@@ -531,12 +576,12 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         var zipperedDeploymentTarget: String? {
             if testProjectConfig.archs.contains(arch) {
                 return testProjectConfig.zipperedArchDeploymentTargets[arch]
-                ?? testProjectConfig.zipperedDeploymentTarget
+                    ?? testProjectConfig.zipperedDeploymentTarget
             }
 
             if testProjectConfig.moduleOnlyArchs.contains(arch) {
                 return testProjectConfig.zipperedArchDeploymentTargets[arch]
-                ?? testProjectConfig.zipperedModuleOnlyDeploymentTarget
+                    ?? testProjectConfig.zipperedModuleOnlyDeploymentTarget
             }
 
             return nil
@@ -545,12 +590,14 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         func getSwiftmoduleBuildDir() -> Path? {
             switch testProjectConfig.targetType {
             case .dynamicLibrary, .staticLibrary:
-                return sourceRoot
+                return
+                    sourceRoot
                     .join("build")
                     .join(testProjectConfig.buildConfigurationDirName)
                     .join("\(testProjectConfig.targetName).swiftmodule")
             case .framework:
-                return sourceRoot
+                return
+                    sourceRoot
                     .join("build")
                     .join(testProjectConfig.buildConfigurationDirName)
                     .join("\(testProjectConfig.targetName).framework")
@@ -578,62 +625,65 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         let targetTriple = context.platform.targetTripleString(
             arch: context.arch,
             deploymentTarget: try context.deploymentTarget.map { try Version($0) } ?? nil,
-            infoLookup: infoLookup)
+            infoLookup: infoLookup
+        )
         let sdkPath = try await getSDKPath(platform: tpc.platform)
 
         let swiftCompilerPath = try await self.swiftCompilerPath
 
         // Check the Swift task to generate the Swift module and tasks to copy its outputs.
-        context.results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"),
-                                  .matchTarget(context.target),
-                                  .matchRuleItem("\(context.arch)\(platformSuffix)")) { task in
-                                      #expect(task.execDescription == "Unblock downstream dependents of \(context.target.target.name) (\(context.arch))")
+        context.results.checkTask(
+            .matchRuleType("SwiftDriver Compilation Requirements"),
+            .matchTarget(context.target),
+            .matchRuleItem("\(context.arch)\(platformSuffix)")
+        ) { task in
+            #expect(task.execDescription == "Unblock downstream dependents of \(context.target.target.name) (\(context.arch))")
 
-                                      // Validate command line arguments
-                                      do {
-                                          // Check that expected options are passed to generate the module.
-                                          task.checkCommandLineContains([
-                                            swiftCompilerPath.str,
-                                            "-module-name", tpc.targetName,
-                                            "-sdk", sdkPath.str,
-                                            "-target", targetTriple,
+            // Validate command line arguments
+            do {
+                // Check that expected options are passed to generate the module.
+                task.checkCommandLineContains([
+                    swiftCompilerPath.str,
+                    "-module-name", tpc.targetName,
+                    "-sdk", sdkPath.str,
+                    "-target", targetTriple,
 
-                                            // FIXME: We don't pass -index-store-path (for now) per rdar://48211996
-                                            // "-index-store-path",
-                                            //    context.sourceRoot.join("build").join("\(projectName).build").join("Index").str,
+                    // FIXME: We don't pass -index-store-path (for now) per rdar://48211996
+                    // "-index-store-path",
+                    //    context.sourceRoot.join("build").join("\(projectName).build").join("Index").str,
 
-                                            "-output-file-map",
-                                            archBuildDir.join("\(tpc.targetName)\(platformSuffix)-OutputFileMap.json").str,
-                                            "-serialize-diagnostics",
-                                            "-emit-dependencies",
-                                            "-emit-module",
-                                            "-emit-module-path",
-                                            archBuildDir.join("\(tpc.targetName)\(platformSuffix).swiftmodule").str,
-                                            "-emit-module-interface-path",
-                                            archBuildDir.join("\(tpc.targetName)\(platformSuffix).swiftinterface").str,
-                                            "-emit-private-module-interface-path",
-                                            archBuildDir.join("\(tpc.targetName)\(platformSuffix).private.swiftinterface").str,
-                                          ])
+                    "-output-file-map",
+                    archBuildDir.join("\(tpc.targetName)\(platformSuffix)-OutputFileMap.json").str,
+                    "-serialize-diagnostics",
+                    "-emit-dependencies",
+                    "-emit-module",
+                    "-emit-module-path",
+                    archBuildDir.join("\(tpc.targetName)\(platformSuffix).swiftmodule").str,
+                    "-emit-module-interface-path",
+                    archBuildDir.join("\(tpc.targetName)\(platformSuffix).swiftinterface").str,
+                    "-emit-private-module-interface-path",
+                    archBuildDir.join("\(tpc.targetName)\(platformSuffix).private.swiftinterface").str,
+                ])
 
-                                          // Check that options that should *not* be passed when generating the module are indeed absent.
-                                          task.checkCommandLineDoesNotContain("-target-variant")
-                                          task.checkCommandLineDoesNotContain("-c")
-                                          if context.isZippered {
-                                              task.checkCommandLineDoesNotContain("-emit-objc-header")
-                                              task.checkCommandLineDoesNotContain("-emit-objc-header-path")
-                                          } else {
-                                              task.checkCommandLineContains(["-emit-objc-header"])
-                                              task.checkCommandLineContains(["-emit-objc-header-path"])
-                                          }
-                                          task.checkCommandLineDoesNotContain("-whole-module-optimization")
+                // Check that options that should *not* be passed when generating the module are indeed absent.
+                task.checkCommandLineDoesNotContain("-target-variant")
+                task.checkCommandLineDoesNotContain("-c")
+                if context.isZippered {
+                    task.checkCommandLineDoesNotContain("-emit-objc-header")
+                    task.checkCommandLineDoesNotContain("-emit-objc-header-path")
+                } else {
+                    task.checkCommandLineContains(["-emit-objc-header"])
+                    task.checkCommandLineContains(["-emit-objc-header-path"])
+                }
+                task.checkCommandLineDoesNotContain("-whole-module-optimization")
 
-                                          // Make sure we're not passing -index-store-path (for now) per rdar://48211996
-                                          task.checkCommandLineDoesNotContain("-index-store-path")
-                                      }
+                // Make sure we're not passing -index-store-path (for now) per rdar://48211996
+                task.checkCommandLineDoesNotContain("-index-store-path")
+            }
 
-                                      // Check the dependency data.
-                                      #expect(task.dependencyData == .makefileIgnoringSubsequentOutputs(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.d")))
-                                  }
+            // Check the dependency data.
+            #expect(task.dependencyData == .makefileIgnoringSubsequentOutputs(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.d")))
+        }
     }
 
     private func checkCopySwiftmoduleContentTasks(_ context: TestContext) async throws {
@@ -678,20 +728,23 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         let archBuildDir = context.archBuildDir
         let platformSuffix = filenameSuffix(for: context.platform, infoLookup: infoLookup)
 
-        func checkGlobalDict(dict: [String:PropertyListItem]) throws {
+        func checkGlobalDict(dict: [String: PropertyListItem]) throws {
             // Check the global dictionary.
             let globalDict = try #require(dict[""])
 
-            XCTAssertEqualPropertyListItems(globalDict, .plDict([
-                "swift-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary.swiftdeps").str),
-                "diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary.dia").str),
-                "emit-module-diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.dia").str),
-                "emit-module-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.d").str),
-                "pch": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-Bridging-header.pch").str),
-            ]))
+            XCTAssertEqualPropertyListItems(
+                globalDict,
+                .plDict([
+                    "swift-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary.swiftdeps").str),
+                    "diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary.dia").str),
+                    "emit-module-diagnostics": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.dia").str),
+                    "emit-module-dependencies": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-emit-module.d").str),
+                    "pch": .plString(archBuildDir.join("\(tpc.targetName)\(platformSuffix)-primary-Bridging-header.pch").str),
+                ])
+            )
         }
 
-        func checkFileDict(file: String, dict: [String:PropertyListItem]) {
+        func checkFileDict(file: String, dict: [String: PropertyListItem]) {
             let basename = Path(file).basenameWithoutSuffix
             let filePath = context.sourceRoot.join("Sources").join(file)
 
@@ -715,32 +768,34 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         ]
 
         // Check the contents of the output file map file for the module generation task.
-        try context.results.checkWriteAuxiliaryFileTask(.matchTarget(context.target),
-                                                        .matchRule(wafMatchRule)) { task, contents in
-                                                            guard let plist = try? PropertyList.fromJSONData(contents) else {
-                                                                Issue.record("could not convert output file map from JSON to plist")
-                                                                return
-                                                            }
+        try context.results.checkWriteAuxiliaryFileTask(
+            .matchTarget(context.target),
+            .matchRule(wafMatchRule)
+        ) { task, contents in
+            guard let plist = try? PropertyList.fromJSONData(contents) else {
+                Issue.record("could not convert output file map from JSON to plist")
+                return
+            }
 
-                                                            guard let dict = plist.dictValue else {
-                                                                Issue.record("output file map is not a dictionary")
-                                                                return
-                                                            }
+            guard let dict = plist.dictValue else {
+                Issue.record("output file map is not a dictionary")
+                return
+            }
 
-                                                            #expect(dict.count == 3)
+            #expect(dict.count == 3)
 
-                                                            // Check global dict is valid
-                                                            try checkGlobalDict(dict: dict)
+            // Check global dict is valid
+            try checkGlobalDict(dict: dict)
 
-                                                            // Check the dictionary for each Swift input file.
-                                                            for file in tpc.inputFiles {
-                                                                // Check output file map contains dictionary for <file>
-                                                                checkFileDict(file: file, dict: dict)
-                                                            }
-                                                        }
+            // Check the dictionary for each Swift input file.
+            for file in tpc.inputFiles {
+                // Check output file map contains dictionary for <file>
+                checkFileDict(file: file, dict: dict)
+            }
+        }
     }
 
-    private func checkSwiftModuleOnlyArchs(_ tpc: TestProjectConfig, overrides: [String:String] = [:]) async throws {
+    private func checkSwiftModuleOnlyArchs(_ tpc: TestProjectConfig, overrides: [String: String] = [:]) async throws {
         let testProject = try await buildTestProject(testProjectConfig: tpc, overrides: overrides)
         let infoLookup = try await getCore()
 
@@ -813,24 +868,30 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                             try await checkOutputFileMap(context)
                         }
 
-                        try await runChecks(TestContext(
-                            testProjectConfig: tpc,
-                            results: results,
-                            target: target,
-                            platform: tpc.platform,
-                            arch: arch,
-                            sourceRoot: sourceRoot))
-
-                        if tpc.isZippered {
-                            // Check zippered tasks for <arch>
-                            try await runChecks(TestContext(
+                        try await runChecks(
+                            TestContext(
                                 testProjectConfig: tpc,
                                 results: results,
                                 target: target,
-                                platform: tpc.secondaryPlatform,
+                                platform: tpc.platform,
                                 arch: arch,
-                                sourceRoot: sourceRoot,
-                                isZippered: tpc.isZippered))
+                                sourceRoot: sourceRoot
+                            )
+                        )
+
+                        if tpc.isZippered {
+                            // Check zippered tasks for <arch>
+                            try await runChecks(
+                                TestContext(
+                                    testProjectConfig: tpc,
+                                    results: results,
+                                    target: target,
+                                    platform: tpc.secondaryPlatform,
+                                    arch: arch,
+                                    sourceRoot: sourceRoot,
+                                    isZippered: tpc.isZippered
+                                )
+                            )
                         }
                     }
                 }
@@ -838,7 +899,7 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
         }
     }
 
-    private func checkSwiftModuleOnly32bitTasks(_ tpc: TestProjectConfig, overrides: [String:String] = [:]) async throws {
+    private func checkSwiftModuleOnly32bitTasks(_ tpc: TestProjectConfig, overrides: [String: String] = [:]) async throws {
         let testProject = try await buildTestProject(testProjectConfig: tpc, overrides: overrides)
         let infoLookup = try await getCore()
 
@@ -877,13 +938,15 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                             results.checkTaskExists(
                                 .matchTarget(target),
                                 .matchRuleItem(arch + platformSuffix),
-                                .matchRuleType("SwiftDriver Compilation Requirements"))
+                                .matchRuleType("SwiftDriver Compilation Requirements")
+                            )
 
                             // Check 'Copy' tasks are generated for <arch>
                             results.checkTaskExists(
                                 .matchTarget(target),
                                 .matchRuleItemPattern(.suffix("\(moduleTriple).swiftmodule")),
-                                .matchRuleType("Copy"))
+                                .matchRuleType("Copy")
+                            )
                         }
 
                         else if platform == .macCatalyst {
@@ -891,13 +954,15 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                             results.checkNoTask(
                                 .matchTarget(target),
                                 .matchRuleItem(arch + platformSuffix),
-                                .matchRuleType("GenerateSwiftModule"))
+                                .matchRuleType("GenerateSwiftModule")
+                            )
 
                             // Check no 'Copy' tasks are generated for <arch>
                             results.checkNoTask(
                                 .matchTarget(target),
                                 .matchRuleItemPattern(.suffix("\(moduleTriple).swiftmodule")),
-                                .matchRuleType("Copy"))
+                                .matchRuleType("Copy")
+                            )
                         }
                     }
 
@@ -906,7 +971,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                     if tpc.isZippered {
                         try checkPlatform(
                             tpc.secondaryPlatform,
-                            deploymentTarget: tpc.zipperedModuleOnlyDeploymentTarget)
+                            deploymentTarget: tpc.zipperedModuleOnlyDeploymentTarget
+                        )
                     }
                 }
             }
@@ -956,8 +1022,10 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
     }
 
     /// Check swiftmodule content when building `targetType` in `buildConfiguration` mode
-    private func checkSwiftModuleOnlyArchsAllPlatforms(targetType: TestStandardTarget.TargetType,
-                                                       buildConfiguration: String) async throws {
+    private func checkSwiftModuleOnlyArchsAllPlatforms(
+        targetType: TestStandardTarget.TargetType,
+        buildConfiguration: String
+    ) async throws {
         // macOS
         try await checkSwiftModuleOnlyArchs(
             TestProjectConfig(
@@ -967,7 +1035,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 deploymentTarget: "10.15",
                 archs: ["x86_64", "x86_64h"],
                 moduleOnlyDeploymentTarget: "10.13",
-                moduleOnlyArchs: ["i386"]))
+                moduleOnlyArchs: ["i386"]
+            )
+        )
 
         // macOS (Zippered)
         try await checkSwiftModuleOnlyArchs(
@@ -981,7 +1051,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.13",
                 moduleOnlyArchs: ["x86_64h"],
                 zipperedDeploymentTarget: "13.0",
-                zipperedModuleOnlyDeploymentTarget: "10.3"))
+                zipperedModuleOnlyDeploymentTarget: "10.3"
+            )
+        )
 
         // Mac Catalyst
         try await checkSwiftModuleOnlyArchs(
@@ -992,7 +1064,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 deploymentTarget: "13.0",
                 archs: ["x86_64"],
                 moduleOnlyDeploymentTarget: "10.3",
-                moduleOnlyArchs: ["x86_64h"]))
+                moduleOnlyArchs: ["x86_64h"]
+            )
+        )
 
         // Mac Catalyst (Zippered)
         try await checkSwiftModuleOnlyArchs(
@@ -1006,7 +1080,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 moduleOnlyDeploymentTarget: "10.3",
                 moduleOnlyArchs: ["x86_64h"],
                 zipperedDeploymentTarget: "10.15",
-                zipperedModuleOnlyDeploymentTarget: "10.13"))
+                zipperedModuleOnlyDeploymentTarget: "10.13"
+            )
+        )
 
         // iOS
         try await checkSwiftModuleOnlyArchs(
@@ -1017,7 +1093,9 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 deploymentTarget: "13.0",
                 archs: ["arm64", "arm64e"],
                 moduleOnlyDeploymentTarget: "10.3",
-                moduleOnlyArchs: ["armv7", "armv7s"]))
+                moduleOnlyArchs: ["armv7", "armv7s"]
+            )
+        )
 
         // iOS Simulator
         try await checkSwiftModuleOnlyArchs(
@@ -1028,6 +1106,8 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
                 deploymentTarget: "13.0",
                 archs: ["arm64"],
                 moduleOnlyDeploymentTarget: "10.3",
-                moduleOnlyArchs: ["x86_64"]))
+                moduleOnlyArchs: ["x86_64"]
+            )
+        )
     }
 }

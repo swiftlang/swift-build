@@ -27,8 +27,7 @@ import SWBMacro
 fileprivate struct ProcessProductEntitlementsTaskTests {
     @Test
     func diagnostics() async {
-        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async
-        {
+        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async {
             let action = ProcessProductEntitlementsTaskAction(fs: PseudoFS(), entitlements: .plDict([:]), entitlementsVariant: .signed, allowEntitlementsModification: false, entitlementsDestination: .none, destinationPlatformName: "iphoneos", entitlementsFilePath: nil)
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: commandLine, workingDirectory: Path(""), action: action)
             let executionDelegate = MockExecutionDelegate()
@@ -89,7 +88,7 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
         try executionDelegate.fs.createDirectory(output.dirname)
 
         let action = ProcessProductEntitlementsTaskAction(fs: PseudoFS(), entitlements: entitlements, entitlementsVariant: .signed, allowEntitlementsModification: false, entitlementsDestination: .none, destinationPlatformName: "iphoneos", entitlementsFilePath: nil)
-        var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: ["productPackagingUtility", "-entitlements", "-format", "xml", input.str, "-o", output.str].map{ .literal(ByteString(encodingAsUTF8: $0)) })
+        var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: ["productPackagingUtility", "-entitlements", "-format", "xml", input.str, "-o", output.str].map { .literal(ByteString(encodingAsUTF8: $0)) })
         let task = Task(&builder)
         let result = await action.performTaskAction(
             task,
@@ -118,14 +117,12 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
         #expect(dict.count == 4)
         if case .plString(let appId)? = dict["application-identifier"] {
             #expect(appId == appIdentifier)
-        }
-        else {
+        } else {
             Issue.record("missing 'application-identifier'")
         }
         if case .plString(let teamId)? = dict["com.apple.developer.team-identifier"] {
             #expect(teamId == teamIdentifierPrefix)
-        }
-        else {
+        } else {
             Issue.record("missing 'com.apple.developer.team-identifier'")
         }
 
@@ -135,12 +132,10 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
             #expect(kcGroups.count == 1)
             if case .plString(let kcGroup) = kcGroups[0] {
                 #expect(kcGroup == appIdentifier)
-            }
-            else {
+            } else {
                 Issue.record("empty 'keychain-access-groups'")
             }
-        }
-        else {
+        } else {
             Issue.record("missing 'keychain-access-groups'")
         }
     }
@@ -177,7 +172,7 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
             try executionDelegate.fs.createDirectory(output.dirname)
 
             let action = ProcessProductEntitlementsTaskAction(fs: PseudoFS(), entitlements: .plDict(entitlements), entitlementsVariant: .signed, allowEntitlementsModification: false, entitlementsDestination: .none, destinationPlatformName: destinationPlatformName, entitlementsFilePath: nil)
-            var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: ["productPackagingUtility", "-entitlements", "-format", "xml", input.str, "-o", output.str].map{ .literal(ByteString(encodingAsUTF8: $0)) })
+            var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: ["productPackagingUtility", "-entitlements", "-format", "xml", input.str, "-o", output.str].map { .literal(ByteString(encodingAsUTF8: $0)) })
             let task = Task(&builder)
             let result = await action.performTaskAction(
                 task,
@@ -233,8 +228,7 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
                         Issue.record("missing '\(expectedMachLookupEntitlementKey)', test inputs: \(testInputs)", sourceLocation: sourceLocation)
                     }
                 }
-            }
-            else {
+            } else {
                 func assertKeyUnmodified(_ key: String, sourceLocation: SourceLocation = #_sourceLocation) {
                     let oldValue = entitlements[key]
                     let newValue = dict[key]
@@ -269,20 +263,32 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
         // Perform test above with varying inputs
         for schemeCommand: SchemeCommand in [.launch, .test, .profile] {
             try await performTest(schemeCommand, "macosx")
-            try await performTest(schemeCommand, "macosx", additionalEntitlements: [
-                "com.apple.security.temporary-exception.files.absolute-path.read-only": "/some/path", // single string value
-                "com.apple.security.temporary-exception.mach-lookup.global-name": "com.apple.some-port", // single string value
-            ])
-            try await performTest(schemeCommand, "macosx", additionalEntitlements: [
-                "com.apple.security.temporary-exception.files.absolute-path.read-only": ["/some/path"], // array of strings value
-                "com.apple.security.temporary-exception.mach-lookup.global-name": ["com.apple.some-port"], // array of strings value
-            ])
+            try await performTest(
+                schemeCommand,
+                "macosx",
+                additionalEntitlements: [
+                    "com.apple.security.temporary-exception.files.absolute-path.read-only": "/some/path",  // single string value
+                    "com.apple.security.temporary-exception.mach-lookup.global-name": "com.apple.some-port",  // single string value
+                ]
+            )
+            try await performTest(
+                schemeCommand,
+                "macosx",
+                additionalEntitlements: [
+                    "com.apple.security.temporary-exception.files.absolute-path.read-only": ["/some/path"],  // array of strings value
+                    "com.apple.security.temporary-exception.mach-lookup.global-name": ["com.apple.some-port"],  // array of strings value
+                ]
+            )
 
             try await performTest(schemeCommand, "iphoneos")
-            try await performTest(schemeCommand, "iphoneos", additionalEntitlements: [
-                "com.apple.security.exception.files.absolute-path.read-only": ["/some/path"],
-                "com.apple.security.exception.mach-lookup.global-name": ["com.apple.some-port"],
-            ])
+            try await performTest(
+                schemeCommand,
+                "iphoneos",
+                additionalEntitlements: [
+                    "com.apple.security.exception.files.absolute-path.read-only": ["/some/path"],
+                    "com.apple.security.exception.mach-lookup.global-name": ["com.apple.some-port"],
+                ]
+            )
         }
     }
 }
@@ -291,8 +297,7 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
 fileprivate struct ProcessProductProvisioningProfileTaskTests {
     @Test
     func diagnostics() async {
-        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async
-        {
+        func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async {
             let action = ProcessProductProvisioningProfileTaskAction()
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: commandLine, workingDirectory: Path(""), action: action)
             let executionDelegate = MockExecutionDelegate()

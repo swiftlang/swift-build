@@ -43,7 +43,6 @@ public final class BuildRule: ProjectModelItem {
             self.inputSpecifier = .fileType(identifier: identifier)
         }
 
-
         switch model.actionSpecifier {
         case .compiler(let identifier):
             self.actionSpecifier = .compiler(identifier: identifier)
@@ -53,9 +52,12 @@ public final class BuildRule: ProjectModelItem {
                 inputs: inputInfo.map { pifLoader.userNamespace.parseString($0) },
                 inputFileLists: inputFileLists.map { pifLoader.userNamespace.parseString($0) },
                 outputs: outputInfo.map {
-                    BuildRuleOutputInfo(path: pifLoader.userNamespace.parseString($0.path), additionalCompilerFlags: $0.additionalCompilerFlags.map {
-                        pifLoader.userNamespace.parseStringList($0)
-                    } ?? pifLoader.userNamespace.parseLiteralStringList([]))
+                    BuildRuleOutputInfo(
+                        path: pifLoader.userNamespace.parseString($0.path),
+                        additionalCompilerFlags: $0.additionalCompilerFlags.map {
+                            pifLoader.userNamespace.parseStringList($0)
+                        } ?? pifLoader.userNamespace.parseLiteralStringList([])
+                    )
                 },
                 outputFileLists: outputFileLists.map { pifLoader.userNamespace.parseString($0) },
                 dependencyInfo: DependencyInfoFormat.fromPIF(dependencyInfo, pifLoader: pifLoader),
@@ -99,7 +101,6 @@ public final class BuildRule: ProjectModelItem {
 
             let outputFileListPaths = (try Self.parseOptionalValueForKeyAsArrayOfStrings(PIFKey_BuildRule_outputFileListPaths, pifDict: pifDict) ?? []).map { return pifLoader.userNamespace.parseString($0) }
 
-
             // The output file compiler flags are optional.
             let outputFilesCompilerFlags: [MacroStringListExpression]?
             if let data = pifDict[PIFKey_BuildRule_outputFilesCompilerFlags] {
@@ -111,12 +112,14 @@ public final class BuildRule: ProjectModelItem {
                     guard case let .plArray(value) = flagData else {
                         throw PIFParsingError.incorrectType(keyName: PIFKey_BuildRule_outputFilesCompilerFlags, objectType: Self.self, expectedType: "Array", destinationType: nil)
                     }
-                    return try pifLoader.userNamespace.parseStringList(value.map { item -> String in
-                        guard case let .plString(value) = item else {
-                            throw PIFParsingError.incorrectType(keyName: PIFKey_BuildRule_outputFilesCompilerFlags, objectType: Self.self, expectedType: "String", destinationType: nil)
+                    return try pifLoader.userNamespace.parseStringList(
+                        value.map { item -> String in
+                            guard case let .plString(value) = item else {
+                                throw PIFParsingError.incorrectType(keyName: PIFKey_BuildRule_outputFilesCompilerFlags, objectType: Self.self, expectedType: "String", destinationType: nil)
+                            }
+                            return value
                         }
-                        return value
-                    })
+                    )
                 }
             } else {
                 outputFilesCompilerFlags = nil
@@ -181,8 +184,7 @@ public final class BuildRule: ProjectModelItem {
         }
     }
 
-    public var description: String
-    {
+    public var description: String {
         return "\(type(of: self))<\(fileTypeIdentifier)->\(compilerSpecificationIdentifier)>"
     }
 }
@@ -219,17 +221,18 @@ public enum BuildRuleActionSpecifier: Sendable {
     /// - outputFileLists: The list of xcfilelists that contains a list of additional output file paths
     /// - dependencyInfo: The dependency info.
     /// - runOncePerArchitecture: Run once per architecture/variant.
-    case shellScript(contents: String,
-                     inputs: [MacroStringExpression],
-                     inputFileLists: [MacroStringExpression],
-                     outputs: [BuildRuleOutputInfo],
-                     outputFileLists: [MacroStringExpression],
-                     dependencyInfo: DependencyInfoFormat?,
-                     runOncePerArchitecture: Bool)
+    case shellScript(
+        contents: String,
+        inputs: [MacroStringExpression],
+        inputFileLists: [MacroStringExpression],
+        outputs: [BuildRuleOutputInfo],
+        outputFileLists: [MacroStringExpression],
+        dependencyInfo: DependencyInfoFormat?,
+        runOncePerArchitecture: Bool
+    )
 }
 
 // MARK: Build rule constant strings
 
-
-let BuildRule_FileTypeIsPatternIdentifier       = "pattern.proxy"
-let BuildRule_CompilerIsShellScriptIdentifier   = "com.apple.compilers.proxy.script"
+let BuildRule_FileTypeIsPatternIdentifier = "pattern.proxy"
+let BuildRule_CompilerIsShellScriptIdentifier = "com.apple.compilers.proxy.script"

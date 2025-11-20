@@ -105,7 +105,7 @@ extension ExecutableTask {
     ///
     /// Clients should expect this is cheap to compute, but not necessarily O(1).
     public var commandLineAsStrings: AnySequence<String> {
-        return AnySequence(commandLine.lazy.map{ $0.asString })
+        return AnySequence(commandLine.lazy.map { $0.asString })
     }
 
     public func generateIndexingInfo(input: TaskGenerateIndexingInfoInput) -> [TaskGenerateIndexingInfoOutput] {
@@ -145,8 +145,7 @@ extension ExecutableTask {
             if let selfName = self.forTarget?.target.name, let otherName = other.forTarget?.target.name {
                 // If both tasks' targets have names, then we order them by those names
                 return selfName < otherName
-            }
-            else {
+            } else {
                 // Otherwise only one has a name, so we order the one without a name last.  So all tasks without a
                 // target will get ordered to the end (usually these are all gate tasks).
                 return self.forTarget?.target.name != nil

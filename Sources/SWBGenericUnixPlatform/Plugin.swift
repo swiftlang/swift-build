@@ -27,7 +27,7 @@ final class GenericUnixPlugin: Sendable {
     func swiftExecutablePath(fs: any FSProxy) -> Path? {
         [
             Environment.current["SWIFT_EXEC"].map(Path.init),
-            StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift"))
+            StackedSearchPath(environment: .current, fs: fs).lookup(Path("swift")),
         ].compactMap { $0 }.first(where: fs.exists)
     }
 
@@ -81,15 +81,18 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
             guard operatingSystem.createFallbackSystemToolchain || operatingSystem != context.hostOperatingSystem else {
                 return nil
             }
-            return try (.root, [
-                "Type": .plString("Platform"),
-                "Name": .plString(operatingSystem.xcodePlatformName),
-                "Identifier": .plString(operatingSystem.xcodePlatformName),
-                "Description": .plString(operatingSystem.xcodePlatformName),
-                "FamilyName": .plString(operatingSystem.xcodePlatformName.capitalized),
-                "FamilyIdentifier": .plString(operatingSystem.xcodePlatformName),
-                "IsDeploymentPlatform": .plString("YES"),
-            ])
+            return try (
+                .root,
+                [
+                    "Type": .plString("Platform"),
+                    "Name": .plString(operatingSystem.xcodePlatformName),
+                    "Identifier": .plString(operatingSystem.xcodePlatformName),
+                    "Description": .plString(operatingSystem.xcodePlatformName),
+                    "FamilyName": .plString(operatingSystem.xcodePlatformName.capitalized),
+                    "FamilyIdentifier": .plString(operatingSystem.xcodePlatformName),
+                    "IsDeploymentPlatform": .plString("YES"),
+                ]
+            )
         }
     }
 }
@@ -195,11 +198,16 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                     sysroot = swiftSDK.path
                     architectures = try swiftSDK.targetTriples.keys.map { try LLVMTriple($0).arch }.sorted()
                     tripleVersion = try Set(swiftSDK.targetTriples.keys.compactMap { try LLVMTriple($0).systemVersion }).only?.description
-                    customProperties = try Dictionary(uniqueKeysWithValues: swiftSDK.targetTriples.map { targetTriple in
-                        try ("__SYSROOT_\(LLVMTriple(targetTriple.key).arch)", .plString(swiftSDK.path.join(targetTriple.value.sdkRootPath).str))
-                    }).merging([
-                        "SYSROOT": "$(__SYSROOT_$(CURRENT_ARCH))",
-                    ], uniquingKeysWith: { _, new in new })
+                    customProperties = try Dictionary(
+                        uniqueKeysWithValues: swiftSDK.targetTriples.map { targetTriple in
+                            try ("__SYSROOT_\(LLVMTriple(targetTriple.key).arch)", .plString(swiftSDK.path.join(targetTriple.value.sdkRootPath).str))
+                        }
+                    ).merging(
+                        [
+                            "SYSROOT": "$(__SYSROOT_$(CURRENT_ARCH))"
+                        ],
+                        uniquingKeysWith: { _, new in new }
+                    )
                 } catch {
                     // FIXME: Handle errors?
                     return nil
@@ -221,7 +229,7 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 } else if let tripleVersion {
                     realTripleVersion = tripleVersion
                 } else {
-                    return nil // couldn't compute triple version for FreeBSD
+                    return nil  // couldn't compute triple version for FreeBSD
                 }
                 deploymentTargetSettings = [
                     "DeploymentTargetSettingName": .plString("FREEBSD_DEPLOYMENT_TARGET"),
@@ -233,24 +241,31 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 deploymentTargetSettings = [:]
             }
 
-            return try (sysroot, platform, [
-                "Type": .plString("SDK"),
-                "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
-                "CanonicalName": .plString(operatingSystem.xcodePlatformName),
-                "IsBaseSDK": .plBool(true),
-                "DefaultProperties": .plDict([
-                    "PLATFORM_NAME": .plString(operatingSystem.xcodePlatformName),
-                ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-                "CustomProperties": .plDict(customProperties),
-                "SupportedTargets": .plDict([
-                    operatingSystem.xcodePlatformName: .plDict([
-                        "Archs": .plArray(architectures.map { .plString($0) }),
-                        "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
-                        "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
-                        "LLVMTargetTripleVendor": .plString("unknown"),
-                    ].merging(deploymentTargetSettings, uniquingKeysWith: { _, new in new }))
-                ]),
-            ])
+            return try (
+                sysroot, platform,
+                [
+                    "Type": .plString("SDK"),
+                    "Version": .plString(Version(ProcessInfo.processInfo.operatingSystemVersion).zeroTrimmed.description),
+                    "CanonicalName": .plString(operatingSystem.xcodePlatformName),
+                    "IsBaseSDK": .plBool(true),
+                    "DefaultProperties": .plDict(
+                        [
+                            "PLATFORM_NAME": .plString(operatingSystem.xcodePlatformName)
+                        ].merging(defaultProperties, uniquingKeysWith: { _, new in new })
+                    ),
+                    "CustomProperties": .plDict(customProperties),
+                    "SupportedTargets": .plDict([
+                        operatingSystem.xcodePlatformName: .plDict(
+                            [
+                                "Archs": .plArray(architectures.map { .plString($0) }),
+                                "LLVMTargetTripleEnvironment": .plString(tripleEnvironment),
+                                "LLVMTargetTripleSys": .plString(operatingSystem.xcodePlatformName),
+                                "LLVMTargetTripleVendor": .plString("unknown"),
+                            ].merging(deploymentTargetSettings, uniquingKeysWith: { _, new in new })
+                        )
+                    ]),
+                ]
+            )
         }.compactMap { $0 }
     }
 }
@@ -295,7 +310,8 @@ struct GenericUnixToolchainRegistryExtension: ToolchainRegistryExtension {
                 defaultSettingsWhenPrimary: [:],
                 executableSearchPaths: realSwiftPath.dirname.relativeSubpath(from: path).map { [path.join($0).join("bin")] } ?? [],
                 testingLibraryPlatformNames: [],
-                fs: fs)
+                fs: fs
+            )
         ]
     }
 }

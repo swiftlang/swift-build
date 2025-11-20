@@ -24,7 +24,7 @@ public struct SwiftCachingKeyQueryTaskKey: Serializable, CustomDebugStringConver
         self.compilerLocation = compilerLocation
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(3) {
             serializer.serialize(casOptions)
             serializer.serialize(cacheKeys)
@@ -62,7 +62,7 @@ public struct SwiftCachingOutputMaterializerTaskKey: Serializable, CustomDebugSt
         self.compilerLocation = compilerLocation
     }
 
-    public func serialize<T>(to serializer: T) where T : Serializer {
+    public func serialize<T>(to serializer: T) where T: Serializer {
         serializer.serializeAggregate(4) {
             serializer.serialize(casOptions)
             serializer.serialize(casID)

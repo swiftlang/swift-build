@@ -51,8 +51,7 @@ public final class SDK: Sendable {
                 baseAndVersion = sdkCanonicalName.withoutSuffix(".\(supportedSuffix)")
                 suffix = supportedSuffix
                 break
-            }
-            else if sdkCanonicalName.hasSuffix(supportedSuffix) {
+            } else if sdkCanonicalName.hasSuffix(supportedSuffix) {
                 baseAndVersion = sdkCanonicalName.withoutSuffix(supportedSuffix)
                 suffix = supportedSuffix
                 break
@@ -148,7 +147,7 @@ public final class SDK: Sendable {
     public let librarySearchPaths: [Path]
 
     /// Provides the platform version mapping when working with macCatalyst and macOS variants.
-    public let versionMap: [String:[Version:Version]]
+    public let versionMap: [String: [Version: Version]]
 
     /// The SDK-specific directory macros.
     let directoryMacros: [StringMacroDeclaration]
@@ -167,7 +166,7 @@ public final class SDK: Sendable {
     /// Note that this is technically "broken" for macOS, as the third version component in practice is more like a minor version, and macOS does not have true patch versions, but we'll respect the value in the SDK as-is for now.
     @_spi(Testing) public let maximumDeploymentTarget: Version?
 
-    init(_ canonicalName: String, canonicalNameComponents: CanonicalNameComponents?, _ aliases: Set<String>, _ cohortPlatforms: [String], _ displayName: String, _ path: Path, _ version: Version?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ variants: [String: SDKVariant], _ defaultDeploymentTarget: Version?, _ defaultVariant: SDKVariant?, _ searchPaths: (header: [Path], framework: [Path], library: [Path]), _ directoryMacros: [StringMacroDeclaration], _ isBaseSDK: Bool, _ fallbackSettingConditionValues: [String], _ toolchains: [String], _ versionMap: [String:[Version:Version]], _ maximumDeploymentTarget: Version?) {
+    init(_ canonicalName: String, canonicalNameComponents: CanonicalNameComponents?, _ aliases: Set<String>, _ cohortPlatforms: [String], _ displayName: String, _ path: Path, _ version: Version?, _ productBuildVersion: String?, _ defaultSettings: [String: PropertyListItem], _ overrideSettings: [String: PropertyListItem], _ variants: [String: SDKVariant], _ defaultDeploymentTarget: Version?, _ defaultVariant: SDKVariant?, _ searchPaths: (header: [Path], framework: [Path], library: [Path]), _ directoryMacros: [StringMacroDeclaration], _ isBaseSDK: Bool, _ fallbackSettingConditionValues: [String], _ toolchains: [String], _ versionMap: [String: [Version: Version]], _ maximumDeploymentTarget: Version?) {
         self.canonicalName = canonicalName
         self.canonicalNameComponents = canonicalNameComponents
         self.aliases = aliases
@@ -338,8 +337,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         // Additional settings for the SDK variants.  In general these should be moved into the variant settings in SDKSettings.plist when possible.
         if name == MacCatalystInfo.sdkVariantName {
             modifiedSettings["IS_MACCATALYST"] = .plString("YES")
-        }
-        else if name == "macos" {
+        } else if name == "macos" {
             // Also set IS_MACCATALYST explicitly for the 'macos' variant, to make build setting interpolation easier.
             modifiedSettings["IS_MACCATALYST"] = .plString("NO")
         }
@@ -363,16 +361,13 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         if let min = minimumDeploymentTarget, let max = maximumDeploymentTarget {
             do {
                 deploymentTargetRange = try VersionRange(start: min, end: max)
-            }
-            catch {
+            } catch {
                 // ignore error for now (same as in Platform.deploymentTargetsCache)
                 deploymentTargetRange = VersionRange()
             }
-        }
-        else {
+        } else {
             deploymentTargetRange = VersionRange()
         }
-
 
         var validDeploymentTargets = [Version]()
         for deploymentTarget in supportedTargetDict["ValidDeploymentTargets"]?.arrayValue ?? [] {
@@ -407,16 +402,18 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         self.minimumOSForSwiftConcurrency = try (supportedTargetDict["SwiftConcurrencyMinimumDeploymentTarget"]?.stringValue ?? concurrency).map { try Version($0) }
         self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue ?? span).map { try Version($0) }
 
-        self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? {
-            switch name {
-            case MacCatalystInfo.sdkVariantName:
-                return "/System/iOSSupport"
-            case "driverkit":
-                return "/System/DriverKit"
-            default:
-                return ""
-            }
-        }()
+        self.systemPrefix =
+            supportedTargetDict["SystemPrefix"]?.stringValue
+            ?? {
+                switch name {
+                case MacCatalystInfo.sdkVariantName:
+                    return "/System/iOSSupport"
+                case "driverkit":
+                    return "/System/DriverKit"
+                default:
+                    return ""
+                }
+            }()
     }
 
     private static func fallbackDeviceFamiliesData(variantName name: String) throws -> PropertyListItem {
@@ -439,7 +436,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
                     "Identifier": .plInt(6),
                     "Name": .plString("mac"),
                     "DisplayName": .plString("Mac"),
-                ])
+                ]),
             ])
         default:
             // Other platforms don't have device families
@@ -467,7 +464,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
 
     private static func fallbackRecommendedDeploymentTarget(variantName name: String) -> String? {
         switch name {
-            // Late Summer 2019 aligned, except iOS which got one final 12.x update in Winter 2020, making this version set the last minor update series of the Fall 2018 aligned releases.
+        // Late Summer 2019 aligned, except iOS which got one final 12.x update in Winter 2020, making this version set the last minor update series of the Fall 2018 aligned releases.
         case "macos", "macosx":
             return "10.14.6"
         case "iphoneos", "iphonesimulator":
@@ -477,7 +474,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         case "watchos", "watchsimulator":
             return "5.3"
 
-            // No Summer 2019 aligned versions since these were first introduced on or after Fall 2019, so simply use the minimum versions.
+        // No Summer 2019 aligned versions since these were first introduced on or after Fall 2019, so simply use the minimum versions.
         case "driverkit":
             return "19.0"
         case MacCatalystInfo.sdkVariantName:
@@ -485,7 +482,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         case "xros", "xrsimulator":
             return "1.0"
 
-            // Fall back to the default deployment target, which is equal to the SDK version.
+        // Fall back to the default deployment target, which is equal to the SDK version.
         default:
             return nil
         }
@@ -631,14 +628,16 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
     private func registerSDKsInDirectory(_ path: Path, _ platform: Platform?) {
         guard let pathResolved = try? localFS.realpath(path) else { return }
         guard let contents = try? localFS.listdir(path) else { return }
-        guard let sdkPaths: [(sdkPath: Path, sdkPathResolved: Path)] = try? (contents.filter { $0.hasSuffix(".sdk") }.sorted(by: <).map { path.join($0) }.map{ ($0, try localFS.realpath($0)) }) else { return }
+        guard let sdkPaths: [(sdkPath: Path, sdkPathResolved: Path)] = try? (contents.filter { $0.hasSuffix(".sdk") }.sorted(by: <).map { path.join($0) }.map { ($0, try localFS.realpath($0)) }) else { return }
 
         // If you have SDKs A and L in the same directory, where L is a symlink to A, we'll ignore A and register L.
-        let sdkNamesTargetedByLinks = Set(sdkPaths.compactMap { (sdkPath, sdkPathResolved) -> String? in
-            guard localFS.isSymlink(sdkPath) else { return nil }
-            guard sdkPathResolved.dirname == pathResolved else { return nil }
-            return sdkPathResolved.basename
-        })
+        let sdkNamesTargetedByLinks = Set(
+            sdkPaths.compactMap { (sdkPath, sdkPathResolved) -> String? in
+                guard localFS.isSymlink(sdkPath) else { return nil }
+                guard sdkPathResolved.dirname == pathResolved else { return nil }
+                return sdkPathResolved.basename
+            }
+        )
 
         for (sdkPath, sdkPathResolved) in sdkPaths {
             guard !sdkNamesTargetedByLinks.contains(sdkPath.basename) else { continue }
@@ -722,7 +721,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             displayName = value
         }
 
-        let isBaseSDK = items["IsBaseSDK"]?.looselyTypedBoolValue
+        let isBaseSDK =
+            items["IsBaseSDK"]?.looselyTypedBoolValue
             ?? items["isBaseSDK"]?.looselyTypedBoolValue
             ?? false
 
@@ -736,8 +736,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                     var keyIsAllowed = true
                     if SDKRegistry.ignoredSparseSdkSettingKeys.contains(key) {
                         keyIsAllowed = false
-                    }
-                    else {
+                    } else {
                         for suffix in SDKRegistry.ignoredSparseSdkSettingKeySuffixes {
                             if key.hasSuffix(suffix) {
                                 keyIsAllowed = false
@@ -770,14 +769,14 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         var defaultSettings: [String: PropertyListItem] = [:]
         if case .plDict(let settingsItems)? = items["DefaultProperties"] {
             defaultSettings = filteredSettings(settingsItems)
-                .filter { $0.key != "TEST_FRAMEWORK_DEVELOPER_VARIANT_SUBPATH" } // rdar://107954685 (Remove watchOS special case for testing framework paths)
+                .filter { $0.key != "TEST_FRAMEWORK_DEVELOPER_VARIANT_SUBPATH" }  // rdar://107954685 (Remove watchOS special case for testing framework paths)
         }
 
         // Parse the custom properties settings.
         var overrideSettings: [String: PropertyListItem] = [:]
         if case .plDict(let settingsItems)? = items["CustomProperties"] {
             overrideSettings = filteredSettings(settingsItems)
-                .filter { !$0.key.hasPrefix("SWIFT_MODULE_ONLY_") } // Rev-lock: don't set SWIFT_MODULE_ONLY_ in SDKs
+                .filter { !$0.key.hasPrefix("SWIFT_MODULE_ONLY_") }  // Rev-lock: don't set SWIFT_MODULE_ONLY_ in SDKs
         }
 
         // Parse the Variants array and the SupportedTargets dictionary, then create the SDKVariant objects from them.  Note that it is not guaranteed that any variant will have both sets of data, so we don't the presence of either one.
@@ -835,8 +834,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 let supportedTargetDict: [String: PropertyListItem]
                 if case .plDict(let dict) = plist {
                     supportedTargetDict = dict
-                }
-                else {
+                } else {
                     supportedTargetDict = [:]
                 }
 
@@ -892,7 +890,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 let searchPath = path.join(str)
                 guard localFS.exists(searchPath), localFS.isDirectory(searchPath) else {
                     // FIXME: <rdar://problem/34170562> Re-enable this when we want to warn about search paths an SDK declares which do not exist.
-//                    delegate.warning(path, "header search path does not exist: \(searchPath.str)")
+                    //                    delegate.warning(path, "header search path does not exist: \(searchPath.str)")
                     continue
                 }
                 headerSearchPaths.append(searchPath)
@@ -905,7 +903,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 let searchPath = path.join(str)
                 guard localFS.exists(searchPath), localFS.isDirectory(searchPath) else {
                     // FIXME: <rdar://problem/34170562> Re-enable this when we want to warn about search paths an SDK declares which do not exist.
-//                    delegate.warning(path, "framework search path does not exist: \(searchPath.str)")
+                    //                    delegate.warning(path, "framework search path does not exist: \(searchPath.str)")
                     continue
                 }
                 frameworkSearchPaths.append(searchPath)
@@ -918,7 +916,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 let searchPath = path.join(str)
                 guard localFS.exists(searchPath), localFS.isDirectory(searchPath) else {
                     // FIXME: <rdar://problem/34170562> Re-enable this when we want to warn about search paths an SDK declares which do not exist.
-//                    delegate.warning(path, "library search path does not exist: \(searchPath.str)")
+                    //                    delegate.warning(path, "library search path does not exist: \(searchPath.str)")
                     continue
                 }
                 librarySearchPaths.append(searchPath)
@@ -938,8 +936,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         if case .plString(let versionString)? = items["Version"] {
             do {
                 version = try Version(versionString)
-            }
-            catch {
+            } catch {
                 delegate.error(path, "invalid 'Version' field: \(error)")
                 return nil
             }
@@ -966,15 +963,14 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             }
         }
 
-        var versionMap: [String:[Version:Version]] = [:]
+        var versionMap: [String: [Version: Version]] = [:]
         if case .plDict(let container)? = items["VersionMap"] {
             for (key, dict) in container {
-                var mappings: [Version:Version] = [:]
+                var mappings: [Version: Version] = [:]
                 for (from, to) in dict.dictValue ?? [:] {
                     do {
                         mappings[try Version(from)] = try Version(to.stringValue ?? "")
-                    }
-                    catch {
+                    } catch {
                         delegate.warning("Unable to create version map for '\(key)' mapping '\(from)' to '\(to)' for SDK '\(displayName)'.")
                     }
                 }
@@ -998,8 +994,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             if let sdkNameComponents = try? parseSDKName(canonicalName) {
                 directoryMacros.append(try delegate.namespace.declareStringMacro("SDK_DIR_" + sdkNameComponents.basename.asLegalCIdentifier))
             }
-        }
-        catch {
+        } catch {
             delegate.error("\(error)")
             return nil
         }
@@ -1030,7 +1025,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         "BUILD_VARIANTS",
         "CURRENT_ARCH",
         "PLATFORM_NAME",
-        "SDKROOT"
+        "SDKROOT",
     ])
 
     private static let ignoredSparseSdkSettingKeySuffixes = Set<String>([
@@ -1114,8 +1109,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 if candidateComponents.version ?? Version(0) > prevSDK.components.version ?? Version(0) {
                     matchedSDK = (candidateSDK, candidateComponents)
                 }
-            }
-            else {
+            } else {
                 matchedSDK = (candidateSDK, candidateComponents)
             }
         }
@@ -1127,8 +1121,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
     public func lookup(_ path: Path) -> SDK? {
         #if !os(Windows)
-        // TODO: Turn this validation back on once our path handling is cleaned up a bit more
-        precondition(path.isAbsolute, "\(path.str) is not absolute")
+            // TODO: Turn this validation back on once our path handling is cleaned up a bit more
+            precondition(path.isAbsolute, "\(path.str) is not absolute")
         #endif
 
         // First see if we already have it in the cache.
@@ -1164,8 +1158,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
     public func lookup(nameOrPath key: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
         #if !os(Windows)
-        // TODO: Turn this validation back on once our path handling is cleaned up a bit more
-        precondition(basePath.isAbsolute, "\(basePath.str) is not absolute")
+            // TODO: Turn this validation back on once our path handling is cleaned up a bit more
+            precondition(basePath.isAbsolute, "\(basePath.str) is not absolute")
         #endif
 
         // Check if this is a request for the boot system SDK.
@@ -1219,7 +1213,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 // by the cohort platforms of the run destination's SDK's platform. This is necessary to resolve
                 // driverkit when we have a DriverKit run destination but with a platform-specific SDK.
                 if let runDestination = activeRunDestination,
-                   let cohortPlatforms = try? lookup(runDestination.sdk, activeRunDestination: nil)?.cohortPlatforms {
+                    let cohortPlatforms = try? lookup(runDestination.sdk, activeRunDestination: nil)?.cohortPlatforms
+                {
                     for cohortPlatform in cohortPlatforms {
                         if let list = sdksByCohortPlatform[cohortPlatform] {
                             return list
@@ -1257,7 +1252,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
     // MARK: CustomStringConvertible conformance
 
-
     public var description: String {
         return "<\(Swift.type(of: self)):\(self.type)>"
 
@@ -1271,9 +1265,14 @@ public struct AmbiguousSDKLookupError: Hashable, Error {
 
     var diagnostic: Diagnostic {
         let prefix = forRunDestination ? "unable to resolve run destination SDK:" : "unable to resolve SDK:"
-        return Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("\(prefix) multiple SDKs match alias '\(canonicalName)'"), childDiagnostics: candidateSDKs.sorted(by: \.canonicalName).map { sdk in
-            Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Candidate '\(sdk.canonicalName)' at path '\(sdk.path.str)'"))
-        })
+        return Diagnostic(
+            behavior: .error,
+            location: .unknown,
+            data: DiagnosticData("\(prefix) multiple SDKs match alias '\(canonicalName)'"),
+            childDiagnostics: candidateSDKs.sorted(by: \.canonicalName).map { sdk in
+                Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Candidate '\(sdk.canonicalName)' at path '\(sdk.path.str)'"))
+            }
+        )
     }
 
     public func hash(into hasher: inout Hasher) {

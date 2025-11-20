@@ -27,11 +27,13 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir.join("srcroot"),
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("SourceFile.swift"),
                         TestFile("Image.png"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -42,7 +44,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             "SWIFT_VERSION": swiftVersion,
                             "SWIFT_EXEC": swiftCompilerPath.str,
                             "IGNORE_BUILD_PHASES": "YES",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -54,7 +57,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             TestResourcesBuildPhase(["Image.png"]),
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             await tester.checkBuild(runDestination: .macOS) { results -> Void in
@@ -84,11 +88,13 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir.join("srcroot"),
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("SourceFile.c"),
                         TestFile("Image.png"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -96,7 +102,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "CODE_SIGN_IDENTITY": "",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -107,7 +114,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             TestResourcesBuildPhase(["Image.png"]),
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             await tester.checkBuild(runDestination: .macOS) { results -> Void in
@@ -139,11 +147,13 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir.join("srcroot"),
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("SourceFile.c"),
                         TestFile("Image.png"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -151,7 +161,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "CODE_SIGN_IDENTITY": "",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -163,7 +174,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             TestResourcesBuildPhase(["Image.png"]),
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             await tester.checkBuild(runDestination: .macOS) { results -> Void in
@@ -187,11 +199,13 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir.join("srcroot"),
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("SourceFile.c"),
                         TestFile("Image.png"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Enabled",
@@ -200,14 +214,16 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             "CODE_SIGN_IDENTITY": "",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "FUSE_BUILD_SCRIPT_PHASES": "YES",
-                        ]),
+                        ]
+                    ),
                     TestBuildConfiguration(
                         "Disabled",
                         buildSettings: [
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "CODE_SIGN_IDENTITY": "",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        ]
+                    ),
                 ],
                 targets: [
                     TestStandardTarget(
@@ -225,7 +241,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             TestShellScriptBuildPhase(name: "S7", originalObjectID: "S7", contents: "", inputs: [], outputs: [], alwaysOutOfDate: false),
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             await tester.checkBuild(BuildParameters(configuration: "Enabled"), runDestination: .macOS) { results -> Void in
@@ -304,14 +321,16 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir.join("srcroot"),
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("SourceFile.c"),
                         TestFile("Image.png"),
                         TestFile("f1.txt"),
                         TestFile("f2.txt"),
                         TestFile("f3.txt"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -319,7 +338,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             "GENERATE_INFOPLIST_FILE": "YES",
                             "CODE_SIGN_IDENTITY": "",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -333,8 +353,9 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             TestCopyFilesBuildPhase(["f3.txt"], destinationSubfolder: .resources, onlyForDeployment: false),
                             TestShellScriptBuildPhase(name: "S1", originalObjectID: "S1", contents: "", inputs: [], outputs: ["foo"], alwaysOutOfDate: false),
                         ]
-                    ),
-                ])
+                    )
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             await tester.checkBuild(runDestination: .macOS) { results -> Void in
@@ -369,11 +390,13 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 "aProject",
                 sourceRoot: tmpDir.join("srcroot"),
                 groupTree: TestGroup(
-                    "SomeFiles", path: "Sources",
+                    "SomeFiles",
+                    path: "Sources",
                     children: [
                         TestFile("SourceFile.c"),
                         TestFile("Image.png"),
-                    ]),
+                    ]
+                ),
                 buildConfigurations: [
                     TestBuildConfiguration(
                         "Debug",
@@ -382,7 +405,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             "CODE_SIGN_IDENTITY": "",
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "FUSE_BUILD_PHASES": "NO",
-                        ]),
+                        ]
+                    )
                 ],
                 targets: [
                     TestStandardTarget(
@@ -393,7 +417,8 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                             TestResourcesBuildPhase(["Image.png"]),
                         ]
                     )
-                ])
+                ]
+            )
             let tester = try await TaskConstructionTester(getCore(), testProject)
 
             await tester.checkBuild(runDestination: .macOS) { results -> Void in
@@ -417,26 +442,35 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreFoo.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGN_IDENTITY": "",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGN_IDENTITY": "",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m"]),
                                     TestHeadersBuildPhase([TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ])
-                        ])
-                ])
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             // The header copy should be moved before compile, and should not depend on target-entry.
             try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(runDestination: .macOS) { results in
@@ -444,7 +478,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 results.checkTask(.matchTargetName("CoreFoo"), .matchRuleType("CpHeader")) { headerTask in
                     headerTask.checkInputs([
                         .namePattern(.suffix("CoreFoo.h/")),
-                        .namePattern(.suffix("-immediate"))
+                        .namePattern(.suffix("-immediate")),
                     ])
                     results.checkTaskDoesNotFollow(headerTask, .matchTargetName("CoreFoo"), .matchRuleType("CompileC"))
                 }
@@ -462,30 +496,41 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreBar.h", path: "/tmp/CoreBar.h"),
                                 TestFile("CoreFoo.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGN_IDENTITY": "",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGN_IDENTITY": "",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m"]),
                                     TestShellScriptBuildPhase(name: "Generate CoreBar.h", originalObjectID: "", outputs: ["/tmp/CoreBar.h"], alwaysOutOfDate: false),
-                                    TestHeadersBuildPhase([TestBuildFile("CoreBar.h", headerVisibility: .public),
-                                                           TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ])
-                        ])
-                ])
+                                    TestHeadersBuildPhase([
+                                        TestBuildFile("CoreBar.h", headerVisibility: .public),
+                                        TestBuildFile("CoreFoo.h", headerVisibility: .public),
+                                    ]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             // The header copy should not be relocated.
             try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(runDestination: .macOS) { results in
@@ -507,30 +552,41 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreBar.h"),
                                 TestFile("CoreFoo.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGN_IDENTITY": "",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGN_IDENTITY": "",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m"]),
                                     TestShellScriptBuildPhase(name: "Generate CoreBar.h", originalObjectID: "", outputs: ["/tmp/whatever.txt"], alwaysOutOfDate: false),
-                                    TestHeadersBuildPhase([TestBuildFile("CoreBar.h", headerVisibility: .public),
-                                                           TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ])
-                        ])
-                ])
+                                    TestHeadersBuildPhase([
+                                        TestBuildFile("CoreBar.h", headerVisibility: .public),
+                                        TestBuildFile("CoreFoo.h", headerVisibility: .public),
+                                    ]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             // The header copy should be moved before compile, and should not depend on target-entry.
             try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(runDestination: .macOS) { results in
@@ -538,7 +594,7 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                 results.checkTask(.matchTargetName("CoreFoo"), .matchRuleType("CpHeader"), .matchRulePattern([.contains("CoreFoo.h")])) { headerTask in
                     headerTask.checkInputs([
                         .namePattern(.suffix("CoreFoo.h/")),
-                        .namePattern(.suffix("-immediate"))
+                        .namePattern(.suffix("-immediate")),
                     ])
                     results.checkTaskDoesNotFollow(headerTask, .matchTargetName("CoreFoo"), .matchRuleType("CompileC"))
                 }
@@ -556,30 +612,41 @@ fileprivate struct BuildPhaseFusionTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("CoreFoo.h"),
                                 TestFile("CoreBar.h", path: "/tmp/CoreBar.h"),
                                 TestFile("CoreFoo.m"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "CODE_SIGN_IDENTITY": "",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "CODE_SIGN_IDENTITY": "",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "CoreFoo", type: .framework,
+                                "CoreFoo",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["CoreFoo.m"]),
                                     TestShellScriptBuildPhase(name: "Generate CoreBar.h", originalObjectID: "", outputs: ["/tmp/whatever.txt"], alwaysOutOfDate: false),
-                                    TestHeadersBuildPhase([TestBuildFile("CoreBar.h", headerVisibility: .public),
-                                                           TestBuildFile("CoreFoo.h", headerVisibility: .public)]),
-                                ])
-                        ])
-                ])
+                                    TestHeadersBuildPhase([
+                                        TestBuildFile("CoreBar.h", headerVisibility: .public),
+                                        TestBuildFile("CoreFoo.h", headerVisibility: .public),
+                                    ]),
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            )
 
             // The header copy should not be relocated.
             try await TaskConstructionTester(getCore(), testWorkspace).checkBuild(runDestination: .macOS) { results in

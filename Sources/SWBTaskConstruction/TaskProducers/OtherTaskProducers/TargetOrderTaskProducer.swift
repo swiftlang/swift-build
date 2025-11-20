@@ -207,11 +207,15 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
             inputs.append(contentsOf: context.globalProductPlan.xcframeworkContext.outputFiles(for: configuredTarget).map(context.createNode))
         }
 
-        return context.createGateTask(inputs, output: output, taskConfiguration: {
-            $0.forTarget = context.configuredTarget
-            $0.makeGate()
-            $0.targetDependencies = resolvedTargetDependencies
-        })
+        return context.createGateTask(
+            inputs,
+            output: output,
+            taskConfiguration: {
+                $0.forTarget = context.configuredTarget
+                $0.makeGate()
+                $0.targetDependencies = resolvedTargetDependencies
+            }
+        )
     }
 
     private var _allowEagerCompilation: Bool?
@@ -287,7 +291,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
         // The inputs are (the appropriate gate nodes from the lookup closure of) all of the targets the configuredTarget immediately depends on.  This is a superset of the dependencies, which are all of the immediate (explicit + implicit) targets the configuredTarget is declared to depend on.
         var inputs = [any PlannedNode]()
         let dependencies = context.globalProductPlan.resolvedDependencies(of: configuredTarget)
-        for dependency in dependencies  {
+        for dependency in dependencies {
             if dependency.target !== configuredTarget {
                 // FIXME: If lookup() returns nil here, doesn't this mean the two lists we return will be out-of-sync?  Is that bad?
                 if let input = lookup(dependency.target, configuredTarget) {

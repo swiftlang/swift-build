@@ -34,7 +34,8 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                     TestFile("LibraryOne.m"),
                     TestFile("LibraryTwo.m"),
                     TestFile("LibraryThree.m"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Release",
@@ -42,7 +43,8 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                         "PRODUCT_NAME": "$(TARGET_NAME)",
                         "SDKROOT": "macosx",
                         "BUILD_VARIANTS": "normal profile",
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestAggregateTarget(
@@ -64,12 +66,13 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                             buildSettings: [
                                 "PRODUCT_NAME": "MyLibrary",
                                 "INSTALL_PATH": "/usr/lib",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "LibraryOne.m",
-                        ]),
+                            "LibraryOne.m"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
@@ -82,12 +85,13 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                                 "PRODUCT_NAME": "MyLibrary",
                                 "INSTALL_PATH": "/usr/local/lib",
                                 "DONT_CREATE_BUILT_PRODUCTS_DIR_SYMLINKS": "YES",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "LibraryTwo.m",
-                        ]),
+                            "LibraryTwo.m"
+                        ])
                     ]
                 ),
                 TestStandardTarget(
@@ -98,14 +102,15 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                             "Release",
                             buildSettings: [
                                 "PRODUCT_NAME": "MyLibrary",
-                                "INSTALL_PATH": "",                 // Will cause SKIP_INSTALL to be enabled.
+                                "INSTALL_PATH": "",  // Will cause SKIP_INSTALL to be enabled.
                                 "DONT_CREATE_BUILT_PRODUCTS_DIR_SYMLINKS": "YES",
-                            ]),
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "LibraryThree.m",
-                        ]),
+                            "LibraryThree.m"
+                        ])
                     ]
                 ),
                 // An uninstalled tool which does not have a name collision with the libraries, to further test uninstalled behaviors.
@@ -117,16 +122,18 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                             "Release",
                             buildSettings: [
                                 "PRODUCT_NAME": "tool",
-                                "INSTALL_PATH": "",                 // Will cause SKIP_INSTALL to be enabled.
-                            ]),
+                                "INSTALL_PATH": "",  // Will cause SKIP_INSTALL to be enabled.
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "LibraryThree.m",
-                        ]),
+                            "LibraryThree.m"
+                        ])
                     ]
                 ),
-            ])
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         // Check the debug build.
@@ -201,7 +208,8 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("ClassOne.swift"),
                     TestFile("InstallerSections.plist"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
                 TestBuildConfiguration(
                     "Release",
@@ -210,7 +218,8 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                         "SDKROOT": "macosx",
                         "SWIFT_EXEC": swiftCompilerPath.str,
                         "SWIFT_VERSION": swiftVersion,
-                    ]),
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -220,25 +229,31 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration(
                             "Release",
                             buildSettings: [
-                                "INSTALL_PATH": "/",
-                            ]),
+                                "INSTALL_PATH": "/"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "ClassOne.swift",
+                            "ClassOne.swift"
                         ]),
-                        TestCopyFilesBuildPhase([
-                            "InstallerSections.plist",
-                        ], destinationSubfolder: .absolute, onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                "InstallerSections.plist"
+                            ],
+                            destinationSubfolder: .absolute,
+                            onlyForDeployment: false
+                        ),
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
         // Check a build where the DSTROOT is a string-prefix of the SRCROOT.
         var DSTROOT = tester.workspace.projects[0].sourceRoot.dirname.join(projectNameRoot).str
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT,]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.consumeTasksMatchingRuleTypes(["Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "MkDir", "Strip", "SetOwnerAndGroup", "SetMode", "Touch", "RegisterWithLaunchServices"])
@@ -251,7 +266,7 @@ fileprivate struct InstallTaskConstructionTests: CoreBasedTests {
 
         // Check a build where the DSTROOT is *not* a string-prefix of the SRCROOT.
         DSTROOT = tester.workspace.projects[0].sourceRoot.dirname.join("\(projectNameRoot).dst").str
-        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT,]), runDestination: .macOS) { results in
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release", overrides: ["DSTROOT": DSTROOT]), runDestination: .macOS) { results in
             results.checkNoDiagnostics()
 
             results.consumeTasksMatchingRuleTypes(["Gate", "WriteAuxiliaryFile", "CreateBuildDirectory", "MkDir", "Strip", "SetOwnerAndGroup", "SetMode", "Touch", "RegisterWithLaunchServices"])

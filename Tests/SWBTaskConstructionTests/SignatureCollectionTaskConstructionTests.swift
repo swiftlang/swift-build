@@ -33,16 +33,20 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
                     TestFile("Framework.framework"),
                     TestFile("libAnotherStatic.a"),
                     TestFile("Goodies.xcframework"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGN_IDENTITY": "-",
-                    "ARCHS": "x86_64",
-                    "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
-                    "SUPPORTS_MACCATALYST": "YES",
-                    "LIBTOOL": libtoolPath.str,
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "ARCHS": "x86_64",
+                        "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator macosx",
+                        "SUPPORTS_MACCATALYST": "YES",
+                        "LIBTOOL": libtoolPath.str,
+                    ]
+                )
             ],
             targets: [
                 // Test building a tool target which links a static library.
@@ -50,7 +54,7 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
                     "Tool",
                     type: .commandLineTool,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["File.c"]),
@@ -63,7 +67,7 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
                     "StaticLib1",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["File.c"]),
@@ -82,17 +86,18 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
                     "StaticLib2",
                     type: .staticLibrary,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["File.c"]),
                         TestFrameworksBuildPhase([
                             // Link the same framework another library links...
-                            TestBuildFile("Framework.framework", shouldLinkWeakly: true),
+                            TestBuildFile("Framework.framework", shouldLinkWeakly: true)
                         ]),
                     ]
                 ),
-            ])
+            ]
+        )
 
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
@@ -102,11 +107,14 @@ fileprivate struct SignatureCollectionTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(Path(SRCROOT), recursive: true)
         try fs.write(Path(SRCROOT).join("file.c"), contents: "int f() { return 0; }")
 
-        let goodiesXCFramework = try XCFramework(version: Version(1, 0), libraries: [
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Versions/A/Goodies"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Goodies"), headersPath: nil),
-            XCFramework.Library(libraryIdentifier: "x86_64-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)-maccatalyst", supportedPlatform: "ios", supportedArchitectures: ["x86_64"], platformVariant: "macabi", libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Goodies"), headersPath: nil),
-        ])
+        let goodiesXCFramework = try XCFramework(
+            version: Version(1, 0),
+            libraries: [
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-macos\(core.loadSDK(.macOS).defaultDeploymentTarget)", supportedPlatform: "macos", supportedArchitectures: ["x86_64"], platformVariant: nil, libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Versions/A/Goodies"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "arm64-apple-iphoneos\(core.loadSDK(.iOS).defaultDeploymentTarget)", supportedPlatform: "ios", supportedArchitectures: ["arm64", "arm64e"], platformVariant: nil, libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Goodies"), headersPath: nil),
+                XCFramework.Library(libraryIdentifier: "x86_64-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)-maccatalyst", supportedPlatform: "ios", supportedArchitectures: ["x86_64"], platformVariant: "macabi", libraryPath: Path("Goodies.framework"), binaryPath: Path("Goodies.framework/Goodies"), headersPath: nil),
+            ]
+        )
         let goodiesXCFrameworkPath = Path(SRCROOT).join("Goodies.xcframework")
         try fs.createDirectory(goodiesXCFrameworkPath, recursive: true)
         let infoLookup = try await getCore()

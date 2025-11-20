@@ -33,7 +33,7 @@ final class ClientExchangeDelegate: ClientDelegate {
         self.session = session
     }
 
-    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String : String]) async throws -> ExternalToolResult {
+    func executeExternalTool(commandLine: [String], workingDirectory: Path?, environment: [String: String]) async throws -> ExternalToolResult {
         // Create a synchronous client exchange which the session uses to handle the response from the client, to make the communication synchronous from the point of view of our caller.
         let exchange = SynchronousClientExchange<ExternalToolExecutionResponse>(session)
 

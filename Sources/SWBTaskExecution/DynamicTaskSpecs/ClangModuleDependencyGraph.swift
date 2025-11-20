@@ -33,7 +33,7 @@ package final class ClangModuleDependencyGraph {
             /// Dependency info for an explicitly-built module.
             case module(pcmOutputPath: Path)
 
-            package func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+            package func serialize<T>(to serializer: T) where T: SWBUtil.Serializer {
                 serializer.serializeAggregate(2) {
                     switch self {
                     case .command:
@@ -88,7 +88,7 @@ package final class ClangModuleDependencyGraph {
                 self.arguments = arguments
             }
 
-            package func serialize<T>(to serializer: T) where T : Serializer {
+            package func serialize<T>(to serializer: T) where T: Serializer {
                 serializer.serializeAggregate(2) {
                     serializer.serialize(cacheKey)
                     serializer.serialize(arguments)
@@ -164,7 +164,7 @@ package final class ClangModuleDependencyGraph {
             self.usesSerializedDiagnostics = usesSerializedDiagnostics
         }
 
-        package func serialize<T>(to serializer: T) where T : Serializer {
+        package func serialize<T>(to serializer: T) where T: Serializer {
             serializer.serializeAggregate(10) {
                 serializer.serialize(kind)
                 serializer.serialize(files)
@@ -206,7 +206,7 @@ package final class ClangModuleDependencyGraph {
     private var scannerRegistry: [LibclangRegistryKey: LibclangWithScanner] = [:]
 
     package func waitForCompletion() async {
-        await registryQueue.sync(flags: .barrier) { }
+        await registryQueue.sync(flags: .barrier) {}
     }
 
     private struct LibclangWithScanner {
@@ -316,7 +316,8 @@ package final class ClangModuleDependencyGraph {
     ) throws -> ScanResult {
         let clangWithScanner = try libclangWithScanner(forPath: libclangPath, casOptions: casOptions, cacheFallbackIfNotAvailable: cacheFallbackIfNotAvailable, core: core)
 
-        let (compilerLauncher, compiler, originalFileArgs) = usesCompilerLauncher
+        let (compilerLauncher, compiler, originalFileArgs) =
+            usesCompilerLauncher
             ? (fileCommandLine[0], fileCommandLine[1], fileCommandLine[2...])
             : (nil, fileCommandLine[0], fileCommandLine[1...])
 
@@ -370,7 +371,7 @@ package final class ClangModuleDependencyGraph {
                             return depModules
                         }
 
-                        let nameToIdx: [String: Int] = depModules.map{ $0.name + ":" + $0.context_hash }.enumerated().reduce(into: [:]) { (dict, indexAndKey) in
+                        let nameToIdx: [String: Int] = depModules.map { $0.name + ":" + $0.context_hash }.enumerated().reduce(into: [:]) { (dict, indexAndKey) in
                             let (index, key) = indexAndKey
                             dict[key] = index
                         }
@@ -444,7 +445,8 @@ package final class ClangModuleDependencyGraph {
                                     scanningCommandLine: scanningCommandLine,
                                     transitiveIncludeTreeIDs: transitiveIncludeTreeIDs,
                                     transitiveCompileCommandCacheKeys: transitiveCommandCacheKeys,
-                                    usesSerializedDiagnostics: usesSerializedDiagnostics)
+                                    usesSerializedDiagnostics: usesSerializedDiagnostics
+                                )
                                 if reportRequiredTargetDependencies != .no, let targetDependencies = definingTargetsByModuleName[module.name] {
                                     requiredTargetDependencies.withLock {
                                         for targetDependency in targetDependencies {
@@ -526,7 +528,8 @@ package final class ClangModuleDependencyGraph {
             scanningCommandLine: scanningCommandLine,
             transitiveIncludeTreeIDs: transitiveIncludeTreeIDs,
             transitiveCompileCommandCacheKeys: transitiveCommandCacheKeys,
-            usesSerializedDiagnostics: usesSerializedDiagnostics)
+            usesSerializedDiagnostics: usesSerializedDiagnostics
+        )
         try recordedDependencyInfoRegistry.getOrInsert(scanningOutputPath, isValid: { _ in true }) {
             try register(path: scanningOutputPath, dependencyInfo: dependencyInfo, fileSystem: fileSystem)
         }
@@ -571,8 +574,12 @@ package final class ClangModuleDependencyGraph {
         }
     }
 
-    package func generateReproducer(forFailedDependency dependency: DependencyInfo,
-                                    libclangPath: Path, casOptions: CASOptions?, location: String?) throws -> String? {
+    package func generateReproducer(
+        forFailedDependency dependency: DependencyInfo,
+        libclangPath: Path,
+        casOptions: CASOptions?,
+        location: String?
+    ) throws -> String? {
         let clangWithScanner = try libclangWithScanner(
             forPath: libclangPath,
             casOptions: casOptions,
@@ -583,7 +590,10 @@ package final class ClangModuleDependencyGraph {
             return nil
         }
         return try clangWithScanner.scanner.generateReproducer(
-            commandLine: dependency.scanningCommandLine, workingDirectory: dependency.workingDirectory.str, location: location)
+            commandLine: dependency.scanningCommandLine,
+            workingDirectory: dependency.workingDirectory.str,
+            location: location
+        )
     }
 
     package var isEmpty: Bool {
@@ -621,19 +631,21 @@ package final class ClangModuleDependencyGraph {
             summaryCSV.writeRow([moduleName, "\(variants.count)"])
             summaryMessage += "\(moduleName): \(variants.count == 1 ? "1 variant" : "\(variants.count) variants")\n"
 
-            let mergeResult = nWayMerge(variants.map {
-                (["CWD: \($0.workingDirectory.str)"] + ($0.commands.only?.arguments ?? [])).filter {
-                    if ["pcm", "dia", "d"].contains(Path($0).fileExtension) {
-                        // Filter differences in module paths, they are a function of the other args
-                        return false
-                    } else if $0.hasPrefix("llvmcas://") {
-                        // Filter differences in CAS URLs, they are a function of the other args
-                        return false
-                    } else {
-                        return true
+            let mergeResult = nWayMerge(
+                variants.map {
+                    (["CWD: \($0.workingDirectory.str)"] + ($0.commands.only?.arguments ?? [])).filter {
+                        if ["pcm", "dia", "d"].contains(Path($0).fileExtension) {
+                            // Filter differences in module paths, they are a function of the other args
+                            return false
+                        } else if $0.hasPrefix("llvmcas://") {
+                            // Filter differences in CAS URLs, they are a function of the other args
+                            return false
+                        } else {
+                            return true
+                        }
                     }
                 }
-            }).filter {
+            ).filter {
                 if $0.elementOf.count == variants.count {
                     // Don't report args common to all variants
                     return false

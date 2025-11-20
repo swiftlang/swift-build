@@ -82,7 +82,7 @@ public struct Queue<T>: ExpressibleByArrayLiteral, RandomAccessCollection {
     }
 
     /// Append a sequence of elements to the queue.
-    public mutating func append<S>(contentsOf newElements: S) where Element == S.Iterator.Element, S : Sequence {
+    public mutating func append<S>(contentsOf newElements: S) where Element == S.Iterator.Element, S: Sequence {
         for item in newElements {
             append(item)
         }

@@ -25,21 +25,19 @@ fileprivate enum TargetPlatformSpecializationMode {
     /// The v2 support that uses an explicit opt-in setting: ALLOW_TARGET_PLATFORM_SPECIALIZATION=YES
     case explicit
 
-    func settings(isPackage: Bool = false, _ additional: [String:String] = [:]) -> [String:String] {
+    func settings(isPackage: Bool = false, _ additional: [String: String] = [:]) -> [String: String] {
         var dict = additional
 
         if (self == .sdkroot) || isPackage {
             dict["SDKROOT"] = "auto"
             dict["SDK_VARIANT"] = "auto"
-        }
-        else {
+        } else {
             dict["ALLOW_TARGET_PLATFORM_SPECIALIZATION"] = "YES"
         }
 
         return dict
     }
 }
-
 
 // MARK: Test cases for utility methods supporting dependency resolution.
 
@@ -49,30 +47,34 @@ fileprivate enum TargetPlatformSpecializationMode {
     func potentialOverride() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let core = try await self.getCore()
-            let workspace = try TestWorkspace("Workspace",
-                                              projects: [TestProject("aProject",
-                                                                     groupTree: TestGroup("SomeFiles"),
-                                                                     targets: [
-                                                                        TestStandardTarget("anApp", type: .application),
-                                                                     ]
-                                                                    )]
+            let workspace = try TestWorkspace(
+                "Workspace",
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("SomeFiles"),
+                        targets: [
+                            TestStandardTarget("anApp", type: .application)
+                        ]
+                    )
+                ]
             ).load(core)
             let workspaceContext = WorkspaceContext(core: core, workspace: workspace, fs: localFS, processExecutionCache: .sharedForTesting)
 
             // Configure all the overrides.
             let overrides = [
-                "OVERRIDE": "override_level",
+                "OVERRIDE": "override_level"
             ]
             let commandLineOverrides = [
-                "COMMAND_LINE_OVERRIDE": "commandLineOverride_level",
+                "COMMAND_LINE_OVERRIDE": "commandLineOverride_level"
             ]
             let commandLineConfigOverrides = [
-                "COMMAND_LINE_CONFIG_OVERRIDE": "commandLineConfigOverride_level",
+                "COMMAND_LINE_CONFIG_OVERRIDE": "commandLineConfigOverride_level"
             ]
             let commandLineConfigOverridesPath = tmpDirPath.join("commandLine.xcconfig")
             try localFS.write(commandLineConfigOverridesPath, contents: ByteString(stringLiteral: "COMMAND_LINE_CONFIG_PATH_OVERRIDE = commandLineConfigPathOverride_level"))
             let environmentConfigOverrides = [
-                "ENV_LINE_CONFIG_OVERRIDE": "environmentLineConfigOverride_level",
+                "ENV_LINE_CONFIG_OVERRIDE": "environmentLineConfigOverride_level"
             ]
             let environmentConfigOverridesPath = tmpDirPath.join("environment.xcconfig")
             try localFS.write(environmentConfigOverridesPath, contents: ByteString(stringLiteral: "ENV_LINE_CONFIG_PATH_OVERRIDE = environmentLineConfigPathOverride_level"))
@@ -84,67 +86,66 @@ fileprivate enum TargetPlatformSpecializationMode {
             // Check the expected values of the various overrides
             if let override = buildRequestContext.potentialOverride(for: "OVERRIDE", buildParameters: buildParameters) {
                 #expect(override.value == "override_level")
-                if case .buildParametersOverrides(_) = override.source {} else {
+                if case .buildParametersOverrides(_) = override.source {
+                } else {
                     Issue.record("Source of value of OVERRIDE was not .buildParametersOverrides but was \(override.source)")
                 }
-            }
-            else {
+            } else {
                 Issue.record("Expected value for COMMAND_LINE_OVERRIDE not found")
             }
             if let override = buildRequestContext.potentialOverride(for: "COMMAND_LINE_OVERRIDE", buildParameters: buildParameters) {
                 #expect(override.value == "commandLineOverride_level")
-                if case .commandLineOverrides(_) = override.source {} else {
+                if case .commandLineOverrides(_) = override.source {
+                } else {
                     Issue.record("Source of value of COMMAND_LINE_OVERRIDE was not .commandLineOverrides but was \(override.source)")
                 }
-            }
-            else {
+            } else {
                 Issue.record("Expected value for COMMAND_LINE_OVERRIDE not found")
             }
             if let override = buildRequestContext.potentialOverride(for: "COMMAND_LINE_CONFIG_OVERRIDE", buildParameters: buildParameters) {
                 #expect(override.value == "commandLineConfigOverride_level")
-                if case .commandLineConfigOverrides(_) = override.source {} else {
+                if case .commandLineConfigOverrides(_) = override.source {
+                } else {
                     Issue.record("Source of value of COMMAND_LINE_CONFIG_OVERRIDE was not .commandLineConfigOverrides but was \(override.source)")
                 }
-            }
-            else {
+            } else {
                 Issue.record("Expected value for COMMAND_LINE_CONFIG_OVERRIDE not found")
             }
             if let override = buildRequestContext.potentialOverride(for: "COMMAND_LINE_CONFIG_PATH_OVERRIDE", buildParameters: buildParameters) {
                 #expect(override.value == "commandLineConfigPathOverride_level")
-                if case .commandLineConfigOverridesPath(_,_) = override.source {} else {
+                if case .commandLineConfigOverridesPath(_, _) = override.source {
+                } else {
                     Issue.record("Source of value of COMMAND_LINE_CONFIG_PATH_OVERRIDE was not .commandLineConfigOverridesPath but was \(override.source)")
                 }
-            }
-            else {
+            } else {
                 Issue.record("Expected value for COMMAND_LINE_CONFIG_PATH_OVERRIDE not found")
             }
             if let override = buildRequestContext.potentialOverride(for: "ENV_LINE_CONFIG_OVERRIDE", buildParameters: buildParameters) {
                 #expect(override.value == "environmentLineConfigOverride_level")
-                if case .environmentConfigOverrides(_) = override.source {} else {
+                if case .environmentConfigOverrides(_) = override.source {
+                } else {
                     Issue.record("Source of value of ENV_LINE_CONFIG_OVERRIDE was not .environmentConfigOverrides but was \(override.source)")
                 }
-            }
-            else {
+            } else {
                 Issue.record("Expected value for ENV_LINE_CONFIG_OVERRIDE not found")
             }
             if let override = buildRequestContext.potentialOverride(for: "ENV_LINE_CONFIG_PATH_OVERRIDE", buildParameters: buildParameters) {
                 #expect(override.value == "environmentLineConfigPathOverride_level")
-                if case .environmentConfigOverridesPath(_,_) = override.source {} else {
+                if case .environmentConfigOverridesPath(_, _) = override.source {
+                } else {
                     Issue.record("Source of value of ENV_LINE_CONFIG_PATH_OVERRIDE was not .buildParametersOverrides but was \(override.source)")
                 }
-            }
-            else {
+            } else {
                 Issue.record("Expected value for ENV_LINE_CONFIG_PATH_OVERRIDE not found")
             }
 
             // Also check the case where there is no override.
             if let noSuchOverride = buildRequestContext.potentialOverride(for: "NO_SUCH_OVERRIDE", buildParameters: buildParameters) {
-                Issue.record("Unexpected value '\(noSuchOverride.value)' for NO_SUCH_OVERRIDE from \(noSuchOverride.source)" )
+                Issue.record("Unexpected value '\(noSuchOverride.value)' for NO_SUCH_OVERRIDE from \(noSuchOverride.source)")
             }
         }
     }
 }
-
 
 // MARK: Test cases for resolving explicit dependencies
 
@@ -152,13 +153,20 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test(.requireSDKs(.macOS))
     func twoAppsAndAFramework() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [TestProject("aProject",
-                                                                 groupTree: TestGroup("SomeFiles"),
-                                                                 targets: [
-                                                                    TestStandardTarget("anApp", type: .application, dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("anotherApp", type: .application, dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("aFramework", type: .application)])]).load(core)
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestStandardTarget("anApp", type: .application, dependencies: ["aFramework"]),
+                        TestStandardTarget("anotherApp", type: .application, dependencies: ["aFramework"]),
+                        TestStandardTarget("aFramework", type: .application),
+                    ]
+                )
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
 
@@ -169,7 +177,7 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildParameters = BuildParameters(configuration: "Debug")
         let appTarget1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
         let appTarget2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[1])
-        let fwkTarget  = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[2])
+        let fwkTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[2])
         let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget1, appTarget2], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
@@ -189,13 +197,20 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test(.requireSDKs(.macOS, .iOS))
     func twoAppsAFrameworkAndDifferentBuildParameters() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [TestProject("aProject",
-                                                                 groupTree: TestGroup("SomeFiles"),
-                                                                 targets: [
-                                                                    TestStandardTarget("anApp", type: .application, dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("anotherApp", type: .application, dependencies: ["aFramework"]),
-                                                                    TestStandardTarget("aFramework", type: .application)])]).load(core)
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestStandardTarget("anApp", type: .application, dependencies: ["aFramework"]),
+                        TestStandardTarget("anotherApp", type: .application, dependencies: ["aFramework"]),
+                        TestStandardTarget("aFramework", type: .application),
+                    ]
+                )
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
 
@@ -219,13 +234,13 @@ fileprivate enum TargetPlatformSpecializationMode {
         let dependencyClosure = buildGraph.allTargets
         #expect(dependencyClosure.count == 4)
         #expect(dependencyClosure.map({ $0.target.name }) == ["aFramework", "anApp", "aFramework", "anotherApp"])
-        #expect(dependencyClosure[safe: 0]?.target === project.targets[safe: 2])          // The framework target configured for macOS is first
+        #expect(dependencyClosure[safe: 0]?.target === project.targets[safe: 2])  // The framework target configured for macOS is first
         #expect(dependencyClosure[safe: 0]?.parameters == buildParametersmacOS)
-        #expect(dependencyClosure[safe: 1]?.target === project.targets[safe: 0])          // The first app target is second
+        #expect(dependencyClosure[safe: 1]?.target === project.targets[safe: 0])  // The first app target is second
         #expect(dependencyClosure[safe: 1]?.parameters == buildParametersmacOS)
-        #expect(dependencyClosure[safe: 2]?.target === project.targets[safe: 2])          // The framework target configured for iOS is third
+        #expect(dependencyClosure[safe: 2]?.target === project.targets[safe: 2])  // The framework target configured for iOS is third
         #expect(dependencyClosure[safe: 2]?.parameters == buildParametersiOS)
-        #expect(dependencyClosure[safe: 3]?.target === project.targets[safe: 1])          // The second app target is fourth
+        #expect(dependencyClosure[safe: 3]?.target === project.targets[safe: 1])  // The second app target is fourth
         #expect(dependencyClosure[safe: 3]?.parameters == buildParametersiOS)
         #expect(try buildGraph.dependencies(appTarget1) == [try buildGraph.target(for: fwkTargetmacOS)])
         #expect(try buildGraph.dependencies(appTarget2) == [try buildGraph.target(for: fwkTargetiOS)])
@@ -238,14 +253,18 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func missingExplicitDependency() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [TestProject("aProject",
-                                                                 groupTree: TestGroup("SomeFiles"),
-                                                                 targets: [
-                                                                    TestStandardTarget("anApp", type: .application, dependencies: ["aFramework", "Missing"]),
-                                                                    TestStandardTarget("aFramework", type: .application),
-                                                                 ]
-                                                                )]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestStandardTarget("anApp", type: .application, dependencies: ["aFramework", "Missing"]),
+                        TestStandardTarget("aFramework", type: .application),
+                    ]
+                )
+            ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
@@ -256,7 +275,7 @@ fileprivate enum TargetPlatformSpecializationMode {
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug")
         let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[0])
-        let fwkTarget  = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[1])
+        let fwkTarget = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: project.targets[1])
         let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [appTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
@@ -278,20 +297,32 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func excludedExplicitDependency() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-            projects: [TestProject("aProject",
-                groupTree: TestGroup("SomeFiles"),
-                targets: [
-                    TestStandardTarget("anApp", type: .application, buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
-                        TestBuildConfiguration("Debug-LimitedDeps", buildSettings: [
-                            "EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES": "excludedFramework",
-                        ]),
-                    ], dependencies: ["aFramework", "excludedFramework"]),
-                    TestStandardTarget("aFramework", type: .framework),
-                    TestStandardTarget("excludedFramework", type: .framework),
-                ]
-            )]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestStandardTarget(
+                            "anApp",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug"),
+                                TestBuildConfiguration(
+                                    "Debug-LimitedDeps",
+                                    buildSettings: [
+                                        "EXCLUDED_EXPLICIT_TARGET_DEPENDENCIES": "excludedFramework"
+                                    ]
+                                ),
+                            ],
+                            dependencies: ["aFramework", "excludedFramework"]
+                        ),
+                        TestStandardTarget("aFramework", type: .framework),
+                        TestStandardTarget("excludedFramework", type: .framework),
+                    ]
+                )
+            ]
         ).load(core)
 
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -335,49 +366,58 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test(.requireSDKs(.iOS, .watchOS))
     func packageProductBasedSpecialization() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [
-                                            TestProject("aProject",
-                                                        groupTree: TestGroup("SomeFiles"),
-                                                        targets: [
-                                                            TestAggregateTarget("ALL", dependencies: ["iOSFwk", "watchOSFwk"]),
-                                                            TestStandardTarget(
-                                                                "iOSFwk",
-                                                                type: .framework,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"]),
-                                                                ],
-                                                                dependencies: ["PackageLibProduct"]
-                                                            ),
-                                                            TestStandardTarget(
-                                                                "watchOSFwk",
-                                                                type: .framework,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "watchos"]),
-                                                                ],
-                                                                dependencies: ["PackageLibProduct"]
-                                                            ),
-                                                        ]
-                                                       ),
-                                            TestPackageProject("Package",
-                                                               groupTree: TestGroup("SomeFile"),
-                                                               targets: [
-                                                                TestPackageProductTarget(
-                                                                    "PackageLibProduct",
-                                                                    frameworksBuildPhase: TestFrameworksBuildPhase([
-                                                                        TestBuildFile(.target("PackageLib"))]),
-                                                                    buildConfigurations: [
-                                                                        // Targets need to opt-in to specialization.
-                                                                        TestBuildConfiguration("Debug", buildSettings: [
-                                                                            "SDKROOT": "auto",
-                                                                            "SDK_VARIANT": "auto",
-                                                                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
-                                                                        ]),
-                                                                    ],
-                                                                    dependencies: ["PackageLib"]
-                                                                ),
-                                                                TestStandardTarget("PackageLib", type: .staticLibrary),
-                                                               ])]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestAggregateTarget("ALL", dependencies: ["iOSFwk", "watchOSFwk"]),
+                        TestStandardTarget(
+                            "iOSFwk",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])
+                            ],
+                            dependencies: ["PackageLibProduct"]
+                        ),
+                        TestStandardTarget(
+                            "watchOSFwk",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "watchos"])
+                            ],
+                            dependencies: ["PackageLibProduct"]
+                        ),
+                    ]
+                ),
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("SomeFile"),
+                    targets: [
+                        TestPackageProductTarget(
+                            "PackageLibProduct",
+                            frameworksBuildPhase: TestFrameworksBuildPhase([
+                                TestBuildFile(.target("PackageLib"))
+                            ]),
+                            buildConfigurations: [
+                                // Targets need to opt-in to specialization.
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]
+                                )
+                            ],
+                            dependencies: ["PackageLib"]
+                        ),
+                        TestStandardTarget("PackageLib", type: .staticLibrary),
+                    ]
+                ),
+            ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
@@ -440,7 +480,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "SomeFiles",
                         children: [
-                            TestFile("AppSource.m"),
+                            TestFile("AppSource.m")
                         ]
                     ),
                     targets: [
@@ -451,41 +491,47 @@ fileprivate enum TargetPlatformSpecializationMode {
                                 TestBuildConfiguration(
                                     "Debug",
                                     buildSettings: mode.settings(["SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"])
-                                ),
+                                )
                             ],
                             buildPhases: [
                                 TestSourcesBuildPhase([
-                                    "AppSource.m",
-                                ]),
+                                    "AppSource.m"
+                                ])
                             ],
                             dependencies: [
                                 TestTargetDependency(
                                     "PackageLibProduct",
-                                    platformFilters: Set([
-                                        PlatformFilter.iOSFilters,
-                                        PlatformFilter.watchOSFilters
-                                    ].flatMap { $0 })
-                                ),
+                                    platformFilters: Set(
+                                        [
+                                            PlatformFilter.iOSFilters,
+                                            PlatformFilter.watchOSFilters,
+                                        ].flatMap { $0 }
+                                    )
+                                )
                             ]
+                        )
+                    ]
+                ),
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestPackageProductTarget(
+                            "PackageLibProduct",
+                            frameworksBuildPhase: TestFrameworksBuildPhase([
+                                TestBuildFile(.target("PackageLib"))
+                            ]),
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: mode.settings(isPackage: true, ["SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"])
+                                )
+                            ],
+                            dependencies: ["PackageLib"]
                         ),
-                    ]),
-                TestPackageProject("Package", groupTree: TestGroup("SomeFiles"), targets: [
-                    TestPackageProductTarget(
-                        "PackageLibProduct",
-                        frameworksBuildPhase: TestFrameworksBuildPhase([
-                            TestBuildFile(.target("PackageLib"))
-                        ]),
-                        buildConfigurations: [
-                            TestBuildConfiguration(
-                                "Debug",
-                                buildSettings: mode.settings(isPackage: true, ["SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"])
-                            ),
-                        ],
-                        dependencies: ["PackageLib"]
-                    ),
-                    TestStandardTarget("PackageLib", type: .staticLibrary),
-                ]
-                                  )
+                        TestStandardTarget("PackageLib", type: .staticLibrary),
+                    ]
+                ),
             ]
         ).load(core)
 
@@ -522,9 +568,9 @@ fileprivate enum TargetPlatformSpecializationMode {
                 type: .dependency
             )
 
-            let universalTarget = try #require(buildGraph.allTargets.first{ $0.target.name == "Universal" })
+            let universalTarget = try #require(buildGraph.allTargets.first { $0.target.name == "Universal" })
             let deps = buildGraph.dependencies(of: universalTarget)
-            #expect(deps.map{ $0.target.name } == expectedDependencies)
+            #expect(deps.map { $0.target.name } == expectedDependencies)
         }
     }
 
@@ -540,13 +586,18 @@ fileprivate enum TargetPlatformSpecializationMode {
 
     private func _testSpecializationWithCommandLineOverrides(_ mode: TargetPlatformSpecializationMode) async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace", projects: [
-            TestProject("aProject",
-                        groupTree: TestGroup("SomeFiles"),
-                        targets: [
-                            TestStandardTarget("BestTarget", type: .framework, buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: mode.settings(["SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"]))])
-                        ])
-        ]).load(core)
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestStandardTarget("BestTarget", type: .framework, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: mode.settings(["SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator"]))])
+                    ]
+                )
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
 
@@ -583,40 +634,44 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func packageProductBasedSpecializationUniquing() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [
-                                            TestProject("aProject",
-                                                        groupTree: TestGroup("SomeFiles"),
-                                                        targets: [
-                                                            // We check specialization by having both direct dependencies and ones from a consumer (and we have two instances, to check that order doesn't matter).
-                                                            TestAggregateTarget("ALL", dependencies: ["Lib", "SpecializingConsumer", "Lib2"]),
-                                                            // This is an intermediate target, used to drive specialization.
-                                                            TestStandardTarget(
-                                                                "SpecializingConsumer",
-                                                                type: .framework,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]),
-                                                                ],
-                                                                dependencies: ["PackageProduct"]
-                                                            ),
-                                                        ]
-                                                       ),
-                                            TestPackageProject("Package",
-                                                               groupTree: TestGroup("SomeFiles"),
-                                                               targets: [
-                                                                TestPackageProductTarget(
-                                                                    "PackageProduct",
-                                                                    frameworksBuildPhase: TestFrameworksBuildPhase([
-                                                                        TestBuildFile(.target("Lib")),
-                                                                        TestBuildFile(.target("Lib2"))]),
-                                                                    dependencies: ["Lib", "Lib2"]
-                                                                ),
-                                                                // These are the targets we are testing specialization of.
-                                                                TestStandardTarget("Lib", type: .staticLibrary),
-                                                                TestStandardTarget("Lib2", type: .staticLibrary),
-                                                               ]
-                                                              ),
-                                          ]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        // We check specialization by having both direct dependencies and ones from a consumer (and we have two instances, to check that order doesn't matter).
+                        TestAggregateTarget("ALL", dependencies: ["Lib", "SpecializingConsumer", "Lib2"]),
+                        // This is an intermediate target, used to drive specialization.
+                        TestStandardTarget(
+                            "SpecializingConsumer",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])
+                            ],
+                            dependencies: ["PackageProduct"]
+                        ),
+                    ]
+                ),
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestPackageProductTarget(
+                            "PackageProduct",
+                            frameworksBuildPhase: TestFrameworksBuildPhase([
+                                TestBuildFile(.target("Lib")),
+                                TestBuildFile(.target("Lib2")),
+                            ]),
+                            dependencies: ["Lib", "Lib2"]
+                        ),
+                        // These are the targets we are testing specialization of.
+                        TestStandardTarget("Lib", type: .staticLibrary),
+                        TestStandardTarget("Lib2", type: .staticLibrary),
+                    ]
+                ),
+            ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
@@ -633,7 +688,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             // Get the dependency closure for the build request and examine it.
             let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: type)
             let targetList = Array(buildGraph.allTargets.reversed())
-            if type == .linkage { // <rdar://problem/61461826> `TargetLinkageGraph.allTargets` isn't sorted in dependency order
+            if type == .linkage {  // <rdar://problem/61461826> `TargetLinkageGraph.allTargets` isn't sorted in dependency order
                 #expect(targetList.map({ $0.target.name }).sorted() == ["ALL", "Lib", "Lib2", "PackageProduct", "SpecializingConsumer"])
             } else {
                 #expect(targetList.map({ $0.target.name }) == ["ALL", "SpecializingConsumer", "PackageProduct", "Lib2", "Lib"])
@@ -652,32 +707,41 @@ fileprivate enum TargetPlatformSpecializationMode {
                 type: .dynamicLibrary,
                 buildConfigurations: [
                     // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "auto",
+                            "SDK_VARIANT": "auto",
+                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                        ]
+                    )
                 ],
                 buildPhases: [
                     TestFrameworksBuildPhase([
-                        TestBuildFile(.target("PackageLib"))]),
+                        TestBuildFile(.target("PackageLib"))
+                    ]),
                     TestSourcesBuildPhase([
-                        "Package.m",
+                        "Package.m"
                     ]),
                 ],
-                dependencies: ["PackageLib"])
+                dependencies: ["PackageLib"]
+            )
         } else {
             packageProductTarget = TestPackageProductTarget(
                 "PackageLibProduct",
                 frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
+                    TestBuildFile(.target("PackageLib"))
+                ]),
                 buildConfigurations: [
                     // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
-                    ]),
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "SDKROOT": "auto",
+                            "SDK_VARIANT": "auto",
+                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                        ]
+                    )
                 ],
                 dependencies: ["PackageLib"]
             )
@@ -687,141 +751,160 @@ fileprivate enum TargetPlatformSpecializationMode {
         let workspace = try await TestWorkspace(
             "Workspace",
             projects: [
-                TestProject("aProject",
-                            groupTree: TestGroup(
-                                "Sources", path: "Sources",
-                                children: [
-                                    // iOS app files
-                                    TestFile("iosApp/main.m"),
-                                    TestFile("iosApp/CompanionClass.swift"),
-                                    TestFile("iosApp/Main.storyboard"),
-                                    TestFile("iosApp/Assets.xcassets"),
-                                    TestFile("iosApp/Info.plist"),
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "Sources",
+                        path: "Sources",
+                        children: [
+                            // iOS app files
+                            TestFile("iosApp/main.m"),
+                            TestFile("iosApp/CompanionClass.swift"),
+                            TestFile("iosApp/Main.storyboard"),
+                            TestFile("iosApp/Assets.xcassets"),
+                            TestFile("iosApp/Info.plist"),
 
-                                    // watchOS app files
-                                    TestFile("watchosApp/Interface.storyboard"),
-                                    TestFile("watchosApp/Assets.xcassets"),
-                                    TestFile("watchosApp/Info.plist"),
+                            // watchOS app files
+                            TestFile("watchosApp/Interface.storyboard"),
+                            TestFile("watchosApp/Assets.xcassets"),
+                            TestFile("watchosApp/Info.plist"),
 
-                                    // watchOS extension files
-                                    TestFile("watchosExtension/Controller.m"),
-                                    TestFile("watchosExtension/WatchClass.swift"),
-                                    TestFile("watchosExtension/Assets.xcassets"),
-                                    TestFile("watchosExtension/Info.plist"),
-                                ]),
+                            // watchOS extension files
+                            TestFile("watchosExtension/Controller.m"),
+                            TestFile("watchosExtension/WatchClass.swift"),
+                            TestFile("watchosExtension/Assets.xcassets"),
+                            TestFile("watchosExtension/Info.plist"),
+                        ]
+                    ),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "CODE_SIGN_IDENTITY": "Apple Development",
+                                "SDKROOT": "iphoneos",
+                                "SWIFT_VERSION": swiftVersion,
+                            ]
+                        )
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "Watchable",
+                            type: .application,
                             buildConfigurations: [
                                 TestBuildConfiguration(
                                     "Debug",
                                     buildSettings: [
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "CODE_SIGN_IDENTITY": "Apple Development",
-                                        "SDKROOT": "iphoneos",
-                                        "SWIFT_VERSION": swiftVersion,
-                                    ]),
+                                        "INFOPLIST_FILE": "Sources/iosApp/Info.plist",
+                                        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
+                                        "TARGETED_DEVICE_FAMILY": "1,2",
+                                    ]
+                                )
                             ],
-                            targets: [
-                                TestStandardTarget(
-                                    "Watchable",
-                                    type: .application,
-                                    buildConfigurations: [
-                                        TestBuildConfiguration(
-                                            "Debug",
-                                            buildSettings: [
-                                                "INFOPLIST_FILE": "Sources/iosApp/Info.plist",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
-                                                "TARGETED_DEVICE_FAMILY": "1,2",
-                                            ]),
+                            buildPhases: [
+                                TestSourcesBuildPhase([
+                                    "main.m",
+                                    "iosApp/CompanionClass.swift",
+                                ]),
+                                TestResourcesBuildPhase([
+                                    "Main.storyboard",
+                                    "iosApp/Assets.xcassets",
+                                ]),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "Watchable WatchKit App.app"
                                     ],
-                                    buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            "main.m",
-                                            "iosApp/CompanionClass.swift",
-                                        ]),
-                                        TestResourcesBuildPhase([
-                                            "Main.storyboard",
-                                            "iosApp/Assets.xcassets",
-                                        ]),
-                                        TestCopyFilesBuildPhase([
-                                            "Watchable WatchKit App.app",
-                                        ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch", onlyForDeployment: false
-                                                               ),
-                                    ],
-                                    dependencies: ["Watchable WatchKit App", "PackageLibProduct"]
+                                    destinationSubfolder: .builtProductsDir,
+                                    destinationSubpath: "$(CONTENTS_FOLDER_PATH)/Watch",
+                                    onlyForDeployment: false
                                 ),
-                                TestStandardTarget(
-                                    "Watchable WatchKit App",
-                                    type: .watchKitApp,
-                                    buildConfigurations: [
-                                        TestBuildConfiguration(
-                                            "Debug",
-                                            buildSettings: [
-                                                "ARCHS[sdk=watchos*]": "armv7k",
-                                                "ARCHS[sdk=watchsimulator*]": "i386",
-                                                "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
-                                                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                                                "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
-                                                "SDKROOT": "watchos",
-                                                "SKIP_INSTALL": "YES",
-                                                "TARGETED_DEVICE_FAMILY": "4",
-                                                "WATCHOS_DEPLOYMENT_TARGET": watchosSDKVersion,
-                                            ]),
+                            ],
+                            dependencies: ["Watchable WatchKit App", "PackageLibProduct"]
+                        ),
+                        TestStandardTarget(
+                            "Watchable WatchKit App",
+                            type: .watchKitApp,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "ARCHS[sdk=watchos*]": "armv7k",
+                                        "ARCHS[sdk=watchsimulator*]": "i386",
+                                        "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES": "YES",
+                                        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                                        "INFOPLIST_FILE": "Sources/watchosApp/Info.plist",
+                                        "SDKROOT": "watchos",
+                                        "SKIP_INSTALL": "YES",
+                                        "TARGETED_DEVICE_FAMILY": "4",
+                                        "WATCHOS_DEPLOYMENT_TARGET": watchosSDKVersion,
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestResourcesBuildPhase([
+                                    "Interface.storyboard",
+                                    "watchosApp/Assets.xcassets",
+                                ]),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "Watchable WatchKit Extension.appex"
                                     ],
-                                    buildPhases: [
-                                        TestResourcesBuildPhase([
-                                            "Interface.storyboard",
-                                            "watchosApp/Assets.xcassets",
-                                        ]),
-                                        TestCopyFilesBuildPhase([
-                                            "Watchable WatchKit Extension.appex",
-                                        ], destinationSubfolder: .plugins, onlyForDeployment: false
-                                                               ),
-                                    ],
-                                    dependencies: ["Watchable WatchKit Extension"]
+                                    destinationSubfolder: .plugins,
+                                    onlyForDeployment: false
                                 ),
-                                TestStandardTarget(
-                                    "Watchable WatchKit Extension",
-                                    type: .watchKitExtension,
-                                    buildConfigurations: [
-                                        TestBuildConfiguration(
-                                            "Debug",
-                                            buildSettings: [
-                                                "ARCHS[sdk=watchos*]": "armv7k",
-                                                "ARCHS[sdk=watchsimulator*]": "i386",
-                                                "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
-                                                "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
-                                                "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-                                                "SDKROOT": "watchos",
-                                                "SKIP_INSTALL": "YES",
-                                                "SWIFT_VERSION": swiftVersion,
-                                                "TARGETED_DEVICE_FAMILY": "4",
-                                                "WATCHOS_DEPLOYMENT_TARGET": watchosSDKVersion,
-                                            ]),
-                                    ],
-                                    buildPhases: [
-                                        TestSourcesBuildPhase([
-                                            "Controller.m",
-                                            "watchosExtension/WatchClass.swift",
-                                        ]),
-                                        TestResourcesBuildPhase([
-                                            "Interface.storyboard",
-                                            "watchosExtension/Assets.xcassets",
-                                        ]),
-                                    ],
-                                    dependencies: ["PackageLibProduct"]
-                                ),
-                            ]),
+                            ],
+                            dependencies: ["Watchable WatchKit Extension"]
+                        ),
+                        TestStandardTarget(
+                            "Watchable WatchKit Extension",
+                            type: .watchKitExtension,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "ARCHS[sdk=watchos*]": "armv7k",
+                                        "ARCHS[sdk=watchsimulator*]": "i386",
+                                        "ASSETCATALOG_COMPILER_COMPLICATION_NAME": "Complication",
+                                        "INFOPLIST_FILE": "Sources/watchosExtension/Info.plist",
+                                        "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
+                                        "SDKROOT": "watchos",
+                                        "SKIP_INSTALL": "YES",
+                                        "SWIFT_VERSION": swiftVersion,
+                                        "TARGETED_DEVICE_FAMILY": "4",
+                                        "WATCHOS_DEPLOYMENT_TARGET": watchosSDKVersion,
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestSourcesBuildPhase([
+                                    "Controller.m",
+                                    "watchosExtension/WatchClass.swift",
+                                ]),
+                                TestResourcesBuildPhase([
+                                    "Interface.storyboard",
+                                    "watchosExtension/Assets.xcassets",
+                                ]),
+                            ],
+                            dependencies: ["PackageLibProduct"]
+                        ),
+                    ]
+                ),
                 TestPackageProject(
                     "Package",
                     groupTree: TestGroup(
-                        "Sources", path: "Sources",
+                        "Sources",
+                        path: "Sources",
                         children: [
-                            TestFile("Package.m"),
-                        ]),
+                            TestFile("Package.m")
+                        ]
+                    ),
                     targets: [
                         packageProductTarget,
                         TestStandardTarget("PackageLib", type: .staticLibrary),
-                    ])
-            ]).load(core)
+                    ]
+                ),
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         return (workspace.projects[0], workspaceContext)
     }
@@ -873,36 +956,44 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func toolchainOverridesDoNotConflictWithSpecialization() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [TestPackageProject("aProject",
-                                                                        groupTree: TestGroup("SomeFiles"),
-                                                                        targets: [
-                                                                            TestAggregateTarget("ALL", dependencies: ["iOSFwk", "PackageLibProduct"]),
-                                                                            TestStandardTarget(
-                                                                                "iOSFwk",
-                                                                                type: .framework,
-                                                                                buildConfigurations: [
-                                                                                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]),
-                                                                                ],
-                                                                                dependencies: ["PackageLibProduct"]
-                                                                            ),
-                                                                            TestPackageProductTarget(
-                                                                                "PackageLibProduct",
-                                                                                frameworksBuildPhase: TestFrameworksBuildPhase([
-                                                                                    TestBuildFile(.target("PackageLib"))]),
-                                                                                buildConfigurations: [
-                                                                                    // Targets need to opt-in to specialization.
-                                                                                    TestBuildConfiguration("Debug", buildSettings: [
-                                                                                        "SDKROOT": "auto",
-                                                                                        "SDK_VARIANT": "auto",
-                                                                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
-                                                                                    ]),
-                                                                                ],
-                                                                                dependencies: ["PackageLib"]
-                                                                            ),
-                                                                            TestStandardTarget("PackageLib", type: .staticLibrary),
-                                                                        ]
-                                                                       )]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestPackageProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestAggregateTarget("ALL", dependencies: ["iOSFwk", "PackageLibProduct"]),
+                        TestStandardTarget(
+                            "iOSFwk",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])
+                            ],
+                            dependencies: ["PackageLibProduct"]
+                        ),
+                        TestPackageProductTarget(
+                            "PackageLibProduct",
+                            frameworksBuildPhase: TestFrameworksBuildPhase([
+                                TestBuildFile(.target("PackageLib"))
+                            ]),
+                            buildConfigurations: [
+                                // Targets need to opt-in to specialization.
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]
+                                )
+                            ],
+                            dependencies: ["PackageLib"]
+                        ),
+                        TestStandardTarget("PackageLib", type: .staticLibrary),
+                    ]
+                )
+            ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
@@ -925,36 +1016,44 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func toolchainOverlaysViaOverridesDoNotConflictWithSpecialization() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [TestPackageProject("aProject",
-                                                                        groupTree: TestGroup("SomeFiles"),
-                                                                        targets: [
-                                                                            TestAggregateTarget("ALL", dependencies: ["iOSFwk", "PackageLibProduct"]),
-                                                                            TestStandardTarget(
-                                                                                "iOSFwk",
-                                                                                type: .framework,
-                                                                                buildConfigurations: [
-                                                                                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]),
-                                                                                ],
-                                                                                dependencies: ["PackageLibProduct"]
-                                                                            ),
-                                                                            TestPackageProductTarget(
-                                                                                "PackageLibProduct",
-                                                                                frameworksBuildPhase: TestFrameworksBuildPhase([
-                                                                                    TestBuildFile(.target("PackageLib"))]),
-                                                                                buildConfigurations: [
-                                                                                    // Targets need to opt-in to specialization.
-                                                                                    TestBuildConfiguration("Debug", buildSettings: [
-                                                                                        "SDKROOT": "auto",
-                                                                                        "SDK_VARIANT": "auto",
-                                                                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
-                                                                                    ]),
-                                                                                ],
-                                                                                dependencies: ["PackageLib"]
-                                                                            ),
-                                                                            TestStandardTarget("PackageLib", type: .staticLibrary),
-                                                                        ]
-                                                                       )]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestPackageProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestAggregateTarget("ALL", dependencies: ["iOSFwk", "PackageLibProduct"]),
+                        TestStandardTarget(
+                            "iOSFwk",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])
+                            ],
+                            dependencies: ["PackageLibProduct"]
+                        ),
+                        TestPackageProductTarget(
+                            "PackageLibProduct",
+                            frameworksBuildPhase: TestFrameworksBuildPhase([
+                                TestBuildFile(.target("PackageLib"))
+                            ]),
+                            buildConfigurations: [
+                                // Targets need to opt-in to specialization.
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]
+                                )
+                            ],
+                            dependencies: ["PackageLib"]
+                        ),
+                        TestStandardTarget("PackageLib", type: .staticLibrary),
+                    ]
+                )
+            ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
@@ -977,41 +1076,59 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test(.requireSDKs(.macOS))
     func macCatalystSpecialization() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace", projects: [TestProject("aProject", groupTree: TestGroup("SomeFiles"), targets: [
-            TestAggregateTarget("ALL", dependencies: ["macOSFwk", "macCatalystFwk"]),
-            TestStandardTarget(
-                "macOSFwk",
-                type: .framework,
-                buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]),
-                ],
-                dependencies: ["PackageLibProduct"]
-            ),
-            TestStandardTarget(
-                "macCatalystFwk",
-                type: .framework,
-                buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SDK_VARIANT": MacCatalystInfo.sdkVariantName]),
-                ],
-                dependencies: ["PackageLibProduct"]
-            ),
-        ]), TestPackageProject("Package", groupTree: TestGroup("SomeFiles"), targets: [
-            TestPackageProductTarget(
-                "PackageLibProduct",
-                frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
-                    ]),
-                ],
-                dependencies: ["PackageLib"]
-            ),
-            TestStandardTarget("PackageLib", type: .staticLibrary),
-        ])]).load(core)
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestAggregateTarget("ALL", dependencies: ["macOSFwk", "macCatalystFwk"]),
+                        TestStandardTarget(
+                            "macOSFwk",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])
+                            ],
+                            dependencies: ["PackageLibProduct"]
+                        ),
+                        TestStandardTarget(
+                            "macCatalystFwk",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SDK_VARIANT": MacCatalystInfo.sdkVariantName])
+                            ],
+                            dependencies: ["PackageLibProduct"]
+                        ),
+                    ]
+                ),
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestPackageProductTarget(
+                            "PackageLibProduct",
+                            frameworksBuildPhase: TestFrameworksBuildPhase([
+                                TestBuildFile(.target("PackageLib"))
+                            ]),
+                            buildConfigurations: [
+                                // Targets need to opt-in to specialization.
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SDK_VARIANT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator",
+                                    ]
+                                )
+                            ],
+                            dependencies: ["PackageLib"]
+                        ),
+                        TestStandardTarget("PackageLib", type: .staticLibrary),
+                    ]
+                ),
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
 
@@ -1058,27 +1175,35 @@ fileprivate enum TargetPlatformSpecializationMode {
         delegate.checkNoDiagnostics()
     }
 
-    func basicPackage(linkage: TestStandardTarget.TargetType = .staticLibrary, additionalBuildSettings: [String:String] = [:]) -> TestProject {
-        return TestPackageProject("aPackage", groupTree: TestGroup("Package"), targets: [
-            TestPackageProductTarget(
-                "PackageLibProduct",
-                frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    ].merging(additionalBuildSettings, uniquingKeysWith: { a, b in a })),
-                ],
-                dependencies: ["PackageLib"]
-            ),
-            TestStandardTarget("PackageLib", type: linkage)
-        ])
+    func basicPackage(linkage: TestStandardTarget.TargetType = .staticLibrary, additionalBuildSettings: [String: String] = [:]) -> TestProject {
+        return TestPackageProject(
+            "aPackage",
+            groupTree: TestGroup("Package"),
+            targets: [
+                TestPackageProductTarget(
+                    "PackageLibProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PackageLib"))
+                    ]),
+                    buildConfigurations: [
+                        // Targets need to opt-in to specialization.
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ].merging(additionalBuildSettings, uniquingKeysWith: { a, b in a })
+                        )
+                    ],
+                    dependencies: ["PackageLib"]
+                ),
+                TestStandardTarget("PackageLib", type: linkage),
+            ]
+        )
     }
 
-    func packageWorkspace(with targets: [any TestTarget], linkage: TestStandardTarget.TargetType = .staticLibrary, additionalBuildSettings: [String:String] = [:], dependenciesForTopLevelAggregateTarget: [String]? = nil) async throws -> (SWBCore.Workspace, WorkspaceContext) {
+    func packageWorkspace(with targets: [any TestTarget], linkage: TestStandardTarget.TargetType = .staticLibrary, additionalBuildSettings: [String: String] = [:], dependenciesForTopLevelAggregateTarget: [String]? = nil) async throws -> (SWBCore.Workspace, WorkspaceContext) {
         let core = try await getCore()
         let allTargets = [TestAggregateTarget("ALL", dependencies: dependenciesForTopLevelAggregateTarget ?? targets.map { $0.name })] + targets.map { $0 as (any TestTarget) }
         let workspace = try TestWorkspace("Workspace", projects: [TestProject("aProject", groupTree: TestGroup("SomeFiles"), targets: allTargets), basicPackage(linkage: linkage, additionalBuildSettings: additionalBuildSettings)]).load(core)
@@ -1088,7 +1213,7 @@ fileprivate enum TargetPlatformSpecializationMode {
 
     fileprivate func computeBuildGraph(of workspace: SWBCore.Workspace, context: WorkspaceContext, buildRequestContext: BuildRequestContext, buildCommand: BuildCommand? = nil, buildParameters: BuildParameters, additionalTargets: [SWBCore.Target] = [], diagnosticFormat: Diagnostic.LocalizedDescriptionFormat = .debugWithoutBehavior, expectedDiagnostics: [String] = [], type: TargetGraphFactory.GraphType, useImplicitDependencies: Bool = false, skipDependencies: Bool = false) async throws -> any TargetGraph {
         let allTarget = workspace.projects[0].targets[0]
-        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: ([allTarget] + additionalTargets).map { BuildRequest.BuildTargetInfo(parameters: buildParameters, target:$0) }, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: useImplicitDependencies, useDryRun: false, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: skipDependencies))
+        let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: ([allTarget] + additionalTargets).map { BuildRequest.BuildTargetInfo(parameters: buildParameters, target: $0) }, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: useImplicitDependencies, useDryRun: false, buildCommand: buildCommand ?? .build(style: .buildOnly, skipDependencies: skipDependencies))
 
         let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspace)
         let buildGraph = await TargetGraphFactory(workspaceContext: context, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: type)
@@ -1113,12 +1238,12 @@ fileprivate enum TargetPlatformSpecializationMode {
         return packageProduct
     }
 
-    func frameworkTarget(name: String, buildSettings: [String:String]) -> TestStandardTarget {
+    func frameworkTarget(name: String, buildSettings: [String: String]) -> TestStandardTarget {
         return TestStandardTarget(
             name,
             type: .framework,
-            buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: buildSettings) ],
-            buildPhases: [ TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))]) ],
+            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
+            buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))])],
             dependencies: ["PackageLibProduct"]
         )
     }
@@ -1129,12 +1254,12 @@ fileprivate enum TargetPlatformSpecializationMode {
             TestStandardTarget(
                 "BestFramework",
                 type: .framework,
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
                 dependencies: ["Aggregate"]
             ),
             TestAggregateTarget(
                 "Aggregate",
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
                 dependencies: ["PackageLibProduct"]
             ),
         ]
@@ -1154,12 +1279,12 @@ fileprivate enum TargetPlatformSpecializationMode {
             TestStandardTarget(
                 "BestFramework",
                 type: .framework,
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
                 dependencies: ["Aggregate"]
             ),
             TestAggregateTarget(
                 "Aggregate",
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
                 dependencies: []
             ),
         ]
@@ -1179,29 +1304,29 @@ fileprivate enum TargetPlatformSpecializationMode {
             TestStandardTarget(
                 "BestFramework",
                 type: .framework,
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "OTHER_LDFLAGS": "-framework Dep" ]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "OTHER_LDFLAGS": "-framework Dep"])],
                 dependencies: ["Intermediate"]
             ),
             TestAggregateTarget(
                 "Intermediate",
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
                 dependencies: ["Aggregate"]
             ),
             TestAggregateTarget(
                 "Aggregate",
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
                 dependencies: ["PackageLibProduct"]
             ),
             TestAggregateTarget(
                 "Aggregate2",
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
                 dependencies: ["BestFramework"]
             ),
             TestStandardTarget(
                 "SomeDependency",
                 type: .framework,
-                buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "PRODUCT_NAME": "Dep" ]) ]
-            )
+                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "PRODUCT_NAME": "Dep"])]
+            ),
         ]
 
         let (workspace, workspaceContext) = try await packageWorkspace(with: targets, linkage: .staticLibrary, dependenciesForTopLevelAggregateTarget: ["Aggregate2"])
@@ -1234,15 +1359,23 @@ fileprivate enum TargetPlatformSpecializationMode {
     func platformSpecialization() async throws {
         let core = try await getCore()
         var testPlatforms = [SWBCore.Platform]()
-        let targets = core.platformRegistry.platforms.filter({ !$0.isSimulator }).compactMap { platform in
-            if let sdkCanonicalName = platform.sdkCanonicalName, core.sdkRegistry.lookup(sdkCanonicalName) != nil {
-                testPlatforms.append(platform)
-                return frameworkTarget(name: "\(platform.name)Fwk", buildSettings: ["SDKROOT": sdkCanonicalName])
-            }
-            return nil
-        } + [frameworkTarget(name: "McFwk", buildSettings: ["SDKROOT": "macosx",
-                                                            "SDK_VARIANT": MacCatalystInfo.sdkVariantName])]
-        #expect(testPlatforms.count > 0)      // ensure this test doesn't pass just because we somehow ended up with no platforms with valid SDKs
+        let targets =
+            core.platformRegistry.platforms.filter({ !$0.isSimulator }).compactMap { platform in
+                if let sdkCanonicalName = platform.sdkCanonicalName, core.sdkRegistry.lookup(sdkCanonicalName) != nil {
+                    testPlatforms.append(platform)
+                    return frameworkTarget(name: "\(platform.name)Fwk", buildSettings: ["SDKROOT": sdkCanonicalName])
+                }
+                return nil
+            } + [
+                frameworkTarget(
+                    name: "McFwk",
+                    buildSettings: [
+                        "SDKROOT": "macosx",
+                        "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
+                    ]
+                )
+            ]
+        #expect(testPlatforms.count > 0)  // ensure this test doesn't pass just because we somehow ended up with no platforms with valid SDKs
 
         let linkages: [TestStandardTarget.TargetType] = [.staticLibrary, .dynamicLibrary]
         for linkage in linkages {
@@ -1258,14 +1391,14 @@ fileprivate enum TargetPlatformSpecializationMode {
                 for type in TargetGraphFactory.GraphType.allCases {
                     //let runDestinationString = "\(runDestination.sdk)" + (runDestination.sdkVariant.map({ $0 != runDestination.sdk ? "-\($0)" : "" }) ?? "")
                     //try await XCTContext.runActivity(named: "graphType:\(type) runDestination:\(runDestinationString) linkage:\(linkage)", block: { _ in
-                        let buildGraph = try await computeBuildGraph(of: workspace, context: workspaceContext, buildRequestContext: buildRequestContext, buildParameters: buildParameters, additionalTargets: [packageLibProductTarget], type: type)
+                    let buildGraph = try await computeBuildGraph(of: workspace, context: workspaceContext, buildRequestContext: buildRequestContext, buildParameters: buildParameters, additionalTargets: [packageLibProductTarget], type: type)
 
-                        for platform in testPlatforms {
-                            verifyPlatform(for: "\(platform.name)Fwk", buildGraph: buildGraph, buildRequestContext: buildRequestContext, graphType: type)
-                        }
+                    for platform in testPlatforms {
+                        verifyPlatform(for: "\(platform.name)Fwk", buildGraph: buildGraph, buildRequestContext: buildRequestContext, graphType: type)
+                    }
 
-                        // Verify the MacCatalyst framework target gets linked with the correct package.
-                        verifyPlatform(for: "McFwk", buildGraph: buildGraph, buildRequestContext: buildRequestContext, graphType: type)
+                    // Verify the MacCatalyst framework target gets linked with the correct package.
+                    verifyPlatform(for: "McFwk", buildGraph: buildGraph, buildRequestContext: buildRequestContext, graphType: type)
                     //})
                 }
             }
@@ -1277,8 +1410,8 @@ fileprivate enum TargetPlatformSpecializationMode {
         let fwkTarget = TestStandardTarget(
             "iOSFwk",
             type: .framework,
-            buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"]) ],
-            buildPhases: [ TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))]) ],
+            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
+            buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))])],
             dependencies: ["PackageLibProduct"]
         )
         let (workspace, workspaceContext) = try await packageWorkspace(with: [fwkTarget])
@@ -1302,8 +1435,8 @@ fileprivate enum TargetPlatformSpecializationMode {
         let fwkTarget = TestStandardTarget(
             "iOSFwk",
             type: .framework,
-            buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"]) ],
-            buildPhases: [ TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))]) ],
+            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
+            buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))])],
             dependencies: ["PackageLibProduct"]
         )
         let (workspace, workspaceContext) = try await packageWorkspace(with: [fwkTarget])
@@ -1327,8 +1460,8 @@ fileprivate enum TargetPlatformSpecializationMode {
         let fwkTarget = TestStandardTarget(
             "iOSFwk",
             type: .framework,
-            buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"]) ],
-            buildPhases: [ TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))]) ],
+            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
+            buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))])],
             dependencies: ["PackageLibProduct"]
         )
         let (workspace, workspaceContext) = try await packageWorkspace(with: [fwkTarget])
@@ -1352,8 +1485,8 @@ fileprivate enum TargetPlatformSpecializationMode {
         let fwkTarget = TestStandardTarget(
             "iOSFwk",
             type: .framework,
-            buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"]) ],
-            buildPhases: [ TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))]) ],
+            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos"])],
+            buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLibProduct"))])],
             dependencies: ["PackageLibProduct"]
         )
         let (workspace, workspaceContext) = try await packageWorkspace(with: [fwkTarget])
@@ -1375,28 +1508,57 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func specializationRespectsSupportedPlatforms() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("workspace", projects: [
-            TestPackageProject("aPackage", groupTree: TestGroup("Group"), targets: [
-                TestStandardTarget("Library", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    ])
-                ], dependencies: ["Tool", "WatchApp"]),
-                TestStandardTarget("Tool", type: .commandLineTool, buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SUPPORTED_PLATFORMS": "macosx",
-                    ])
-                ]),
-                TestStandardTarget("WatchApp", type: .watchKitApp, buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SUPPORTED_PLATFORMS": "watchos watchsimulator",
-                    ])
-                ]),
-            ]),
-        ]).load(core)
+        let workspace = try TestWorkspace(
+            "workspace",
+            projects: [
+                TestPackageProject(
+                    "aPackage",
+                    groupTree: TestGroup("Group"),
+                    targets: [
+                        TestStandardTarget(
+                            "Library",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                                    ]
+                                )
+                            ],
+                            dependencies: ["Tool", "WatchApp"]
+                        ),
+                        TestStandardTarget(
+                            "Tool",
+                            type: .commandLineTool,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "macosx",
+                                    ]
+                                )
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "WatchApp",
+                            type: .watchKitApp,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "watchos watchsimulator",
+                                    ]
+                                )
+                            ]
+                        ),
+                    ]
+                )
+            ]
+        ).load(core)
 
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
@@ -1407,7 +1569,7 @@ fileprivate enum TargetPlatformSpecializationMode {
 
             let expectedSDKs = [
                 "Library": "iphoneos",  // matches run destination
-                "Tool": "macosx",       // is confined to macOS by supported platforms
+                "Tool": "macosx",  // is confined to macOS by supported platforms
                 "WatchApp": "watchos",  // supports a single conceptual platform
             ]
 
@@ -1422,22 +1584,44 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test(.requireSDKs(.macOS))
     func specializationRespectsSupportedPlatformsWithSDKROOTOverride() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("workspace", projects: [
-            TestPackageProject("aPackage", groupTree: TestGroup("Group"), targets: [
-                TestStandardTarget("Library", type: .framework, buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SUPPORTED_PLATFORMS": "iphonesimulator iphoneos watchos appletvos",
-                    ])
-                ], dependencies: ["Tool"]),
-                TestStandardTarget("Tool", type: .commandLineTool, buildConfigurations: [
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SUPPORTED_PLATFORMS": "iphonesimulator iphoneos watchos appletvos",
-                    ])
-                ])
-            ]),
-        ]).load(core)
+        let workspace = try TestWorkspace(
+            "workspace",
+            projects: [
+                TestPackageProject(
+                    "aPackage",
+                    groupTree: TestGroup("Group"),
+                    targets: [
+                        TestStandardTarget(
+                            "Library",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "iphonesimulator iphoneos watchos appletvos",
+                                    ]
+                                )
+                            ],
+                            dependencies: ["Tool"]
+                        ),
+                        TestStandardTarget(
+                            "Tool",
+                            type: .commandLineTool,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "SDKROOT": "auto",
+                                        "SUPPORTED_PLATFORMS": "iphonesimulator iphoneos watchos appletvos",
+                                    ]
+                                )
+                            ]
+                        ),
+                    ]
+                )
+            ]
+        ).load(core)
 
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
@@ -1468,38 +1652,49 @@ fileprivate enum TargetPlatformSpecializationMode {
 
     @Test
     func previewBuildsUseDynamicTargetReference() async throws {
-        let project = TestPackageProject("aPackage", groupTree: TestGroup("Package"), targets: [
-            TestPackageProductTarget(
-                "PackageLibProduct",
-                frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
-                dynamicTargetVariantName: "PackageLibProduct-dynamic",
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+        let project = TestPackageProject(
+            "aPackage",
+            groupTree: TestGroup("Package"),
+            targets: [
+                TestPackageProductTarget(
+                    "PackageLibProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PackageLib"))
                     ]),
-                ],
-                dependencies: ["PackageLib"]
-            ),
-            TestStandardTarget("PackageLib", type: .objectFile),
-            TestStandardTarget(
-                "PackageLibProduct-dynamic",
-                type: .framework,
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    ]),
-                ],
-                buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))])],
-                dependencies: ["PackageLib"]
-            ),
-        ])
+                    dynamicTargetVariantName: "PackageLibProduct-dynamic",
+                    buildConfigurations: [
+                        // Targets need to opt-in to specialization.
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ]
+                        )
+                    ],
+                    dependencies: ["PackageLib"]
+                ),
+                TestStandardTarget("PackageLib", type: .objectFile),
+                TestStandardTarget(
+                    "PackageLibProduct-dynamic",
+                    type: .framework,
+                    buildConfigurations: [
+                        // Targets need to opt-in to specialization.
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))])],
+                    dependencies: ["PackageLib"]
+                ),
+            ]
+        )
         let core = try await getCore()
         let workspace = try TestWorkspace("Workspace", projects: [project]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -1524,43 +1719,54 @@ fileprivate enum TargetPlatformSpecializationMode {
 
     @Test
     func explicitDependenciesUseDynamicTargets() async throws {
-        let project = TestPackageProject("aPackage", groupTree: TestGroup("Package"), targets: [
-            TestPackageProductTarget(
-                "PackageLibProduct",
-                frameworksBuildPhase: TestFrameworksBuildPhase([
-                    TestBuildFile(.target("PackageLib"))]),
-                dynamicTargetVariantName: "PackageLibProduct-dynamic",
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+        let project = TestPackageProject(
+            "aPackage",
+            groupTree: TestGroup("Package"),
+            targets: [
+                TestPackageProductTarget(
+                    "PackageLibProduct",
+                    frameworksBuildPhase: TestFrameworksBuildPhase([
+                        TestBuildFile(.target("PackageLib"))
                     ]),
-                ],
-                dependencies: ["PackageLib"]
-            ),
-            TestStandardTarget("PackageLib", type: .objectFile),
-            TestStandardTarget(
-                "PackageLibProduct-dynamic",
-                type: .framework,
-                buildConfigurations: [
-                    // Targets need to opt-in to specialization.
-                    TestBuildConfiguration("Debug", buildSettings: [
-                        "SDKROOT": "auto",
-                        "SDK_VARIANT": "auto",
-                        "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
-                    ]),
-                ],
-                buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))])],
-                dependencies: ["PackageLib"]
-            ),
-            TestStandardTarget(
-                "ThePackage",
-                type: .commandLineTool,
-                dependencies: ["PackageLibProduct"]
-            ),
-        ])
+                    dynamicTargetVariantName: "PackageLibProduct-dynamic",
+                    buildConfigurations: [
+                        // Targets need to opt-in to specialization.
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ]
+                        )
+                    ],
+                    dependencies: ["PackageLib"]
+                ),
+                TestStandardTarget("PackageLib", type: .objectFile),
+                TestStandardTarget(
+                    "PackageLibProduct-dynamic",
+                    type: .framework,
+                    buildConfigurations: [
+                        // Targets need to opt-in to specialization.
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "auto",
+                                "SDK_VARIANT": "auto",
+                                "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
+                            ]
+                        )
+                    ],
+                    buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))])],
+                    dependencies: ["PackageLib"]
+                ),
+                TestStandardTarget(
+                    "ThePackage",
+                    type: .commandLineTool,
+                    dependencies: ["PackageLibProduct"]
+                ),
+            ]
+        )
         let core = try await getCore()
         let workspace = try TestWorkspace("Workspace", projects: [project]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -1569,13 +1775,14 @@ fileprivate enum TargetPlatformSpecializationMode {
         // This adds `PACKAGE_BUILD_DYNAMICALLY` as an override to activate dynamic variants of targets.
         let buildParametersWithOverrides = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: RunDestinationInfo.iOS, activeArchitecture: nil, overrides: ["PACKAGE_BUILD_DYNAMICALLY": "YES"], commandLineOverrides: [:], commandLineConfigOverrides: [:], environmentConfigOverrides: [:], toolchainOverride: nil, arena: nil)
 
-        let buildRequest = BuildRequest(parameters: buildParametersWithOverrides, buildTargets: (workspace.projects[0].targets).map { BuildRequest.BuildTargetInfo(parameters: buildParametersWithOverrides, target:$0) }, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false, buildCommand: .preview(style: .dynamicReplacement))
+        let buildRequest = BuildRequest(parameters: buildParametersWithOverrides, buildTargets: (workspace.projects[0].targets).map { BuildRequest.BuildTargetInfo(parameters: buildParametersWithOverrides, target: $0) }, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: false, useDryRun: false, buildCommand: .preview(style: .dynamicReplacement))
 
         let resolver = TargetDependencyResolver(
             workspaceContext: workspaceContext,
             buildRequest: buildRequest,
             buildRequestContext: buildRequestContext,
-            delegate: EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace))
+            delegate: EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
+        )
 
         let configuredTarget = try ConfiguredTarget(
             parameters: buildParametersWithOverrides,
@@ -1590,17 +1797,28 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func implicitDependencyDoesNotShadowPackageProductDependency() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace", projects: [
-            TestProject("Simple", groupTree: TestGroup("Simple"), targets: [
-                TestAggregateTarget("Best", dependencies: ["App", "Package2"]),
-                TestStandardTarget("App", type: .application, buildPhases: [ TestFrameworksBuildPhase([TestBuildFile(.target("Package"))]) ], dependencies: ["Package"]),
-                TestStandardTarget("Package2", type: .commandLineTool, buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Package"]) ]),
-            ]),
-            TestPackageProject("Package", groupTree: TestGroup("Package"), targets: [
-                TestPackageProductTarget("Package", frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))]), buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Package"]) ], dependencies: ["PackageLib"]),
-                TestStandardTarget("PackageLib", type: .objectFile)
-            ]),
-        ]).load(core)
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "Simple",
+                    groupTree: TestGroup("Simple"),
+                    targets: [
+                        TestAggregateTarget("Best", dependencies: ["App", "Package2"]),
+                        TestStandardTarget("App", type: .application, buildPhases: [TestFrameworksBuildPhase([TestBuildFile(.target("Package"))])], dependencies: ["Package"]),
+                        TestStandardTarget("Package2", type: .commandLineTool, buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Package"])]),
+                    ]
+                ),
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("Package"),
+                    targets: [
+                        TestPackageProductTarget("Package", frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("PackageLib"))]), buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Package"])], dependencies: ["PackageLib"]),
+                        TestStandardTarget("PackageLib", type: .objectFile),
+                    ]
+                ),
+            ]
+        ).load(core)
 
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
@@ -1609,7 +1827,7 @@ fileprivate enum TargetPlatformSpecializationMode {
 
         let app = try #require(buildGraph.allTargets.first { $0.target.name == "App" })
         let deps = buildGraph.dependencies(of: app)
-        #expect(deps.map { $0.target.name } == ["Package"]) // Both the CLI tool and the package have the same product name, but different target names.
+        #expect(deps.map { $0.target.name } == ["Package"])  // Both the CLI tool and the package have the same product name, but different target names.
     }
 
     func checkTarget(_ graphType: TargetGraphFactory.GraphType, _ buildRequestContext: BuildRequestContext, _ buildGraph: any TargetGraph, name: String, expectedPlatform: String, sourceLocation: SourceLocation = #_sourceLocation) throws {
@@ -1644,276 +1862,318 @@ fileprivate enum TargetPlatformSpecializationMode {
     }
 
     let specializationWorkspace_basic: TestWorkspace = {
-        return TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "MacApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
-                ),
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
-                ),
+        return TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "MacApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
+                        ),
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "MultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "MultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "SinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        TestStandardTarget(
+                            "SinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
     }()
 
     let specializationWorkspace_aggregate: TestWorkspace = {
-        return TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "MacApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: ["Intermediate", "SpecializedIntermediate"]
-                ),
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["Intermediate", "SpecializedIntermediate"]
-                ),
+        return TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "MacApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: ["Intermediate", "SpecializedIntermediate"]
+                        ),
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["Intermediate", "SpecializedIntermediate"]
+                        ),
 
-                TestAggregateTarget(
-                    "Intermediate",
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
-                    dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
-                ),
+                        TestAggregateTarget(
+                            "Intermediate",
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
+                            dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
+                        ),
 
-                TestAggregateTarget(
-                    "SpecializedIntermediate",
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"]) ],
-                    dependencies: ["OtherMultiPlatformFramework", "SinglePlatformFramework"]
-                ),
+                        TestAggregateTarget(
+                            "SpecializedIntermediate",
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: ["OtherMultiPlatformFramework", "SinglePlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "MultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "MultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "SinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "SinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "OtherMultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        TestStandardTarget(
+                            "OtherMultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
     }()
 
     func specializationWorkspace_aggregate(specializedEnabled: Bool) -> TestWorkspace {
         let specializationValue = specializedEnabled ? "YES" : "NO"
 
-        return TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "MacApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: ["Intermediate", "SpecializedIntermediate"]
-                ),
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["Intermediate", "SpecializedIntermediate"]
-                ),
+        return TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "MacApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: ["Intermediate", "SpecializedIntermediate"]
+                        ),
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["Intermediate", "SpecializedIntermediate"]
+                        ),
 
-                TestAggregateTarget(
-                    "Intermediate",
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
-                    dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
-                ),
+                        TestAggregateTarget(
+                            "Intermediate",
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
+                            dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
+                        ),
 
-                TestAggregateTarget(
-                    "SpecializedIntermediate",
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue]) ],
-                    dependencies: ["OtherMultiPlatformFramework", "OtherSinglePlatformFramework"]
-                ),
+                        TestAggregateTarget(
+                            "SpecializedIntermediate",
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue])],
+                            dependencies: ["OtherMultiPlatformFramework", "OtherSinglePlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "MultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "MultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "SinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "SinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "OtherMultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "OtherMultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "OtherSinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        TestStandardTarget(
+                            "OtherSinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
     }
 
     func specializationWorkspace_aggregate_simple(specializedEnabled: Bool) -> TestWorkspace {
         let specializationValue = specializedEnabled ? "YES" : "NO"
 
-        return TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "MacApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: ["SpecializedIntermediate", "SpecializedIntermediate2"]
-                ),
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["SpecializedIntermediate"]
-                ),
+        return TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "MacApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: ["SpecializedIntermediate", "SpecializedIntermediate2"]
+                        ),
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["SpecializedIntermediate"]
+                        ),
 
-                TestAggregateTarget(
-                    "SpecializedIntermediate",
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue]) ],
-                    dependencies: ["OtherSinglePlatformFramework"]
-                ),
+                        TestAggregateTarget(
+                            "SpecializedIntermediate",
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue])],
+                            dependencies: ["OtherSinglePlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "SpecializedIntermediate2",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue]) ],
-                    dependencies: ["OtherSinglePlatformFramework2"]
-                ),
+                        TestStandardTarget(
+                            "SpecializedIntermediate2",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": specializationValue])],
+                            dependencies: ["OtherSinglePlatformFramework2"]
+                        ),
 
-                TestStandardTarget(
-                    "OtherSinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "OtherSinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "OtherSinglePlatformFramework2",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        TestStandardTarget(
+                            "OtherSinglePlatformFramework2",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
     }
 
     let specializationWorkspace_specializedAggregate: TestWorkspace = {
-        return TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "MacApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: ["Intermediate"]
-                ),
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["Intermediate"]
-                ),
+        return TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "MacApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: ["Intermediate"]
+                        ),
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["Intermediate"]
+                        ),
 
-                TestAggregateTarget(
-                    "Intermediate",
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
-                ),
+                        TestAggregateTarget(
+                            "Intermediate",
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "MultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "MultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "SinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        TestStandardTarget(
+                            "SinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
     }()
 
     let specializationWorkspace_intermediateFramework: TestWorkspace = {
-        return TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "MacApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: ["Intermediate", "MultiPlatformFramework"]
-                ),
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["Intermediate", "MultiPlatformFramework"]
-                ),
+        return TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "MacApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: ["Intermediate", "MultiPlatformFramework"]
+                        ),
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["Intermediate", "MultiPlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "Intermediate",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"]) ],
-                    dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
-                ),
+                        TestStandardTarget(
+                            "Intermediate",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx"])],
+                            dependencies: ["MultiPlatformFramework", "SinglePlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "MultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: []
-                ),
+                        TestStandardTarget(
+                            "MultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: []
+                        ),
 
-                TestStandardTarget(
-                    "SinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        TestStandardTarget(
+                            "SinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
     }()
 
     func specializationCheck(_ testWorkspace: TestWorkspace, _ targetNames: [String], _ activeRunDestination: RunDestinationInfo, validation: (TargetGraphFactory.GraphType, BuildRequestContext, any TargetGraph, EmptyTargetDependencyResolverDelegate) throws -> Void) async throws {
@@ -2049,9 +2309,11 @@ fileprivate enum TargetPlatformSpecializationMode {
         }
     }
 
-    @Test(.requireSDKs(.iOS, .macOS),
-          // Force ordering due to rdar://108715828; this is specifically for regression testing.
-          .userDefaults(["DisableConcurrentDependencyResolution": "1"]))
+    @Test(
+        .requireSDKs(.iOS, .macOS),
+        // Force ordering due to rdar://108715828; this is specifically for regression testing.
+        .userDefaults(["DisableConcurrentDependencyResolution": "1"])
+    )
     func specialization_MultipleTopLevelTarget_Intermediate_SpecializedLeafFramework_iOS() async throws {
         func check(_ topLevelTargets: [String], expectedPlatform: String) async throws {
             try await specializationCheck(specializationWorkspace_aggregate, topLevelTargets, .iOS) { graphType, buildRequestContext, buildGraph, delegate in
@@ -2264,37 +2526,44 @@ fileprivate enum TargetPlatformSpecializationMode {
 
     @Test(.requireSDKs(.macOS, .iOS))
     func specialization_DependenciesOfSpecializedFrameworksAreNotSpecialized() async throws {
-        let testWorkspace = TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "MacApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: ["MultiPlatformFramework"]
-                ),
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["MultiPlatformFramework"]
-                ),
+        let testWorkspace = TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "MacApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: ["MultiPlatformFramework"]
+                        ),
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["MultiPlatformFramework"]
+                        ),
 
-                TestStandardTarget(
-                    "MultiPlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: ["SinglePlatformFramework"]
-                ),
+                        TestStandardTarget(
+                            "MultiPlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: ["SinglePlatformFramework"]
+                        ),
 
-                // NOTE: This should NOT be specialized as targets are _only_ specialized based on the target's immediate parent. Note that 'MultiPlatformFramework' is also a dependency of the top-level targets that will be specialized.
-                TestStandardTarget(
-                    "SinglePlatformFramework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        // NOTE: This should NOT be specialized as targets are _only_ specialized based on the target's immediate parent. Note that 'MultiPlatformFramework' is also a dependency of the top-level targets that will be specialized.
+                        TestStandardTarget(
+                            "SinglePlatformFramework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
 
         try await specializationCheck(testWorkspace, ["MacApp", "PhoneApp"], .macOS) { graphType, buildRequestContext, buildGraph, delegate in
             // The following targets should only be configured once.
@@ -2313,43 +2582,50 @@ fileprivate enum TargetPlatformSpecializationMode {
 
     @Test(.requireSDKs(.macOS, .iOS, .watchOS))
     func specialization_rdar77954162() async throws {
-        let testWorkspace = TestWorkspace("Workspace", projects: [
-            TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                TestStandardTarget(
-                    "PhoneApp",
-                    type: .application,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                    dependencies: ["WatchApp", "Framework"]
-                ),
+        let testWorkspace = TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("aGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "PhoneApp",
+                            type: .application,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                            dependencies: ["WatchApp", "Framework"]
+                        ),
 
-                TestStandardTarget(
-                    "WatchApp",
-                    type: .watchKitApp,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "watchos", "SUPPORTED_PLATFORMS": "watchos watchsimulator"]) ],
-                    dependencies: ["WatchExtension", "Framework"]
-                ),
+                        TestStandardTarget(
+                            "WatchApp",
+                            type: .watchKitApp,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "watchos", "SUPPORTED_PLATFORMS": "watchos watchsimulator"])],
+                            dependencies: ["WatchExtension", "Framework"]
+                        ),
 
-                TestStandardTarget(
-                    "WatchExtension",
-                    type: .watchKitExtension,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "watchos", "SUPPORTED_PLATFORMS": "watchos watchsimulator"]) ],
-                    dependencies: ["Framework"]
-                ),
+                        TestStandardTarget(
+                            "WatchExtension",
+                            type: .watchKitExtension,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "watchos", "SUPPORTED_PLATFORMS": "watchos watchsimulator"])],
+                            dependencies: ["Framework"]
+                        ),
 
-                TestStandardTarget(
-                    "Framework",
-                    type: .framework,
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "watchos watchsimulator iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES" ]) ],
-                    dependencies: ["Aggregate"]
-                ),
+                        TestStandardTarget(
+                            "Framework",
+                            type: .framework,
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "watchos watchsimulator iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                            dependencies: ["Aggregate"]
+                        ),
 
-                TestAggregateTarget(
-                    "Aggregate",
-                    buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                    dependencies: []
-                ),
-            ]),
-        ])
+                        TestAggregateTarget(
+                            "Aggregate",
+                            buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                            dependencies: []
+                        ),
+                    ]
+                )
+            ]
+        )
 
         try await specializationCheck(testWorkspace, ["PhoneApp"], .iOS) { graphType, buildRequestContext, buildGraph, delegate in
             // The following targets should only be configured once.
@@ -2370,30 +2646,37 @@ fileprivate enum TargetPlatformSpecializationMode {
         func check(_ activeRunDestination: RunDestinationInfo) async throws {
             let core = try await getCore()
 
-            let workspace = try TestWorkspace("Workspace", projects: [
-                TestProject("aProject", groupTree: TestGroup("aGroup"), targets: [
-                    TestStandardTarget(
-                        "MacApp",
-                        type: .framework,
-                        buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx" ]) ],
-                        dependencies: ["Aggregate"]
-                    ),
-                    TestStandardTarget(
-                        "PhoneApp",
-                        type: .framework,
-                        buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator" ]) ],
-                        dependencies: ["Aggregate"]
-                    ),
+            let workspace = try TestWorkspace(
+                "Workspace",
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup("aGroup"),
+                        targets: [
+                            TestStandardTarget(
+                                "MacApp",
+                                type: .framework,
+                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "macosx", "SUPPORTED_PLATFORMS": "macosx"])],
+                                dependencies: ["Aggregate"]
+                            ),
+                            TestStandardTarget(
+                                "PhoneApp",
+                                type: .framework,
+                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "iphoneos iphonesimulator"])],
+                                dependencies: ["Aggregate"]
+                            ),
 
-                    TestStandardTarget(
-                        "Aggregate",
-                        type: .framework,
-                        buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"]) ],
-                        dependencies: []
-                    ),
+                            TestStandardTarget(
+                                "Aggregate",
+                                type: .framework,
+                                buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "iphoneos", "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator", "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES"])],
+                                dependencies: []
+                            ),
 
-                ]),
-            ]).load(core)
+                        ]
+                    )
+                ]
+            ).load(core)
 
             let buildParameters = BuildParameters(action: .build, configuration: "Debug", activeRunDestination: activeRunDestination)
             let targets = [
@@ -2448,7 +2731,6 @@ fileprivate enum TargetPlatformSpecializationMode {
     }
 }
 
-
 // MARK: Test cases for resolving implicit dependencies
 
 @Suite fileprivate struct ImplicitDependencyResolutionTests: CoreBasedTests {
@@ -2465,23 +2747,23 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("aFramework.framework"),
+                            TestFile("aFramework.framework")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "aFramework.framework",
-                                ]),
+                                    "aFramework.framework"
+                                ])
                             ]
                         )
                     ]
@@ -2490,20 +2772,19 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
-                        ),
+                        )
                     ]
                 ),
             ]
@@ -2545,23 +2826,23 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("IDEStuff.ideplugin/Contents/MacOS/IDEStuff", fileType: "compiled.mach-o.dylib"),
+                            TestFile("IDEStuff.ideplugin/Contents/MacOS/IDEStuff", fileType: "compiled.mach-o.dylib")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "IDEStuff",
-                                ]),
+                                    "IDEStuff"
+                                ])
                             ]
                         )
                     ]
@@ -2570,21 +2851,20 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "IDEStuff",
                             type: .bundle,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "IDEStuff"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "IDEStuff"])
                             ],
                             productReferenceName: "IDEStuff.ideplugin"
-                        ),
+                        )
                     ]
                 ),
             ]
@@ -2631,20 +2911,23 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
-                                TestCopyFilesBuildPhase([
-                                    "aTool",
-                                    "aFramework.framework",
-                                ], destinationSubfolder: .frameworks),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "aTool",
+                                        "aFramework.framework",
+                                    ],
+                                    destinationSubfolder: .frameworks
+                                )
                             ]
                         )
                     ]
@@ -2653,30 +2936,29 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aTool",
                             type: .commandLineTool,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aTool"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aTool"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "aFramework.framework",
-                                ]),
+                                    "aFramework.framework"
+                                ])
                             ]
                         ),
                         TestStandardTarget(
                             "aFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
                         ),
                     ]
@@ -2724,23 +3006,26 @@ fileprivate enum TargetPlatformSpecializationMode {
                         children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aTool",
                             type: .commandLineTool,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aTool"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aTool"])
                             ],
                             buildPhases: [
-                                TestCopyFilesBuildPhase([
-                                    "aTool",
-                                ], destinationSubfolder: .frameworks),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "aTool"
+                                    ],
+                                    destinationSubfolder: .frameworks
+                                )
                             ]
                         )
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -2777,40 +3062,42 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("aFramework.framework"),
+                            TestFile("aFramework.framework")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "anApp",
-                                                        "SDKROOT": "macosx",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "anApp",
+                                        "SDKROOT": "macosx",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "aFramework.framework",
-                                ]),
+                                    "aFramework.framework"
+                                ])
                             ]
                         ),
                         TestStandardTarget(
                             "osxFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "aFramework",
-                                                        "SUPPORTED_PLATFORMS": "macosx",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "aFramework",
+                                        "SUPPORTED_PLATFORMS": "macosx",
+                                    ]
+                                )
                             ],
                             productReferenceName: "aFramework.framework"
                         ),
@@ -2818,17 +3105,18 @@ fileprivate enum TargetPlatformSpecializationMode {
                             "iosFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "aFramework",
-                                                        "SUPPORTED_PLATFORMS": "iphoneos",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "aFramework",
+                                        "SUPPORTED_PLATFORMS": "iphoneos",
+                                    ]
+                                )
                             ],
                             productReferenceName: "aFramework.framework"
                         ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -2872,40 +3160,42 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("aFramework.framework"),
+                            TestFile("aFramework.framework")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "anApp",
-                                                        "SDKROOT": "macosx",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "anApp",
+                                        "SDKROOT": "macosx",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "aFramework.framework",
-                                ]),
+                                    "aFramework.framework"
+                                ])
                             ]
                         ),
                         TestStandardTarget(
                             "osxFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "aFramework",
-                                                        "SDKROOT": "macosx",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "aFramework",
+                                        "SDKROOT": "macosx",
+                                    ]
+                                )
                             ],
                             productReferenceName: "aFramework.framework"
                         ),
@@ -2913,17 +3203,18 @@ fileprivate enum TargetPlatformSpecializationMode {
                             "iosFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "aFramework",
-                                                        "SDKROOT": "iphoneos",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "aFramework",
+                                        "SDKROOT": "iphoneos",
+                                    ]
+                                )
                             ],
                             productReferenceName: "aFramework.framework"
                         ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -2967,61 +3258,67 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "Group",
                         children: [
-                            TestFile("Fmwk.framework"),
+                            TestFile("Fmwk.framework")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "TOOLCHAINS": "default",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "TOOLCHAINS": "default"
+                            ]
+                        )
                     ],
                     targets: [
                         TestStandardTarget(
                             "macOSApplication",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "Appl",
-                                                        "SDKROOT": "macosx",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "Appl",
+                                        "SDKROOT": "macosx",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "Fmwk.framework",
-                                ]),
+                                    "Fmwk.framework"
+                                ])
                             ]
                         ),
                         TestStandardTarget(
                             "MacCatalystApplication",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "iAppl",
-                                                        "SDKROOT": "macosx",
-                                                        "SDK_VARIANT": MacCatalystInfo.sdkVariantName
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "iAppl",
+                                        "SDKROOT": "macosx",
+                                        "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
                                     "Fmwk.framework"
-                                ]),
+                                ])
                             ]
                         ),
                         TestStandardTarget(
                             "MacCatalystFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "Fmwk",
-                                                        "SDKROOT": "macosx",
-                                                        "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "Fmwk",
+                                        "SDKROOT": "macosx",
+                                        "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
+                                    ]
+                                )
                             ],
                             productReferenceName: "Fmwk.framework"
                         ),
@@ -3029,18 +3326,19 @@ fileprivate enum TargetPlatformSpecializationMode {
                             "macOSFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "Fmwk",
-                                                        "SDKROOT": "macosx",
-                                                        "SDK_VARIANT": "macos",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "Fmwk",
+                                        "SDKROOT": "macosx",
+                                        "SDK_VARIANT": "macos",
+                                    ]
+                                )
                             ],
                             productReferenceName: "Fmwk.framework"
                         ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -3066,9 +3364,12 @@ fileprivate enum TargetPlatformSpecializationMode {
 
             // Get the dependency closure for the build request and examine it.
             let dependencyClosure = buildGraph.allTargets
-            #expect(try dependencyClosure.elements == [
-                buildGraph.target(for: macosFwkTarget),
-                buildGraph.target(for: macAppTarget)])
+            #expect(
+                try dependencyClosure.elements == [
+                    buildGraph.target(for: macosFwkTarget),
+                    buildGraph.target(for: macAppTarget),
+                ]
+            )
             #expect(try buildGraph.dependencies(macAppTarget) == [buildGraph.target(for: macosFwkTarget)])
             #expect(try buildGraph.dependencies(macosFwkTarget) == [])
         }
@@ -3081,9 +3382,12 @@ fileprivate enum TargetPlatformSpecializationMode {
 
             // Get the dependency closure for the build request and examine it.
             let dependencyClosure = buildGraph.allTargets
-            #expect(try dependencyClosure.elements == [
-                buildGraph.target(for: uikitFwkTarget),
-                buildGraph.target(for: uikitAppTarget)])
+            #expect(
+                try dependencyClosure.elements == [
+                    buildGraph.target(for: uikitFwkTarget),
+                    buildGraph.target(for: uikitAppTarget),
+                ]
+            )
             #expect(try buildGraph.dependencies(uikitAppTarget) == [buildGraph.target(for: uikitFwkTarget)])
             #expect(try buildGraph.dependencies(uikitFwkTarget) == [])
         }
@@ -3096,11 +3400,14 @@ fileprivate enum TargetPlatformSpecializationMode {
 
             // Get the dependency closure for the build request and examine it.
             let dependencyClosure = buildGraph.allTargets
-            #expect(try dependencyClosure.elements == [
-                buildGraph.target(for: macosFwkTarget),
-                buildGraph.target(for: macAppTarget),
-                buildGraph.target(for: uikitFwkTarget),
-                buildGraph.target(for: uikitAppTarget)])
+            #expect(
+                try dependencyClosure.elements == [
+                    buildGraph.target(for: macosFwkTarget),
+                    buildGraph.target(for: macAppTarget),
+                    buildGraph.target(for: uikitFwkTarget),
+                    buildGraph.target(for: uikitAppTarget),
+                ]
+            )
             #expect(try buildGraph.dependencies(macAppTarget) == [buildGraph.target(for: macosFwkTarget)])
             #expect(try buildGraph.dependencies(macosFwkTarget) == [])
             #expect(try buildGraph.dependencies(uikitAppTarget) == [buildGraph.target(for: uikitFwkTarget)])
@@ -3112,7 +3419,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                 "MacCatalystFramework rejected as an implicit dependency because its SDK_VARIANT 'iosmac' is not equal to this target's SDK_VARIANT 'macos' and it is not zippered. (in target 'macOSApplication' from project 'Project')",
                 "macOSFramework rejected as an implicit dependency because its SDK_VARIANT 'macos' is not equal to this target's SDK_VARIANT 'iosmac' and it is not zippered. (in target 'MacCatalystApplication' from project 'Project')",
                 "macOSFramework rejected as an implicit dependency because its SDK_VARIANT 'macos' is not equal to this target's SDK_VARIANT 'iosmac' and it is not zippered. (in target 'MacCatalystApplication' from project 'Project')",
-                "MacCatalystFramework rejected as an implicit dependency because its SDK_VARIANT 'iosmac' is not equal to this target's SDK_VARIANT 'macos' and it is not zippered. (in target 'macOSApplication' from project 'Project')"
+                "MacCatalystFramework rejected as an implicit dependency because its SDK_VARIANT 'iosmac' is not equal to this target's SDK_VARIANT 'macos' and it is not zippered. (in target 'macOSApplication' from project 'Project')",
             ])
         } else {
             delegate.checkNoDiagnostics()
@@ -3136,39 +3443,41 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "anApp",
-                                                        "SDKROOT": "iphoneos",
-                                                        "ARCHS": "arm64",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "anApp",
+                                        "SDKROOT": "iphoneos",
+                                        "ARCHS": "arm64",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
                                     "aFramework.framework",
                                     "anotherFramework.framework",
-                                ]),
+                                ])
                             ]
                         ),
                         TestStandardTarget(
                             "iOSFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "aFramework",
-                                                        "SDKROOT": "iphoneos",
-                                                        "ARCHS": "arm64",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "aFramework",
+                                        "SDKROOT": "iphoneos",
+                                        "ARCHS": "arm64",
+                                    ]
+                                )
                             ],
                             productReferenceName: "aFramework.framework"
                         ),
@@ -3176,13 +3485,14 @@ fileprivate enum TargetPlatformSpecializationMode {
                             "oldFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "anotherFramework",
-                                                        "SDKROOT": "iphoneos",
-                                                        "ARCHS": "arm64e",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "anotherFramework",
+                                        "SDKROOT": "iphoneos",
+                                        "ARCHS": "arm64e",
+                                    ]
+                                )
                             ],
                             productReferenceName: "anotherFramework.framework"
                         ),
@@ -3190,18 +3500,19 @@ fileprivate enum TargetPlatformSpecializationMode {
                             "updatedOldFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug",
-                                                       buildSettings: [
-                                                        "PRODUCT_NAME": "anotherFramework",
-                                                        "SDKROOT": "iphoneos",
-                                                        "ARCHS": "arm64",
-                                                       ]
-                                                      ),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "anotherFramework",
+                                        "SDKROOT": "iphoneos",
+                                        "ARCHS": "arm64",
+                                    ]
+                                )
                             ],
                             productReferenceName: "anotherFramework.framework"
                         ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -3238,14 +3549,18 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func implicitDependenciesUseOverridingParameters() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [TestProject("aProject",
-                                                                 groupTree: TestGroup("SomeFiles", children: [TestFile("aFramework.framework")]),
-                                                                 targets: [
-                                                                    TestStandardTarget("anApp", type: .application, buildPhases: [TestFrameworksBuildPhase(["aFramework.framework"])]),
-                                                                    TestStandardTarget("aFramework", type: .application, productReferenceName: "aFramework.framework"),
-                                                                 ]
-                                                                )]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles", children: [TestFile("aFramework.framework")]),
+                    targets: [
+                        TestStandardTarget("anApp", type: .application, buildPhases: [TestFrameworksBuildPhase(["aFramework.framework"])]),
+                        TestStandardTarget("aFramework", type: .application, productReferenceName: "aFramework.framework"),
+                    ]
+                )
+            ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
@@ -3254,7 +3569,7 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildParametersForApp = BuildParameters(configuration: "Debug", overrides: ["SWIFT_MIGRATE_DIR": "/app1"])
         let buildParametersForFwk = BuildParameters(configuration: "Debug", overrides: ["SWIFT_MIGRATE_DIR": "/fwk"])
         let appTarget = BuildRequest.BuildTargetInfo(parameters: buildParametersForApp, target: project.targets[0])
-        let fwkTarget  = BuildRequest.BuildTargetInfo(parameters: buildParametersForFwk, target: project.targets[1])
+        let fwkTarget = BuildRequest.BuildTargetInfo(parameters: buildParametersForFwk, target: project.targets[1])
         let buildRequest = BuildRequest(parameters: BuildParameters(configuration: "Debug"), buildTargets: [appTarget, fwkTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
@@ -3291,7 +3606,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             ],
             "TestDelay": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-delay_framework aFramework -delay-lDynamic -delay-lStatic",
+                    "OTHER_LDFLAGS": "-delay_framework aFramework -delay-lDynamic -delay-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
@@ -3302,7 +3617,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             // There is no -hidden_framework option.
             "TestHidden": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-hidden-lDynamic -hidden-lStatic",
+                    "OTHER_LDFLAGS": "-hidden-lDynamic -hidden-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aDynamicLib",
@@ -3311,7 +3626,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             ],
             "TestLazy": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-lazy_framework aFramework -lazy-lDynamic -lazy-lStatic",
+                    "OTHER_LDFLAGS": "-lazy_framework aFramework -lazy-lDynamic -lazy-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
@@ -3321,7 +3636,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             ],
             "TestMerge": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-merge_framework aFramework -merge-lDynamic -merge-lStatic",
+                    "OTHER_LDFLAGS": "-merge_framework aFramework -merge-lDynamic -merge-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
@@ -3331,7 +3646,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             ],
             "TestNoMerge": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-no_merge_framework aFramework -no_merge-lDynamic -no_merge-lStatic",
+                    "OTHER_LDFLAGS": "-no_merge_framework aFramework -no_merge-lDynamic -no_merge-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
@@ -3341,7 +3656,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             ],
             "TestNeeded": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-needed_framework aFramework -needed-lDynamic -needed-lStatic",
+                    "OTHER_LDFLAGS": "-needed_framework aFramework -needed-lDynamic -needed-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
@@ -3351,17 +3666,17 @@ fileprivate enum TargetPlatformSpecializationMode {
             ],
             "TestReexport": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-reexport_framework aFramework -reexport-lDynamic -reexport-lStatic",
+                    "OTHER_LDFLAGS": "-reexport_framework aFramework -reexport-lDynamic -reexport-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
                     "aDynamicLib",
                     "aStaticLib",
-                ]
+                ],
             ],
             "TestWeak": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-weak_framework aFramework -weak-lDynamic -weak-lStatic",
+                    "OTHER_LDFLAGS": "-weak_framework aFramework -weak-lDynamic -weak-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
@@ -3371,7 +3686,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             ],
             "TestAssertWeak": [
                 "Settings": [
-                    "OTHER_LDFLAGS": "-assert_weak_framework aFramework -assert-weak-lDynamic -assert-weak-lStatic",
+                    "OTHER_LDFLAGS": "-assert_weak_framework aFramework -assert-weak-lDynamic -assert-weak-lStatic"
                 ],
                 "ExpectedDependencies": [
                     "aFramework",
@@ -3390,7 +3705,7 @@ fileprivate enum TargetPlatformSpecializationMode {
         ]
         let targetNames = targetInfo.keys.sorted()
         var targets: [any TestTarget] = [
-            TestAggregateTarget("test", dependencies: targetNames),
+            TestAggregateTarget("test", dependencies: targetNames)
         ]
         targetNames.forEach { targetName in
             guard let info = targetInfo[targetName] else {
@@ -3401,16 +3716,18 @@ fileprivate enum TargetPlatformSpecializationMode {
                 Issue.record("Target info record for '\(targetName)' does not have a valid 'Settings' entry")
                 return
             }
-            targets.append(TestStandardTarget(
-                targetName,
-                type: .application,
-                buildConfigurations: [
-                    TestBuildConfiguration(
-                        "Debug",
-                        buildSettings: settings
-                    ),
-                ]
-            ))
+            targets.append(
+                TestStandardTarget(
+                    targetName,
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: settings
+                        )
+                    ]
+                )
+            )
         }
         // Ensure that more than one target has the same "stem" ("Dynamic"), so that we don't get an ambiguous match including the framework from a -lDynamic argument.  So we never actually match against the 'aFramework2' target, it's just here to test that.
         targets.append(TestStandardTarget("aFramework", type: .application, productReferenceName: "aFramework.framework"))
@@ -3424,13 +3741,16 @@ fileprivate enum TargetPlatformSpecializationMode {
             projects: [
                 TestProject(
                     "aProject",
-                    groupTree: TestGroup("SomeFiles", children: [
-                        TestFile("aFramework.framework"),
-                        TestFile("libDynamic.dylib"),
-                        TestFile("libStatic.a"),
-                    ]),
+                    groupTree: TestGroup(
+                        "SomeFiles",
+                        children: [
+                            TestFile("aFramework.framework"),
+                            TestFile("libDynamic.dylib"),
+                            TestFile("libStatic.a"),
+                        ]
+                    ),
                     targets: targets
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -3465,8 +3785,7 @@ fileprivate enum TargetPlatformSpecializationMode {
             }
             if expectedDependencies.isEmpty {
                 #expect(buildGraph.dependencies(of: target).isEmpty)
-            }
-            else {
+            } else {
                 for dependencyName in expectedDependencies {
                     guard let dependencyTarget = (dependencyClosure.first { $0.target.name == dependencyName }) else {
                         Issue.record("Could not find target in dependency closure named '\(dependencyName)' from target info record for '\(targetName)'")
@@ -3492,23 +3811,23 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("aFramework.framework"),
+                            TestFile("aFramework.framework")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    TestBuildFile("aFramework.framework", platformFilters: PlatformFilter.macCatalystFilters),
-                                ]),
+                                    TestBuildFile("aFramework.framework", platformFilters: PlatformFilter.macCatalystFilters)
+                                ])
                             ]
                         )
                     ]
@@ -3517,20 +3836,19 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
-                        ),
+                        )
                     ]
                 ),
             ]
@@ -3570,24 +3888,24 @@ fileprivate enum TargetPlatformSpecializationMode {
                         "G1",
                         children: [
                             TestFile("aFramework.framework"),
-                            TestFile("bFramework", path: "bFramework.framework/Versions/A/bFramework", fileType: "compiled.mach-o.executable", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR"))
+                            TestFile("bFramework", path: "bFramework.framework/Versions/A/bFramework", fileType: "compiled.mach-o.executable", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
                                     "aFramework.framework",
                                     "bFramework",
-                                ]),
+                                ])
                             ]
                         )
                     ]
@@ -3596,39 +3914,38 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "aFramework2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "bFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "bFramework2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"])
                             ]
                         ),
                     ]
@@ -3656,10 +3973,12 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
         let dependencyClosure = buildGraph.allTargets
         #expect(dependencyClosure.map({ $0.target.name }) == ["aFramework1", "bFramework1", "anApp"])
-        #expect(try buildGraph.dependencies(appTarget) == [
-            try buildGraph.target(for: fwkTarget),
-            try buildGraph.target(for: fwkTarget2),
-        ])
+        #expect(
+            try buildGraph.dependencies(appTarget) == [
+                try buildGraph.target(for: fwkTarget),
+                try buildGraph.target(for: fwkTarget2),
+            ]
+        )
         #expect(try buildGraph.dependencies(fwkTarget) == [])
         delegate.checkDiagnostics([
             "[targetIntegrity] Multiple targets match implicit dependency for product reference 'aFramework.framework'. Consider adding an explicit dependency on the intended target to resolve this ambiguity.\nTarget 'aFramework1' (in project 'P2')\nTarget 'aFramework2' (in project 'P2') (in target 'anApp' from project 'P1')",
@@ -3680,27 +3999,30 @@ fileprivate enum TargetPlatformSpecializationMode {
                         "G1",
                         children: [
                             TestFile("aFramework.framework"),
-                            TestFile("bFramework", path: "bFramework.framework/Versions/A/bFramework", fileType: "compiled.mach-o.executable", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR"))
+                            TestFile("bFramework", path: "bFramework.framework/Versions/A/bFramework", fileType: "compiled.mach-o.executable", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [
-                                    "PRODUCT_NAME": "anApp",
-                                    "OTHER_LDFLAGS": "-framework FlagFramework -lCool"
-                                ]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "anApp",
+                                        "OTHER_LDFLAGS": "-framework FlagFramework -lCool",
+                                    ]
+                                )
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
                                     "aFramework.framework",
                                     "bFramework",
-                                ]),
+                                ])
                             ],
                             dependencies: [
                                 "aFramework1",
@@ -3714,67 +4036,66 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "aFramework2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "bFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "bFramework2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "bFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "flagFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "FlagFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "FlagFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "flagFramework2",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "FlagFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "FlagFramework"])
                             ]
                         ),
                         TestStandardTarget(
                             "coolLib1",
                             type: .dynamicLibrary,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Cool"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Cool"])
                             ]
                         ),
                         TestStandardTarget(
                             "coolLib2",
                             type: .staticLibrary,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Cool"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Cool"])
                             ]
                         ),
                     ]
@@ -3804,12 +4125,14 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
         let dependencyClosure = buildGraph.allTargets
         #expect(dependencyClosure.map({ $0.target.name }) == ["aFramework1", "bFramework1", "flagFramework2", "coolLib1", "anApp"])
-        #expect(try buildGraph.dependencies(appTarget) == [
-            try buildGraph.target(for: fwkTarget),
-            try buildGraph.target(for: fwkTarget2),
-            try buildGraph.target(for: flagFramework2),
-            try buildGraph.target(for: coolLib1)
-        ])
+        #expect(
+            try buildGraph.dependencies(appTarget) == [
+                try buildGraph.target(for: fwkTarget),
+                try buildGraph.target(for: fwkTarget2),
+                try buildGraph.target(for: flagFramework2),
+                try buildGraph.target(for: coolLib1),
+            ]
+        )
         #expect(try buildGraph.dependencies(fwkTarget) == [])
         delegate.checkNoDiagnostics()
     }
@@ -3830,23 +4153,23 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "Base",
-                                ]),
+                                    "Base"
+                                ])
                             ]
                         )
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -3887,33 +4210,36 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "Base",
-                                ]),
+                                    "Base"
+                                ])
                             ]
                         ),
                         TestStandardTarget(
                             "aFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [
-                                    "PRODUCT_NAME": "Base",
-                                    "SUPPORTED_PLATFORMS": "watchos watchsimulator",
-                                ]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "Base",
+                                        "SUPPORTED_PLATFORMS": "watchos watchsimulator",
+                                    ]
+                                )
                             ]
                         ),
                     ]
-                ),
+                )
             ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -3955,24 +4281,24 @@ fileprivate enum TargetPlatformSpecializationMode {
                         "G1",
                         children: [
                             TestFile("Base.framework"),
-                            TestFile("libBase.dylib")
+                            TestFile("libBase.dylib"),
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
                                     "Base.framework",
                                     "libBase.dylib",
-                                ]),
+                                ])
                             ]
                         )
                     ]
@@ -3981,25 +4307,24 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"])
                             ]
                         ),
                         TestStandardTarget(
                             "aLibrary1",
                             type: .dynamicLibrary,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"])
                             ]
                         ),
                     ]
@@ -4027,10 +4352,12 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
         let dependencyClosure = buildGraph.allTargets
         #expect(dependencyClosure.map({ $0.target.name }) == ["aFramework1", "aLibrary1", "anApp"])
-        #expect(try buildGraph.dependencies(appTarget) == [
-            try buildGraph.target(for: fwkTarget),
-            try buildGraph.target(for: libTarget),
-        ])
+        #expect(
+            try buildGraph.dependencies(appTarget) == [
+                try buildGraph.target(for: fwkTarget),
+                try buildGraph.target(for: libTarget),
+            ]
+        )
         #expect(try buildGraph.dependencies(fwkTarget) == [])
         delegate.checkNoDiagnostics()
     }
@@ -4051,19 +4378,19 @@ fileprivate enum TargetPlatformSpecializationMode {
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "anApp"])
                             ],
                             buildPhases: [
                                 TestFrameworksBuildPhase([
-                                    "Base",
-                                ]),
+                                    "Base"
+                                ])
                             ]
                         )
                     ]
@@ -4072,25 +4399,24 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework1",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"])
                             ]
                         ),
                         TestStandardTarget(
                             "aLibrary1",
                             type: .dynamicLibrary,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"])
                             ]
                         ),
                     ]
@@ -4117,9 +4443,11 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: .dependency)
         let dependencyClosure = buildGraph.allTargets
         #expect(dependencyClosure.map({ $0.target.name }) == ["aFramework1", "anApp"])
-        #expect(try buildGraph.dependencies(appTarget) == [
-            try buildGraph.target(for: fwkTarget),
-        ])
+        #expect(
+            try buildGraph.dependencies(appTarget) == [
+                try buildGraph.target(for: fwkTarget)
+            ]
+        )
         #expect(try buildGraph.dependencies(fwkTarget) == [])
         delegate.checkNoDiagnostics()
     }
@@ -4127,31 +4455,43 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func packagesDoNotConsiderImplicitDependencies() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace", projects: [
-            TestProject("Project", groupTree: TestGroup("RootGroup"),
-                        targets: [
-                            TestStandardTarget(
-                                "Base",
-                                type: .framework,
-                                buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"]),
-                                ]
-                            ),
-                        ]),
-            TestPackageProject("Package", groupTree: TestGroup("RootGroup"),
-                               targets: [
-                                TestStandardTarget(
-                                    "Package",
-                                    type: .objectFile,
-                                    buildConfigurations: [
-                                        TestBuildConfiguration("Debug", buildSettings: [
-                                            "PRODUCT_NAME": "pkg",
-                                            "OTHER_LDFLAGS": "-framework Base",
-                                        ]),
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "Project",
+                    groupTree: TestGroup("RootGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "Base",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"])
+                            ]
+                        )
+                    ]
+                ),
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("RootGroup"),
+                    targets: [
+                        TestStandardTarget(
+                            "Package",
+                            type: .objectFile,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "pkg",
+                                        "OTHER_LDFLAGS": "-framework Base",
                                     ]
-                                ),
-                               ]),
-        ]).load(core)
+                                )
+                            ]
+                        )
+                    ]
+                ),
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
 
         let buildParameters = BuildParameters(configuration: "Debug")
@@ -4159,46 +4499,54 @@ fileprivate enum TargetPlatformSpecializationMode {
         let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [pkgTarget], continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
 
-
         for type in TargetGraphFactory.GraphType.allCases {
             let delegate = EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace)
             let buildGraph = await TargetGraphFactory(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate).graph(type: type)
-            #expect(buildGraph.allTargets.map({ $0.target.name }) == ["Package"]) // does not contain 'Base' even though we are linking it
+            #expect(buildGraph.allTargets.map({ $0.target.name }) == ["Package"])  // does not contain 'Base' even though we are linking it
         }
     }
 
     @Test
     func implicitDependenciesWithNameCollisionOnPackageTarget() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace", projects: [
-            TestProject("Project", groupTree: TestGroup("RootGroup", children: [TestFile("NameCollision.framework")]),
-                        targets: [
-                            TestStandardTarget(
-                                "Base",
-                                type: .framework,
-                                buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"]),
-                                ],
-                                buildPhases: [
-                                    TestFrameworksBuildPhase(["NameCollision.framework"])
-                                ],
-                                dependencies: [TestTargetDependency("NameCollision")]
-                            ),
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "Project",
+                    groupTree: TestGroup("RootGroup", children: [TestFile("NameCollision.framework")]),
+                    targets: [
+                        TestStandardTarget(
+                            "Base",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "Base"])
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase(["NameCollision.framework"])
+                            ],
+                            dependencies: [TestTargetDependency("NameCollision")]
+                        ),
 
-                            TestStandardTarget(
-                                "NameCollision",
-                                type: .framework,
-                                buildConfigurations: [
-                                    TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "NameCollision"]),
-                                ]
-                            ),
-                        ]),
-            TestPackageProject("Package", groupTree: TestGroup("RootGroup"),
-                               targets: [
-                                TestPackageProductTarget("Package", frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("NameCollision"))]), buildConfigurations: [ TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "NameCollision"]) ], dependencies: ["NameCollision"]),
-                                TestStandardTarget("NameCollision", type: .framework),
-                               ]),
-        ]).load(core)
+                        TestStandardTarget(
+                            "NameCollision",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "NameCollision"])
+                            ]
+                        ),
+                    ]
+                ),
+                TestPackageProject(
+                    "Package",
+                    groupTree: TestGroup("RootGroup"),
+                    targets: [
+                        TestPackageProductTarget("Package", frameworksBuildPhase: TestFrameworksBuildPhase([TestBuildFile(.target("NameCollision"))]), buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "NameCollision"])], dependencies: ["NameCollision"]),
+                        TestStandardTarget("NameCollision", type: .framework),
+                    ]
+                ),
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
 
         let buildParameters = BuildParameters(configuration: "Debug")
@@ -4219,25 +4567,29 @@ fileprivate enum TargetPlatformSpecializationMode {
         }
     }
 
-
-
     @Test
     func consistentlyUseParametersFromBuildRequest() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [
-                                            TestProject("aProject",
-                                                        groupTree: TestGroup("SomeFiles"),
-                                                        targets: [
-                                                            TestStandardTarget("App", type: .application, dependencies: ["Framework", "PackageProduct"]),
-                                                            TestStandardTarget("Framework", type: .framework),
-                                                        ]),
-                                            TestPackageProject("aPackageProject",
-                                                               groupTree: TestGroup("SomeMoreFiles"),
-                                                               targets: [
-                                                                TestPackageProductTarget("PackageProduct", frameworksBuildPhase: TestFrameworksBuildPhase(), buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "auto", "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"])]),
-                                                               ]),
-                                          ]).load(core)
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    targets: [
+                        TestStandardTarget("App", type: .application, dependencies: ["Framework", "PackageProduct"]),
+                        TestStandardTarget("Framework", type: .framework),
+                    ]
+                ),
+                TestPackageProject(
+                    "aPackageProject",
+                    groupTree: TestGroup("SomeMoreFiles"),
+                    targets: [
+                        TestPackageProductTarget("PackageProduct", frameworksBuildPhase: TestFrameworksBuildPhase(), buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: ["SDKROOT": "auto", "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)"])])
+                    ]
+                ),
+            ]
+        ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
 
         let buildParameters = BuildParameters(configuration: "Debug", activeRunDestination: RunDestinationInfo.macOS).mergingOverrides(["BEST": "1"])
@@ -4266,7 +4618,8 @@ fileprivate enum TargetPlatformSpecializationMode {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     // app files
                     TestFile("app/app.swift"),
@@ -4276,35 +4629,42 @@ fileprivate enum TargetPlatformSpecializationMode {
 
                     // Shared framework files
                     TestFile("shared/lib.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "$(ARCHS_STANDARD)",
-                    "ENABLE_ON_DEMAND_RESOURCES": "NO",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "CODE_SIGN_IDENTITY": "",
-                    "SWIFT_VERSION": swiftVersion,
-                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "ENABLE_ON_DEMAND_RESOURCES": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "CODE_SIGN_IDENTITY": "",
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "App",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                        ])
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx"
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["app/app.swift"]),
                         TestFrameworksBuildPhase([
                             TestBuildFile("Shared.framework"),
                             TestBuildFile("MultiPlat.framework"),
-                        ])
+                        ]),
                     ],
                     dependencies: []
                 ),
@@ -4312,67 +4672,80 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "MultiPlat Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "PRODUCT_NAME": "MultiPlat",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "PRODUCT_NAME": "MultiPlat",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([TestBuildFile("multiplat/multiplat.swift")]),
                         TestFrameworksBuildPhase([
                             TestBuildFile("Shared.framework"),
-                            TestBuildFile("MultiPlatMore.framework")
-                        ])
+                            TestBuildFile("MultiPlatMore.framework"),
+                        ]),
                     ]
                 ),
                 TestStandardTarget(
                     "Shared Framework 1",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                            "PRODUCT_NAME": "Shared",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                                "PRODUCT_NAME": "Shared",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("shared/lib.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("shared/lib.swift")])
                     ]
                 ),
                 TestStandardTarget(
                     "Shared Framework 2",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx",
-                            "PRODUCT_NAME": "Shared",
-                            "SDK_VARIANT": "iosmac",
-                            "EFFECTIVE_PLATFORM_NAME": "-iosmac",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx",
+                                "PRODUCT_NAME": "Shared",
+                                "SDK_VARIANT": "iosmac",
+                                "EFFECTIVE_PLATFORM_NAME": "-iosmac",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("shared/lib.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("shared/lib.swift")])
                     ]
                 ),
                 TestStandardTarget(
                     "Downstream MultiPlat Framework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "SDKROOT": "macosx",
-                            "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
-                            "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
-                            "PRODUCT_NAME": "MultiPlatMore",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "SDKROOT": "macosx",
+                                "SUPPORTED_PLATFORMS": "macosx iphoneos iphonesimulator",
+                                "ALLOW_TARGET_PLATFORM_SPECIALIZATION": "YES",
+                                "PRODUCT_NAME": "MultiPlatMore",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("multiplat/multiplat.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("multiplat/multiplat.swift")])
                     ]
                 ),
-            ])
+            ]
+        )
 
         let workspace = try TestWorkspace("TestWorkspace", projects: [testProject]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -4391,9 +4764,9 @@ fileprivate enum TargetPlatformSpecializationMode {
 
         if workspaceContext.userPreferences.enableDebugActivityLogs {
             delegate.checkDiagnostics([
-                "Shared Framework 2 rejected as an implicit dependency because its SDK_VARIANT 'iosmac' is not equal to this target\'s SDK_VARIANT 'macos' and it is not zippered. (in target \'App\' from project \'aProject\')", "Shared Framework 2 rejected as an implicit dependency because its SDK_VARIANT 'iosmac' is not equal to this target\'s SDK_VARIANT 'macos' and it is not zippered. (in target \'MultiPlat Framework\' from project \'aProject\')"])
-        }
-        else {
+                "Shared Framework 2 rejected as an implicit dependency because its SDK_VARIANT 'iosmac' is not equal to this target\'s SDK_VARIANT 'macos' and it is not zippered. (in target \'App\' from project \'aProject\')", "Shared Framework 2 rejected as an implicit dependency because its SDK_VARIANT 'iosmac' is not equal to this target\'s SDK_VARIANT 'macos' and it is not zippered. (in target \'MultiPlat Framework\' from project \'aProject\')",
+            ])
+        } else {
             delegate.checkNoDiagnostics()
         }
     }
@@ -4406,43 +4779,51 @@ fileprivate enum TargetPlatformSpecializationMode {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", path: "Sources",
+                "Sources",
+                path: "Sources",
                 children: [
                     // app files
                     TestFile("app/app.swift"),
 
                     // framework files
                     TestFile("framework/framework.swift"),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "ARCHS": "$(ARCHS_STANDARD)",
-                    "ENABLE_ON_DEMAND_RESOURCES": "NO",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "CODE_SIGN_IDENTITY": "",
-                    "SDKROOT": "macosx",
-                    "SWIFT_VERSION": swiftVersion,
-                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                    "SKIP_INSTALL": "YES",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                ]),
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "ENABLE_ON_DEMAND_RESOURCES": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "CODE_SIGN_IDENTITY": "",
+                        "SDKROOT": "macosx",
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                        "SKIP_INSTALL": "YES",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "DefaultApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "App",
-                            // IMPLICIT_DEPENDENCY_DOMAIN = default
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "App"
+                                    // IMPLICIT_DEPENDENCY_DOMAIN = default
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["app/app.swift"]),
                         TestFrameworksBuildPhase([
-                            TestBuildFile("Framework.framework"),
-                        ])
+                            TestBuildFile("Framework.framework")
+                        ]),
                     ],
                     dependencies: []
                 ),
@@ -4450,46 +4831,55 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "DefaultFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "Framework",
-                            // IMPLICIT_DEPENDENCY_DOMAIN = default
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "Framework"
+                                    // IMPLICIT_DEPENDENCY_DOMAIN = default
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")])
                     ]
                 ),
                 TestStandardTarget(
                     "OtherApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "App",
-                            "IMPLICIT_DEPENDENCY_DOMAIN": "other",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "App",
+                                "IMPLICIT_DEPENDENCY_DOMAIN": "other",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["app/app.swift"]),
                         TestFrameworksBuildPhase([
                             TestBuildFile("Framework.framework"),
                             TestBuildFile("ExplicitFramework.framework"),
-                        ])
+                        ]),
                     ],
                     dependencies: [
-                        "ExplicitFramework",
+                        "ExplicitFramework"
                     ]
                 ),
                 TestStandardTarget(
                     "OtherFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "Framework",
-                            "IMPLICIT_DEPENDENCY_DOMAIN": "other",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "Framework",
+                                "IMPLICIT_DEPENDENCY_DOMAIN": "other",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")])
                     ]
                 ),
                 // These targets test that they will not match against anything, because they set their domain to empty.
@@ -4497,33 +4887,39 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "EmptyApp",
                     type: .application,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "App",
-                            "IMPLICIT_DEPENDENCY_DOMAIN": "",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "App",
+                                "IMPLICIT_DEPENDENCY_DOMAIN": "",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["app/app.swift"]),
                         TestFrameworksBuildPhase([
                             TestBuildFile("Framework.framework"),
                             TestBuildFile("ExplicitFramework.framework"),
-                        ])
+                        ]),
                     ],
                     dependencies: [
-                        "ExplicitFramework",
+                        "ExplicitFramework"
                     ]
                 ),
                 TestStandardTarget(
                     "EmptyFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "Framework",
-                            "IMPLICIT_DEPENDENCY_DOMAIN": "",
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "Framework",
+                                "IMPLICIT_DEPENDENCY_DOMAIN": "",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")])
                     ]
                 ),
                 // Test that domains don't affect explicit dependencies.
@@ -4531,16 +4927,20 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "ExplicitFramework",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "PRODUCT_NAME": "ExplicitFramework",
-                            // IMPLICIT_DEPENDENCY_DOMAIN = default
-                        ]),
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "ExplicitFramework"
+                                    // IMPLICIT_DEPENDENCY_DOMAIN = default
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")]),
+                        TestSourcesBuildPhase([TestBuildFile("framework/framework.swift")])
                     ]
                 ),
-            ])
+            ]
+        )
         let workspace = try TestWorkspace("TestWorkspace", projects: [testProject]).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         // Enable this line to test the diagnostics.
@@ -4569,8 +4969,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "EmptyFramework rejected as an implicit dependency because its IMPLICIT_DEPENDENCY_DOMAIN is empty (trying to match this target\'s domain \'default\'). (in target \'DefaultApp\' from project \'aProject\')",
                     "OtherFramework rejected as an implicit dependency because its IMPLICIT_DEPENDENCY_DOMAIN \'other\' is not equal to this target\'s domain \'default\'. (in target \'DefaultApp\' from project \'aProject\')",
                 ])
-            }
-            else {
+            } else {
                 delegate.checkNoDiagnostics()
             }
         }
@@ -4597,8 +4996,7 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "DefaultFramework rejected as an implicit dependency because its IMPLICIT_DEPENDENCY_DOMAIN \'default\' is not equal to this target\'s domain \'other\'. (in target \'OtherApp\' from project \'aProject\')",
                     "EmptyFramework rejected as an implicit dependency because its IMPLICIT_DEPENDENCY_DOMAIN is empty (trying to match this target\'s domain \'other\'). (in target \'OtherApp\' from project \'aProject\')",
                 ])
-            }
-            else {
+            } else {
                 delegate.checkNoDiagnostics()
             }
         }
@@ -4622,10 +5020,9 @@ fileprivate enum TargetPlatformSpecializationMode {
 
             if workspaceContext.userPreferences.enableDebugActivityLogs {
                 delegate.checkDiagnostics([
-                    "EmptyApp not resolving implicit dependencies because IMPLICIT_DEPENDENCY_DOMAIN is empty. (in target \'EmptyApp\' from project \'aProject\')",
+                    "EmptyApp not resolving implicit dependencies because IMPLICIT_DEPENDENCY_DOMAIN is empty. (in target \'EmptyApp\' from project \'aProject\')"
                 ])
-            }
-            else {
+            } else {
                 delegate.checkNoDiagnostics()
             }
         }
@@ -4634,61 +5031,68 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test
     func implicitDependenciesHonorExcludedSourceFileNames() async throws {
         let core = try await getCore()
-        let workspace = try TestWorkspace("Workspace",
-                                          projects: [
-                                            TestProject(
-                                                "Project",
-                                                groupTree: TestGroup("SomeFiles"),
-                                                buildConfigurations: [
-                                                    TestBuildConfiguration("Release"),
-                                                    TestBuildConfiguration("Release-LightDeps"),
-                                                ],
-                                                targets: [
-                                                    TestStandardTarget(
-                                                        "AppTarget",
-                                                        type: .application,
-                                                        buildConfigurations: [
-                                                            TestBuildConfiguration("Release"),
-                                                            TestBuildConfiguration("Release-LightDeps", buildSettings: [
-                                                                "EXCLUDED_SOURCE_FILE_NAMES": "SometimesUsedDependency.framework",
-                                                            ]),
-                                                        ],
-                                                        buildPhases: [
-                                                            TestFrameworksBuildPhase([
-                                                                "AlwaysUsedDependency.framework",
-                                                                "SometimesUsedDependency.framework",
-                                                            ]),
-                                                            TestCopyFilesBuildPhase([
-                                                                "AlwaysUsedDependency.framework",
-                                                                "SometimesUsedDependency.framework",
-                                                            ], destinationSubfolder: .frameworks),
-                                                        ]
-                                                    ),
-                                                    TestStandardTarget(
-                                                        "AlwaysUsedDependency",
-                                                        type: .framework,
-                                                        buildConfigurations: [
-                                                            TestBuildConfiguration("Release"),
-                                                            TestBuildConfiguration("Release-LightDeps"),
-                                                        ],
-                                                        buildPhases: [
-                                                            TestFrameworksBuildPhase(),
-                                                        ]
-                                                    ),
-                                                    TestStandardTarget(
-                                                        "SometimesUsedDependency",
-                                                        type: .framework,
-                                                        buildConfigurations: [
-                                                            TestBuildConfiguration("Release"),
-                                                            TestBuildConfiguration("Release-LightDeps"),
-                                                        ],
-                                                        buildPhases: [
-                                                            TestFrameworksBuildPhase(),
-                                                        ]
-                                                    ),
-                                                ]
-                                            )
-                                          ]
+        let workspace = try TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "Project",
+                    groupTree: TestGroup("SomeFiles"),
+                    buildConfigurations: [
+                        TestBuildConfiguration("Release"),
+                        TestBuildConfiguration("Release-LightDeps"),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "AppTarget",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release"),
+                                TestBuildConfiguration(
+                                    "Release-LightDeps",
+                                    buildSettings: [
+                                        "EXCLUDED_SOURCE_FILE_NAMES": "SometimesUsedDependency.framework"
+                                    ]
+                                ),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "AlwaysUsedDependency.framework",
+                                    "SometimesUsedDependency.framework",
+                                ]),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "AlwaysUsedDependency.framework",
+                                        "SometimesUsedDependency.framework",
+                                    ],
+                                    destinationSubfolder: .frameworks
+                                ),
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "AlwaysUsedDependency",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release"),
+                                TestBuildConfiguration("Release-LightDeps"),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase()
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "SometimesUsedDependency",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release"),
+                                TestBuildConfiguration("Release-LightDeps"),
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase()
+                            ]
+                        ),
+                    ]
+                )
+            ]
         ).load(core)
 
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
@@ -4739,21 +5143,24 @@ fileprivate enum TargetPlatformSpecializationMode {
                     groupTree: TestGroup(
                         "G1",
                         children: [
-                            TestFile("aFramework.framework"),
+                            TestFile("aFramework.framework")
                         ]
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "anApp",
                             type: .application,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: [
-                                    "PRODUCT_NAME": "anApp",
-                                    "MODULE_DEPENDENCIES": "'public aFramework' nonExisting",
-                                ]),
+                                TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "PRODUCT_NAME": "anApp",
+                                        "MODULE_DEPENDENCIES": "'public aFramework' nonExisting",
+                                    ]
+                                )
                             ]
                         )
                     ]
@@ -4762,20 +5169,19 @@ fileprivate enum TargetPlatformSpecializationMode {
                     "P2",
                     groupTree: TestGroup(
                         "G2",
-                        children:[
-                        ]
+                        children: []
                     ),
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                        TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     targets: [
                         TestStandardTarget(
                             "aFramework",
                             type: .framework,
                             buildConfigurations: [
-                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"]),
+                                TestBuildConfiguration("Debug", buildSettings: ["PRODUCT_NAME": "aFramework"])
                             ]
-                        ),
+                        )
                     ]
                 ),
             ]
@@ -4811,144 +5217,153 @@ fileprivate enum TargetPlatformSpecializationMode {
     @Test(.requireSDKs(.iOS))
     func mergedFrameworkPropertyImposition() async throws {
         let core = try await getCore()
-        let workspace = try await TestWorkspace("Workspace",
-                                                projects: [
-                                                    TestProject(
-                                                        "aProject",
-                                                        groupTree: TestGroup("SomeFiles"),
-                                                        buildConfigurations: [
-                                                            TestBuildConfiguration(
-                                                                "Release",
-                                                                buildSettings: [
-                                                                    "CODE_SIGN_IDENTITY": "-",
-                                                                    "INFOPLIST_FILE": "$(TARGET_NAME)-Info.plist",
-                                                                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                                                                    "SDKROOT": "iphoneos",
-                                                                    "SWIFT_INSTALL_OBJC_HEADER": "NO",
-                                                                    "SWIFT_VERSION": swiftVersion,
-                                                                    "TAPI_EXEC": tapiToolPath.str,
-                                                                ]),
-                                                        ],
-                                                        targets: [
-                                                            // App target
-                                                            TestStandardTarget(
-                                                                "AppTarget",
-                                                                type: .application,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release"),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                        "MergedFwkTarget.framework",
-                                                                    ]),
-                                                                    // Embed
-                                                                    TestCopyFilesBuildPhase([
-                                                                        "MergedFwkTarget.framework",
-                                                                        "FwkTarget1.framework",
-                                                                        "FwkTarget2.framework",
-                                                                        // FIXME: rdar://105297527: Realistically people will add the dylib here, but we should not copy it if we merged it into the merged framework
-                                                                    ], destinationSubfolder: .frameworks),
-                                                                ],
-                                                                dependencies: ["MergedFwkTarget"]
-                                                            ),
-                                                            // Merged framework target
-                                                            TestStandardTarget(
-                                                                "MergedFwkTarget",
-                                                                type: .framework,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release",
-                                                                                           buildSettings: [
-                                                                                            "AUTOMATICALLY_MERGE_DEPENDENCIES": "YES",
-                                                                                           ]),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                        "FwkTarget1.framework",
-                                                                        "FwkTarget2.framework",
-                                                                        "libDylibTarget.dylib",
-                                                                        "libStaticLibTarget.a",
-                                                                    ]),
-                                                                    TestCopyFilesBuildPhase([
-                                                                        "XPCServiceTarget.xpc",
-                                                                    ], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(CONTENTS_FOLDER_PATH)/XPCServices"),
-                                                                    TestCopyFilesBuildPhase([
-                                                                        "BundleTarget.bundle",
-                                                                    ], destinationSubfolder: .plugins),
-                                                                ],
-                                                                // We want to test both explicit and implicit dependencies so not all targets are listed here.
-                                                                dependencies: ["FwkTarget1"]
-                                                            ),
-                                                            // Targets which the merged target depends on.  Some of these will be configured as mergeable, and others will not.
-                                                            TestStandardTarget(
-                                                                "FwkTarget1",
-                                                                type: .framework,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release"),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                    ]),
-                                                                ]
-                                                            ),
-                                                            TestStandardTarget(
-                                                                "FwkTarget2",
-                                                                type: .framework,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release"),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                    ]),
-                                                                ]
-                                                            ),
-                                                            TestStandardTarget(
-                                                                "DylibTarget",
-                                                                type: .dynamicLibrary,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release"),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                    ]),
-                                                                ]
-                                                            ),
-                                                            TestStandardTarget(
-                                                                "StaticLibTarget",
-                                                                type: .staticLibrary,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release"),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                    ]),
-                                                                ]
-                                                            ),
-                                                            TestStandardTarget(
-                                                                // The merged framework embedding an XPC service seems like something that might occur.
-                                                                "XPCServiceTarget",
-                                                                type: .xpcService,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release"),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                    ]),
-                                                                ]
-                                                            ),
-                                                            TestStandardTarget(
-                                                                // Bundles are largely treated like dylibs, but they cannot be explicitly linked against and must be dlopen()ed.
-                                                                "BundleTarget",
-                                                                type: .bundle,
-                                                                buildConfigurations: [
-                                                                    TestBuildConfiguration("Release"),
-                                                                ],
-                                                                buildPhases: [
-                                                                    TestFrameworksBuildPhase([
-                                                                    ]),
-                                                                ]
-                                                            ),
-                                                        ])
-                                                ]
+        let workspace = try await TestWorkspace(
+            "Workspace",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup("SomeFiles"),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Release",
+                            buildSettings: [
+                                "CODE_SIGN_IDENTITY": "-",
+                                "INFOPLIST_FILE": "$(TARGET_NAME)-Info.plist",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "iphoneos",
+                                "SWIFT_INSTALL_OBJC_HEADER": "NO",
+                                "SWIFT_VERSION": swiftVersion,
+                                "TAPI_EXEC": tapiToolPath.str,
+                            ]
+                        )
+                    ],
+                    targets: [
+                        // App target
+                        TestStandardTarget(
+                            "AppTarget",
+                            type: .application,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release")
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "MergedFwkTarget.framework"
+                                ]),
+                                // Embed
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "MergedFwkTarget.framework",
+                                        "FwkTarget1.framework",
+                                        "FwkTarget2.framework",
+                                        // FIXME: rdar://105297527: Realistically people will add the dylib here, but we should not copy it if we merged it into the merged framework
+                                    ],
+                                    destinationSubfolder: .frameworks
+                                ),
+                            ],
+                            dependencies: ["MergedFwkTarget"]
+                        ),
+                        // Merged framework target
+                        TestStandardTarget(
+                            "MergedFwkTarget",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration(
+                                    "Release",
+                                    buildSettings: [
+                                        "AUTOMATICALLY_MERGE_DEPENDENCIES": "YES"
+                                    ]
+                                )
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([
+                                    "FwkTarget1.framework",
+                                    "FwkTarget2.framework",
+                                    "libDylibTarget.dylib",
+                                    "libStaticLibTarget.a",
+                                ]),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "XPCServiceTarget.xpc"
+                                    ],
+                                    destinationSubfolder: .builtProductsDir,
+                                    destinationSubpath: "$(CONTENTS_FOLDER_PATH)/XPCServices"
+                                ),
+                                TestCopyFilesBuildPhase(
+                                    [
+                                        "BundleTarget.bundle"
+                                    ],
+                                    destinationSubfolder: .plugins
+                                ),
+                            ],
+                            // We want to test both explicit and implicit dependencies so not all targets are listed here.
+                            dependencies: ["FwkTarget1"]
+                        ),
+                        // Targets which the merged target depends on.  Some of these will be configured as mergeable, and others will not.
+                        TestStandardTarget(
+                            "FwkTarget1",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release")
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([])
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "FwkTarget2",
+                            type: .framework,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release")
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([])
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "DylibTarget",
+                            type: .dynamicLibrary,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release")
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([])
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "StaticLibTarget",
+                            type: .staticLibrary,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release")
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([])
+                            ]
+                        ),
+                        TestStandardTarget(
+                            // The merged framework embedding an XPC service seems like something that might occur.
+                            "XPCServiceTarget",
+                            type: .xpcService,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release")
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([])
+                            ]
+                        ),
+                        TestStandardTarget(
+                            // Bundles are largely treated like dylibs, but they cannot be explicitly linked against and must be dlopen()ed.
+                            "BundleTarget",
+                            type: .bundle,
+                            buildConfigurations: [
+                                TestBuildConfiguration("Release")
+                            ],
+                            buildPhases: [
+                                TestFrameworksBuildPhase([])
+                            ]
+                        ),
+                    ]
+                )
+            ]
         ).load(core)
         let workspaceContext = WorkspaceContext(core: core, workspace: workspace, processExecutionCache: .sharedForTesting)
         let project = workspace.projects[0]
@@ -4969,13 +5384,13 @@ fileprivate enum TargetPlatformSpecializationMode {
 
         // Check that MERGEABLE_LIBRARY was imposed on targets it should have been.
         for targetName in ["FwkTarget1", "FwkTarget2", "DylibTarget"] {
-            if let target = targetList.first(where: { $0.target.name == targetName}) {
+            if let target = targetList.first(where: { $0.target.name == targetName }) {
                 #expect(target.parameters.overrides[BuiltinMacros.MERGEABLE_LIBRARY.name] == "YES")
             }
         }
         // Check that MERGEABLE_LIBRARY was *not* imposed on targets it shouldn't have been.
         for targetName in ["StaticLibTarget", "XPCServiceTarget", "BundleTarget"] {
-            if let target = targetList.first(where: { $0.target.name == targetName}) {
+            if let target = targetList.first(where: { $0.target.name == targetName }) {
                 if let value = target.parameters.overrides[BuiltinMacros.MERGEABLE_LIBRARY.name] {
                     Issue.record("\(target.target.name) has unexpected value '\(value)' for \(BuiltinMacros.MERGEABLE_LIBRARY.name)")
                 }

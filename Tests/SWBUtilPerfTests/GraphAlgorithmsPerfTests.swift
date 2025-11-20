@@ -38,8 +38,8 @@ fileprivate struct GraphAlgorithmsPerfTests: PerfTests {
         let N = 100
         let width = N + 1
         let height = N + 1
-        for y in 0 ..< height {
-            for x in 0 ..< width {
+        for y in 0..<height {
+            for x in 0..<width {
                 if x > 0 {
                     addDep(from: Point(x, y), to: Point(x - 1, y))
                 }
@@ -59,7 +59,7 @@ fileprivate struct GraphAlgorithmsPerfTests: PerfTests {
             var rowCount = 0
             var columnCount = 0
             var diagCount = 0
-            for _ in 0 ..< numIterations {
+            for _ in 0..<numIterations {
                 rowCount += minimumDistance(from: Point(width - 1, 0), to: Point(0, 0))!
                 columnCount += minimumDistance(from: Point(0, height - 1), to: Point(0, 0))!
                 diagCount += minimumDistance(from: Point(width - 1, height - 1), to: Point(0, 0))!

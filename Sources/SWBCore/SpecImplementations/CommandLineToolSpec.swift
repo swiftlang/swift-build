@@ -36,7 +36,7 @@ public protocol InputFileGroupable: RegionVariable {
     var regionVariantName: String? { get }
 }
 
-extension FileToBuild: InputFileGroupable { }
+extension FileToBuild: InputFileGroupable {}
 
 public protocol InputFileGroupingStrategyFactory: Sendable {
     func makeStrategy(specIdentifier: String) -> any InputFileGroupingStrategy
@@ -62,7 +62,7 @@ public extension InputFileGroupingStrategy {
 }
 
 /// A grouping strategy that groups all files in a build phase which match a given build rule into the same group.  For example, all files to be processed by the Swift compiler in a build phase will be passed to a single invocation of the compiler.
-@_spi(Testing) public final class AllInputFilesGroupingStrategy : InputFileGroupingStrategy, Encodable {
+@_spi(Testing) public final class AllInputFilesGroupingStrategy: InputFileGroupingStrategy, Encodable {
 
     /// Group identifier that’s returned for every path.
     let groupIdentifier: String
@@ -78,7 +78,7 @@ public extension InputFileGroupingStrategy {
 }
 
 /// A grouping strategy that groups all files in a build phase with the same filename base into a single invocation of the tool, but files with different bases will be passed to different invocations.
-@_spi(Testing) public final class CommonFileBaseInputFileGroupingStrategy : InputFileGroupingStrategy {
+@_spi(Testing) public final class CommonFileBaseInputFileGroupingStrategy: InputFileGroupingStrategy {
 
     /// Name of the tool to which the grouping strategy belongs (used as a part of the returned group identifier).
     let toolName: String
@@ -99,7 +99,6 @@ protocol DependencyInfoEditableTaskPayload: TaskPayload {
 
 // MARK:
 
-
 /// A class that adopts this protocol can be used to collect information for creating tasks for a given command line tool spec, e.g. information from elsewhere in the build phase or target which is not local to the input files of the task being created.
 public protocol BuildPhaseInfoForToolSpec: AnyObject, Sendable {
     // Certainly other parameters can be added here, or ways to collect broader information than just on individual files, but the initial implementation only covers what it was needed for.
@@ -107,7 +106,6 @@ public protocol BuildPhaseInfoForToolSpec: AnyObject, Sendable {
     /// Have the info object collect information from the file-to-build.
     func addToContext(_ ftb: FileToBuild)
 }
-
 
 /// Discovered info about a command line tool spec.
 public protocol DiscoveredCommandLineToolSpecInfo: BuildOptionGenerationContext, Sendable {
@@ -248,14 +246,14 @@ extension DiscoveredCommandLineToolSpecInfo {
         }
         return try await producer.discoveredCommandLineToolSpecInfo(delegate, toolPath.basename, ["/usr/bin/what", "-q", toolPath.str]) { executionResult in
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-            let lines = Set(outputString.split(separator: "\n").map(String.init)) // version info is printed once per architecture slice, but we never expect them to differ
+            let lines = Set(outputString.split(separator: "\n").map(String.init))  // version info is printed once per architecture slice, but we never expect them to differ
             return try construct(AppleGenericVersionInfo(string: lines.only ?? outputString))
         }
     }
 }
 
-open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescription, @unchecked Sendable {
-    package enum CommandLineTemplateArg : Sendable {
+open class CommandLineToolSpec: PropertyDomainSpec, SpecType, TaskTypeDescription, @unchecked Sendable {
+    package enum CommandLineTemplateArg: Sendable {
         /// Placeholder for the dynamically computed executable path.
         //
         // FIXME: Note, this is only used by 'Ld.xcspec', there might be a simpler implementation.
@@ -443,9 +441,11 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
                 parser.error("invalid 'CommandLine' template placeholder arg: '\(str)'")
                 return .literal(value: parser.delegate.internalMacroNamespace.parseLiteralStringList([str]))
             default:
-                return .literal(value: parser.delegate.internalMacroNamespace.parseStringList(str) { diag in
+                return .literal(
+                    value: parser.delegate.internalMacroNamespace.parseStringList(str) { diag in
                         parser.handleMacroDiagnostic(diag, "macro parsing error in 'CommandLine' template")
-                    })
+                    }
+                )
             }
         }
     }
@@ -468,9 +468,11 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
                 parser.error("invalid 'RuleName' template placeholder arg: '\(str)'")
                 return .literal(value: parser.delegate.internalMacroNamespace.parseLiteralStringList([str]))
             default:
-                return .literal(value: parser.delegate.internalMacroNamespace.parseStringList(str) { diag in
+                return .literal(
+                    value: parser.delegate.internalMacroNamespace.parseStringList(str) { diag in
                         parser.handleMacroDiagnostic(diag, "macro parsing error in 'RuleName' template")
-                    })
+                    }
+                )
             }
         }
     }
@@ -479,8 +481,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         // Parse the execution description, which is a macro-expandable display description of a single invocation of the tool.
         if let execDescString = parser.parseString("ExecDescription") {
             self.execDescription = parser.delegate.internalMacroNamespace.parseString(execDescString)
-        }
-        else {
+        } else {
             self.execDescription = nil
         }
 
@@ -559,14 +560,19 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         if let envVariables = parser.parseObject("EnvironmentVariables", inherited: false) {
             if case .plDict(let items) = envVariables {
                 var variables: [(String, MacroStringExpression)] = []
-                for (key,valueData) in items.sorted(by: \.0) {
+                for (key, valueData) in items.sorted(by: \.0) {
                     guard case .plString(let value) = valueData else {
                         parser.error("invalid value for '\(key)' key in 'EnvironmentVariables' (expected string)")
                         continue
                     }
-                    variables.append((key, parser.delegate.internalMacroNamespace.parseString(value) { diag in
-                        parser.handleMacroDiagnostic(diag, "macro parsing error in 'EnvironmentVariables' for key '\(key)'")
-                    }))
+                    variables.append(
+                        (
+                            key,
+                            parser.delegate.internalMacroNamespace.parseString(value) { diag in
+                                parser.handleMacroDiagnostic(diag, "macro parsing error in 'EnvironmentVariables' for key '\(key)'")
+                            }
+                        )
+                    )
                 }
                 self.environmentVariables = variables
             } else {
@@ -587,8 +593,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
 
         if let additionalDirectoriesToCreate = parser.parseStringList("AdditionalDirectoriesToCreate") {
             self.additionalDirectoriesToCreate = additionalDirectoriesToCreate.map({ parser.delegate.internalMacroNamespace.parseString($0) })
-        }
-        else {
+        } else {
             self.additionalDirectoriesToCreate = nil
         }
 
@@ -618,7 +623,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
             for grouping in groupings {
                 // We should really have something more extensible here, but for now this will do.
                 switch grouping {
-                case "tool":  groupingStrategies.append(AllInputFilesGroupingStrategy(groupIdentifier: parser.proxy.data["Identifier"]!.description))
+                case "tool": groupingStrategies.append(AllInputFilesGroupingStrategy(groupIdentifier: parser.proxy.data["Identifier"]!.description))
                 case "common-file-base": groupingStrategies.append(CommonFileBaseInputFileGroupingStrategy(toolName: parser.proxy.data["Identifier"]!.description))
                 default:
                     if let strategy = parser.delegate.groupingStrategy(name: grouping, specIdentifier: parser.proxy.data["Identifier"]!.description) {
@@ -629,8 +634,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
                 }
             }
             self.inputFileGroupingStrategies = groupingStrategies
-        }
-        else {
+        } else {
             self.inputFileGroupingStrategies = nil
         }
 
@@ -649,7 +653,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         //
         // FIXME: Eliminate any of these fields which are unused.
         parser.parseStringList("AdditionalFilesToClean")
-        parser.parseString("AdditionalInputFiles") // FIXME: This should be a string list.
+        parser.parseString("AdditionalInputFiles")  // FIXME: This should be a string list.
         parser.parseBool("CaresAboutInclusionDependencies")
         parser.parseString("CommandIdentifier")
         parser.parseObject("CommandOutputParser")
@@ -815,7 +819,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
                     outputs.append(delegate.createNode(onlyPath))
                     return .dependencyInfo(onlyPath)
                 } else {
-                    assert(!only.value.isEmpty) // shouldn't be possible to get an empty array here
+                    assert(!only.value.isEmpty)  // shouldn't be possible to get an empty array here
                     delegate.error("Multiple build options specified dependency info in ld64 format")
                 }
             case .makefile:
@@ -823,7 +827,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
                     outputs.append(delegate.createNode(onlyPath))
                     return .makefile(onlyPath)
                 } else {
-                    assert(!only.value.isEmpty) // shouldn't be possible to get an empty array here
+                    assert(!only.value.isEmpty)  // shouldn't be possible to get an empty array here
                     outputs.append(contentsOf: only.value.map(delegate.createNode))
                     return .makefiles(only.value)
                 }
@@ -900,13 +904,11 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         if swapOutputsWithInputsForIndexing {
             if let input = cbc.inputs.only, outputs.count == 1 {
                 indexingInputReplacement = input.absolutePath
-            }
-            else {
+            } else {
                 delegate.warning("SwapOutputsWithInputsForIndexing is enabled, but there were \(cbc.inputs.count) inputs and \(outputs.count) outputs (expected 1 and 1)")
                 indexingInputReplacement = nil
             }
-        }
-        else {
+        } else {
             indexingInputReplacement = nil
         }
 
@@ -916,12 +918,14 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
 
         // Add the additional outputs defined by the spec.  These are not declared as outputs but should be processed by the tool separately.
         let additionalEvaluatedOutputsResult = await additionalEvaluatedOutputs(cbc, delegate)
-        outputs.append(contentsOf: additionalEvaluatedOutputsResult.outputs.map { output in
-            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
-                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+        outputs.append(
+            contentsOf: additionalEvaluatedOutputsResult.outputs.map { output in
+                if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                    delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+                }
+                return delegate.createNode(output.path)
             }
-            return delegate.createNode(output.path)
-        })
+        )
 
         if let infoPlistContent = additionalEvaluatedOutputsResult.generatedInfoPlistContent {
             delegate.declareGeneratedInfoPlistContent(infoPlistContent)
@@ -931,10 +935,12 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         let executionDescription = resolveExecutionDescription(cbc, delegate, lookup: lookup)
 
         // Create the inputs.
-        var inputs: [any PlannedNode] = cbc.inputs.flatMap{ input -> [any PlannedNode] in
+        var inputs: [any PlannedNode] = cbc.inputs.flatMap { input -> [any PlannedNode] in
             if areInputsDirectoryTrees {
-                return [delegate.createDirectoryTreeNode(input.absolutePath),
-                        delegate.createNode(input.absolutePath)] as [any PlannedNode]
+                return [
+                    delegate.createDirectoryTreeNode(input.absolutePath),
+                    delegate.createNode(input.absolutePath),
+                ] as [any PlannedNode]
             } else {
                 return [delegate.createNode(input.absolutePath)] as [any PlannedNode]
             }
@@ -951,11 +957,16 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         await inputs.append(contentsOf: additionalInputDependencies(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(delegate.createNode))
 
         delegate.createTask(
-            type: self, dependencyData: dependencyData, payload: payload,
-            ruleInfo: ruleInfo, commandLine: commandLine,
+            type: self,
+            dependencyData: dependencyData,
+            payload: payload,
+            ruleInfo: ruleInfo,
+            commandLine: commandLine,
             environment: EnvironmentBindings(environment),
             workingDirectory: cbc.producer.defaultWorkingDirectory,
-            inputs: inputs, outputs: outputs, mustPrecede: [],
+            inputs: inputs,
+            outputs: outputs,
+            mustPrecede: [],
             action: createTaskAction(cbc, delegate),
             execDescription: executionDescription,
             preparesForIndexing: cbc.preparesForIndexing,
@@ -1007,18 +1018,20 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         let inputFileType = cbc.inputs.first?.fileType
         let lookup = { self.lookup($0, cbc, delegate) }
         let optionContext = await discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-        result.outputs.append(contentsOf: cbc.producer.effectiveFlattenedOrderedBuildOptions(self, filter: .all).flatMap { buildOption -> [(Path, String?)] in
-            // Check if the effective arguments for this build option were non-empty as a proxy for whether it got filtered out by architecture mismatch, etc.
-            guard let outputDependencies = buildOption.outputDependencies, !buildOption.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup).isEmpty else {
-                return []
-            }
-            return outputDependencies.compactMap { outputDependency in
-                guard let path = Path(scope.evaluate(outputDependency.path, lookup: lookup)).nilIfEmpty else {
-                    return nil
+        result.outputs.append(
+            contentsOf: cbc.producer.effectiveFlattenedOrderedBuildOptions(self, filter: .all).flatMap { buildOption -> [(Path, String?)] in
+                // Check if the effective arguments for this build option were non-empty as a proxy for whether it got filtered out by architecture mismatch, etc.
+                guard let outputDependencies = buildOption.outputDependencies, !buildOption.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup).isEmpty else {
+                    return []
                 }
-                return (path.normalize(), outputDependency.fileType.map { scope.evaluate($0, lookup: lookup).nilIfEmpty } ?? nil)
+                return outputDependencies.compactMap { outputDependency in
+                    guard let path = Path(scope.evaluate(outputDependency.path, lookup: lookup)).nilIfEmpty else {
+                        return nil
+                    }
+                    return (path.normalize(), outputDependency.fileType.map { scope.evaluate($0, lookup: lookup).nilIfEmpty } ?? nil)
+                }
             }
-        })
+        )
 
         return result
     }
@@ -1065,7 +1078,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         switch macro {
         case BuiltinMacros.DerivedFilesDir:
             return Static { BuiltinMacros.namespace.parseString("$(DERIVED_SOURCES_DIR)") }
-        case BuiltinMacros.InputFile,  BuiltinMacros.InputFilePath, BuiltinMacros.InputPath:
+        case BuiltinMacros.InputFile, BuiltinMacros.InputFilePath, BuiltinMacros.InputPath:
             return namespace.parseLiteralString(firstInput(\.absolutePath.str) ?? "")
         case BuiltinMacros.InputFileDir:
             return namespace.parseLiteralString(firstInput(\.absolutePath.dirname.str) ?? "")
@@ -1155,9 +1168,9 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
                 return cbc.inputs.map { $0.absolutePath.str }
             case .output:
                 // We always resolve the Output via a recursive macro evaluation. See constructTasks() for more information.
-                return [cbc.scope.evaluate(BuiltinMacros.OutputPath, lookup: { return self.lookup($0, cbc, delegate, lookup) } )]
+                return [cbc.scope.evaluate(BuiltinMacros.OutputPath, lookup: { return self.lookup($0, cbc, delegate, lookup) })]
             case .literal(let expr):
-                return cbc.scope.evaluate(expr, lookup: { return self.lookup($0, cbc, delegate, lookup) } )
+                return cbc.scope.evaluate(expr, lookup: { return self.lookup($0, cbc, delegate, lookup) })
             }
         }
     }
@@ -1245,7 +1258,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
 
             case .output:
                 // We always resolve the Output via a recursive macro evaluation. See constructTasks() for more information.
-                return [.path(Path(cbc.scope.evaluate(BuiltinMacros.OutputPath, lookup: { return self.lookup($0, cbc, delegate, lookup) } )))]
+                return [.path(Path(cbc.scope.evaluate(BuiltinMacros.OutputPath, lookup: { return self.lookup($0, cbc, delegate, lookup) })))]
 
             case .specialArgs:
                 return specialArgs.map { .literal(ByteString(encodingAsUTF8: $0)) }
@@ -1436,14 +1449,14 @@ extension CommandLineToolSpec.RuleInfoTemplateArg: ExpressibleByStringLiteral {
     }
 }
 
-open class GenericCommandLineToolSpec : CommandLineToolSpec, @unchecked Sendable {
+open class GenericCommandLineToolSpec: CommandLineToolSpec, @unchecked Sendable {
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec, isGeneric: true)
     }
 }
 
 /// A general-purpose output parser for scraping traditional POSIX-style diagnostics.  Output is passed through to the delegate as it is received, while diagnostic parsing is done line-by-line as each newline is encountered.
-open class GenericOutputParser : TaskOutputParser {
+open class GenericOutputParser: TaskOutputParser {
 
     /// The delegate that's informed about output and diagnostics.
     public let delegate: any TaskOutputParserDelegate
@@ -1606,7 +1619,7 @@ open class GenericOutputParser : TaskOutputParser {
     }
 }
 
-@_spi(Testing) public final class ShellScriptOutputParser : GenericOutputParser {
+@_spi(Testing) public final class ShellScriptOutputParser: GenericOutputParser {
     override func parseLine<S: Collection>(_ lineBytes: S) -> Bool where S.Element == UInt8 {
         if !super.parseLine(lineBytes) {
             // Use the non-failable constructor to recover from potentially invalid UTF-8
@@ -1658,8 +1671,8 @@ public final class SerializedDiagnosticsOutputParser: TaskOutputParser {
 fileprivate extension Diagnostic.FixIt {
 
     // For better performance, these are declared outside the initializer, so they are just created once, but are really just an implementation detail of the initializer.
-    static private let fixitRangeRegex = RegEx(patternLiteral: "^([^:]+):([0-9]+):([0-9]+)-([0-9]+):([0-9]+): +fixit: (.*)$") // filename + range
-    static private let fixitLineColumnRegex = RegEx(patternLiteral: "^([^:]+):([0-9]+):([0-9]+): +fixit: (.*)$") // filename + line + column
+    static private let fixitRangeRegex = RegEx(patternLiteral: "^([^:]+):([0-9]+):([0-9]+)-([0-9]+):([0-9]+): +fixit: (.*)$")  // filename + range
+    static private let fixitLineColumnRegex = RegEx(patternLiteral: "^([^:]+):([0-9]+):([0-9]+): +fixit: (.*)$")  // filename + line + column
 
     init?(_ string: String, ignorePaths: Set<String>, workingDirectory: Path) {
         // reminder: fixit lines should look like this: FILE:LINE:COL-LINE:COL: fixit: REPLACEMENT\n

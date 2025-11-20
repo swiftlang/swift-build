@@ -37,25 +37,31 @@ fileprivate struct RebuildTests: CoreBasedTests {
                     TestProject(
                         "aProject",
                         groupTree: TestGroup(
-                            "Sources", path: "Sources", children: [
+                            "Sources",
+                            path: "Sources",
+                            children: [
                                 TestFile("ClassOne.swift"),
                                 TestFile("ClassTwo.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "SDKROOT": "iphoneos",
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "INFOPLIST_FILE": "Sources/Info.plist",
-                                "SWIFT_VERSION": swiftVersion,
-                                "CODE_SIGN_IDENTITY": "-",
-                                "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
-                                "EAGER_LINKING": "NO",
                             ]
-                        )],
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": "iphoneos",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "INFOPLIST_FILE": "Sources/Info.plist",
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "CODE_SIGN_IDENTITY": "-",
+                                    "AD_HOC_CODE_SIGNING_ALLOWED": "YES",
+                                    "EAGER_LINKING": "NO",
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
-                                "Framework", type: .framework,
+                                "Framework",
+                                type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase([
                                         "ClassOne.swift",
@@ -64,8 +70,10 @@ fileprivate struct RebuildTests: CoreBasedTests {
                                     TestFrameworksBuildPhase(),
                                 ]
                             )
-                        ])
-                ])
+                        ]
+                    )
+                ]
+            )
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
 

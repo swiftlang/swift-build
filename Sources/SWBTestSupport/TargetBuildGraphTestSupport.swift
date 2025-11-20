@@ -38,7 +38,7 @@ package final class EmptyTargetDependencyResolverDelegate: TargetDependencyResol
         diagnosticsEngine(for: nil).emit(diagnostic)
     }
 
-    package func updateProgress(statusMessage: String, showInLog: Bool) { }
+    package func updateProgress(statusMessage: String, showInLog: Bool) {}
 }
 
 extension EmptyTargetDependencyResolverDelegate {
@@ -54,7 +54,6 @@ extension EmptyTargetDependencyResolverDelegate {
         #expect(self.diagnostics.formatLocalizedDescription(format, workspace: workspace, filter: { _ in true }).sorted() == diagnostics.sorted(), sourceLocation: sourceLocation)
     }
 }
-
 
 extension TargetBuildGraph {
     /// Convenience initializer which uses an empty delegate implementation for testing.

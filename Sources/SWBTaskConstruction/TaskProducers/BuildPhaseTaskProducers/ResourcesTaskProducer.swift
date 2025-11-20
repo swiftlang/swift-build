@@ -21,8 +21,7 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
 
     func shouldProcessResources(_ scope: MacroEvaluationScope) -> Bool {
         // Resources are processed only when the "build" component is present.
-        guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") ||
-            scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") else { return false }
+        guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") || scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") else { return false }
 
         // Resources are processed only if $(UNLOCALIZED_RESOURCES_FOLDER_PATH) is defined.
         guard !scope.evaluate(BuiltinMacros.UNLOCALIZED_RESOURCES_FOLDER_PATH).isEmpty else { return false }
@@ -76,7 +75,7 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
                     self.createOnDemandResourcesPlistTask(assetPacks, delegate)
 
                     // Emit AssetPackManifest[Template].plist (check for <rdar://problem/19679943>)
-                    let hasCustomAssetPackManifest = resourcesTasks.contains{ $0.outputs.contains { ["AssetPackManifest.plist", "AssetPackManifestTemplate.plist"].contains($0.path.basename) } }
+                    let hasCustomAssetPackManifest = resourcesTasks.contains { $0.outputs.contains { ["AssetPackManifest.plist", "AssetPackManifestTemplate.plist"].contains($0.path.basename) } }
                     if !hasCustomAssetPackManifest {
                         let orderingInputs: [any PlannedNode] = resourcesTasks.flatMap { $0.outputs }
                         self.context.createAssetPackManifestSpec.constructAssetPackManifestTask(self.context, assetPacks, orderingInputs: orderingInputs, scope, delegate)
@@ -229,12 +228,13 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
 
         // Return any files provided by the product type
         if let productType = context.productType {
-            additionalFilesToBuild += productType.buildPhaseFileRefAdditions["com.apple.buildphase.resources"]?.compactMap { file in
-                let path = Path(scope.evaluate(file.path))
-                guard path.isAbsolute else { context.error("unexpected non-absolute path from \(productType.identifier) buildPhaseFileRefAdditions \(file.path.stringRep): \(path.str)"); return nil }
+            additionalFilesToBuild +=
+                productType.buildPhaseFileRefAdditions["com.apple.buildphase.resources"]?.compactMap { file in
+                    let path = Path(scope.evaluate(file.path))
+                    guard path.isAbsolute else { context.error("unexpected non-absolute path from \(productType.identifier) buildPhaseFileRefAdditions \(file.path.stringRep): \(path.str)"); return nil }
 
-                return FileToBuild(absolutePath: path, inferringTypeUsing: context, regionVariantName: scope.evaluate(file.regionVariantName).nilIfEmpty)
-            } ?? []
+                    return FileToBuild(absolutePath: path, inferringTypeUsing: context, regionVariantName: scope.evaluate(file.regionVariantName).nilIfEmpty)
+                } ?? []
         }
 
         return additionalFilesToBuild

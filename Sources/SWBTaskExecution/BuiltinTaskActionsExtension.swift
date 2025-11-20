@@ -16,7 +16,7 @@ public struct BuiltinTaskActionsExtension: TaskActionExtension {
     public init() {
     }
 
-    public var taskActionImplementations: [SerializableTypeCode : any PolymorphicSerializable.Type] {
+    public var taskActionImplementations: [SerializableTypeCode: any PolymorphicSerializable.Type] {
         [
             1: AuxiliaryFileTaskAction.self,
             2: CopyPlistTaskAction.self,

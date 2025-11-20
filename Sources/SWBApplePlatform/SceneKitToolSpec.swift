@@ -13,7 +13,7 @@
 public import SWBCore
 import SWBMacro
 
-public final class SceneKitToolSpec : GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
+public final class SceneKitToolSpec: GenericCompilerSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.scntool"
 
     /// Override construction to handle the custom RESOURCE_FLAG value.

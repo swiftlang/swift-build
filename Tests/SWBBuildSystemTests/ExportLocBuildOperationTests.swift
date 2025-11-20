@@ -36,60 +36,70 @@ fileprivate struct ExportLocBuildOperationTests: CoreBasedTests {
                                 TestFile("file.h"),
                                 TestFile("file.c"),
                                 TestFile("file.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "DependentFramework",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["file.swift"]),
-                                    TestFrameworksBuildPhase(["Framework.framework"])
-                                ], dependencies: ["Framework"]),
+                                    TestFrameworksBuildPhase(["Framework.framework"]),
+                                ],
+                                dependencies: ["Framework"]
+                            ),
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
-                                buildConfigurations: [TestBuildConfiguration(
-                                    "Debug",
-                                    buildSettings: [
-                                        "DEFINES_MODULE": "YES",
-                                        "MODULEMAP_FILE_CONTENTS": "framework module Framework { header \"file.h\" }"
-                                    ])],
+                                buildConfigurations: [
+                                    TestBuildConfiguration(
+                                        "Debug",
+                                        buildSettings: [
+                                            "DEFINES_MODULE": "YES",
+                                            "MODULEMAP_FILE_CONTENTS": "framework module Framework { header \"file.h\" }",
+                                        ]
+                                    )
+                                ],
                                 buildPhases: [
                                     TestSourcesBuildPhase(["file.c"]),
-                                    TestHeadersBuildPhase([TestBuildFile("file.h", headerVisibility: .public)])
-                                ]),
-                        ])])
+                                    TestHeadersBuildPhase([TestBuildFile("file.h", headerVisibility: .public)]),
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
-                stream <<<
-                """
-                void foo(void) {};
-                """
+                stream <<< """
+                    void foo(void) {};
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.h")) { stream in
-                stream <<<
-                """
-                void foo(void);
-                """
+                stream <<< """
+                    void foo(void);
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
-                stream <<<
-                """
-                import Framework
-                func bar() {
-                    foo()
-                }
-                """
+                stream <<< """
+                    import Framework
+                    func bar() {
+                        foo()
+                    }
+                    """
             }
 
             let stringsDir = tmpDirPath.join("strings")
@@ -118,46 +128,54 @@ fileprivate struct ExportLocBuildOperationTests: CoreBasedTests {
                             children: [
                                 TestFile("file.swift"),
                                 TestFile("file2.swift"),
-                            ]),
-                        buildConfigurations: [TestBuildConfiguration(
-                            "Debug",
-                            buildSettings: [
-                                "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "SWIFT_VERSION": swiftVersion,
-                            ])],
+                            ]
+                        ),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ]
+                            )
+                        ],
                         targets: [
                             TestStandardTarget(
                                 "DependentFramework",
                                 type: .framework,
                                 buildPhases: [
                                     TestSourcesBuildPhase(["file.swift"]),
-                                    TestFrameworksBuildPhase(["Framework.framework"])
-                                ], dependencies: ["Framework"]),
+                                    TestFrameworksBuildPhase(["Framework.framework"]),
+                                ],
+                                dependencies: ["Framework"]
+                            ),
                             TestStandardTarget(
                                 "Framework",
                                 type: .framework,
                                 buildPhases: [
-                                    TestSourcesBuildPhase(["file2.swift"]),
-                                ]),
-                        ])])
+                                    TestSourcesBuildPhase(["file2.swift"])
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            )
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file2.swift")) { stream in
-                stream <<<
-                """
-                public func foo() {}
-                """
+                stream <<< """
+                    public func foo() {}
+                    """
             }
 
             try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
-                stream <<<
-                """
-                import Framework
-                func bar() {
-                    foo()
-                }
-                """
+                stream <<< """
+                    import Framework
+                    func bar() {
+                        foo()
+                    }
+                    """
             }
 
             let stringsDir = tmpDirPath.join("strings")

@@ -16,7 +16,7 @@ public import SWBCore
 import SWBTaskConstruction
 public import SWBMacro
 
-public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport, @unchecked Sendable {
+public final class ActoolCompilerSpec: GenericCompilerSpec, SpecIdentifierType, IbtoolCompilerSupport, @unchecked Sendable {
     public static let identifier = "com.apple.compilers.assetcatalog"
 
     private func constructAssetPackOutputSpecificationsTask(catalogInputs inputs: [FileToBuild], _ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async -> Path? {
@@ -44,8 +44,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         let data: [UInt8]
         do {
             data = try plist.asBytes(.xml)
-        }
-        catch {
+        } catch {
             delegate.error("failed to format plist for \(path): \(plist): \(error)")
             return nil
         }
@@ -158,7 +157,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         if let assetPackInfoFile = await constructAssetPackOutputSpecificationsTask(catalogInputs: catalogInputs, cbc, delegate) {
             specialArgs += [
                 "--asset-pack-output-specifications",
-                assetPackInfoFile.str
+                assetPackInfoFile.str,
             ]
 
             odrInputs.append(delegate.createNode(assetPackInfoFile))
@@ -170,12 +169,14 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 return cbc.scope.table.namespace.parseLiteralStringList(catalogInputPaths.map({ $0.str }))
 
             case BuiltinMacros.ASSETCATALOG_COMPILER_STICKER_PACK_STRINGS:
-                return cbc.scope.table.namespace.parseLiteralStringList(stringsInputPaths.map({ stringsFile in
-                    let base = stringsFile.absolutePath.basenameWithoutSuffix
-                    let region = stringsFile.regionVariantName ?? ""
-                    let path = stringsFile.absolutePath.str
-                    return [base, region, path].joined(separator: ":")
-                }))
+                return cbc.scope.table.namespace.parseLiteralStringList(
+                    stringsInputPaths.map({ stringsFile in
+                        let base = stringsFile.absolutePath.basenameWithoutSuffix
+                        let region = stringsFile.regionVariantName ?? ""
+                        let path = stringsFile.absolutePath.str
+                        return [base, region, path].joined(separator: ":")
+                    })
+                )
 
             default:
                 return nil
@@ -239,12 +240,14 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         // which it currently receives a listing of via the assetcatalog_dependencies file produced by actool.
         let carFiles = [cbc.resourcesDir?.join("Assets.car")].compactMap { $0 }.map(delegate.createNode)
 
-        let outputs = evaluatedOutputsResult + (additionalEvaluatedOutputsResult.outputs).map { output in
-            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
-                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+        let outputs =
+            evaluatedOutputsResult
+            + (additionalEvaluatedOutputsResult.outputs).map { output in
+                if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                    delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+                }
+                return delegate.createNode(output.path)
             }
-            return delegate.createNode(output.path)
-        }
         guard !outputs.isEmpty else { preconditionFailure("ActoolCompilerSpec.constructTasks() invoked with no outputs defined") }
 
         let assetSymbolInputs = cbc.inputs
@@ -414,13 +417,13 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         // Only compile asset catalogs during the build action, not installapi or installhdrs.
         // Never compile asset catalogs in main package targets with synthesized resource bundles since they're compiled in the latter.
         if buildComponents.contains("build") && !isMainPackageWithResourceBundle {
-                let variants: [(variant: AssetCatalogVariant, node: PlannedDirectoryTreeNode)] = await [.thinned, .unthinned].asyncMap { variant in
-                    await createAssetCatalogTask(variant: variant).map { (variant, $0) }
-                }.compactMap { $0 }
+            let variants: [(variant: AssetCatalogVariant, node: PlannedDirectoryTreeNode)] = await [.thinned, .unthinned].asyncMap { variant in
+                await createAssetCatalogTask(variant: variant).map { (variant, $0) }
+            }.compactMap { $0 }
 
-                let signaturePath = cbc.scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("assetcatalog_signature")
+            let signaturePath = cbc.scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join("assetcatalog_signature")
 
-                delegate.createTask(type: self, ruleInfo: ["LinkAssetCatalogSignature"], commandLine: ["builtin-linkAssetCatalogSignature", signaturePath.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [], outputs: [signaturePath], action: delegate.taskActionCreationDelegate.createLinkAssetCatalogTaskAction(), enableSandboxing: false, alwaysExecuteTask: true, showInLog: false)
+            delegate.createTask(type: self, ruleInfo: ["LinkAssetCatalogSignature"], commandLine: ["builtin-linkAssetCatalogSignature", signaturePath.str], environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: [], outputs: [signaturePath], action: delegate.taskActionCreationDelegate.createLinkAssetCatalogTaskAction(), enableSandboxing: false, alwaysExecuteTask: true, showInLog: false)
 
             guard let plistOutputPath = await additionalEvaluatedOutputs(cbc, delegate).generatedInfoPlistContent else {
                 delegate.error("Unable to determine output path for asset catalog Info.plist content")

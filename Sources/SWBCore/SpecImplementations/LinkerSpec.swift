@@ -15,7 +15,7 @@ public import SWBMacro
 
 public let reexportedBinariesDirectoryName = "ReexportedBinaries"
 
-open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
+open class LinkerSpec: CommandLineToolSpec, @unchecked Sendable {
     /// Specifier for an individual library to be linked.
     public struct LibrarySpecifier {
         public enum Kind: CaseIterable, CustomStringConvertible {
@@ -28,11 +28,11 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
 
             public var description: String {
                 switch self {
-                case .static:        return "static library"
-                case .dynamic:       return "dynamic library"
-                case .textBased:     return "text-based stub"
-                case .framework:     return "framework"
-                case .object:        return "object file"
+                case .static: return "static library"
+                case .dynamic: return "dynamic library"
+                case .textBased: return "text-based stub"
+                case .framework: return "framework"
+                case .object: return "object file"
                 case .objectLibrary: return "object library"
                 }
             }
@@ -155,7 +155,7 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
     }
 }
 
-open class GenericLinkerSpec : LinkerSpec, @unchecked Sendable {
+open class GenericLinkerSpec: LinkerSpec, @unchecked Sendable {
     required public init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         super.init(parser, basedOnSpec, isGeneric: true)
     }

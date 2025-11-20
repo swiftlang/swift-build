@@ -177,12 +177,13 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
 
                 // If this header is among the target's header build files we check if it has any platform filters.
                 // If this header is generated then it won't have any platform filters.
-                let platformFilters = headerBuildFiles.filter({
-                    if let resolvedFile = try? producer.context.resolveBuildFileReference($0) {
-                        return resolvedFile.absolutePath == path
-                    }
-                    return false
-                }).only?.platformFilters ?? []
+                let platformFilters =
+                    headerBuildFiles.filter({
+                        if let resolvedFile = try? producer.context.resolveBuildFileReference($0) {
+                            return resolvedFile.absolutePath == path
+                        }
+                        return false
+                    }).only?.platformFilters ?? []
 
                 // Skip the header if it is excluded or filtered out.
                 guard !buildFilesContext.isExcluded(path, filters: platformFilters) else {
@@ -192,7 +193,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
                 // FIXME: headerDestPaths should only be used for framework targets when determining outputPath
                 // until rdar://81762676 (Dylib targets inconsistently writes headers to BUILD_PRODUCTS_DIR
                 // based install vs normal build) has been resolved.
-                let outputPath : Path
+                let outputPath: Path
                 switch visibility {
                 case .public:
                     outputPath = isFramework ? headerDestPaths.publicPath.join(path.basename) : TargetHeaderInfo.outputPath(for: path, visibility: .public, scope: scope)
@@ -211,7 +212,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
                 // without the truncation for the command ordering input nodes.
                 let inputNodePath: Path
                 if isFramework {
-                    let outputPathVisibility: HeaderVisibility = visibility == .public ? .public : .private // convert between two different visibility enums
+                    let outputPathVisibility: HeaderVisibility = visibility == .public ? .public : .private  // convert between two different visibility enums
                     inputNodePath = TargetHeaderInfo.outputPath(for: path, visibility: outputPathVisibility, scope: scope)
                 } else {
                     inputNodePath = outputPath
@@ -239,7 +240,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
                     }
                 }
             }
-            if headerVisibilityToProcess.contains(nil) { // project visible headers
+            if headerVisibilityToProcess.contains(nil) {  // project visible headers
                 for fileRef in documentationHeaderInfo.projectHeaders {
                     if let header = computeProductHeader(for: fileRef, isFramework: isFramework, visibility: .project, inputNodes: &inputNodes) {
                         headers.append(header)
@@ -265,7 +266,7 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
             // If the build system generates a module map, the umbrella header can be accessed via the module info. If there's an existing
             // module map file we need to parse the potential umbrella header information from that file instead.
             if let umbrellaHeaderName = findUmbrellaHeaderFromGeneratedModuleMap(moduleInfo) ?? findUmbrellaHeaderFromExistingModuleMap(moduleInfo),
-               let umbrellaHeaderIndex = headerList.firstIndex(where: { $0.visibility == .public && $0.path.basename == umbrellaHeaderName })
+                let umbrellaHeaderIndex = headerList.firstIndex(where: { $0.visibility == .public && $0.path.basename == umbrellaHeaderName })
             {
                 let umbrellaHeader = headerList.remove(at: umbrellaHeaderIndex)
                 headerList.insert(umbrellaHeader, at: 0)

@@ -35,9 +35,16 @@ public final class MergeInfoPlistTaskAction: TaskAction {
 
         do {
             guard let byteString = try Set(inputs.map { try executionDelegate.fs.read($0) }).only else {
-                outputDelegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Info.plist preprocessing produced variable content across multiple architectures and/or build variants, which is not allowed for bundle targets."), childDiagnostics: inputs.map { input in
-                    Diagnostic(behavior: .note, location: .path(input), data: DiagnosticData("Using preprocessed file: \(input.str)"))
-                }))
+                outputDelegate.emit(
+                    Diagnostic(
+                        behavior: .error,
+                        location: .unknown,
+                        data: DiagnosticData("Info.plist preprocessing produced variable content across multiple architectures and/or build variants, which is not allowed for bundle targets."),
+                        childDiagnostics: inputs.map { input in
+                            Diagnostic(behavior: .note, location: .path(input), data: DiagnosticData("Using preprocessed file: \(input.str)"))
+                        }
+                    )
+                )
                 return .failed
             }
 

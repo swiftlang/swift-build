@@ -13,14 +13,13 @@
 import SWBProtocol
 public import SWBUtil
 
-public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
-{
+public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable {
     static func referencedObjects(for data: EncodedPIFValue) throws -> [PIFObjectReference] {
         // Any errors here will be diagnosed in the loader.
         switch data {
         case .json(let data):
             guard case let .plArray(projects)? = data["targets"] else { return [] }
-            return projects.compactMap{
+            return projects.compactMap {
                 guard case let .plString(signature) = $0 else { return nil }
                 return PIFObjectReference(signature: signature, type: .target)
             }
@@ -31,7 +30,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
             // FIXME: This sucks, we are doing the protocol decode twice: <rdar://problem/31097863> Don't require duplicate binary PIF decode in incremental PIF transfer
             let deserializer = MsgPackDeserializer(data)
             let model: SWBProtocol.Project = try deserializer.deserialize()
-            return model.targetSignatures.map{ PIFObjectReference(signature: $0, type: .target) }
+            return model.targetSignatures.map { PIFObjectReference(signature: $0, type: .target) }
         }
     }
 
@@ -72,7 +71,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
     public let appPreferencesBuildSettings: [String: PropertyListItem]
     public let isPackage: Bool
 
-    private enum CodingKeys : String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
         case name
         case signature
         case guid
@@ -95,9 +94,9 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
         self.isPackage = model.isPackage
         self.xcodeprojPath = model.xcodeprojPath
         self.sourceRoot = model.sourceRoot
-        self.targets = try model.targetSignatures.map{ try pifLoader.loadReference(signature: $0, type: Target.self) }
+        self.targets = try model.targetSignatures.map { try pifLoader.loadReference(signature: $0, type: Target.self) }
         self.groupTree = try Reference.create(model.groupTree, pifLoader, isRoot: true) as! FileGroup
-        self.buildConfigurations = model.buildConfigurations.map{ BuildConfiguration($0, pifLoader) }
+        self.buildConfigurations = model.buildConfigurations.map { BuildConfiguration($0, pifLoader) }
         self.defaultConfigurationName = model.defaultConfigurationName
         self.developmentRegion = model.developmentRegion
         self.classPrefix = model.classPrefix
@@ -155,8 +154,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
         try validateTargets()
     }
 
-    public var description: String
-    {
+    public var description: String {
         return "\(type(of: self))<\(guid):\(xcodeprojPath.str):\(targets.count) targets>"
     }
 
@@ -202,7 +200,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
         hasher.combine(ObjectIdentifier(self))
     }
 
-    public static func ==(lhs: Project, rhs: Project) -> Bool {
+    public static func == (lhs: Project, rhs: Project) -> Bool {
         return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
 

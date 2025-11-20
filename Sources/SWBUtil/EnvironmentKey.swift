@@ -51,9 +51,9 @@ extension EnvironmentKey: Encodable {
 extension EnvironmentKey: Equatable {
     public static func == (_ lhs: Self, _ rhs: Self) -> Bool {
         #if os(Windows)
-        lhs.rawValue.lowercased() == rhs.rawValue.lowercased()
+            lhs.rawValue.lowercased() == rhs.rawValue.lowercased()
         #else
-        lhs.rawValue == rhs.rawValue
+            lhs.rawValue == rhs.rawValue
         #endif
     }
 }
@@ -73,9 +73,9 @@ extension EnvironmentKey: Decodable {
 extension EnvironmentKey: Hashable {
     public func hash(into hasher: inout Hasher) {
         #if os(Windows)
-        self.rawValue.lowercased().hash(into: &hasher)
+            self.rawValue.lowercased().hash(into: &hasher)
         #else
-        self.rawValue.hash(into: &hasher)
+            self.rawValue.hash(into: &hasher)
         #endif
     }
 }

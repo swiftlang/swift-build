@@ -72,4 +72,3 @@ public struct CustomTask: SerializableCodable, Sendable {
         self.preparesForIndexing = try container.decode(Bool.self, forKey: .preparesForIndexing)
     }
 }
-

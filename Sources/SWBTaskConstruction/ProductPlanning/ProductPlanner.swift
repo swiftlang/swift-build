@@ -24,16 +24,14 @@ import SWBMacro
 }
 
 /// A ProductPlanner is responsible for taking the inputs to a build (the workspace context and build request) and generating a set of product plans containing task producers which can produce tasks which will create those products.  There will be one product plan per configured target in the build request.
-package struct ProductPlanner
-{
+package struct ProductPlanner {
     /// The request for which the planner is constructing plans.
     let planRequest: BuildPlanRequest
 
     /// The delegate to use to construct planned items.
     let delegate: any TaskPlanningDelegate
 
-    package init(planRequest: BuildPlanRequest, taskPlanningDelegate: any TaskPlanningDelegate)
-    {
+    package init(planRequest: BuildPlanRequest, taskPlanningDelegate: any TaskPlanningDelegate) {
         self.planRequest = planRequest
         self.delegate = taskPlanningDelegate
     }
@@ -75,14 +73,15 @@ private struct WorkspaceProductPlanBuilder {
 
         let targetContexts = targetProductPlans.map(\.taskProducerContext)
 
-        var taskProducers: [any TaskProducer] = [
-            CreateBuildDirectoryTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
-            XCFrameworkTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
-            SDKStatCacheTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
-            HeadermapVFSTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
-            PCHModuleMapTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
-            BuildDependencyInfoTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
-        ] + (globalProductPlan.planRequest.buildRequest.enableIndexBuildArena ? [IndexBuildVFSDirectoryRemapTaskProducer(context: globalTaskProducerContext)] : [])
+        var taskProducers: [any TaskProducer] =
+            [
+                CreateBuildDirectoryTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+                XCFrameworkTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+                SDKStatCacheTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+                HeadermapVFSTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+                PCHModuleMapTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+                BuildDependencyInfoTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+            ] + (globalProductPlan.planRequest.buildRequest.enableIndexBuildArena ? [IndexBuildVFSDirectoryRemapTaskProducer(context: globalTaskProducerContext)] : [])
 
         for taskProducerExtension in await taskProducerExtensions(globalTaskProducerContext.workspaceContext) {
             for globalTaskProducer in taskProducerExtension.globalTaskProducers {
@@ -94,8 +93,7 @@ private struct WorkspaceProductPlanBuilder {
     }
 }
 
-private struct ProductPlanBuilder
-{
+private struct ProductPlanBuilder {
     /// The configured target for which we are creating a plan.
     let configuredTarget: ConfiguredTarget
 
@@ -105,17 +103,14 @@ private struct ProductPlanBuilder
     /// The delegate to use to construct planned items.
     let delegate: any TaskPlanningDelegate
 
-    init(configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, delegate: any TaskPlanningDelegate)
-    {
+    init(configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, delegate: any TaskPlanningDelegate) {
         self.configuredTarget = configuredTarget
         self.workspaceContext = workspaceContext
         self.delegate = delegate
     }
 
-
     /// Create the product plan.
-    func createProductPlan(_ targetTaskInfo: TargetGateNodes, _ globalProductPlan: GlobalProductPlan) async -> ProductPlan
-    {
+    func createProductPlan(_ targetTaskInfo: TargetGateNodes, _ globalProductPlan: GlobalProductPlan) async -> ProductPlan {
         // Create the context object for the task producers.
         // FIXME: Either each task producer should get its own file path resolver, or the path resolver's caching logic needs to be thread-safe.
         let taskProducerContext = TargetTaskProducerContext(configuredTarget: configuredTarget, workspaceContext: workspaceContext, targetTaskInfo: targetTaskInfo, globalProductPlan: globalProductPlan, delegate: delegate)
@@ -123,8 +118,7 @@ private struct ProductPlanBuilder
         // Compute the path of the product.
         // FIXME: Figure out how to represent targets which don't have a product path (e.g, aggregate and external targets).  Maybe use their PIF GUID?
         var path = Path("placeholder")
-        if let standardTarget = self.configuredTarget.target as? StandardTarget
-        {
+        if let standardTarget = self.configuredTarget.target as? StandardTarget {
             path = taskProducerContext.settings.filePathResolver.resolveAbsolutePath(standardTarget.productReference)
         }
 
@@ -139,19 +133,14 @@ private struct ProductPlanBuilder
     }
 }
 
-
 // MARK: Target extensions to create task producers.
 
-
-protocol ProductPlanBuilding
-{
+protocol ProductPlanBuilding {
     func taskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
 }
 
-extension Target: ProductPlanBuilding
-{
-    func taskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
-    {
+extension Target: ProductPlanBuilding {
+    func taskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer] {
         switch self
         {
         case let target as StandardTarget:
@@ -172,8 +161,7 @@ extension Target: ProductPlanBuilding
     }
 }
 
-extension BuildPhaseTarget
-{
+extension BuildPhaseTarget {
     /// The base name used by phase start and end nodes set up for task producers for this target.
     func phaseNodeRoot(_ configuredTarget: ConfiguredTarget?) -> String {
         return configuredTarget?.guid.stringValue ?? "target-\(self.name)-\(self.guid)"
@@ -183,31 +171,32 @@ extension BuildPhaseTarget
     ///
     /// - parameter startPhaseNode: The start phase node for tasks created by the producer of the first build phase.  If passed, then all tasks created by the producer for the first build phase will run after all tasks on which this node depends (presumably as set up by our caller).  If nil, then a new start node will be created, and the tasks will run independently of any tasks previously created by the caller.
     /// - returns: A tuple consisting of the list of task producers created, and the end phase node of the producer for the last build phase.  This end phase node can be used by the caller to order further producers to make their tasks run after the tasks for the build phases.
-    func buildPhaseTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext, startPhaseNodes: [PlannedVirtualNode]? = nil) -> (taskProducers: [any TaskProducer], endPhaseNode: PlannedVirtualNode)
-    {
+    func buildPhaseTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext, startPhaseNodes: [PlannedVirtualNode]? = nil) -> (taskProducers: [any TaskProducer], endPhaseNode: PlannedVirtualNode) {
         // All headers phases should run ahead of other phases, unless they follow an unsandboxed script.
         let earlyHeadersPhaseGUIDs: Set<String>
         if taskProducerContext.settings.globalScope.evaluate(BuiltinMacros.RESCHEDULE_INDEPENDENT_HEADERS_PHASES) {
-            earlyHeadersPhaseGUIDs = Set(buildPhases.prefix(while: {
-                if let shellScriptPhase = $0 as? ShellScriptBuildPhase {
-                    if !taskProducerContext.settings.globalScope.evaluate(BuiltinMacros.ENABLE_USER_SCRIPT_SANDBOXING) {
-                        return false
-                    }
-                    // FIXME: Refactor output file list parsing so we can call into it here.
-                    if shellScriptPhase.outputFileListPaths.count > 0 {
-                        return false
-                    }
-                    for outputExpr in shellScriptPhase.outputFilePaths {
-                        let output = Path(taskProducerContext.settings.globalScope.evaluate(outputExpr))
-                        if taskProducerContext.lookupFileType(fileName: output.basename)?.conformsToAny(taskProducerContext.compilationRequirementOutputFileTypes) == true {
+            earlyHeadersPhaseGUIDs = Set(
+                buildPhases.prefix(while: {
+                    if let shellScriptPhase = $0 as? ShellScriptBuildPhase {
+                        if !taskProducerContext.settings.globalScope.evaluate(BuiltinMacros.ENABLE_USER_SCRIPT_SANDBOXING) {
                             return false
                         }
+                        // FIXME: Refactor output file list parsing so we can call into it here.
+                        if shellScriptPhase.outputFileListPaths.count > 0 {
+                            return false
+                        }
+                        for outputExpr in shellScriptPhase.outputFilePaths {
+                            let output = Path(taskProducerContext.settings.globalScope.evaluate(outputExpr))
+                            if taskProducerContext.lookupFileType(fileName: output.basename)?.conformsToAny(taskProducerContext.compilationRequirementOutputFileTypes) == true {
+                                return false
+                            }
+                        }
+                        return true
+                    } else {
+                        return true
                     }
-                    return true
-                } else {
-                    return true
-                }
-            }).filter({ $0 is HeadersBuildPhase }).map(\.guid))
+                }).filter({ $0 is HeadersBuildPhase }).map(\.guid)
+            )
         } else {
             earlyHeadersPhaseGUIDs = []
         }
@@ -231,8 +220,7 @@ extension BuildPhaseTarget
         var taskProducers = [any TaskProducer]()
 
         var startPhaseNodes = startPhaseNodes ?? [taskProducerContext.createVirtualNode(phaseNodeRoot(taskProducerContext.configuredTarget) + "-start")]
-        for (i, fusedPhase) in fusedPhases.enumerated()
-        {
+        for (i, fusedPhase) in fusedPhases.enumerated() {
             let endFusedPhaseNode = taskProducerContext.createVirtualNode(phaseNodeRoot(taskProducerContext.configuredTarget) + "-fused-phase" + String(i) + "-" + fusedPhase.map { $0.name.asLegalRfc1034Identifier.lowercased() }.joined(separator: "&"))
             let endFusedPhaseTask = taskProducerContext.createPhaseEndTask(inputs: startPhaseNodes, output: endFusedPhaseNode, mustPrecede: [taskProducerContext.targetEndTask])
 
@@ -262,13 +250,15 @@ extension BuildPhaseTarget
         guard taskProducerContext.settings.globalScope.evaluate(BuiltinMacros.FUSE_BUILD_PHASES) else {
             return false
         }
-        guard (taskProducerContext.configuredTarget?.target as? StandardTarget)?.buildRules.contains(where: {
-            if case .shellScript = $0.actionSpecifier {
-                return true
-            } else {
-                return false
-            }
-        }) != true || SWBFeatureFlag.allowBuildPhaseFusionWithCustomShellScriptBuildRules.value else {
+        guard
+            (taskProducerContext.configuredTarget?.target as? StandardTarget)?.buildRules.contains(where: {
+                if case .shellScript = $0.actionSpecifier {
+                    return true
+                } else {
+                    return false
+                }
+            }) != true || SWBFeatureFlag.allowBuildPhaseFusionWithCustomShellScriptBuildRules.value
+        else {
             // If the target has a shell script build rule, it may not be safe to parallelize if it specifies incorrect dependencies.
             return false
         }
@@ -314,10 +304,8 @@ extension BuildPhaseTarget
     }
 }
 
-extension StandardTarget
-{
-    func standardTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
-    {
+extension StandardTarget {
+    func standardTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer] {
         let taskProducerExtensions = await taskProducerExtensions(taskProducerContext.workspaceContext)
 
         var taskProducers = [any TaskProducer]()
@@ -451,19 +439,15 @@ extension StandardTarget
     }
 }
 
-extension AggregateTarget
-{
-    func aggregateTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) -> [any TaskProducer]
-    {
+extension AggregateTarget {
+    func aggregateTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) -> [any TaskProducer] {
         // TODO: We should probably check that only build phases useful in an aggregate target are present here.
         return super.buildPhaseTargetTaskProducers(taskProducerContext).taskProducers
     }
 }
 
-extension ExternalTarget
-{
-    func externalTargetTaskProducers(_ taskProducerContext: TaskProducerContext) -> [any TaskProducer]
-    {
+extension ExternalTarget {
+    func externalTargetTaskProducers(_ taskProducerContext: TaskProducerContext) -> [any TaskProducer] {
         if !customTasks.isEmpty {
             taskProducerContext.error("custom tasks are not yet supported in external targets")
         }
@@ -471,10 +455,8 @@ extension ExternalTarget
     }
 }
 
-extension PackageProductTarget
-{
-    func packageProductTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) -> [any TaskProducer]
-    {
+extension PackageProductTarget {
+    func packageProductTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) -> [any TaskProducer] {
         if !customTasks.isEmpty {
             taskProducerContext.error("custom tasks are not yet supported in package product targets")
         }

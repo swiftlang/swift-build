@@ -80,18 +80,20 @@ public enum BuildOperationTargetType: SerializableCodable, Equatable, Sendable {
 
     public func encode(to encoder: any Swift.Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode({ () -> CodingKeys in
-            switch self {
-            case .aggregate:
-                return .aggregate
-            case .external:
-                return .external
-            case .packageProduct:
-                return .packageProduct
-            case .standard:
-                return .standard
-            }
-        }().rawValue)
+        try container.encode(
+            { () -> CodingKeys in
+                switch self {
+                case .aggregate:
+                    return .aggregate
+                case .external:
+                    return .external
+                case .packageProduct:
+                    return .packageProduct
+                case .standard:
+                    return .standard
+                }
+            }().rawValue
+        )
     }
 }
 
@@ -562,7 +564,7 @@ public struct BuildOperationMetrics: Equatable, Codable, Sendable {
         counters.isEmpty && taskCounters.isEmpty
     }
 
-    public init(counters: [Counter : Int], taskCounters: [String: [TaskCounter: Int]]) {
+    public init(counters: [Counter: Int], taskCounters: [String: [TaskCounter: Int]]) {
         self.counters = counters
         self.taskCounters = taskCounters
     }
@@ -930,10 +932,10 @@ public struct BuildOperationConsoleOutputEmitted: Message, Equatable, Serializab
     }
 
     public enum CodingKeys: CodingKey {
-        case data // legacy key
+        case data  // legacy key
         case data2
         case taskID
-        case taskSignature // legacy key
+        case taskSignature  // legacy key
         case taskSignature2
         case targetID
     }
@@ -991,7 +993,7 @@ public struct BuildOperationDiagnosticEmitted: Message, Equatable, SerializableC
 
         enum TaskCodingKeys: CodingKey {
             case taskID
-            case taskSignature // legacy key
+            case taskSignature  // legacy key
             case taskSignature2
             case targetID
         }
@@ -1002,7 +1004,7 @@ public struct BuildOperationDiagnosticEmitted: Message, Equatable, SerializableC
 
         enum GlobalTaskCodingKeys: CodingKey {
             case taskID
-            case taskSignature // legacy key
+            case taskSignature  // legacy key
             case taskSignature2
         }
 

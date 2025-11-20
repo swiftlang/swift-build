@@ -14,7 +14,7 @@ import SWBLibc
 
 final class TerminalAttributes {
     #if !os(Windows)
-    private var term_attrs = termios()
+        private var term_attrs = termios()
     #endif
 
     fileprivate init() {
@@ -22,35 +22,35 @@ final class TerminalAttributes {
 
     fileprivate func save() {
         #if !os(Windows)
-        if tcgetattr(STDIN_FILENO, &term_attrs) == -1 {
-            // If we got an error here, just assume it is because the terminal wasn't capable.
-            return
-        }
+            if tcgetattr(STDIN_FILENO, &term_attrs) == -1 {
+                // If we got an error here, just assume it is because the terminal wasn't capable.
+                return
+            }
         #endif
     }
 
     fileprivate func restore() {
         #if !os(Windows)
-        // Ignore failures, there isn't anything we can do.
-        tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_attrs)
+            // Ignore failures, there isn't anything we can do.
+            tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_attrs)
         #endif
     }
 
     func disableEcho() {
         #if !os(Windows)
-        // Get the current terminal attributes.
-        var attrs = termios()
-        if tcgetattr(STDIN_FILENO, &attrs) == -1 {
-            // If we got an error here, just assume it is because the terminal wasn't capable.
-            return
-        }
+            // Get the current terminal attributes.
+            var attrs = termios()
+            if tcgetattr(STDIN_FILENO, &attrs) == -1 {
+                // If we got an error here, just assume it is because the terminal wasn't capable.
+                return
+            }
 
-        // Clear the echo flag and update the attributes.
-        attrs.c_lflag &= ~tcflag_t(ECHO)
-        if tcsetattr(STDIN_FILENO, TCSAFLUSH, &attrs) == -1 {
-            perror("tcsetattr")
-            return
-        }
+            // Clear the echo flag and update the attributes.
+            attrs.c_lflag &= ~tcflag_t(ECHO)
+            if tcsetattr(STDIN_FILENO, TCSAFLUSH, &attrs) == -1 {
+                perror("tcsetattr")
+                return
+            }
         #endif
     }
 }

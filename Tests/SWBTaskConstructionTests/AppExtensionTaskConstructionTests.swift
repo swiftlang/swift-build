@@ -24,18 +24,23 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", children: [
+                "Sources",
+                children: [
                     TestFile("Source.c"),
                     TestFile("Legacy.appex", fileType: "wrapper.app-extension", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
                     TestFile("Modern.appex", fileType: "wrapper.extensionkit-extension", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTED_PLATFORMS": "macosx iphoneos",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTED_PLATFORMS": "macosx iphoneos",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -46,12 +51,24 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["Source.c"]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile(.target("Legacy"))], destinationSubfolder: .plugins, onlyForDeployment: false),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile(.target("Modern"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(EXTENSIONS_FOLDER_PATH)", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile(.target("Legacy"))
+                            ],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile(.target("Modern"))
+                            ],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(EXTENSIONS_FOLDER_PATH)",
+                            onlyForDeployment: false
+                        ),
                     ],
-                    dependencies: ["Legacy", "Modern"]),
+                    dependencies: ["Legacy", "Modern"]
+                ),
                 TestStandardTarget(
                     "Legacy",
                     type: .applicationExtension,
@@ -59,8 +76,9 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Source.c"]),
-                    ]),
+                        TestSourcesBuildPhase(["Source.c"])
+                    ]
+                ),
                 TestStandardTarget(
                     "Modern",
                     type: .extensionKitExtension,
@@ -69,12 +87,24 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["Source.c"]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile(.target("Legacy"))], destinationSubfolder: .plugins, onlyForDeployment: false),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile(.target("Modern"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(EXTENSIONS_FOLDER_PATH)", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile(.target("Legacy"))
+                            ],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile(.target("Modern"))
+                            ],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(EXTENSIONS_FOLDER_PATH)",
+                            onlyForDeployment: false
+                        ),
                     ],
-                    dependencies: ["Legacy", "Modern"]),
+                    dependencies: ["Legacy", "Modern"]
+                ),
                 TestStandardTarget(
                     "Legacy",
                     type: .applicationExtension,
@@ -82,8 +112,9 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Source.c"]),
-                    ]),
+                        TestSourcesBuildPhase(["Source.c"])
+                    ]
+                ),
                 TestStandardTarget(
                     "Modern",
                     type: .extensionKitExtension,
@@ -91,9 +122,11 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["Source.c"]),
-                    ]),
-            ])
+                        TestSourcesBuildPhase(["Source.c"])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in
@@ -114,21 +147,26 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
-                "Sources", children: [
+                "Sources",
+                children: [
                     TestFile("source.swift"),
                     TestFile("Legacy.appex", fileType: "wrapper.app-extension", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
                     TestFile("Modern.appex", fileType: "wrapper.extensionkit-extension", sourceTree: .buildSetting("BUILT_PRODUCTS_DIR")),
-                ]),
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug", buildSettings: [
-                    "CODE_SIGNING_ALLOWED": "NO",
-                    "GENERATE_INFOPLIST_FILE": "YES",
-                    "PRODUCT_NAME": "$(TARGET_NAME)",
-                    "SUPPORTED_PLATFORMS": "macosx iphoneos",
-                    "SWIFT_EXEC": swiftCompilerPath.str,
-                    "SWIFT_VERSION": swiftVersion,
-                    "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
-                ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTED_PLATFORMS": "macosx iphoneos",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_EMIT_CONST_VALUE_PROTOCOLS": "Foo Bar",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
@@ -139,12 +177,24 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["source.swift"]),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile(.target("Legacy"))], destinationSubfolder: .plugins, onlyForDeployment: false),
-                        TestCopyFilesBuildPhase([
-                            TestBuildFile(.target("Modern"))], destinationSubfolder: .builtProductsDir, destinationSubpath: "$(EXTENSIONS_FOLDER_PATH)", onlyForDeployment: false),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile(.target("Legacy"))
+                            ],
+                            destinationSubfolder: .plugins,
+                            onlyForDeployment: false
+                        ),
+                        TestCopyFilesBuildPhase(
+                            [
+                                TestBuildFile(.target("Modern"))
+                            ],
+                            destinationSubfolder: .builtProductsDir,
+                            destinationSubpath: "$(EXTENSIONS_FOLDER_PATH)",
+                            onlyForDeployment: false
+                        ),
                     ],
-                    dependencies: ["Legacy", "Modern"]),
+                    dependencies: ["Legacy", "Modern"]
+                ),
                 TestStandardTarget(
                     "Legacy",
                     type: .applicationExtension,
@@ -152,8 +202,9 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["source.swift"]),
-                    ]),
+                        TestSourcesBuildPhase(["source.swift"])
+                    ]
+                ),
                 TestStandardTarget(
                     "Modern",
                     type: .extensionKitExtension,
@@ -161,9 +212,11 @@ fileprivate struct AppExtensionTaskConstructionTests: CoreBasedTests {
                         TestBuildConfiguration("Debug", buildSettings: [:])
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase(["source.swift"]),
-                    ]),
-            ])
+                        TestSourcesBuildPhase(["source.swift"])
+                    ]
+                ),
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS) { results in

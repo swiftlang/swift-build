@@ -25,32 +25,39 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File.c"),
-                ]),
+                    TestFile("File.c")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "aTarget",
                     type: .kernelExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "GENERATE_KERNEL_MODULE_INFO_FILE": "NO",
-                            "PRODUCT_NAME": "KextTest",
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "GENERATE_KERNEL_MODULE_INFO_FILE": "NO",
+                                "PRODUCT_NAME": "KextTest",
 
-                            "MODULE_NAME": "com.apple.dt.KextTest",
-                            "MODULE_START": "KextTest_start",
-                            "MODULE_STOP": "KextTest_stop",
-                            "MODULE_VERSION": "1.0.0d1",
-                        ]),
+                                "MODULE_NAME": "com.apple.dt.KextTest",
+                                "MODULE_START": "KextTest_start",
+                                "MODULE_STOP": "KextTest_stop",
+                                "MODULE_VERSION": "1.0.0d1",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File.c"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("File.c")
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         for macro in ["$(ARCHS_STANDARD)", "$(ARCHS_STANDARD_64_BIT)", "$(ARCHS_STANDARD_INCLUDING_64_BIT)"] {
@@ -68,33 +75,40 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File.c"),
-                ]),
+                    TestFile("File.c")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "aTarget",
                     type: .kernelExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "KextTest",
-                            "ARCHS": "x86_64 x86_64h",
-                            "VALID_ARCHS": "$(inherited) x86_64h",
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "KextTest",
+                                "ARCHS": "x86_64 x86_64h",
+                                "VALID_ARCHS": "$(inherited) x86_64h",
 
-                            "MODULE_NAME": "com.apple.dt.KextTest",
-                            "MODULE_START": "KextTest_start",
-                            "MODULE_STOP": "KextTest_stop",
-                            "MODULE_VERSION": "1.0.0d1",
-                        ]),
+                                "MODULE_NAME": "com.apple.dt.KextTest",
+                                "MODULE_START": "KextTest_start",
+                                "MODULE_STOP": "KextTest_stop",
+                                "MODULE_VERSION": "1.0.0d1",
+                            ]
+                        )
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            TestBuildFile("File.c"),
-                        ]),
-                    ])
-            ])
+                            TestBuildFile("File.c")
+                        ])
+                    ]
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
         try await tester.checkBuild(runDestination: .anyMac) { results in
@@ -116,7 +130,8 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
                 task.checkCommandLineContains(["-nostdlib"])
                 task.checkCommandLineContains([
                     "-Xlinker", "-kext",
-                    "-lkmodc++", "-lkmod", "-lcc_kext"])
+                    "-lkmodc++", "-lkmod", "-lcc_kext",
+                ])
             }
         }
     }
@@ -127,31 +142,37 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("File.c"),
-                ]),
+                    TestFile("File.c")
+                ]
+            ),
             targets: [
                 TestStandardTarget(
                     "aTarget",
                     type: .kernelExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug", buildSettings: [
-                            "GENERATE_INFOPLIST_FILE": "YES",
-                            "PRODUCT_NAME": "KextTest",
-                            "ARCHS": "x86_64 x86_64h",
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_INFOPLIST_FILE": "YES",
+                                "PRODUCT_NAME": "KextTest",
+                                "ARCHS": "x86_64 x86_64h",
 
-                            "MODULE_NAME": "com.apple.dt.KextTest",
-                            "MODULE_START": "KextTest_start",
-                            "MODULE_STOP": "KextTest_stop",
-                            "MODULE_VERSION": "1.0.0d1",
-                        ]),
+                                "MODULE_NAME": "com.apple.dt.KextTest",
+                                "MODULE_START": "KextTest_start",
+                                "MODULE_STOP": "KextTest_stop",
+                                "MODULE_VERSION": "1.0.0d1",
+                            ]
+                        )
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([
-                        ]),
-                    ])
-            ])
+                        TestSourcesBuildPhase([])
+                    ]
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -177,36 +198,39 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
-                children: [
-                ]),
+                "SomeFiles",
+                path: "Sources",
+                children: []
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "CODE_SIGNING_ALLOWED": "NO",
-                                        "BUILD_VARIANTS": "normal debug profile",
-                                        "EXCLUDED_SOURCE_FILE_NAMES": "*",
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "SKIP_INSTALL": "YES",
-                                        "MODULE_NAME": "foo",
-                                        "MODULE_START": "foo_start",
-                                        "MODULE_STOP": "foo_stop",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "BUILD_VARIANTS": "normal debug profile",
+                        "EXCLUDED_SOURCE_FILE_NAMES": "*",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SKIP_INSTALL": "YES",
+                        "MODULE_NAME": "foo",
+                        "MODULE_START": "foo_start",
+                        "MODULE_STOP": "foo_stop",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "SomeKext",
                     type: .kernelExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
-                        TestSourcesBuildPhase([
-                        ]),
+                        TestSourcesBuildPhase([])
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let core = try await getCore()
         let tester = try TaskConstructionTester(core, testProject)
 
@@ -226,40 +250,50 @@ fileprivate struct KernelExtensionTaskConstructionTests: CoreBasedTests {
         let testProject = TestProject(
             "aProject",
             groupTree: TestGroup(
-                "SomeFiles", path: "Sources",
+                "SomeFiles",
+                path: "Sources",
                 children: [
-                    TestFile("file.fake-x"),
-                ]),
+                    TestFile("file.fake-x")
+                ]
+            ),
             buildConfigurations: [
-                TestBuildConfiguration("Debug",
-                                       buildSettings: [
-                                        "BUILD_VARIANTS": "normal debug profile",
-                                        "GENERATE_INFOPLIST_FILE": "YES",
-                                        "PRODUCT_NAME": "$(TARGET_NAME)",
-                                        "MODULE_NAME": "foo",
-                                        "MODULE_START": "foo_start",
-                                        "MODULE_STOP": "foo_stop",
-                                       ])
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "BUILD_VARIANTS": "normal debug profile",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "MODULE_NAME": "foo",
+                        "MODULE_START": "foo_start",
+                        "MODULE_STOP": "foo_stop",
+                    ]
+                )
             ],
             targets: [
                 TestStandardTarget(
                     "SomeKext",
                     type: .kernelExtension,
                     buildConfigurations: [
-                        TestBuildConfiguration("Debug"),
+                        TestBuildConfiguration("Debug")
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "file.fake-x",
-                        ]),
+                            "file.fake-x"
+                        ])
                     ],
                     buildRules: [
-                        TestBuildRule(filePattern: "$(DERIVED_FILE_DIR)/$(PRODUCT_NAME)_info.c", script: "touch \"$SCRIPT_OUTPUT_FILE_0\"", outputs: [
-                            "$(DERIVED_FILE_DIR)/$(FULL_PRODUCT_NAME)_info1.c"
-                        ], runOncePerArchitecture: false)
+                        TestBuildRule(
+                            filePattern: "$(DERIVED_FILE_DIR)/$(PRODUCT_NAME)_info.c",
+                            script: "touch \"$SCRIPT_OUTPUT_FILE_0\"",
+                            outputs: [
+                                "$(DERIVED_FILE_DIR)/$(FULL_PRODUCT_NAME)_info1.c"
+                            ],
+                            runOncePerArchitecture: false
+                        )
                     ]
-                ),
-            ])
+                )
+            ]
+        )
         let tester = try await TaskConstructionTester(getCore(), testProject)
         let SRCROOT = tester.workspace.projects[0].sourceRoot.str
 
