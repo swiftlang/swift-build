@@ -502,12 +502,12 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    @Test(.requireSDKs(.macOS))
     func validateModuleDependenciesSwift() async throws {
         try await validateModuleDependenciesSwift(explicitModules: true)
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    @Test(.requireSDKs(.macOS))
     func validateModuleDependenciesSwiftExplicitModulesOff() async throws {
         try await validateModuleDependenciesSwift(explicitModules: false)
     }
@@ -582,7 +582,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"), arguments: [false, true])
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile), arguments: [false, true])
     func validateModuleDependenciesMixedSource(downgradeErrors: Bool) async throws {
         try await withTemporaryDirectory { tmpDir async throws -> Void in
             let testWorkspace = try await TestWorkspace(
@@ -727,7 +727,7 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .requireClangFeatures(.printHeadersDirectPerFile), .skipHostOS(.windows, "toolchain too old"), .skipHostOS(.linux, "toolchain too old"))
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile))
     func validateUnusedModuleDependencies() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = try await TestWorkspace(
