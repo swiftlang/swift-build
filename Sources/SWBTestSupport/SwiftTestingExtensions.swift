@@ -17,3 +17,14 @@ package import Testing
 package func expectEqual<T: Equatable>(_ lhs: T, _ rhs: T, sourceLocation: SourceLocation = #_sourceLocation) {
     #expect(lhs == rhs, sourceLocation: sourceLocation)
 }
+
+
+package extension Tag {
+    enum TestSize {}
+}
+
+package extension Tag.TestSize {
+    @Tag static var small: Tag
+    @Tag static var medium: Tag
+    @Tag static var large: Tag
+}
