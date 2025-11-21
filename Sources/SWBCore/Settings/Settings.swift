@@ -4590,7 +4590,7 @@ private class SettingsBuilder {
             ] {
                 let macroName = "\(BuiltinMacros.ENABLE_DEFAULT_SEARCH_PATHS.name)_IN_\(searchPathMacro.name)"
                 guard let macro = userNamespace.lookupMacroDeclaration(macroName) as? BooleanMacroDeclaration else {
-                    core.delegate.error("internal error: Build setting \(macroName) is not of boolean type")
+                    self.errors.append("internal error: Build setting \(macroName) is not of boolean type")
                     continue
                 }
                 // Note that this implies if the macro is unset or set to empty then it defaults to YES, which is the opposite of most macros, but probably fine for this very niche functionality.  If this becomes an issue then we should declare all of these macros in CoreBuildSystem.xcspec with default values of YES, or maybe $(ENABLE_DEFAULT_SEARCH_PATHS).
