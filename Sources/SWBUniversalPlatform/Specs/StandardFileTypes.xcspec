@@ -1720,4 +1720,11 @@
         CanSetIncludeInIndex = YES;
         UTI = "public.protobuf-source";
     },
+    {
+        Identifier = text.json.compiler-metadata.source;
+        Type = FileType;
+        Name = "Source metadata emitted from compiler";
+        UTI = "com.apple.compiler-metadata.source";
+        BasedOn = text.json;
+    },
 )
