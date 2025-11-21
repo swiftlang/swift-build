@@ -110,6 +110,24 @@
                 };
             },
             {
+                Name = "EMIT_COMPILER_SOURCE_METADATA";
+                Type = Boolean;
+                DefaultValue = No;
+            },
+            {
+                Name = "__CLANG_SOURCE_METADATA_PATH";
+                Type = Path;
+                Condition = "$(EMIT_COMPILER_SOURCE_METADATA)";
+                DefaultValue = "$(OutputPath).source-metadata.json";
+                CommandLinePrefixFlag = "-fdiagnostics-add-output=sarif:file=";
+                OutputDependencies = (
+                    {
+                        Path = "$(__CLANG_SOURCE_METADATA_PATH)";
+                        FileType = "text.json.compiler-metadata.source";
+                    },
+                );
+            },
+            {
                 Name = "CLANG_MACRO_BACKTRACE_LIMIT";
                 Type = String;
                 DefaultValue = 0;
