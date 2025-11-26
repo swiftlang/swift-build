@@ -191,7 +191,7 @@ public struct BuildParameters: Hashable, SerializableCodable, Sendable {
         try container.encodeIfPresent(activeRunDestination, forKey: .activeRunDestination)
         try container.encodeIfPresent(activeArchitecture, forKey: .activeArchitecture)
         try container.encodeIfPresent(arena, forKey: .arena)
-        try container.encode(normalizedOverrides(overrides), forKey: .overrides)
+        try container.encode(filterOverrides(overrides), forKey: .overrides)
         try container.encode(commandLineOverrides, forKey: .commandLineOverrides)
         try container.encodeIfPresent(commandLineConfigOverridesPath, forKey: .commandLineConfigOverridesPath)
         try container.encode(commandLineConfigOverrides, forKey: .commandLineConfigOverrides)
@@ -228,7 +228,7 @@ public struct BuildParameters: Hashable, SerializableCodable, Sendable {
         hasher.combine(activeRunDestination)
         hasher.combine(activeArchitecture)
         hasher.combine(arena)
-        hasher.combine(normalizedOverrides(overrides))
+        hasher.combine(filterOverrides(overrides))
         hasher.combine(commandLineOverrides)
         hasher.combine(commandLineConfigOverridesPath)
         hasher.combine(commandLineConfigOverrides)
@@ -238,7 +238,7 @@ public struct BuildParameters: Hashable, SerializableCodable, Sendable {
         return hasher.finalize()
     }
 
-    private func normalizedOverrides(_ overrides: [String: String]) -> [String: String] {
+    private func filterOverrides(_ overrides: [String: String]) -> [String: String] {
         overrides.mapValues { value in
             // Remove -v flag from the value to avoid rebuild
             value.split(separator: " ")
