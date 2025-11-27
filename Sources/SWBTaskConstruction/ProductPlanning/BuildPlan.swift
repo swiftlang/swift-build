@@ -12,7 +12,6 @@
 
 package import SWBUtil
 package import SWBCore
-import os
 import Foundation
 
 /// Information describing a complete build plan request.
