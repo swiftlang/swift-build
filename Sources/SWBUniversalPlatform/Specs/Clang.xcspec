@@ -282,7 +282,7 @@
                 };
                 AdditionalLinkerArgs = {
                     YES = (
-                        "-fobjc-arc",
+                        "$(ARC_LINKER_ARG_LINKER_DRIVER)",
                     );
                     NO = ();
                 };
@@ -291,6 +291,23 @@
                     "sourcecode.cpp.objcpp",
                 );
                 Category = LanguageObjC;
+            },
+            {
+                Name = "ARC_LINKER_ARG_LINKER_DRIVER";
+                Type = String;
+                DefaultValue = "$(ARC_LINKER_ARG_LINKER_DRIVER_$(LINKER_DRIVER))";
+            },
+
+            {
+                Name = "ARC_LINKER_ARG_LINKER_DRIVER_swiftc";
+                Type = StringList;
+                DefaultValue = "";
+            },
+
+            {
+                Name = "ARC_LINKER_ARG_LINKER_DRIVER_clang";
+                Type = StringList;
+                DefaultValue = "-fobjc-arc";
             },
             {
                 Name = "CLANG_ENABLE_OBJC_WEAK";
