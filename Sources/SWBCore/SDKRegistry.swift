@@ -407,16 +407,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         self.minimumOSForSwiftConcurrency = try (supportedTargetDict["SwiftConcurrencyMinimumDeploymentTarget"]?.stringValue ?? concurrency).map { try Version($0) }
         self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue ?? span).map { try Version($0) }
 
-        self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? {
-            switch name {
-            case MacCatalystInfo.sdkVariantName:
-                return "/System/iOSSupport"
-            case "driverkit":
-                return "/System/DriverKit"
-            default:
-                return ""
-            }
-        }()
+        self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? ""
     }
 
     private static func fallbackDeviceFamiliesData(variantName name: String) throws -> PropertyListItem {
