@@ -262,13 +262,4 @@ struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
         let constValueProtocols = [appIntentsProtocols, extensionKitProtocols].joined(separator: " ")
         return ["SWIFT_EMIT_CONST_VALUE_PROTOCOLS" : constValueProtocols]
     }
-    func addOverrides(fromEnvironment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
-    func addProductTypeDefaults(productType: ProductTypeSpec) -> [String : String] { [:] }
-    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext, environment: [String: String]) throws -> [String : String] { [:] }
-    func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String : String] { [:] }
-    func xcconfigOverrideData(fromParameters: BuildParameters) -> ByteString { ByteString() }
-    func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: SWBCore.Project?) -> [String] { [] }
-    func shouldSkipPopulatingValidArchs(platform: SWBCore.Platform, sdk: SDK?) -> Bool { false }
-    func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool { false }
-    func overridingBuildSettings(_: MacroEvaluationScope, platform: SWBCore.Platform?, productType: ProductTypeSpec) -> [String : String] { [:] }
 }

@@ -38,9 +38,9 @@ public struct ClangBlocklists : Sendable {
     var builtinModuleVerify: BuiltinModuleVerifierInfo? = nil
 
     /// Helper method for determining if a given functionality is blocklisted for the active scope.
-    func isBlocked<BlockListT: ProjectFailuresBlockList>(_ scope: MacroEvaluationScope, info: BlockListT?) -> Bool {
+    func isBlocked<BlockListT: ProjectFailuresBlockList>(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, info: BlockListT?) -> Bool {
         guard let blocklistInfo = info else { return false }
-        return blocklistInfo.isProjectListed(scope)
+        return blocklistInfo.isProjectListed(producer, scope)
     }
 }
 
@@ -98,12 +98,12 @@ public struct DiscoveredClangToolSpecInfo: DiscoveredCommandLineToolSpecInfo {
         Set(toolFeatures.value(.deploymentTargetEnvironmentVariables)?.stringArrayValue ?? [])
     }
 
-    public func isCachingBlocked(_ scope: MacroEvaluationScope) -> Bool {
-        return blocklists.isBlocked(scope, info: blocklists.caching)
+    public func isCachingBlocked(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Bool {
+        return blocklists.isBlocked(producer, scope, info: blocklists.caching)
      }
 
-    public func isBuiltinModuleVerifyBlocked(_ scope: MacroEvaluationScope) -> Bool {
-        return blocklists.isBlocked(scope, info: blocklists.builtinModuleVerify)
+    public func isBuiltinModuleVerifyBlocked(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Bool {
+        return blocklists.isBlocked(producer, scope, info: blocklists.builtinModuleVerify)
     }
 }
 

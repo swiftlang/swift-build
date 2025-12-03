@@ -1210,8 +1210,6 @@ public final class BuiltinMacros {
     public static let TARGET_DEVICE_PLATFORM_NAME = BuiltinMacros.declareStringMacro("TARGET_DEVICE_PLATFORM_NAME")
 
     public static let RC_ARCHS = BuiltinMacros.declareStringListMacro("RC_ARCHS")
-    public static let RC_BASE_PROJECT_NAME = BuiltinMacros.declareStringMacro("RC_BASE_PROJECT_NAME")
-    public static let RC_ProjectName = BuiltinMacros.declareStringMacro("RC_ProjectName")
 
     // LLVM Target
     public static let LLVM_TARGET_TRIPLE_OS_VERSION = BuiltinMacros.declareStringMacro("LLVM_TARGET_TRIPLE_OS_VERSION")
@@ -2140,8 +2138,6 @@ public final class BuiltinMacros {
         PUBLIC_HEADERS_FOLDER_PATH,
         ProductResourcesDir,
         RC_ARCHS,
-        RC_BASE_PROJECT_NAME,
-        RC_ProjectName,
         RECORD_SYSTEM_HEADER_DEPENDENCIES_OUTSIDE_SYSROOT,
         RECURSIVE_SEARCH_PATHS_FOLLOW_SYMLINKS,
         MAKE_MERGEABLE,
