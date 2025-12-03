@@ -141,4 +141,85 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(
+        .requireSDKs(.host),
+        arguments: [
+            (
+                buildSettingNameUT: "ENABLE_ADDRESS_SANITIZER",
+                linkerDriverUT: "clang",
+                expectedArgument: "-fsanitize=address",
+            ),
+            (
+                buildSettingNameUT: "ENABLE_ADDRESS_SANITIZER",
+                linkerDriverUT: "swiftc",
+                expectedArgument: "-sanitize=address",
+            ),
+            (
+                buildSettingNameUT: "ENABLE_THREAD_SANITIZER",
+                linkerDriverUT: "clang",
+                expectedArgument: "-fsanitize=thread",
+            ),
+            (
+                buildSettingNameUT: "ENABLE_THREAD_SANITIZER",
+                linkerDriverUT: "swiftc",
+                expectedArgument: "-sanitize=thread",
+            ),
+        ],
+    )
+    func ldSanitizerArgumentsAppearsOnCommandLine(
+        buildSettingNameUT: String,
+        linkerDriverUT: String,
+        expectedArgument: String,
+    ) async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("c.c"),
+                    TestFile("cxx.cpp"),
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": try await swiftCompilerPath.str,
+                    "SWIFT_VERSION": try await swiftVersion
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["c.c", "cxx.cpp", "s.swift"]),
+                    ],
+                ),
+            ],
+        )
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(
+            BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "LINKER_DRIVER": linkerDriverUT,
+                    buildSettingNameUT: "YES",
+                ],
+            ),
+            runDestination: .host,
+        ) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContains([expectedArgument])
+            }
+        }
+
+    }
+
 }

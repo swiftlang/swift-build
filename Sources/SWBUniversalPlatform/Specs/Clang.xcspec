@@ -2919,7 +2919,7 @@
                 };
                 AdditionalLinkerArgs = {
                     YES = (
-                        "-fsanitize=address",
+                        "$(LD_ADDRESS_SANITIZER)",
                     );
                     NO = ();
                 };
