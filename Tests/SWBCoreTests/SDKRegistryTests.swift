@@ -538,7 +538,12 @@ import SWBMacro
                     "CanonicalName": "macosbork",
                     "IsBaseSDK": "YES",
                     "SupportedTargets": [
-                        "iosmac": [] as PropertyListItem
+                        "iosmac": [
+                            "DeviceFamilies": [
+                                ["DisplayName": "iPad", "Identifier": "2", "Name": "pad"],
+                                ["DisplayName": "Mac", "Identifier": "6", "Name": "mac"],
+                            ]
+                        ] as PropertyListItem
                     ]
                 ])
 
