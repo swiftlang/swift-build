@@ -1176,7 +1176,11 @@ public struct SettingsContext: Sendable {
 }
 
 /// This class is responsible for construction of the build settings to use when evaluate macros for a project or target.
-private class SettingsBuilder {
+private class SettingsBuilder: ProjectMatchLookup {
+    func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+        workspaceContext.core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self).contains(where: { ext in ext.matchesAnyProjectIdentities(scope: scope, projectIdentities: projectIdentities) })
+    }
+
     /// This struct wraps properties which are bound as a result of the input parameters and then used to compute the full settings.
     struct BoundProperties {
 
@@ -1664,7 +1668,7 @@ private class SettingsBuilder {
         }
 
         if scope.evaluate(BuiltinMacros.ENABLE_PROJECT_OVERRIDE_SPECS), let projectOverrideSpec = core.specRegistry.findSpecs(ProjectOverridesSpec.self, domain: "").filter({ spec in
-            spec.projectName == (scope.evaluate(BuiltinMacros.RC_ProjectName).nilIfEmpty ?? scope.evaluate(BuiltinMacros.SRCROOT).basename)
+            matchesAnyProjectIdentities(scope: scope, projectIdentities: [spec.projectName])
         }).only {
             push(projectOverrideSpec.buildSettings)
             self.warnings.append("Applying Swift Build settings override to project for \(projectOverrideSpec.bugReport).")
