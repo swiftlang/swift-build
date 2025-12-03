@@ -24,20 +24,44 @@ public enum SwiftBuildMessage {
     /// Event indicating that the service is about to start a planning operation.
     public struct PlanningOperationStartedInfo {
         public let planningOperationID: String
+
+        @_spi(Testing)
+        public init(planningOperationID: String) {
+            self.planningOperationID = planningOperationID
+        }
     }
 
     /// Event indicating that the service finished running a planning operation.
     public struct PlanningOperationCompletedInfo {
         public let planningOperationID: String
+
+        @_spi(Testing)
+        public init(planningOperationID: String) {
+            self.planningOperationID = planningOperationID
+        }
     }
 
     public struct ReportBuildDescriptionInfo {
         public let buildDescriptionID: String
+
+        @_spi(Testing)
+        public init(buildDescriptionID: String) {
+            self.buildDescriptionID = buildDescriptionID
+        }
     }
 
     public struct ReportPathMapInfo {
         public let copiedPathMap: [AbsolutePath: AbsolutePath]
         public let generatedFilesPathMap: [AbsolutePath: AbsolutePath]
+
+        @_spi(Testing)
+        public init(
+            copiedPathMap: [AbsolutePath: AbsolutePath],
+            generatedFilesPathMap: [AbsolutePath: AbsolutePath]
+        ) {
+            self.copiedPathMap = copiedPathMap
+            self.generatedFilesPathMap = generatedFilesPathMap
+        }
     }
 
     /// Wrapper for information provided about a 'prepare-for-index' operation.
@@ -45,10 +69,24 @@ public enum SwiftBuildMessage {
         public struct ResultInfo {
             /// The timestamp of the 'prepare-for-index' marker node.
             public let timestamp: Date
+
+            @_spi(Testing)
+            public init(timestamp: Date) {
+                self.timestamp = timestamp
+            }
         }
 
         public let targetGUID: String
         public let resultInfo: ResultInfo
+
+        @_spi(Testing)
+        public init(
+            targetGUID: String,
+            resultInfo: ResultInfo
+        ) {
+            self.targetGUID = targetGUID
+            self.resultInfo = resultInfo
+        }
     }
 
     public enum LocationContext {
@@ -62,6 +100,15 @@ public enum SwiftBuildMessage {
         // Consider replacing with a target signature in the future.
         public let targetID: Int?
         public let taskSignature: String?
+
+        @_spi(Testing)
+        public init(
+            targetID: Int? = nil,
+            taskSignature: String? = nil
+        ) {
+            self.targetID = targetID
+            self.taskSignature = taskSignature
+        }
     }
 
     /// Wrapper for information provided about a diagnostic during the build.
@@ -103,6 +150,15 @@ public enum SwiftBuildMessage {
             public struct BuildFileAndPhase {
                 public let buildFileGUID: String
                 public let buildPhaseGUID: String
+
+                @_spi(Testing)
+                public init(
+                    buildFileGUID: String,
+                    buildPhaseGUID: String
+                ) {
+                    self.buildFileGUID = buildFileGUID
+                    self.buildPhaseGUID = buildPhaseGUID
+                }
             }
 
             /// Represents a build file diagnostic location, within a particular target and project.
@@ -135,6 +191,21 @@ public enum SwiftBuildMessage {
             public let startColumn: Int
             public let endLine: Int
             public let endColumn: Int
+
+            @_spi(Testing)
+            public init(
+                path: String,
+                startLine: Int,
+                startColumn: Int,
+                endLine: Int,
+                endColumn: Int
+            ) {
+                self.path = path
+                self.startLine = startLine
+                self.startColumn = startColumn
+                self.endLine = endLine
+                self.endColumn = endColumn
+            }
         }
 
         public let sourceRanges: [SourceRange]
@@ -145,9 +216,45 @@ public enum SwiftBuildMessage {
 
             /// The new text to replace the range.  May be an empty string for pure delete.
             public let textToInsert: String
+
+            @_spi(Testing)
+            public init(
+                sourceRange: SourceRange,
+                textToInsert: String
+            ) {
+                self.sourceRange = sourceRange
+                self.textToInsert = textToInsert
+            }
         }
 
         public let fixIts: [FixIt]
+
+        @_spi(Testing)
+        public init(
+            kind: Kind,
+            location: Location,
+            locationContext: LocationContext,
+            locationContext2: LocationContext2,
+            component: Component,
+            message: String,
+            optionName: String? = nil,
+            appendToOutputStream: Bool,
+            childDiagnostics: [DiagnosticInfo] = [],
+            sourceRanges: [SourceRange] = [],
+            fixIts: [FixIt] = []
+        ) {
+            self.kind = kind
+            self.location = location
+            self.locationContext = locationContext
+            self.locationContext2 = locationContext2
+            self.component = component
+            self.message = message
+            self.optionName = optionName
+            self.appendToOutputStream = appendToOutputStream
+            self.childDiagnostics = childDiagnostics
+            self.sourceRanges = sourceRanges
+            self.fixIts = fixIts
+        }
     }
 
     public struct OutputInfo {
@@ -156,15 +263,40 @@ public enum SwiftBuildMessage {
         @available(*, deprecated, message: "Use locationContext2 instead")
         public let locationContext: LocationContext
         public let locationContext2: LocationContext2
+
+        @_spi(Testing)
+        public init(
+            data: Data,
+            locationContext: LocationContext,
+            locationContext2: LocationContext2
+        ) {
+            self.data = data
+            self.locationContext = locationContext
+            self.locationContext2 = locationContext2
+        }
     }
 
     public struct BuildStartedInfo {
         public let baseDirectory: AbsolutePath
         public let derivedDataPath: AbsolutePath?
+
+        @_spi(Testing)
+        public init(
+            baseDirectory: AbsolutePath,
+            derivedDataPath: AbsolutePath? = nil
+        ) {
+            self.baseDirectory = baseDirectory
+            self.derivedDataPath = derivedDataPath
+        }
     }
 
     public struct BuildDiagnosticInfo {
         public let message: String
+
+        @_spi(Testing)
+        public init(message: String) {
+            self.message = message
+        }
     }
 
     public struct BuildOperationMetrics {
@@ -172,6 +304,15 @@ public enum SwiftBuildMessage {
 
         /// The key is the first component of task rule info, a.k.a. the rule info type
         public let taskCounters: [String: [String: Int]]
+
+        @_spi(Testing)
+        public init(
+            counters: [String: Int],
+            taskCounters: [String: [String: Int]]
+        ) {
+            self.counters = counters
+            self.taskCounters = taskCounters
+        }
     }
 
     public struct BuildCompletedInfo {
@@ -184,14 +325,31 @@ public enum SwiftBuildMessage {
 
         public let result: Result
         public let metrics: BuildOperationMetrics?
+
+        @_spi(Testing)
+        public init(
+            result: Result,
+            metrics: BuildOperationMetrics? = nil
+        ) {
+            self.result = result
+            self.metrics = metrics
+        }
     }
 
     public struct BuildOutputInfo {
         public let data: String
+
+        @_spi(Testing)
+        public init(data: String) {
+            self.data = data
+        }
     }
 
     /// Event indicating that the "build preparation" phase is complete.
     public struct PreparationCompleteInfo {
+        @_spi(Testing)
+        public init() {
+        }
     }
 
     /// Event indicating a high-level status message and percentage completion across the entire build operation, suitable for display in a user interface.
@@ -200,11 +358,29 @@ public enum SwiftBuildMessage {
         public let percentComplete: Double
         public let showInLog: Bool
         public let targetName: String?
+
+        @_spi(Testing)
+        public init(
+            message: String,
+            percentComplete: Double,
+            showInLog: Bool,
+            targetName: String? = nil
+        ) {
+            self.message = message
+            self.percentComplete = percentComplete
+            self.showInLog = showInLog
+            self.targetName = targetName
+        }
     }
 
     /// Event indicating that a target was already up to date and did not need to be built.
     public struct TargetUpToDateInfo {
         public let guid: PIF.GUID
+
+        @_spi(Testing)
+        public init(guid: PIF.GUID) {
+            self.guid = guid
+        }
     }
 
     /// Event indicating that a target has started building.
@@ -250,16 +426,57 @@ public enum SwiftBuildMessage {
 
         /// The canonical name of the SDK in use, if any.
         public let sdkroot: String?
+
+        @_spi(Testing)
+        public init(
+            targetID: Int,
+            targetGUID: PIF.GUID,
+            targetName: String,
+            type: Kind,
+            projectName: String,
+            projectPath: AbsolutePath,
+            projectIsPackage: Bool,
+            projectNameIsUniqueInWorkspace: Bool,
+            configurationName: String,
+            configurationIsDefault: Bool,
+            sdkroot: String? = nil
+        ) {
+            self.targetID = targetID
+            self.targetGUID = targetGUID
+            self.targetName = targetName
+            self.type = type
+            self.projectName = projectName
+            self.projectPath = projectPath
+            self.projectIsPackage = projectIsPackage
+            self.projectNameIsUniqueInWorkspace = projectNameIsUniqueInWorkspace
+            self.configurationName = configurationName
+            self.configurationIsDefault = configurationIsDefault
+            self.sdkroot = sdkroot
+        }
     }
 
     public struct TargetOutputInfo {
         public let targetID: Int
         public let data: String
+
+        @_spi(Testing)
+        public init(
+            targetID: Int,
+            data: String
+        ) {
+            self.targetID = targetID
+            self.data = data
+        }
     }
 
     /// Event indicating that a target has finished building.
     public struct TargetCompleteInfo {
         public let targetID: Int
+
+        @_spi(Testing)
+        public init(targetID: Int) {
+            self.targetID = targetID
+        }
     }
 
     /// Event indicating that a task was already up to date and did not need to be built.
@@ -271,6 +488,17 @@ public enum SwiftBuildMessage {
         public let targetID: Int?
         public let taskSignature: String
         public let parentTaskID: Int?
+
+        @_spi(Testing)
+        public init(
+            targetID: Int? = nil,
+            taskSignature: String,
+            parentTaskID: Int? = nil
+        ) {
+            self.targetID = targetID
+            self.taskSignature = taskSignature
+            self.parentTaskID = parentTaskID
+        }
     }
 
     /// Event indicating that a task has started building.
@@ -305,6 +533,29 @@ public enum SwiftBuildMessage {
 
         /// The set of paths to clang-format serialized diagnostics files, if used.
         public let serializedDiagnosticsPaths: [AbsolutePath]
+
+        @_spi(Testing)
+        public init(
+            taskID: Int,
+            targetID: Int? = nil,
+            taskSignature: String,
+            parentTaskID: Int? = nil,
+            ruleInfo: String,
+            interestingPath: AbsolutePath? = nil,
+            commandLineDisplayString: String? = nil,
+            executionDescription: String,
+            serializedDiagnosticsPaths: [AbsolutePath] = []
+        ) {
+            self.taskID = taskID
+            self.targetID = targetID
+            self.taskSignature = taskSignature
+            self.parentTaskID = parentTaskID
+            self.ruleInfo = ruleInfo
+            self.interestingPath = interestingPath
+            self.commandLineDisplayString = commandLineDisplayString
+            self.executionDescription = executionDescription
+            self.serializedDiagnosticsPaths = serializedDiagnosticsPaths
+        }
     }
 
     public struct TaskDiagnosticInfo {
@@ -312,11 +563,33 @@ public enum SwiftBuildMessage {
         public let taskSignature: String
         public let targetID: Int?
         public let message: String
+
+        @_spi(Testing)
+        public init(
+            taskID: Int,
+            taskSignature: String,
+            targetID: Int? = nil,
+            message: String
+        ) {
+            self.taskID = taskID
+            self.taskSignature = taskSignature
+            self.targetID = targetID
+            self.message = message
+        }
     }
 
     public struct TaskOutputInfo {
         public let taskID: Int
         public let data: String
+
+        @_spi(Testing)
+        public init(
+            taskID: Int,
+            data: String
+        ) {
+            self.taskID = taskID
+            self.data = data
+        }
     }
 
     /// Event indicating that a task has finished building.
@@ -333,6 +606,21 @@ public enum SwiftBuildMessage {
             public let maxRSS: UInt64
             public let wcStartTime: UInt64
             public let wcDuration: UInt64
+
+            @_spi(Testing)
+            public init(
+                utime: UInt64,
+                stime: UInt64,
+                maxRSS: UInt64,
+                wcStartTime: UInt64,
+                wcDuration: UInt64
+            ) {
+                self.utime = utime
+                self.stime = stime
+                self.maxRSS = maxRSS
+                self.wcStartTime = wcStartTime
+                self.wcDuration = wcDuration
+            }
         }
 
         public let taskID: Int
@@ -340,11 +628,35 @@ public enum SwiftBuildMessage {
         public let result: Result
         public let signalled: Bool
         public let metrics: Metrics?
+
+        @_spi(Testing)
+        public init(
+            taskID: Int,
+            taskSignature: String,
+            result: Result,
+            signalled: Bool,
+            metrics: Metrics? = nil
+        ) {
+            self.taskID = taskID
+            self.taskSignature = taskSignature
+            self.result = result
+            self.signalled = signalled
+            self.metrics = metrics
+        }
     }
 
     public struct TargetDiagnosticInfo {
         public let targetID: Int
         public let message: String
+
+        @_spi(Testing)
+        public init(
+            targetID: Int,
+            message: String
+        ) {
+            self.targetID = targetID
+            self.message = message
+        }
     }
 
     case planningOperationStarted(PlanningOperationStartedInfo)
