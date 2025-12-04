@@ -471,11 +471,11 @@ if useLocalDependencies {
     }
 } else {
     package.dependencies += [
-        .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "main"),
+        .package(url: "https://github.com/swiftlang/swift-driver.git", branch: "release/6.3"),
         .package(url: "https://github.com/apple/swift-system.git", .upToNextMajor(from: "1.5.0")),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.0.3"),
     ]
     if !useLLBuildFramework {
-        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "main"),]
+        package.dependencies += [.package(url: "https://github.com/swiftlang/swift-llbuild.git", branch: "release/6.3"),]
     }
 }
