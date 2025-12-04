@@ -609,6 +609,7 @@
                 Architectures = (
                     x86_64,
                     x86_64h,
+                    aarch64,
                     arm64,
                     arm64e,
                 );
@@ -628,6 +629,7 @@
                 Architectures = (
                     x86_64,
                     x86_64h,
+                    aarch64,
                     arm64,
                     arm64e,
                 );
