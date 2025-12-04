@@ -365,7 +365,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
                     task.checkCommandLineMatches([
                         "builtin-Swift-Compilation-Requirements", .anySequence,
-                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/x86_64/Swift-API.tbd", .anySequence,
+                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Swift-API.tbd", .anySequence,
                         "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
                         "-Xfrontend", "-tbd-current-version", "-Xfrontend", "2.0",
                         "-Xfrontend", "-tbd-compatibility-version", "-Xfrontend", "1.0", .anySequence,
@@ -383,7 +383,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                 results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements"), .matchTarget(target)) { task in
                     task.checkCommandLineMatches([
                         "builtin-Swift-Compilation-Requirements", .anySequence,
-                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/DocumentedFwk.build/Objects-normal/x86_64/Swift-API.tbd", .anySequence,
+                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/DocumentedFwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Swift-API.tbd", .anySequence,
                         "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/DocumentedFwk.framework/Versions/A/DocumentedFwk",
                         "-Xfrontend", "-tbd-current-version", "-Xfrontend", "2.0",
                         "-Xfrontend", "-tbd-compatibility-version", "-Xfrontend", "1.0", .anySequence,
@@ -411,7 +411,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                     task.checkCommandLineMatches(["builtin-Swift-Compilation-Requirements", "--", .anySequence])
                     task.checkCommandLineMatches([
                         "builtin-Swift-Compilation-Requirements", .anySequence,
-                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/x86_64/Swift-API.tbd", .anySequence,
+                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Swift-API.tbd", .anySequence,
                         "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
                         "-Xfrontend", "-tbd-current-version", "-Xfrontend", "2.0",
                         "-Xfrontend", "-tbd-compatibility-version", "-Xfrontend", "1.0", .anySequence,
@@ -437,7 +437,7 @@ fileprivate struct EagerLinkingTests: CoreBasedTests {
                     task.checkCommandLineMatches(["builtin-Swift-Compilation-Requirements", "--", .anySequence])
                     task.checkCommandLineMatches([
                         "builtin-Swift-Compilation-Requirements", .anySequence,
-                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/x86_64/Swift-API.tbd", .anySequence,
+                        "-emit-tbd", "-emit-tbd-path", "/TEST/build/aProject.build/Debug/Fwk.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Swift-API.tbd", .anySequence,
                         "-Xfrontend", "-tbd-install_name", "-Xfrontend", "/Library/Frameworks/Fwk.framework/Versions/A/Fwk",
                         "-Xfrontend", "-tbd-current-version", "-Xfrontend", "2.0",
                         "-Xfrontend", "-tbd-compatibility-version", "-Xfrontend", "1.0", .anySequence,

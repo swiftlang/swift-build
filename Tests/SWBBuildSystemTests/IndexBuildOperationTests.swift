@@ -101,20 +101,20 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(Self.excludedStartTaskTypes)
 
                 // Swift modules and core data code generation
-                results.checkTaskExists(.matchRule(["SwiftDriver", "FwkTarget", "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"]))
-                results.checkTaskExists(.matchRule(["SwiftDriver Compilation Requirements", "FwkTarget", "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"]))
-                results.checkTaskExists(.matchRule(["SwiftDriver Compilation", "FwkTarget", "normal", "x86_64", "com.apple.xcode.tools.swift.compiler"]))
-                results.checkTaskExists(.matchRule(["SwiftCompile", "normal", "x86_64", "Compiling fwk.swift", "\(tmpDirPath.str)/Test/aProject/fwk.swift"]))
-                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", "x86_64", "Emitting module for FwkTarget"]))
+                results.checkTaskExists(.matchRule(["SwiftDriver", "FwkTarget", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"]))
+                results.checkTaskExists(.matchRule(["SwiftDriver Compilation Requirements", "FwkTarget", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"]))
+                results.checkTaskExists(.matchRule(["SwiftDriver Compilation", "FwkTarget", "normal", results.runDestinationTargetArchitecture, "com.apple.xcode.tools.swift.compiler"]))
+                results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling fwk.swift", "\(tmpDirPath.str)/Test/aProject/fwk.swift"]))
+                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for FwkTarget"]))
                 results.checkTask(.matchRule(["DataModelCodegen", "\(tmpDirPath.str)/Test/aProject/AppTarget.xcdatamodel"])) { _ in }
-                results.checkTask(.matchRule(["SwiftMergeGeneratedHeaders", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Headers/FwkTarget-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget-Swift.h"])) { _ in }
-                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/x86_64-apple-macos.swiftdoc", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget.swiftdoc"])) { _ in }
-                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/x86_64-apple-macos.swiftmodule", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget.swiftmodule"])) { _ in }
-                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/x86_64-apple-macos.abi.json", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget.abi.json"])) { _ in }
-                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/Project/x86_64-apple-macos.swiftsourceinfo", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget.swiftsourceinfo"])) { _ in }
-                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget-OutputFileMap.json"])) { _ in }
-                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget.SwiftFileList"])) { _ in }
-                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget.SwiftConstValuesFileList"])) { _ in }
+                results.checkTask(.matchRule(["SwiftMergeGeneratedHeaders", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Headers/FwkTarget-Swift.h", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget-Swift.h"])) { _ in }
+                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftdoc", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget.swiftdoc"])) { _ in }
+                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.swiftmodule", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget.swiftmodule"])) { _ in }
+                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/\(results.runDestinationTargetArchitecture)-apple-macos.abi.json", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget.abi.json"])) { _ in }
+                results.checkTask(.matchRule(["Copy", "\(tmpDirPath.str)/Test/aProject/build/Debug/FwkTarget.framework/Versions/A/Modules/FwkTarget.swiftmodule/Project/\(results.runDestinationTargetArchitecture)-apple-macos.swiftsourceinfo", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget.swiftsourceinfo"])) { _ in }
+                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget-OutputFileMap.json"])) { _ in }
+                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget.SwiftFileList"])) { _ in }
+                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget.SwiftConstValuesFileList"])) { _ in }
 
                 // Header maps
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/AppTarget.build/AppTarget-all-non-framework-target-headers.hmap"])) { _ in }
@@ -131,7 +131,7 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/FwkTarget.hmap"])) { _ in }
 
                 // Const extraction protocols
-                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/FwkTarget_const_extract_protocols.json"])) { _ in }
+                results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/FwkTarget_const_extract_protocols.json"])) { _ in }
 
                 // VFS
                 results.checkTask(.matchRulePattern(["WriteAuxiliaryFile", .suffix("all-product-headers.yaml")])) { _ in }
@@ -140,8 +140,8 @@ fileprivate struct IndexBuildOperationTests: CoreBasedTests {
                 results.checkTask(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/DerivedSources/FwkTarget_vers.c"])) { _ in }
 
                 // Response files
-                results.checkTaskExists(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/x86_64/7187679823f38a2a940e0043cdf9d637-common-args.resp"]))
-                results.checkTaskExists(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/AppTarget.build/Objects-normal/x86_64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp"]))
+                results.checkTaskExists(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/FwkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp"]))
+                results.checkTaskExists(.matchRule(["WriteAuxiliaryFile", "\(tmpDirPath.str)/Test/aProject/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/e6072d4f65d7061329687fe24e3d63a7-common-args.resp"]))
 
 
                 // Mkdir

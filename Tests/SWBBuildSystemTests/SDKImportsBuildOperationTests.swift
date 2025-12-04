@@ -106,7 +106,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 let derivedData = tmpDir.join("build/Debug")
                 let appResources = derivedData.join("tool.app/Contents/Resources")
 
-                let sdkImportsPath = appResources.join("tool_normal_x86_64_sdk_imports.json")
+                let sdkImportsPath = appResources.join("tool_normal_\(results.runDestinationTargetArchitecture)_sdk_imports.json")
                 let sdkImportsData = try Data(contentsOf: .init(filePath: sdkImportsPath.str))
 
                 struct SDKImports: Codable {

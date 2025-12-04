@@ -138,8 +138,9 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
         return ruleInfo
     }
 
-    public func inputFileListContents(_ cbc: CommandBuildContext) -> ByteString {
-        return ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: cbc.inputs.map { $0.absolutePath.strWithPosixSlashes }, format: cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT)))
+    public func inputFileListContents(_ cbc: CommandBuildContext, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> ByteString {
+        let format = cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT, lookup: lookup)
+        return ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: cbc.inputs.map { $0.absolutePath.strWithPosixSlashes }, format: format))
     }
 
     open override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {

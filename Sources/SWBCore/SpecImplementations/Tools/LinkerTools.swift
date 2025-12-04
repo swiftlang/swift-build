@@ -461,7 +461,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__, lookup: linkerDriverLookup)
         if !fileListPath.isEmpty {
             let fileListPath = fileListPath
-            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc, lookup: linkerDriverLookup), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
             inputPaths.append(fileListPath)
         }
 
@@ -1653,6 +1653,11 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
     public func libtoolToolPath(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Path {
         let lookupPath = scope.evaluate(BuiltinMacros.LIBTOOL).nilIfEmpty ?? Path("libtool")
         return resolveExecutablePath(producer, lookupPath)
+    }
+
+    public override func inputFileListContents(_ cbc: CommandBuildContext, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> ByteString {
+        let format = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_FILE_LIST_FORMAT, lookup: lookup)
+        return ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: cbc.inputs.map { $0.absolutePath.strWithPosixSlashes }, format: format))
     }
 
     static func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, toolPath: Path) async throws -> DiscoveredLibtoolLinkerToolSpecInfo {

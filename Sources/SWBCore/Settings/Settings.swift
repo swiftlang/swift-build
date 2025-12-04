@@ -1032,6 +1032,43 @@ extension WorkspaceContext {
                 }
             }
 
+            // Add the system-level bin directories common to most Unix-like platforms if they weren't already present.
+            // This is not an exhaustive list that exactly matches the platform defaults, but generally aims to follow the same relative ordering.
+            switch core.hostOperatingSystem {
+            case .macOS:
+                paths.append(contentsOf: [
+                    .root.join("usr").join("bin"),
+                    .root.join("bin"),
+                    .root.join("usr").join("sbin"),
+                    .root.join("sbin"),
+                ])
+            case .linux:
+                paths.append(contentsOf: [
+                    .root.join("usr").join("sbin"),
+                    .root.join("usr").join("bin"),
+                    .root.join("sbin"),
+                    .root.join("bin"),
+                ])
+            case .freebsd:
+                paths.append(contentsOf: [
+                    .root.join("sbin"),
+                    .root.join("bin"),
+                    .root.join("usr").join("sbin"),
+                    .root.join("usr").join("bin"),
+                ])
+            case .openbsd:
+                paths.append(contentsOf: [
+                    .root.join("bin"),
+                    .root.join("sbin"),
+                    .root.join("usr").join("bin"),
+                    .root.join("usr").join("sbin"),
+                ])
+            case .android:
+                paths.append(.root.join("system").join("bin"))
+            case .iOS, .tvOS, .watchOS, .visionOS, .windows, .unknown:
+                break
+            }
+
             return StackedSearchPath(paths: [Path](paths), fs: fs)
         }
     }

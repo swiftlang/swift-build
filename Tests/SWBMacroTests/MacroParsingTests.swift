@@ -790,7 +790,7 @@ fileprivate let testFileData = [
         }
         func endPreprocessorInclusion() {
         }
-        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
+        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
         }
 
         func handleDiagnostic(_ diagnostic: MacroConfigFileDiagnostic, parser: MacroConfigFileParser) {
@@ -895,7 +895,7 @@ private func TestMacroConfigFileParser(_ string: String, expectedAssignments: [A
         func endPreprocessorInclusion() {
             self.includeDirectivesCount += 1
         }
-        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
+        func foundMacroValueAssignment(_ macroName: String, conditions: [(param: String, pattern: String)], value: String, path: Path, pathRef: OrderedSet<Path>.Index, startLine: Int, endLine: Int, startColumn: Int, endColumn: Int, parser: MacroConfigFileParser) {
             // print("\(parser.lineNumber): \(macroName)\(conditions.map({ "[\($0.param)=\($0.pattern)]" }).joinWithSeparator(""))=\(value)")
             assignments.append((macro: macroName, conditions: conditions, value: value))
             locations.append((macro: macroName, path: path, startLine: startLine, endLine: endLine, startColumn: startColumn, endColumn: endColumn))

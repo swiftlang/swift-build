@@ -114,7 +114,10 @@ fileprivate struct AppClipsTests: CoreBasedTests {
                         results.checkError(.equal("App Clips are not available when building for Mac Catalyst."))
                         results.checkNoFailedTasks()
                     } else {
-                        results.checkError(.equal("Your target is built for macOS but contains embedded content built for the iOS platform (BarClip.app), which is not allowed."))
+                        results.checkError(.or(
+                            .prefix("Your target is built for macOS but contains embedded content built for the iOS platform (BarClip.app), which is not allowed."),
+                            .prefix("This target is built for macOS but contains embedded content (BarClip.app) built for iOS, which is not allowed.")
+                        ))
                     }
                     results.checkNoDiagnostics()
                 }
