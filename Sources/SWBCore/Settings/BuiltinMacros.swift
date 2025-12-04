@@ -120,6 +120,7 @@ public final class BuiltinMacros {
     public static let HOST_PLATFORM = BuiltinMacros.declareStringMacro("HOST_PLATFORM")
     public static let IOS_UNZIPPERED_TWIN_PREFIX_PATH = BuiltinMacros.declareStringMacro("IOS_UNZIPPERED_TWIN_PREFIX_PATH")
     public static let IPHONEOS_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("IPHONEOS_DEPLOYMENT_TARGET")
+    public static let MACOS_UNZIPPERED_TWIN_PREFIX_PATH = BuiltinMacros.declareStringMacro("MACOS_UNZIPPERED_TWIN_PREFIX_PATH")
     public static let MACOSX_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("MACOSX_DEPLOYMENT_TARGET")
     public static let NATIVE_ARCH = BuiltinMacros.declareStringMacro("NATIVE_ARCH")
     public static let NATIVE_ARCH_32_BIT = BuiltinMacros.declareStringMacro("NATIVE_ARCH_32_BIT")
@@ -1993,6 +1994,7 @@ public final class BuiltinMacros {
         MACOS_CREATOR_ARG,
         MACOS_TYPE,
         MACOS_TYPE_ARG,
+        MACOS_UNZIPPERED_TWIN_PREFIX_PATH,
         MAC_OS_X_PRODUCT_BUILD_VERSION,
         MAC_OS_X_VERSION_ACTUAL,
         MAC_OS_X_VERSION_MAJOR,
