@@ -16,7 +16,7 @@
         Identifier = "com.apple.compilers.metal";
         Name = "Metal Compiler";
         Description = "Compiles Metal files";
-        CommandLine = "metal -c [options] [inputs]";
+        CommandLine = "$(MTL_COMPILER_PATH) -c [options] [inputs]";
         RuleName = "CompileMetalFile [input]";
         ExecDescription = "Compile $(InputFileName)";
         ProgressDescription = "Compiling $(CommandProgressByType) Metal files";
@@ -36,6 +36,13 @@
             "com.apple.compilers.metal-linker",
         );
         Options = (
+            {
+                Name = "MTL_COMPILER_PATH";
+                Type = Path;
+                DefaultValue = "metal";
+                SetValueInEnvironmentVariable = "MTL_COMPILER_PATH";
+                Description = "Path to the Metal compiler executable.";
+            },
             {
                 Name = "MTL_TARGET_TRIPLE";
                 Type = String;
