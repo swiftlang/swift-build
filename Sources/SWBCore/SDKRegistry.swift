@@ -997,12 +997,15 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
         // Construct the SDK and add it to the registry.
         let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget)
-        if let duplicate = sdksByCanonicalName[canonicalName] {
-            delegate.error(path, "SDK '\(canonicalName)' already registered from \(duplicate.path.str)")
+
+        platform?.registerSDK(sdk)
+
+        if let duplicate = sdksByCanonicalName[sdk.canonicalName] {
+            delegate.error(path, "SDK '\(sdk.canonicalName)' already registered from \(duplicate.path.str)")
             return nil
         }
 
-        sdksByCanonicalName[canonicalName] = sdk
+        sdksByCanonicalName[sdk.canonicalName] = sdk
 
         for alias in sdk.aliases {
             self.sdksByAlias[alias] = (self.sdksByAlias[alias] ?? []) + [sdk]
@@ -1010,8 +1013,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
         sdksByPath[path] = sdk
         sdksByPath[pathResolved] = sdk
-
-        platform?.registerSDK(sdk)
 
         return sdk
     }
@@ -1111,8 +1112,103 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             }
         }
 
-        // Xcode has special logic so that if there's no match here, and we'e *not* looking for a suffixed SDK, but we have an suffixed SDK which would otherwise match, then we use that. c.f. <rdar://problem/11414721> But we haven't needed that logic yet in Swift Build, so maybe we never will.
+        // Let's check the active run destination to see if there's an SDK path that we should be using
+        if matchedSDK == nil,
+            let sdkManifestPath = activeRunDestination?.sdkManiftestPath,
+            let triple = activeRunDestination?.triple,
+            case let llvmTriple = try LLVMTriple(triple) {
 
+            // TODO choose the platform based on the triple, and fallback to a default one in the default case
+            guard let platform = delegate.platformRegistry?.lookup(name: "webassembly") else {
+                return nil
+            }
+
+            let host = hostOperatingSystem
+
+            // Don't allow re-registering the same SDK
+            if let existing = sdksByCanonicalName[sdkManifestPath] {
+                return existing
+            }
+
+            if let swiftSDK = try SwiftSDK(identifier: sdkManifestPath, version: "1.0.0", path: Path(sdkManifestPath), fs: localFS) {
+                let defaultProperties: [String: PropertyListItem] = [
+                    "SDK_STAT_CACHE_ENABLE": "NO",
+
+                    "GENERATE_TEXT_BASED_STUBS": "NO",
+                    "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+
+                    // TODO check how this impacts operation on Windows
+                    "CHOWN": "/usr/bin/chown",
+
+                    // TODO are these going to be appropriate for all kinds of SDK's?
+                    // SwiftSDK _could_ have tool entries for these, so use them if they are available
+                    "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
+                    "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
+                ]
+
+                for (sdkTriple, tripleProperties) in swiftSDK.targetTriples {
+                    guard triple == sdkTriple else {
+                        continue
+                    }
+
+                    let toolsets = try tripleProperties.loadToolsets(sdk: swiftSDK, fs: localFS)
+ 
+                    let sysroot = swiftSDK.path.join(tripleProperties.sdkRootPath)
+
+                    // TODO support dynamic resources path
+                    let swiftResourceDir = swiftSDK.path.join(tripleProperties.swiftStaticResourcesPath)
+                    let clangResourceDir = swiftSDK.path.join(tripleProperties.clangStaticResourcesPath)
+
+                    let tripleSystem = llvmTriple.system + (llvmTriple.systemVersion?.description ?? "")
+
+                    // TODO handle tripleProperties.toolSearchPaths
+
+                    let extraSwiftCompilerSettings = Array(toolsets.map( { $0.swiftCompiler?.extraCLIOptions ?? [] }).flatMap( { $0 }))
+                    let headerSearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.includeSearchPaths ?? []).map( { PropertyListItem.plString($0) } )
+                    let librarySearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.librarySearchPaths ?? []).map( { PropertyListItem.plString($0) } )
+
+                    let sdk = registerSDK(sysroot, sysroot, platform, .plDict([
+                        "Type": .plString("SDK"),
+                        "Version": .plString(swiftSDK.version),
+                        "CanonicalName": .plString(swiftSDK.identifier),
+                        "Aliases": [],
+                        "IsBaseSDK": .plBool(true),
+                        "DefaultProperties": .plDict([
+                            "PLATFORM_NAME": .plString(platform.name),
+                        ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
+                        "CustomProperties": .plDict([
+                            "LIBRARY_SEARCH_PATHS": .plArray(librarySearchPaths),
+                            "HEADER_SEARCH_PATHS": .plArray(headerSearchPaths),
+                            "OTHER_SWIFT_FLAGS": .plArray(["$(inherited)"] + extraSwiftCompilerSettings.map( {.plString($0)} )),
+                            "SWIFTC_RESOURCE_DIR": .plString(swiftResourceDir.str), // Resource dir for linking Swift
+                            "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str), // Resource dir for compiling Swift
+                            "CLANG_RESOURCE_DIR": .plString(clangResourceDir.str), // Resource dir for linking C/C++/Obj-C
+                            "SDKROOT": .plString(sysroot.str),
+                            "OTHER_LDFLAGS": .plArray(["$(OTHER_SWIFT_FLAGS)"]), // The extra swift compiler settings in JSON are intended to go to the linker driver too
+                        ]),
+                        "SupportedTargets": .plDict([
+                            "webassembly": .plDict([
+                                "Archs": .plArray([.plString(llvmTriple.arch)]),
+                                "LLVMTargetTripleEnvironment": .plString(llvmTriple.environment ?? ""),
+                                "LLVMTargetTripleSys": .plString(tripleSystem),
+                                "LLVMTargetTripleVendor": .plString(llvmTriple.vendor),
+                            ])
+                        ]),
+                        // TODO: Leave compatible toolchain information in Swift SDKs
+                        // "Toolchains": .plArray([])
+                    ]))
+
+                    // FIXME why do we need to do this to avoid initialization errors on the SDK's default properties table?
+                    if let sdk {
+                        try sdk.loadExtendedInfo(delegate.namespace)
+
+                        return sdk
+                    }
+                }
+            }
+        }
+
+        // Xcode has special logic so that if there's no match here, and we'e *not* looking for a suffixed SDK, but we have an suffixed SDK which would otherwise match, then we use that. c.f. <rdar://problem/11414721> But we haven't needed that logic yet in Swift Build, so maybe we never will.
         return matchedSDK?.sdk
     }
 

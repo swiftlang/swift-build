@@ -127,7 +127,7 @@
                 Values = (
                     {
                         Value = "mh_execute";
-                        CommandLineFlag = "-emit-executable";
+                        CommandLineFlag = "";
                     },
                     {
                         Value = "mh_dylib";
@@ -171,6 +171,27 @@
                 DefaultValue = "$(SDKROOT)";
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineFlag = "-sdk";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = CLANG_RESOURCE_DIR;
+                Type = Path;
+                Condition = "$(LINKER_DRIVER) == clang";
+                CommandLineFlag = "-resource-dir";
+                IsInputDependency = Yes;
+            },
+            {
+                Name = CLANG_RESOURCE_DIR;
+                Type = Path;
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = ("-Xclang-linker", "-resource-dir", "-Xclang-linker", "$(CLANG_RESOURCE_DIR)");
+                IsInputDependency = Yes;
+            },
+            {
+                Name = SWIFTC_RESOURCE_DIR;
+                Type = Path;
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = ("-resource-dir", "$(SWIFTC_RESOURCE_DIR)");
                 IsInputDependency = Yes;
             },
             {
@@ -415,10 +436,10 @@
                 Type = StringList;
                 DefaultValue = "";
                 CommandLineArgs = (
-                    "-Xlinker",
-                    "-rpath",
-                    "-Xlinker",
-                    "$(value)",
+                    //"-Xlinker",
+                    //"-rpath",
+                    //"-Xlinker",
+                    //"$(value)",
                 );
             },
             {

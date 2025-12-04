@@ -43,17 +43,21 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
     public var supportedArchitectures: [String]
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
+    public var sdkManifestPath: String?
+    public var triple: String?
 
-    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool) {
+    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], sdkManifestPath: String? = nil, triple: String? = nil, disableOnlyActiveArch: Bool) {
         self.platform = platform
         self.sdk = sdk
         self.sdkVariant = sdkVariant
         self.targetArchitecture = targetArchitecture
         self.supportedArchitectures = supportedArchitectures
         self.disableOnlyActiveArch = disableOnlyActiveArch
+        self.sdkManifestPath = sdkManifestPath
+        self.triple = triple
     }
 
-    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
+    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], sdkManifestPath: String? = nil, triple: String? = nil, disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
         self.init(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
         self.hostTargetedPlatform = hostTargetedPlatform
     }
