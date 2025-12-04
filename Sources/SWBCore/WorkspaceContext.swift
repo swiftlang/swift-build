@@ -213,6 +213,10 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
         public func lookup(nameOrPath: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
             return try lookupInEach { try $0.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination) }
         }
+
+        func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
+            return try lookupInEach { try $0.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple) }
+        }
     }
 
     @_spi(Testing) public init(coreSDKRegistry: SDKRegistry, delegate: any SDKRegistryDelegate, userNamespace: MacroNamespace, overridingSDKsDir: Path?) {
@@ -245,6 +249,10 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
 
     public func lookup(nameOrPath: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
         return try underlyingLookup.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination)
+    }
+
+    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
+        return try underlyingLookup.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
     }
 }
 
