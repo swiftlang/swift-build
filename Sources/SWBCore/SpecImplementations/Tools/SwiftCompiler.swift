@@ -1598,6 +1598,19 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             }
 
+            if let target = cbc.producer.configuredTarget {
+                let depScopes = cbc.producer.targetSwiftDependencyScopes(for: target, arch: cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH), variant:  cbc.scope.evaluate(BuiltinMacros.CURRENT_VARIANT))
+                for scope in depScopes {
+                    let moduleName = scope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
+                    // From CoreBuildSystem.xcspec: $(OBJROOT)/GeneratedModuleMaps$(EFFECTIVE_PLATFORM_NAME)
+                    let objroot = scope.evaluate(BuiltinMacros.OBJROOT).str
+                    let moduleMapDir = "\(objroot)/GeneratedModuleMaps\(scope.evaluate(BuiltinMacros.EFFECTIVE_PLATFORM_NAME))"
+                    // Doesn't work for SwiftPM targets
+                    // let moduleMapDir = scope.evaluate(BuiltinMacros.GENERATED_MODULEMAP_DIR)
+                    args.append(contentsOf: ["-Xcc", "-fmodule-map-file=\(moduleMapDir)/\(moduleName).modulemap"])
+                }
+            }
+
             // Add -F for the effective framework search paths.
             let frameworkSearchPaths = GCCCompatibleCompilerSpecSupport.frameworkSearchPathArguments(cbc.producer, cbc.scope, asSeparateArguments: true)
             args += frameworkSearchPaths.searchPathArguments(for: self, scope: cbc.scope)
