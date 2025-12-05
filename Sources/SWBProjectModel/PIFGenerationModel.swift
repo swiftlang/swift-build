@@ -34,6 +34,7 @@ public enum PIF {
         public let id: String
         public let name: String
         public var developmentRegion: String?
+        public var knownLocalizations: [String]?
         public var path: String
         public let mainGroup: Group
         public var buildConfigs: [BuildConfig]
