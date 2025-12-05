@@ -99,6 +99,11 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
             guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
         }
 
+        // Check if we should filter localizations based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+        guard group.buildSettingAllowsBuildingLocale(scope, in: context.project, delegate) else {
+            return
+        }
+
         // Compute the path to the effective localized directories (.lproj) in the resources and temp resources directories to define the output file for the tool.
 
         let assetPackInfo = context.onDemandResourcesAssetPack(for: group)
@@ -172,6 +177,11 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
         }
 
         await appendGeneratedTasks(&tasks) { delegate in
+            // Check if we should filter localizations based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+            guard ftb.buildSettingAllowsBuildingLocale(scope, in: context.project, delegate) else {
+                return
+            }
+
             // Compute the output path, taking the region into account.
             let assetPackInfo = context.onDemandResourcesAssetPack(for: FileToBuildGroup(nil, files: [ftb], action: nil))
             let outputDir = assetPackInfo?.path ?? buildFilesContext.resourcesDir

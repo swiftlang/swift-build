@@ -22,10 +22,11 @@ public struct Project: Sendable {
     public let buildConfigurations: [BuildConfiguration]
     public let defaultConfigurationName: String
     public let developmentRegion: String?
+    public let knownLocalizations: [String]?
     public let classPrefix: String
     public let appPreferencesBuildSettings: [BuildConfiguration.MacroBindingSource]
 
-    public init(guid: String, isPackage: Bool, xcodeprojPath: Path, sourceRoot: Path, targetSignatures: [String], groupTree: FileGroup, buildConfigurations: [BuildConfiguration], defaultConfigurationName: String, developmentRegion: String?, classPrefix: String, appPreferencesBuildSettings: [BuildConfiguration.MacroBindingSource] = []) {
+    public init(guid: String, isPackage: Bool, xcodeprojPath: Path, sourceRoot: Path, targetSignatures: [String], groupTree: FileGroup, buildConfigurations: [BuildConfiguration], defaultConfigurationName: String, developmentRegion: String?, knownLocalizations: [String]?, classPrefix: String, appPreferencesBuildSettings: [BuildConfiguration.MacroBindingSource] = []) {
         self.guid = guid
         self.isPackage = isPackage
         self.xcodeprojPath = xcodeprojPath
@@ -35,6 +36,7 @@ public struct Project: Sendable {
         self.buildConfigurations = buildConfigurations
         self.defaultConfigurationName = defaultConfigurationName
         self.developmentRegion = developmentRegion
+        self.knownLocalizations = knownLocalizations
         self.classPrefix = classPrefix
         self.appPreferencesBuildSettings = appPreferencesBuildSettings
     }
@@ -44,7 +46,7 @@ public struct Project: Sendable {
 
 extension Project: Serializable {
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(11) {
+        serializer.serializeAggregate(12) {
             serializer.serialize(guid)
             serializer.serialize(isPackage)
             serializer.serialize(xcodeprojPath)
@@ -54,13 +56,14 @@ extension Project: Serializable {
             serializer.serialize(buildConfigurations)
             serializer.serialize(defaultConfigurationName)
             serializer.serialize(developmentRegion)
+            serializer.serialize(knownLocalizations)
             serializer.serialize(classPrefix)
             serializer.serialize(appPreferencesBuildSettings)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(11)
+        try deserializer.beginAggregate(12)
         self.guid = try deserializer.deserialize()
         self.isPackage = try deserializer.deserialize()
         self.xcodeprojPath = try deserializer.deserialize()
@@ -70,6 +73,7 @@ extension Project: Serializable {
         self.buildConfigurations = try deserializer.deserialize()
         self.defaultConfigurationName = try deserializer.deserialize()
         self.developmentRegion = try deserializer.deserialize()
+        self.knownLocalizations = try deserializer.deserialize()
         self.classPrefix = try deserializer.deserialize()
         self.appPreferencesBuildSettings = try deserializer.deserialize()
     }
