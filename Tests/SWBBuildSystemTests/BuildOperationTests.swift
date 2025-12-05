@@ -94,7 +94,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["dynamic library.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                     TestStandardTarget(
                         "staticlib",
@@ -108,7 +109,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static library.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                 ])
             let core = try await getCore()
@@ -279,7 +281,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["dynamic.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                     TestStandardTarget(
                         "staticlib",
@@ -293,7 +296,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                 ])
             let core = try await getCore()
@@ -422,7 +426,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["dynamic.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                     TestStandardTarget(
                         "staticlib",
@@ -436,7 +441,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                 ])
             let core = try await getCore()
@@ -546,7 +552,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"))
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS))
     func unitTestWithGeneratedEntryPoint() async throws {
         try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -582,7 +588,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildPhases: [
                             TestSourcesBuildPhase(),
                             TestFrameworksBuildPhase([
-                                "MyTests.so"
+                                TestBuildFile(.target("MyTests"))
                             ])
                         ],
                         dependencies: ["MyTests"]
@@ -593,7 +599,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "MyTests.so"
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)"
                             ])
                         ],
                         buildPhases: [
@@ -604,7 +610,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ], dependencies: [
                             "library"
                         ],
-                        productReferenceName: "MyTests.so"
+                        productReferenceName: "$(EXECUTABLE_NAME)"
                     ),
                     TestStandardTarget(
                         "library",
@@ -612,16 +618,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
-
                                 // FIXME: Find a way to make these default
                                 "EXECUTABLE_PREFIX": "lib",
                                 "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)",
                             ])
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["library.swift"]),
                         ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     )
                 ])
             let core = try await getCore()
@@ -656,21 +662,23 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, persistent: true) { results in
                 results.checkNoErrors()
 
-                let environment = destination.hostRuntimeEnvironment(core)
+                let environment = try destination.hostRuntimeEnvironment(core)
 
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 1 test"))
                 }
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                    #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
                 }
             }
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"))
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS))
     func unitTestWithGeneratedEntryPoint_testabilityDisabled() async throws {
         try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -708,7 +716,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildPhases: [
                             TestSourcesBuildPhase(),
                             TestFrameworksBuildPhase([
-                                "MyTests.so"
+                                TestBuildFile(.target("MyTests"))
                             ])
                         ],
                         dependencies: ["MyTests"]
@@ -719,7 +727,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "MyTests.so"
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)"
                             ])
                         ],
                         buildPhases: [
@@ -730,7 +738,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ], dependencies: [
                             "library"
                         ],
-                        productReferenceName: "MyTests.so"
+                        productReferenceName: "$(EXECUTABLE_NAME)"
                     ),
                     TestStandardTarget(
                         "library",
@@ -738,16 +746,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
-
                                 // FIXME: Find a way to make these default
                                 "EXECUTABLE_PREFIX": "lib",
                                 "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)",
                             ])
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["library.swift"]),
                         ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     )
                 ])
             let core = try await getCore()
@@ -783,15 +791,21 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 results.checkWarning(.prefix("Skipping XCTest discovery for 'MyTests' because it was not built for testing"))
                 results.checkNoErrors()
 
-                let environment = destination.hostRuntimeEnvironment(core)
+                let environment = try destination.hostRuntimeEnvironment(core)
 
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 0 tests"))
                 }
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
-                    #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
+                    withKnownIssue("On windows the test output indicates no tests ran, needs investigation") {
+                        #expect(executionResult.exitStatus == .exit(0))
+                        #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
+                    } when: {
+                        core.hostOperatingSystem == .windows
+                    }
                 }
             }
         }
