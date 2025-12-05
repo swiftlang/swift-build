@@ -483,6 +483,7 @@ public final class BuiltinMacros {
     public static let BUILD_DIR = BuiltinMacros.declarePathMacro("BUILD_DIR")
     public static let BUILD_LIBRARY_FOR_DISTRIBUTION = BuiltinMacros.declareBooleanMacro("BUILD_LIBRARY_FOR_DISTRIBUTION")
     public static let BUILD_PACKAGE_FOR_DISTRIBUTION = BuiltinMacros.declareBooleanMacro("BUILD_PACKAGE_FOR_DISTRIBUTION")
+    public static let BUILD_SERVER_PROTOCOL_TARGET_TAGS = BuiltinMacros.declareBooleanMacro("BUILD_SERVER_PROTOCOL_TARGET_TAGS")
     public static let BUILD_VARIANTS = BuiltinMacros.declareStringListMacro("BUILD_VARIANTS")
     public static let BuiltBinaryPath = BuiltinMacros.declareStringMacro("BuiltBinaryPath")
     public static let BUNDLE_FORMAT = BuiltinMacros.declareStringMacro("BUNDLE_FORMAT")
@@ -1209,8 +1210,6 @@ public final class BuiltinMacros {
     public static let TARGET_DEVICE_PLATFORM_NAME = BuiltinMacros.declareStringMacro("TARGET_DEVICE_PLATFORM_NAME")
 
     public static let RC_ARCHS = BuiltinMacros.declareStringListMacro("RC_ARCHS")
-    public static let RC_BASE_PROJECT_NAME = BuiltinMacros.declareStringMacro("RC_BASE_PROJECT_NAME")
-    public static let RC_ProjectName = BuiltinMacros.declareStringMacro("RC_ProjectName")
 
     // LLVM Target
     public static let LLVM_TARGET_TRIPLE_OS_VERSION = BuiltinMacros.declareStringMacro("LLVM_TARGET_TRIPLE_OS_VERSION")
@@ -1484,6 +1483,7 @@ public final class BuiltinMacros {
         BUILD_DIR,
         BUILD_LIBRARY_FOR_DISTRIBUTION,
         BUILD_PACKAGE_FOR_DISTRIBUTION,
+        BUILD_SERVER_PROTOCOL_TARGET_TAGS,
         BUILD_STYLE,
         BUILD_VARIANTS,
         BUILT_PRODUCTS_DIR,
@@ -2138,8 +2138,6 @@ public final class BuiltinMacros {
         PUBLIC_HEADERS_FOLDER_PATH,
         ProductResourcesDir,
         RC_ARCHS,
-        RC_BASE_PROJECT_NAME,
-        RC_ProjectName,
         RECORD_SYSTEM_HEADER_DEPENDENCIES_OUTSIDE_SYSROOT,
         RECURSIVE_SEARCH_PATHS_FOLLOW_SYMLINKS,
         MAKE_MERGEABLE,

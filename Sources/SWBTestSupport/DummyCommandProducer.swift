@@ -252,4 +252,8 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package var headerDependenciesContext: SWBCore.HeaderDependenciesContext? {
         nil
     }
+
+    package func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+        false
+    }
 }

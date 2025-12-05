@@ -1408,7 +1408,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                                   scope.evaluate(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES) == .enabled
 
         // If this project is on the blocklist, override the blocklist default enable for it
-        if let explicitModuleBlocklist = await getExplicitModuleBlocklist(producer, scope, delegate), explicitModuleBlocklist.isProjectListed(scope) {
+        if let explicitModuleBlocklist = await getExplicitModuleBlocklist(producer, scope, delegate), explicitModuleBlocklist.isProjectListed(producer, scope) {
             return false
         }
 
@@ -1463,7 +1463,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 if blocklist.Modules.contains(moduleName) {
                     return false
                 }
-                if blocklist.isProjectListed(cbc.scope) {
+                if blocklist.isProjectListed(cbc.producer, cbc.scope) {
                     return false
                 }
             }

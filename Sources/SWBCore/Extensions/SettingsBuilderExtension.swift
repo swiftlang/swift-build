@@ -53,4 +53,21 @@ public protocol SettingsBuilderExtension: Sendable {
     func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool
 
     func overridingBuildSettings(_: MacroEvaluationScope, platform: Platform?, productType: ProductTypeSpec) -> [String: String]
+
+    func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool
+}
+
+extension SettingsBuilderExtension {
+    public func addOverrides(fromEnvironment: [String: String], parameters: BuildParameters) throws -> [String: String] { [:] }
+    public func addBuiltinDefaults(fromEnvironment environment: [String: String], parameters: BuildParameters) throws -> [String: String] { [:] }
+    public func addProductTypeDefaults(productType: ProductTypeSpec) -> [String: String] { [:] }
+    public func addSDKSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK]) throws -> [String: String] { [:] }
+    public func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext, environment: [String: String]) throws -> [String: String] { [:] }
+    public func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String: String] { [:] }
+    public func xcconfigOverrideData(fromParameters: BuildParameters) -> ByteString { ByteString() }
+    public func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: SWBCore.Project?) -> [String] { [] }
+    public func shouldSkipPopulatingValidArchs(platform: SWBCore.Platform, sdk: SDK?) -> Bool { false }
+    public func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool { false }
+    public func overridingBuildSettings(_: MacroEvaluationScope, platform: SWBCore.Platform?, productType: ProductTypeSpec) -> [String: String] { [:] }
+    public func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool { false }
 }

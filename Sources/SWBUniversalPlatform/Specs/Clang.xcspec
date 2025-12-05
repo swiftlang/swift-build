@@ -280,11 +280,34 @@
                     );
                     NO = ();
                 };
+                AdditionalLinkerArgs = {
+                    YES = (
+                        "$(ARC_LINKER_ARG_LINKER_DRIVER)",
+                    );
+                    NO = ();
+                };
                 FileTypes = (
                     "sourcecode.c.objc",
                     "sourcecode.cpp.objcpp",
                 );
                 Category = LanguageObjC;
+            },
+            {
+                Name = "ARC_LINKER_ARG_LINKER_DRIVER";
+                Type = String;
+                DefaultValue = "$(ARC_LINKER_ARG_LINKER_DRIVER_$(LINKER_DRIVER))";
+            },
+
+            {
+                Name = "ARC_LINKER_ARG_LINKER_DRIVER_swiftc";
+                Type = StringList;
+                DefaultValue = "";
+            },
+
+            {
+                Name = "ARC_LINKER_ARG_LINKER_DRIVER_clang";
+                Type = StringList;
+                DefaultValue = "-fobjc-arc";
             },
             {
                 Name = "CLANG_ENABLE_OBJC_WEAK";
@@ -2896,7 +2919,7 @@
                 };
                 AdditionalLinkerArgs = {
                     YES = (
-                        "-fsanitize=address",
+                        "$(LD_ADDRESS_SANITIZER)",
                     );
                     NO = ();
                 };

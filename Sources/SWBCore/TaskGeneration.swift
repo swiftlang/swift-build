@@ -97,8 +97,12 @@ extension PlatformBuildContext {
     }
 }
 
+public protocol ProjectMatchLookup {
+    func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool
+}
+
 /// Protocol describing the interface producers use to communicate information to the command build context.
-public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup {
+public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup, ProjectMatchLookup {
     /// The configured target the command is being produced for, if any.
     var configuredTarget: ConfiguredTarget? { get }
 

@@ -14,6 +14,7 @@ import struct Foundation.Data
 
 import SWBProtocol
 import SWBCore
+import SWBMacro
 import SWBTaskConstruction
 import SWBTestSupport
 import SWBUtil
@@ -704,7 +705,16 @@ fileprivate struct ModuleVerifierTaskConstructionTests: CoreBasedTests {
                     ]),
                 ])
 
-                let core = try await getCore()
+                // Construct a custom core to test project identity based matching
+                let core = try await Self.makeCore(registerExtraPlugins: { pluginManager in
+                    struct TestSettingsBuilderExtension: SettingsBuilderExtension {
+                        func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+                            projectIdentities.contains(scope.evaluate(BuiltinMacros.PROJECT_NAME))
+                        }
+                    }
+                    pluginManager.register(TestSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
+                })
+
                 let tester = try await BuildOperationTester(core, testProject, simulated: false)
                 let SRCROOT = tester.workspace.projects[0].sourceRoot
                 for inputFile in ["Sources/Orange.h", "Sources/Orange.defs", "Sources/main.m"] {

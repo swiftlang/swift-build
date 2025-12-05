@@ -20,6 +20,7 @@ import SwiftBuildTestSupport
 import SWBLLBuild
 
 import SWBCore
+import SWBMacro
 import SWBTaskExecution
 
 @Suite
@@ -884,7 +885,17 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 try await tester.checkBuild(runDestination: .macOS, buildRequest: cleanRequest) { results in results.checkNoErrors() }
             }
 
-            tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            // Construct a custom core to test project identity based matching
+            let customCore = try await Self.makeCore(registerExtraPlugins: { pluginManager in
+                struct TestSettingsBuilderExtension: SettingsBuilderExtension {
+                    func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+                        projectIdentities.contains(scope.evaluate(BuiltinMacros.SRCROOT).basename)
+                    }
+                }
+                pluginManager.register(TestSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
+            })
+
+            tester = try await BuildOperationTester(customCore, testWorkspace, simulated: false)
             do {
                 // Add project name to the `KnownFailures` and ensure explicit modules are disabled despite the build setting enable
                 let buildParameters = BuildParameters(configuration: "Debug",

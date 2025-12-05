@@ -13,6 +13,7 @@
 import Testing
 
 import SWBCore
+import SWBMacro
 import SWBProtocol
 import SWBTaskExecution
 import SWBTestSupport
@@ -644,7 +645,17 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
 
             do {
-                let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+                // Construct a custom core to test project identity based matching
+                let core = try await Self.makeCore(registerExtraPlugins: { pluginManager in
+                    struct TestSettingsBuilderExtension: SettingsBuilderExtension {
+                        func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+                            projectIdentities.contains(scope.evaluate(BuiltinMacros.PROJECT_NAME))
+                        }
+                    }
+                    pluginManager.register(TestSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
+                })
+
+                let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
                 try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
                     stream <<< "void foo(void) {}"
                 }

@@ -1428,6 +1428,10 @@ extension TaskProducerContext: CommandProducer {
     public func lookupLibclang(path: SWBUtil.Path) -> (libclang: SWBCore.Libclang?, version: Version?) {
         workspaceContext.core.lookupLibclang(path: path)
     }
+
+    public func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+        workspaceContext.core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self).contains(where: { ext in ext.matchesAnyProjectIdentities(scope: scope, projectIdentities: projectIdentities) })
+    }
 }
 
 extension TaskProducerContext {

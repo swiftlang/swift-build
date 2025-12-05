@@ -498,7 +498,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList"])) { _ in }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkRuleInfo(["Ld", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget", "normal"])
-                        task.checkCommandLine(["clang++", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-framework", "Framework", "-framework", "AppCore", "-weak_framework", "AppExtensions", "-framework", "Framework-Matched-Included", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
+                        task.checkCommandLine(["clang++", "-Xlinker", "-reproducible", "-target", "\(results.runDestinationTargetArchitecture)-apple-macos\(MACOSX_DEPLOYMENT_TARGET)", "-isysroot", core.loadSDK(.macOS).path.str, "-Os", "-L\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-L\(SRCROOT)/build/Debug", "-F\(SRCROOT)/build/EagerLinkingTBDs/Debug", "-F\(SRCROOT)/build/Debug", "-filelist", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget.LinkFileList", "-Xlinker", "-object_path_lto", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_lto.o", "-Xlinker", "-dependency_info", "-Xlinker", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_dependency_info.dat", "-fobjc-arc", "-fobjc-link-runtime", "-lstatic", "-ldynamic", "-framework", "Framework", "-framework", "AppCore", "-weak_framework", "AppExtensions", "-framework", "Framework-Matched-Included", "-o", "\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"])
 
                         task.checkInputs([
                             .path("\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceFile.o"),
@@ -4061,8 +4061,17 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     /// Test that we properly generate commands for the compiler sanitizer features.
-    @Test(.requireSDKs(.macOS))
-    func sanitizers() async throws {
+    @Test(
+        .requireSDKs(.macOS),
+        arguments:[
+            (linkerDriver: "clang", expectedArgument: "-fsanitize=address"),
+            (linkerDriver: "swiftc", expectedArgument: "-sanitize=address"),
+        ],
+    )
+    func sanitizers(
+        linkerDriver: String,
+        expectedArgument: String,
+    ) async throws {
         try await withTemporaryDirectory { tmpDir in
             let targetName = "AppTarget"
             let testProject = try await TestProject(
@@ -4115,7 +4124,18 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             }
 
             // Check the LibSystem address sanitizer.
-            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_ADDRESS_SANITIZER": "YES","ENABLE_SYSTEM_SANITIZERS": "YES" ]), runDestination: .macOS, fs: fs) { results in
+            await tester.checkBuild(
+                BuildParameters(
+                    configuration: "Debug",
+                    overrides: [
+                        "LINKER_DRIVER": linkerDriver,
+                        "ENABLE_ADDRESS_SANITIZER": "YES",
+                        "ENABLE_SYSTEM_SANITIZERS": "YES",
+                    ],
+                ),
+                runDestination: .macOS,
+                fs: fs,
+            ) { results in
                 results.checkTarget(targetName) { target in
                     // There should be one CompileC task, which includes the ASan option, and which puts its output in a -asan directory.
                     results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
@@ -4129,8 +4149,12 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     }
                     results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                         task.checkCommandLineContains(
-                            ["-fsanitize=address", "-fsanitize-stable-abi", "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)"
-                            ])
+                            [
+                                expectedArgument,
+                                "-fsanitize-stable-abi",
+                                "\(SRCROOT)/build/Debug/\(targetName).app/Contents/MacOS/\(targetName)",
+                            ]
+                        )
                     }
                 }
             }

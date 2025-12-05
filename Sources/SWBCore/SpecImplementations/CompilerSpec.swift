@@ -108,18 +108,9 @@ protocol ProjectFailuresBlockList {
 }
 
 extension ProjectFailuresBlockList {
-    func isProjectListed(_ scope: MacroEvaluationScope) -> Bool {
+    func isProjectListed(_ producer: any CommandProducer, _ scope: MacroEvaluationScope) -> Bool {
         // Check if this project is on the blocklist.
-        let RC_ProjectName = scope.evaluate(BuiltinMacros.RC_ProjectName)
-        if !RC_ProjectName.isEmpty, KnownFailures.contains(RC_ProjectName) {
-            return true
-        }
-        let RC_BaseProjectName = scope.evaluate(BuiltinMacros.RC_BASE_PROJECT_NAME)
-        if !RC_BaseProjectName.isEmpty, KnownFailures.contains(RC_BaseProjectName) {
-            return true
-        }
-        let projectName = scope.evaluate(BuiltinMacros.PROJECT_NAME)
-        return KnownFailures.contains(projectName)
+        producer.matchesAnyProjectIdentities(scope: scope, projectIdentities: Set(KnownFailures))
     }
 }
 
