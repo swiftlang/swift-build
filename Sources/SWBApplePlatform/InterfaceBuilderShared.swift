@@ -70,7 +70,10 @@ extension IbtoolCompilerSupport {
                             // Filter by knownLocalizations if BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled:
                             if let allowedLocalizations, !allowedLocalizations.contains(region) {
                                 // Skip this .strings file.
-                                delegate.note("Skipping .lproj directory '\(region).lproj' because '\(region)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)")
+                                if region != "mul" {
+                                    // Don't leave a note about mul.lproj
+                                    delegate.note("Skipping .lproj directory '\(region).lproj' because '\(region)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(ftb.absolutePath))
+                                }
                                 continue
                             }
 

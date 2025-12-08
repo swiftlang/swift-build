@@ -191,7 +191,12 @@ public extension RegionVariable {
     /// `BUILD_ONLY_KNOWN_LOCALIZATIONS` is disabled, or the file's region
     /// is present in the project's supported localizations.
     /// If this file should not be built, `false` is returned.
-    func buildSettingAllowsBuildingLocale(_ scope: MacroEvaluationScope, in project: Project?, _ delegate: (any DiagnosticProducingDelegate)?) -> Bool {
+    func buildSettingAllowsBuildingLocale(
+        _ scope: MacroEvaluationScope,
+        in project: Project?,
+        inputFileAbsolutePath: Path,
+        _ delegate: (any DiagnosticProducingDelegate)?
+    ) -> Bool {
 
         guard let project else {
             // We can't find the project. Allow the file to build:
@@ -233,7 +238,7 @@ public extension RegionVariable {
         }
 
         // This region is not supported, so it shouldn't build.
-        delegate?.note("Skipping .lproj directory '\(regionVariantName).lproj' because '\(regionVariantName)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)")
+        delegate?.note("Skipping .lproj directory '\(regionVariantName).lproj' because '\(regionVariantName)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(inputFileAbsolutePath))
         return false
     }
 }
