@@ -383,7 +383,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         self.validDeploymentTargets = validDeploymentTargets
 
         // The recommended deployment target is the default deployment target for the platform, unless we've overridden to a more specific value.
-        self.recommendedDeploymentTarget = (try? Version(supportedTargetDict["RecommendedDeploymentTarget"]?.stringValue ?? Self.fallbackRecommendedDeploymentTarget(variantName: name) ?? "")) ?? defaultDeploymentTarget
+        self.recommendedDeploymentTarget = (try? Version(supportedTargetDict["RecommendedDeploymentTarget"]?.stringValue ?? "")) ?? defaultDeploymentTarget
 
         self.llvmTargetTripleEnvironment = supportedTargetDict["LLVMTargetTripleEnvironment"]?.stringValue
         self.llvmTargetTripleSys = supportedTargetDict["LLVMTargetTripleSys"]?.stringValue
@@ -398,88 +398,15 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
             self.targetOSMacroName = nil
         }
 
-        self.deviceFamilies = try DeviceFamilies(families: PropertyList.decode([DeviceFamily].self, from: supportedTargetDict["DeviceFamilies"] ?? Self.fallbackDeviceFamiliesData(variantName: name)))
+        self.deviceFamilies = try DeviceFamilies(families: PropertyList.decode([DeviceFamily].self, from: supportedTargetDict["DeviceFamilies"] ?? []))
 
-        self.clangRuntimeLibraryPlatformName = supportedTargetDict["ClangRuntimeLibraryPlatformName"]?.stringValue ?? Self.fallbackClangRuntimeLibraryPlatformName(variantName: name)
+        self.clangRuntimeLibraryPlatformName = supportedTargetDict["ClangRuntimeLibraryPlatformName"]?.stringValue
 
-        let (os, concurrency, span) = Self.fallbackSwiftVersions(variantName: name)
-        self.minimumOSForSwiftInTheOS = try (supportedTargetDict["SwiftOSRuntimeMinimumDeploymentTarget"]?.stringValue ?? os).map { try Version($0) }
-        self.minimumOSForSwiftConcurrency = try (supportedTargetDict["SwiftConcurrencyMinimumDeploymentTarget"]?.stringValue ?? concurrency).map { try Version($0) }
-        self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue ?? span).map { try Version($0) }
+        self.minimumOSForSwiftInTheOS = try (supportedTargetDict["SwiftOSRuntimeMinimumDeploymentTarget"]?.stringValue).map { try Version($0) }
+        self.minimumOSForSwiftConcurrency = try (supportedTargetDict["SwiftConcurrencyMinimumDeploymentTarget"]?.stringValue).map { try Version($0) }
+        self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue).map { try Version($0) }
 
         self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? ""
-    }
-
-    private static func fallbackDeviceFamiliesData(variantName name: String) throws -> PropertyListItem {
-        switch name {
-        case "macos", "macosx":
-            return .plArray([
-                .plDict([
-                    "Name": .plString("mac"),
-                    "DisplayName": .plString("Mac"),
-                ])
-            ])
-        case MacCatalystInfo.sdkVariantName:
-            return .plArray([
-                .plDict([
-                    "Identifier": .plInt(2),
-                    "Name": .plString("pad"),
-                    "DisplayName": .plString("iPad"),
-                ]),
-                .plDict([
-                    "Identifier": .plInt(6),
-                    "Name": .plString("mac"),
-                    "DisplayName": .plString("Mac"),
-                ])
-            ])
-        default:
-            // Other platforms don't have device families
-            return .plArray([])
-        }
-    }
-
-    private static func fallbackClangRuntimeLibraryPlatformName(variantName name: String) -> String? {
-        switch name {
-        case "macos", "macosx", MacCatalystInfo.sdkVariantName:
-            return "osx"
-        default:
-            return nil
-        }
-    }
-
-    private static func fallbackSwiftVersions(variantName name: String) -> (os: String?, concurrency: String?, span: String?) {
-        switch name {
-        case "macos", "macosx":
-            return ("10.14.4", "12.0", "26.0")
-        default:
-            return (nil, nil, "26.0")
-        }
-    }
-
-    private static func fallbackRecommendedDeploymentTarget(variantName name: String) -> String? {
-        switch name {
-            // Late Summer 2019 aligned, except iOS which got one final 12.x update in Winter 2020, making this version set the last minor update series of the Fall 2018 aligned releases.
-        case "macos", "macosx":
-            return "10.14.6"
-        case "iphoneos", "iphonesimulator":
-            return "12.5"
-        case "appletvos", "appletvsimulator":
-            return "12.4"
-        case "watchos", "watchsimulator":
-            return "5.3"
-
-            // No Summer 2019 aligned versions since these were first introduced on or after Fall 2019, so simply use the minimum versions.
-        case "driverkit":
-            return "19.0"
-        case MacCatalystInfo.sdkVariantName:
-            return "13.1"
-        case "xros", "xrsimulator":
-            return "1.0"
-
-            // Fall back to the default deployment target, which is equal to the SDK version.
-        default:
-            return nil
-        }
     }
 
     /// Perform late binding of the build settings.  This is a private function that may only be invoked once for any given SDK variant.
@@ -761,14 +688,12 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         var defaultSettings: [String: PropertyListItem] = [:]
         if case .plDict(let settingsItems)? = items["DefaultProperties"] {
             defaultSettings = filteredSettings(settingsItems)
-                .filter { $0.key != "TEST_FRAMEWORK_DEVELOPER_VARIANT_SUBPATH" } // rdar://107954685 (Remove watchOS special case for testing framework paths)
         }
 
         // Parse the custom properties settings.
         var overrideSettings: [String: PropertyListItem] = [:]
         if case .plDict(let settingsItems)? = items["CustomProperties"] {
             overrideSettings = filteredSettings(settingsItems)
-                .filter { !$0.key.hasPrefix("SWIFT_MODULE_ONLY_") } // Rev-lock: don't set SWIFT_MODULE_ONLY_ in SDKs
         }
 
         // Parse the Variants array and the SupportedTargets dictionary, then create the SDKVariant objects from them.  Note that it is not guaranteed that any variant will have both sets of data, so we don't the presence of either one.

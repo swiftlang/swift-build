@@ -2524,6 +2524,11 @@ private class SettingsBuilder: ProjectMatchLookup {
                 platformTable.push(BuiltinMacros.PLATFORM_DEVELOPER_USR_DIR, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)") })
                 platformTable.push(BuiltinMacros.PLATFORM_DEVELOPER_BIN_DIR, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_BIN_DIR)") })
                 platformTable.push(BuiltinMacros.PLATFORM_DEVELOPER_SDK_DIR, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_SDK_DIR)") })
+
+                // Set twin prefix paths in macOS for Mac Catalyst.
+                platformTable.push(BuiltinMacros.MACOS_UNZIPPERED_TWIN_PREFIX_PATH, literal: "")
+                platformTable.push(BuiltinMacros.IOS_UNZIPPERED_TWIN_PREFIX_PATH, literal: "/System/iOSSupport")
+
             } else {
                 platformTable.push(BuiltinMacros.PLATFORM_DEVELOPER_APPLICATIONS_DIR, literal: "\(platform.path.str)/Developer/Applications")
                 platformTable.push(BuiltinMacros.PLATFORM_DEVELOPER_TOOLS_DIR, literal: "\(platform.path.str)/Developer/Tools")
@@ -2583,11 +2588,6 @@ private class SettingsBuilder: ProjectMatchLookup {
         var sdkTable = MacroValueAssignmentTable(namespace: userNamespace)
         if let defaultSettingsTable = sdk.defaultSettingsTable {
             sdkTable.pushContentsOf(defaultSettingsTable)
-        }
-
-        // Set IOS_UNZIPPERED_TWIN_PREFIX_PATH to the Mac Catalyst variant's prefix path, even for the macOS variant.
-        if let macCatalystVariant = sdk.variant(for: MacCatalystInfo.sdkVariantName) {
-            sdkTable.push(BuiltinMacros.IOS_UNZIPPERED_TWIN_PREFIX_PATH, literal: macCatalystVariant.systemPrefix)
         }
 
         // Add the settings provided by the SDK variant, if there is one.

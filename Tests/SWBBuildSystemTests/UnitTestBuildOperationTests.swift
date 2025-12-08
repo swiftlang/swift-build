@@ -1045,7 +1045,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
     /// Test building an application and a UI test target for iOS for both the device and the simulator.
     @Test(.requireSDKs(.iOS))
-    func uITestTarget_iOS() async throws {
+    func uiTestTarget_iOS() async throws {
         // Creates and returns a tester for a given test.
         func makeTester(_ tmpDir: Path) async throws -> BuildOperationTester {
             let testWorkspace = try await TestWorkspace(
