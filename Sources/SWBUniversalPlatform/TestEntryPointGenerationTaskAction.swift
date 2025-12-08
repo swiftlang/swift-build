@@ -63,7 +63,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             @main
             @available(macOS 10.15, iOS 11, watchOS 4, tvOS 11, visionOS 1, *)
             @available(*, deprecated, message: "Not actually deprecated. Marked as deprecated to allow inclusion of deprecated tests (which test deprecated functionality) without warnings")
-            struct Runner {
+            struct __SwiftPMGeneratedTestRunner {
                 private static func testingLibrary() -> String {
                     var iterator = CommandLine.arguments.makeIterator()
                     while let argument = iterator.next() {
