@@ -1184,17 +1184,22 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         case invalid
     }
 
-    static let outputAgnosticCompilerArgumentsWithValues = Set<ByteString>([
+    static let outputAgnosticSwiftCompilerArguments = Set<ByteString>([
+        "-v"
+    ])
+
+    static let outputAgnosticSwiftCompilerArgumentsWithValues = Set<ByteString>([
         "-index-store-path",
         "-index-unit-output-path",
     ])
 
-    func isOutputAgnosticCommandLineArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
-        if SwiftCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(argument) {
+    func isOutputAgnosticSwiftCompilerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+        if SwiftCompilerSpec.outputAgnosticSwiftCompilerArguments.contains(argument) ||
+            SwiftCompilerSpec.outputAgnosticSwiftCompilerArgumentsWithValues.contains(argument) {
             return true
         }
 
-        if let prevArgument, SwiftCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(prevArgument) {
+        if let prevArgument, SwiftCompilerSpec.outputAgnosticSwiftCompilerArgumentsWithValues.contains(prevArgument) {
             return true
         }
 
@@ -1211,7 +1216,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return task.commandLine.indices.compactMap { index in
             let arg = task.commandLine[index].asByteString
             let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
-            if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
+            if isOutputAgnosticSwiftCompilerArgument(arg, prevArgument: prevArg) {
                 return nil
             }
             return arg

@@ -399,8 +399,32 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return false
     }
 
+    static let outputAgnosticCompilerArguments = Set<ByteString>([
+        "-v"
+    ])
+
+    func isOutputAgnosticCommandLineArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+        if CommandLineToolSpec.outputAgnosticCompilerArguments.contains(argument) {
+            return true
+        }
+
+        return false
+    }
     public func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
-        return nil
+        // TODO: We should probably allow the specs themselves to mark options
+        // as output agnostic, rather than always postprocessing the command
+        // line. In some cases we will have to postprocess, because of settings
+        // like OTHER_SWIFT_FLAGS where the user can't possibly add this
+        // metadata to the values, but those settings be handled on a
+        // case-by-case basis.
+        return task.commandLine.indices.compactMap { index in
+            let arg = task.commandLine[index].asByteString
+            let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
+            if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
+                return nil
+            }
+            return arg
+        }
     }
 
     static func parseCommandLineTemplate(_ parser: SpecParser, _ components: [String]) -> [CommandLineTemplateArg] {
