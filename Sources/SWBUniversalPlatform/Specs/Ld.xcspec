@@ -436,11 +436,10 @@
                 Type = StringList;
                 DefaultValue = "";
                 CommandLineArgs = (
-                    // FIXME: the wasm linker doesn't understand the rpath argument
-                    //"-Xlinker",
-                    //"-rpath",
-                    //"-Xlinker",
-                    //"$(value)",
+                    "-Xlinker",
+                    "-rpath",
+                    "-Xlinker",
+                    "$(value)",
                 );
             },
             {
