@@ -127,7 +127,7 @@
                 Values = (
                     {
                         Value = "mh_execute";
-                        CommandLineFlag = "";
+                        CommandLineFlag = "-emit-executable";
                     },
                     {
                         Value = "mh_dylib";
@@ -436,6 +436,7 @@
                 Type = StringList;
                 DefaultValue = "";
                 CommandLineArgs = (
+                    // FIXME: the wasm linker doesn't understand the rpath argument
                     //"-Xlinker",
                     //"-rpath",
                     //"-Xlinker",
