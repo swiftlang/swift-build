@@ -998,12 +998,12 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         // Construct the SDK and add it to the registry.
         let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget)
 
-        if let duplicate = sdksByCanonicalName[sdk.canonicalName] {
-            delegate.error(path, "SDK '\(sdk.canonicalName)' already registered from \(duplicate.path.str)")
+        if let duplicate = sdksByCanonicalName[canonicalName] {
+            delegate.error(path, "SDK '\(canonicalName)' already registered from \(duplicate.path.str)")
             return nil
         }
 
-        sdksByCanonicalName[sdk.canonicalName] = sdk
+        sdksByCanonicalName[canonicalName] = sdk
 
         for alias in sdk.aliases {
             self.sdksByAlias[alias] = (self.sdksByAlias[alias] ?? []) + [sdk]
