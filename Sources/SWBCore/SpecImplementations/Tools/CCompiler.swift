@@ -591,10 +591,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         required init() { }
 
-        func getStandardFlags(_ spec: ClangCompilerSpec, cbc: CommandBuildContext, optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate, inputFileType: FileTypeSpec) -> ConstantFlags {
+        func getStandardFlags(_ spec: ClangCompilerSpec, producer: any CommandProducer, scope: MacroEvaluationScope, optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate, inputFileType: FileTypeSpec) -> ConstantFlags {
             // This cache is per-producer, so it is guaranteed to be invariant based on that.
-            constantFlagsCache.getOrInsert(ConstantFlagsKey(scope: cbc.scope, inputFileType: inputFileType)) {
-                return spec.standardFlags(cbc, optionContext: optionContext, delegate: delegate, inputFileType: inputFileType)
+            constantFlagsCache.getOrInsert(ConstantFlagsKey(scope: scope, inputFileType: inputFileType)) {
+                return spec.standardFlags(producer, scope: scope, optionContext: optionContext, delegate: delegate, inputFileType: inputFileType)
             }
         }
     }
@@ -646,9 +646,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         super.init(parser, basedOnSpec, isGeneric: false)
     }
 
-    private func standardFlags(_ cbc: CommandBuildContext, optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate, inputFileType: FileTypeSpec) -> ConstantFlags {
+    private func standardFlags(_ producer: any CommandProducer, scope: MacroEvaluationScope, optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate, inputFileType: FileTypeSpec) -> ConstantFlags {
         var commandLine = Array<String>()
-        let producer = cbc.producer, scope = cbc.scope
 
         // Add the arguments from the specification.
         commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, buildOptionsFilter: .specOnly, lookup: { declaration in
@@ -658,7 +657,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     return BuiltinMacros.namespace.parseString("NO")
                 }
             }
-            return self.lookup(declaration, cbc, delegate)
+            return nil
         }).map(\.asString)
 
         // Add the common header search paths.
@@ -1138,8 +1137,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         //
         // FIXME: Eventually we should just apply this optimization to all generic specs, and then find a way to piggy back on that.
         let dataCache = cbc.producer.getSpecDataCache(self, cacheType: DataCache.self)
-        let cbcWithOutput = cbc.outputs.isEmpty ? cbc.appendingOutputs([outputNode.path]) : cbc
-        let constantFlags = dataCache.getStandardFlags(self, cbc: cbcWithOutput, optionContext: clangInfo, delegate: delegate, inputFileType: resolvedInputFileType)
+        let constantFlags = dataCache.getStandardFlags(self, producer: cbc.producer, scope: cbc.scope, optionContext: clangInfo, delegate: delegate, inputFileType: resolvedInputFileType)
         commandLine += constantFlags.flags
         let responseFileAdditionalOutput = constantFlags.responseFileMapping.keys.sorted().map({"Using response file: \($0.str)"})
         additionalOutput.append(contentsOf: responseFileAdditionalOutput)
@@ -1160,6 +1158,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         inputDeps.append(contentsOf: constantFlags.headerSearchPaths.inputPaths)
 #endif
 
+        let cbcWithOutput = cbc.outputs.isEmpty ? cbc.appendingOutputs([outputNode.path]) : cbc
         commandLine += self.commandLineFromOptions(cbc.producer, scope: cbc.scope, inputFileType: resolvedInputFileType, optionContext: clangInfo, buildOptionsFilter: .extendedOnly, lookup: {
             self.lookup($0, cbcWithOutput, delegate)
         }).map(\.asString)
@@ -1701,7 +1700,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         // Add “standard flags”, which are ones that depend only on the variant, architecture, and language (in addition to the identifier, of course).
         let dataCache = cbc.producer.getSpecDataCache(self, cacheType: DataCache.self)
-        let constantFlags = dataCache.getStandardFlags(self, cbc: cbc, optionContext: clangInfo, delegate: delegate, inputFileType: inputFileType)
+        let constantFlags = dataCache.getStandardFlags(self, producer: cbc.producer, scope: cbc.scope, optionContext: clangInfo, delegate: delegate, inputFileType: inputFileType)
         let responseFileAdditionalOutput = constantFlags.responseFileMapping.keys.sorted().map({"Using response file: \($0.str)"})
         commandLine += constantFlags.flags
 
