@@ -9543,8 +9543,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "ARCHS": "x86_64 arm64",
-                                "EMIT_COMPILER_SOURCE_METADATA": "YES",
-                                "COMPILER_SOURCE_METADATA_LIST": "/tmp/test.json"
+                                "EMIT_COMPILER_SOURCE_METADATA": "YES"
                             ])
                         ],
                         buildPhases: [

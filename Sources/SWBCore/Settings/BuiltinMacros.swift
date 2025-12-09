@@ -639,6 +639,7 @@ public final class BuiltinMacros {
     public static let EMBEDDED_CONTENT_CONTAINS_SWIFT = BuiltinMacros.declareBooleanMacro("EMBEDDED_CONTENT_CONTAINS_SWIFT")
     public static let EMBEDDED_PROFILE_NAME = BuiltinMacros.declareStringMacro("EMBEDDED_PROFILE_NAME")
     public static let EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES = BuiltinMacros.declareStringListMacro("EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES")
+    public static let EMIT_COMPILER_SOURCE_METADATA = BuiltinMacros.declareBooleanMacro("EMIT_COMPILER_SOURCE_METADATA")
     public static let EMIT_FRONTEND_COMMAND_LINES = BuiltinMacros.declareBooleanMacro("EMIT_FRONTEND_COMMAND_LINES")
     public static let ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING = BuiltinMacros.declareBooleanMacro("ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING")
     public static let ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = BuiltinMacros.declareBooleanMacro("ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING")
@@ -1717,6 +1718,7 @@ public final class BuiltinMacros {
         EMBEDDED_CONTENT_CONTAINS_SWIFT,
         EMBEDDED_PROFILE_NAME,
         EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES,
+        EMIT_COMPILER_SOURCE_METADATA,
         EMIT_FRONTEND_COMMAND_LINES,
         ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING,
         ENABLE_ADDRESS_SANITIZER,
