@@ -733,7 +733,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 } else if ClangSourceFileIndexingInfo.skippedArgsWithoutValues.contains(argAsByteString) || arg.starts(with: "-fbuild-session-file=") {
                     // Relevant to indexing, so exclude arg from response file.
                     regularCommandLine.append(arg)
-                } else if isOutputAgnosticCCompilerArgument(argAsByteString, prevArgument: previousArg) {
+                } else if isOutputAgnosticCommandLineArgument(argAsByteString, prevArgument: previousArg) {
                     // Output agnostic, so exclude from response file.
                     regularCommandLine.append(arg)
                 } else if precompNeutralFlagPatterns.map({ $0.matches(arg) }).reduce(false, { $0 || $1 }) && !(previousArg ?? "").hasPrefix("-X") {
@@ -797,7 +797,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         return fileType
     }
 
-    static let outputAgnosticCCompilerArguments = Set<ByteString>([
+    static let outputAgnosticCompilerArguments = Set<ByteString>([
         // https://clang.llvm.org/docs/UsersManual.html#formatting-of-diagnostics
         "-fshow-column",
         "-fno-show-column",
@@ -818,7 +818,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         "-fdiagnostics-parseable-fixits",
         "-fno-elide-type",
         "-fdiagnostics-show-template-tree",
-        "-v",
+        
 
         // https://clang.llvm.org/docs/ClangCommandLineReference.html
         "-fdiagnostics-show-note-include-stack",
@@ -826,7 +826,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         "-fmodules-validate-once-per-build-session",
     ])
 
-    static let outputAgnosticCCompilerArgumentPrefixes = Set<ByteString>([
+    static let outputAgnosticCompilerArgumentPrefixes = Set<ByteString>([
         // https://clang.llvm.org/docs/UsersManual.html#formatting-of-diagnostics
         "-fdiagnostics-format=",
         "-fdiagnostics-show-category=",
@@ -838,22 +838,22 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         "-fbuild-session-timestamp=",
     ])
 
-    static let outputAgnosticCCompilerArgumentsWithValues = Set<ByteString>([
+    static let outputAgnosticCompilerArgumentsWithValues = Set<ByteString>([
         "-index-store-path",
         "-index-unit-output-path",
     ])
 
-    func isOutputAgnosticCCompilerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
-        if ClangCompilerSpec.outputAgnosticCCompilerArguments.contains(argument) ||
-           ClangCompilerSpec.outputAgnosticCCompilerArgumentsWithValues.contains(argument) {
+    func isOutputAgnosticCommandLineArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+        if ClangCompilerSpec.outputAgnosticCompilerArguments.contains(argument) ||
+            ClangCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(argument) {
             return true
         }
 
-        if ClangCompilerSpec.outputAgnosticCCompilerArgumentPrefixes.first(where: { argument.hasPrefix($0) }) != nil {
+        if ClangCompilerSpec.outputAgnosticCompilerArgumentPrefixes.first(where: { argument.hasPrefix($0) }) != nil {
             return true
         }
 
-        if let prevArgument, ClangCompilerSpec.outputAgnosticCCompilerArgumentsWithValues.contains(prevArgument) {
+        if let prevArgument, ClangCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(prevArgument) {
           return true
         }
 
@@ -869,7 +869,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         return task.commandLine.indices.compactMap { index in
             let arg = task.commandLine[index].asByteString
             let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
-            if isOutputAgnosticCCompilerArgument(arg, prevArgument: prevArg) {
+            if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
                 return nil
             }
             return arg
