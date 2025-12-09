@@ -400,7 +400,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     }
 
     public func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
-        nil
+        return nil
     }
 
     static func parseCommandLineTemplate(_ parser: SpecParser, _ components: [String]) -> [CommandLineTemplateArg] {

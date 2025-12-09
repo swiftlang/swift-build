@@ -818,7 +818,6 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         "-fdiagnostics-parseable-fixits",
         "-fno-elide-type",
         "-fdiagnostics-show-template-tree",
-        
 
         // https://clang.llvm.org/docs/ClangCommandLineReference.html
         "-fdiagnostics-show-note-include-stack",
@@ -845,7 +844,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
     func isOutputAgnosticCommandLineArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
         if ClangCompilerSpec.outputAgnosticCompilerArguments.contains(argument) ||
-            ClangCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(argument) {
+           ClangCompilerSpec.outputAgnosticCompilerArgumentsWithValues.contains(argument) {
             return true
         }
 
