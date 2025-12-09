@@ -867,6 +867,9 @@ extern "C" {
             int argc, const char *const *argv, const char *ModuleName, const char *WorkingDirectory,
             const char *ReproducerLocation, bool UseUniqueReproducerName);
 
+        void (*clang_experimental_DependencyScannerReproducerOptions_setCASOptions)(
+            CXDependencyScannerReproducerOptions, CXCASDatabases, CXCASOptions);
+
         void (*clang_experimental_DependencyScannerReproducerOptions_dispose)(CXDependencyScannerReproducerOptions);
 
         /**
@@ -1449,6 +1452,7 @@ struct LibclangWrapper {
         LOOKUP_OPTIONAL(clang_experimental_cas_ReplayResult_getStderr);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScanner_generateReproducer);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerReproducerOptions_create);
+        LOOKUP_OPTIONAL(clang_experimental_DependencyScannerReproducerOptions_setCASOptions);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerReproducerOptions_dispose);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_create);
         LOOKUP_OPTIONAL(clang_experimental_DependencyScannerServiceOptions_dispose);
@@ -2214,11 +2218,16 @@ extern "C" {
                                               int argc, char *const *argv,
                                               const char *workingDirectory,
                                               const char *reproducerLocation,
+                                              libclang_casdatabases_t casDBs,
+                                              libclang_casoptions_t casOpts,
                                               const char **message) {
         auto lib = scanner->scanner->lib;
         LibclangFunctions::CXString messageString;
         auto reproducerOpts = lib->fns.clang_experimental_DependencyScannerReproducerOptions_create(
             argc, argv, /*ModuleName=*/nullptr, workingDirectory, reproducerLocation, /*UseUniqueReproducerName=*/true);
+        if (lib->fns.clang_experimental_DependencyScannerReproducerOptions_setCASOptions)
+            lib->fns.clang_experimental_DependencyScannerReproducerOptions_setCASOptions(
+                reproducerOpts, casDBs ? casDBs->dbs.casDBs : nullptr, casOpts ? casOpts->opts.casOpts : nullptr);
         auto result = lib->fns.clang_experimental_DependencyScanner_generateReproducer(
             reproducerOpts, &messageString);
         lib->fns.clang_experimental_DependencyScannerReproducerOptions_dispose(reproducerOpts);
