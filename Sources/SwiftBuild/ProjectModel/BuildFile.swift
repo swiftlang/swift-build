@@ -62,6 +62,7 @@ extension ProjectModel {
             self.platformFilters = platformFilters
             self.codeSignOnCopy = codeSignOnCopy
             self.removeHeadersOnCopy = removeHeadersOnCopy
+            self.resourceRule = resourceRule
         }
 
         public init(
