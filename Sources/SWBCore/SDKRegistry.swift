@@ -1152,7 +1152,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                     }
 
                     let toolsets = try tripleProperties.loadToolsets(sdk: swiftSDK, fs: localFS)
- 
+
                     let sysroot = swiftSDK.path.join(tripleProperties.sdkRootPath)
 
                     // TODO support dynamic resources path
