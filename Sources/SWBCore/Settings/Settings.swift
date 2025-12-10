@@ -3504,7 +3504,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         // If the target supports specialization and it already has an SDK, then we need to use that instead of attempting to override the SDK with the run destination information. This is very important in scenarios where the destination is Mac Catalyst, but the target is building for iphoneos. The target will be re-configured for macosx/iosmac.
         do {
             let scope = createScope(sdkToUse: nil)
-            let sdk = try sdkRegistry.lookup(scope.evaluate(BuiltinMacros.SDKROOT).str, activeRunDestination: parameters.activeRunDestination)
+            let sdk = try sdkRegistry.lookup(scope.evaluate(BuiltinMacros.SDKROOT).str, activeRunDestination: nil)
             if Settings.targetPlatformSpecializationEnabled(scope: scope) && sdk != nil {
                 return
             }

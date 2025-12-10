@@ -1000,7 +1000,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
         // Construct the SDK and add it to the registry.
         let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget)
-
         if let duplicate = sdksByCanonicalName[canonicalName] {
             delegate.error(path, "SDK '\(canonicalName)' already registered from \(duplicate.path.str)")
             return nil
@@ -1116,6 +1115,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         }
 
         // Xcode has special logic so that if there's no match here, and we'e *not* looking for a suffixed SDK, but we have an suffixed SDK which would otherwise match, then we use that. c.f. <rdar://problem/11414721> But we haven't needed that logic yet in Swift Build, so maybe we never will.
+
         return matchedSDK?.sdk
     }
 
