@@ -618,7 +618,7 @@ public final class Core: Sendable {
 
     public func productTypeSupportsMacCatalyst(productTypeIdentifier: String) throws -> Bool {
         do {
-            let productTypeSpec = try specRegistry.getSpec(productTypeIdentifier, domain: "macosx") as ProductTypeSpec
+            let productTypeSpec = try specRegistry.getSpec(productTypeIdentifier, domain: "macosx", ofType: ProductTypeSpec.self)
             return productTypeSupportsPlatform(productType: productTypeSpec, platformName: "macosx")
         } catch SpecLoadingError.notFound {
             return false

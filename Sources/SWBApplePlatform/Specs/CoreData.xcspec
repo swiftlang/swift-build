@@ -89,6 +89,7 @@
         UTI = "com.apple.xcode.model.class";
     },
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.model.coredata";
         Name = "Data Model Compiler (MOMC)";

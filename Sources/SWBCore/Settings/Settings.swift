@@ -287,24 +287,16 @@ fileprivate struct PreOverridesSettings {
             // We’ll be building up and returning an array of condition-action pairs.
             var rules = [(any BuildRuleCondition, any BuildRuleAction)]()
 
-            guard let tiffutilToolSpec = specLookupContext.getSpec("com.apple.compilers.tiffutil") as? CommandLineToolSpec else {
-                diagnostics.append(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Couldn't load tool spec com.apple.compilers.tiffutil")))
-                return .init(rules: [], diagnostics: diagnostics)
-            }
-
-            guard let copyTiffFileToolSpec = specLookupContext.getSpec("com.apple.build-tasks.copy-tiff-file") as? CommandLineToolSpec else {
-                diagnostics.append(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Couldn't load tool spec com.apple.build-tasks.copy-tiff-file")))
-                return .init(rules: [], diagnostics: diagnostics)
-            }
-
-            // Temporary hack: Add a couple of rules for combining HiDPI images. These rules are handled through custom logic in the legacy build system. We emulate this by making them precede the other rules.
-            let tiffRuleAction = combineHiDPIImages ? tiffutilToolSpec : copyTiffFileToolSpec
-            // FIXME: This should probably use file types instead of patterns once we have a good API for that.
-            rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.tiff") }]), BuildRuleTaskAction(toolSpec: tiffRuleAction)))
-            rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.tif") }]), BuildRuleTaskAction(toolSpec: tiffRuleAction)))
-            if combineHiDPIImages {
-                rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.png") }]), BuildRuleTaskAction(toolSpec: tiffutilToolSpec)))
-                rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.jpg") }]), BuildRuleTaskAction(toolSpec: tiffutilToolSpec)))
+            if let tiffutilToolSpec = specLookupContext.getSpec("com.apple.compilers.tiffutil") as? CommandLineToolSpec, let copyTiffFileToolSpec = specLookupContext.getSpec("com.apple.build-tasks.copy-tiff-file") as? CommandLineToolSpec {
+                // Temporary hack: Add a couple of rules for combining HiDPI images. These rules are handled through custom logic in the legacy build system. We emulate this by making them precede the other rules.
+                let tiffRuleAction = combineHiDPIImages ? tiffutilToolSpec : copyTiffFileToolSpec
+                // FIXME: This should probably use file types instead of patterns once we have a good API for that.
+                rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.tiff") }]), BuildRuleTaskAction(toolSpec: tiffRuleAction)))
+                rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.tif") }]), BuildRuleTaskAction(toolSpec: tiffRuleAction)))
+                if combineHiDPIImages {
+                    rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.png") }]), BuildRuleTaskAction(toolSpec: tiffutilToolSpec)))
+                    rules.append((BuildRuleFileNameCondition(namePatterns: [Static { namespace.parseString("*.jpg") }]), BuildRuleTaskAction(toolSpec: tiffutilToolSpec)))
+                }
             }
 
             // First we synthesize build rules from tool specifications which declare that they do so.
@@ -1674,7 +1666,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             self.warnings.append("Applying Swift Build settings override to project for \(projectOverrideSpec.bugReport).")
         }
 
-        if let swiftSpec = try? specLookupContext.getSpec() as SwiftCompilerSpec {
+        if let swiftSpec = try? specLookupContext.getSpec(ofType: SwiftCompilerSpec.self) {
             var swiftVersion = scope.evaluate(BuiltinMacros.SWIFT_VERSION)
             do {
                 let parsedSwiftVersion = try Version(swiftVersion)
@@ -5004,7 +4996,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         ] {
             if let definedAtLevels = settingDefinedAtLevels(setting) {
                 for arch in scope.evaluate(BuiltinMacros.ARCHS) {
-                    if let archSpec: ArchitectureSpec = try? specLookupContext.getSpec(arch), !archSpec.supportsMergeableLibraries {
+                    if let archSpec = try? specLookupContext.getSpec(arch, ofType: ArchitectureSpec.self), !archSpec.supportsMergeableLibraries {
                         errors.append("Mergeable libraries are not supported for architecture '\(arch)', but \(setting.name) is assigned at level" + (definedAtLevels.count > 1 ? "s" : "") + ": " + definedAtLevels.joined(separator: ", ") + ".")
                     }
                 }

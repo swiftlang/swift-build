@@ -270,7 +270,7 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
     func clangCompileTaskConstruction_X1000() async throws {
         let core = try await getCore()
 
-        let clangSpec: CommandLineToolSpec = try core.specRegistry.getSpec() as ClangCompilerSpec
+        let clangSpec: CommandLineToolSpec = try core.specRegistry.getSpec(ofType: ClangCompilerSpec.self)
 
         // Create the mock table.  We include all the defaults for the tool specification.
         var (table, namespace) = clangSpec.macroTableForBuildOptionDefaults(core)
@@ -308,7 +308,7 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
         // Create the delegate, scope, file type, etc.
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
 
         // Create the build context for the command.
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path("/tmp/input.c"), fileType: mockFileType)], output: nil)

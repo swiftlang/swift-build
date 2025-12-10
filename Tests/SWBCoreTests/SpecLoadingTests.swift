@@ -126,7 +126,7 @@ import SWBMacro
     func archSpecLoading() async throws {
         let core = try await getCore()
         // Validate that we can load an arch spec properly.
-        let standardArchs = try core.specRegistry.getSpec("Standard", domain: "macosx") as ArchitectureSpec
+        let standardArchs = try core.specRegistry.getSpec("Standard", domain: "macosx", ofType: ArchitectureSpec.self)
         #expect(standardArchs.archSetting?.name == "ARCHS_STANDARD")
         #expect(standardArchs.realArchs?.stringRep == "arm64 x86_64")
     }
@@ -147,7 +147,7 @@ import SWBMacro
         for spec in core.specRegistry.findSpecs(ProductTypeSpec.self, domain: domain) {
             func check<T>(identifier: String, is: T.Type, sourceLocation: SourceLocation = #_sourceLocation) {
                 #expect(throws: Never.self) {
-                    try core.specRegistry.getSpec(identifier, domain: domain) as ProductTypeSpec
+                    try core.specRegistry.getSpec(identifier, domain: domain, ofType: ProductTypeSpec.self)
                 }
                 if spec.conformsTo(identifier: identifier) {
                     #expect(spec is T, "\(spec) is not an instance of \(T.self)", sourceLocation: sourceLocation)
@@ -854,7 +854,7 @@ import SWBMacro
     /// Validate that we can load a known command line spec properly.
     @Test
     func commandLineSpecLoading() async throws {
-        let infoPlistUtilSpec = try await getCore().specRegistry.getSpec("com.apple.tools.info-plist-utility") as CommandLineToolSpec
+        let infoPlistUtilSpec = try await getCore().specRegistry.getSpec("com.apple.tools.info-plist-utility", ofType: CommandLineToolSpec.self)
         #expect(infoPlistUtilSpec.execDescription!.stringRep.hasPrefix("Process"))
 
         // Check diagnostics using synthetic data.
@@ -896,7 +896,7 @@ import SWBMacro
     @Test
     func environmentVariableConsistentOrdering() async throws {
         let core = try await getCore()
-        let migSpec: CompilerSpec = try core.specRegistry.getSpec("com.apple.compilers.mig") as CompilerSpec
+        let migSpec: CompilerSpec = try core.specRegistry.getSpec("com.apple.compilers.mig", domain: "macosx", ofType: CompilerSpec.self)
         #expect(migSpec.environmentVariables?.map({ $0.0 }) == ["DEVELOPER_DIR", "SDKROOT", "TOOLCHAINS"])
     }
 
@@ -906,19 +906,19 @@ import SWBMacro
         let core = try await getCore()
 
         // Validate that we can load a compiler spec properly.
-        let clangCompilerSpec: CompilerSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.compiler") as ClangCompilerSpec
+        let clangCompilerSpec: CompilerSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.compiler", ofType: ClangCompilerSpec.self)
 
         // Validate that non-custom implementations get the custom subclass.
-        #expect(core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file")! is GenericCompilerSpec)
+        #expect(core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file", domain: "macosx")! is GenericCompilerSpec)
 
         // Validate that we properly fetch the Class field from the base spec.
-        let analyzerSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer") as CompilerSpec
+        let analyzerSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer", ofType: CompilerSpec.self)
         #expect(analyzerSpec is ClangCompilerSpec)
         let analyzerSpecIPhone = try #require(core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0.analyzer", domain: "iphoneos"))
         #expect(analyzerSpecIPhone is ClangCompilerSpec)
 
         // Validate that we parse other properties from the base spec.
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CompilerSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CompilerSpec.self)
         #expect(clangSpec.execDescription == clangCompilerSpec.execDescription)
 
         // Validate overridden class loading.
@@ -926,7 +926,7 @@ import SWBMacro
         #expect(codesignSpec is CodesignToolSpec)
 
         // Validate loading of supported language versions
-        let swiftCompilerSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
+        let swiftCompilerSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
         #expect(swiftCompilerSpec.supportedLanguageVersions == [ Version(4,0), Version(4,2), Version(5,0), Version(6, 0)])
     }
 
@@ -994,7 +994,7 @@ import SWBMacro
     /// Validate that we can load a linker spec properly.
     @Test
     func linkerSpecLoading() async throws {
-        try #require(try await (getCore().specRegistry.getSpec() as LdLinkerSpec).execDescription?.stringRep.hasPrefix("Link") == true)
+        try #require(try await (getCore().specRegistry.getSpec(ofType: LdLinkerSpec.self)).execDescription?.stringRep.hasPrefix("Link") == true)
     }
 
     /// Validate there are no cases of domain inversion.

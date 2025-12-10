@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Tool;
         Identifier = "com.apple.tools.validate-embedded-binary-utility";
         Name = "Embedded Binary Validation Utility";

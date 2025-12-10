@@ -41,6 +41,7 @@
         UTI = "com.apple.coreml.mlpackage";
     },
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.coreml";
         Name = "CoreML Model Compiler";

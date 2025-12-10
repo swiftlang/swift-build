@@ -564,7 +564,7 @@ import SWBMacro
                 }
 
                 let toastVariant = try #require(toastSDK.variants["toastos"])
-                let toastAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "embedded")
+                let toastAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "embedded", ofType: ProductTypeSpec.self)
 
                 table.push(BuiltinMacros.TARGETED_DEVICE_FAMILY, literal: "1,2")
                 scope = MacroEvaluationScope(table: table)
@@ -596,7 +596,7 @@ import SWBMacro
                 #expect(effectiveIds == Set([7]))
 
                 let iosmacVariant = try #require(macosBorkSDK.variants["iosmac"])
-                let macAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "macosx")
+                let macAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "macosx", ofType: ProductTypeSpec.self)
 
                 table.remove(BuiltinMacros.TARGETED_DEVICE_FAMILY)
                 scope = MacroEvaluationScope(table: table)

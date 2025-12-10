@@ -89,7 +89,7 @@ extension CoreBasedTests {
             // FIXME: We could probably collapse all of this logic into a single method inside the spec, with some refactoring in several places.
             let swiftSpecInfo = try await discoveredSwiftCompilerInfo(at: swiftc)
             let provisionalSwiftVersion = swiftSpecInfo.swiftVersion
-            let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
+            let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
             let swiftVersion: Version
             switch swiftSpec.validateSwiftVersion(provisionalSwiftVersion) {
             case .invalid:
@@ -409,7 +409,7 @@ extension CoreBasedTests {
 
     fileprivate func discoveredToolSpecInfo(specIdentifier: String, sourceLocation: SourceLocation = #_sourceLocation) async throws -> (any DiscoveredCommandLineToolSpecInfo)? {
         let core = try await getCore()
-        let spec = try core.specRegistry.getSpec(specIdentifier) as CommandLineToolSpec
+        let spec = try core.specRegistry.getSpec(specIdentifier, ofType: CommandLineToolSpec.self)
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: localFS)
         let delegate = DiscoveredInfoDelegate()
         let info = await spec.discoveredCommandLineToolSpecInfo(producer, MacroEvaluationScope(table: MacroValueAssignmentTable(namespace: MacroNamespace())), delegate)

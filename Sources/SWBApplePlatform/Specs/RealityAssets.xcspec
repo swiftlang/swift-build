@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Identifier = "com.apple.build-tasks.compile-rk-assets.xcplugin";
         Type = Compiler;
         Name = "Compile Reality Assets";

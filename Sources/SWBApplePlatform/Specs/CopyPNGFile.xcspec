@@ -12,7 +12,9 @@
 
 (
 
-    {   Type = Compiler;
+    {
+        _Domain = darwin;
+        Type = Compiler;
         Identifier = com.apple.build-tasks.copy-png-file;
         Name = "Compress PNG Files";
         Description = "Copies a .png file resource, optionally compressing it.";

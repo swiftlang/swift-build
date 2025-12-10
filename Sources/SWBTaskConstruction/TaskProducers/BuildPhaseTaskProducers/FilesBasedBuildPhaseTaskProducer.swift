@@ -689,7 +689,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
                 if !scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) {
                     // If TAPI support errors are disabled or this task type doesn't actually require it, ignore the error.
                     if !scope.evaluate(BuiltinMacros.ALLOW_UNSUPPORTED_TEXT_BASED_API) && group.assignedBuildRuleAction?.requiresTextBasedAPI ?? false {
-                        let productType: ProductTypeSpec? = try? context.getSpec(scope.evaluate(BuiltinMacros.PRODUCT_TYPE))
+                        let productType = try? context.getSpec(scope.evaluate(BuiltinMacros.PRODUCT_TYPE), ofType: ProductTypeSpec.self)
                         if let productType = productType, productType.supportsInstallAPI && !generatedRequiresAPIError {
                             producer.context.error("\(productType.name) requested to generate API, but has not adopted SUPPORTS_TEXT_BASED_API", location: .buildSetting(BuiltinMacros.SUPPORTS_TEXT_BASED_API))
                             generatedRequiresAPIError = true

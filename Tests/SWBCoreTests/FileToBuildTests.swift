@@ -20,7 +20,7 @@ import SWBCore
     /// Tests the basic FileToBuild functionality.
     @Test
     func basics() async throws {
-        let mockFileType = try await getCore().specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try await getCore().specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let f = FileToBuild(absolutePath: Path.root.join("tmp/foo"), fileType: mockFileType)
         #expect(f.absolutePath == Path.root.join("tmp/foo"))
     }
@@ -30,7 +30,7 @@ import SWBCore
     /// Tests the basic FileToBuildGroup functionality.
     @Test
     func basics() async throws {
-        let mockFileType = try await getCore().specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try await getCore().specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let f1 = FileToBuild(absolutePath: Path.root.join("tmp").join("foo"), fileType: mockFileType)
         #expect(f1.absolutePath == Path.root.join("tmp").join("foo"))
         let f2 = FileToBuild(absolutePath: Path.root.join("tmp").join("bar"), fileType: mockFileType)

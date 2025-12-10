@@ -218,8 +218,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    public let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec
-    let appleScriptCompilerSpec: CommandLineToolSpec
+    public let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec?
+    let appleScriptCompilerSpec: CommandLineToolSpec?
     let buildDependencyInfoSpec: BuildDependencyInfoSpec
     public let clangSpec: ClangCompilerSpec
     public let clangAssemblerSpec: ClangCompilerSpec
@@ -233,8 +233,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     var concatenateSpec: ConcatenateToolSpec? { return specForResult(_concatenateSpec) }
     public let copySpec: CopyToolSpec
     let copyPlistSpec: CommandLineToolSpec
-    public let copyPngSpec: CommandLineToolSpec
-    public let copyTiffSpec: CommandLineToolSpec
+    public let copyPngSpec: CommandLineToolSpec?
+    public let copyTiffSpec: CommandLineToolSpec?
     let cppSpec: CommandLineToolSpec
     let createAssetPackManifestSpec: CreateAssetPackManifestToolSpec
     public let createBuildDirectorySpec: CreateBuildDirectorySpec
@@ -242,7 +242,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let dsymutilSpec: DsymutilToolSpec
     let infoPlistSpec: InfoPlistToolSpec
     let mergeInfoPlistSpec: MergeInfoPlistSpec
-    let launchServicesRegisterSpec: CommandLineToolSpec
+    let launchServicesRegisterSpec: CommandLineToolSpec?
     public let ldLinkerSpec: LdLinkerSpec
     public let libtoolLinkerSpec: LibtoolLinkerSpec
     public let lipoSpec: LipoToolSpec
@@ -270,8 +270,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let tapiStubifySpec: CommandLineToolSpec
     let touchSpec: CommandLineToolSpec
     public let unifdefSpec: UnifdefToolSpec
-    let validateEmbeddedBinarySpec: ValidateEmbeddedBinaryToolSpec
-    let validateProductSpec: ValidateProductToolSpec
+    let validateEmbeddedBinarySpec: ValidateEmbeddedBinaryToolSpec?
+    let validateProductSpec: ValidateProductToolSpec?
     let processXCFrameworkLibrarySpec: ProcessXCFrameworkLibrarySpec
     public let processSDKImportsSpec: ProcessSDKImportsSpec
     public let validateDependenciesSpec: ValidateDependenciesSpec
@@ -343,65 +343,65 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         //
         // FIXME: These should really be bound even earlier, like in the spec cache. Or at least, we should throw here and just produce a dep graph error if any are missing.
         let domain = settings.platform?.name ?? ""
-        self.appShortcutStringsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appshortcutstringsmetadata", domain: domain) as! AppShortcutStringsMetadataCompilerSpec
-        self.appleScriptCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.osacompile", domain: domain) as! CommandLineToolSpec
+        self.appShortcutStringsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appshortcutstringsmetadata", domain: domain) as? AppShortcutStringsMetadataCompilerSpec
+        self.appleScriptCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.osacompile", domain: domain) as? CommandLineToolSpec
         self.buildDependencyInfoSpec = workspaceContext.core.specRegistry.getSpec(BuildDependencyInfoSpec.identifier, domain: domain) as! BuildDependencyInfoSpec
-        self.clangSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangCompilerSpec
-        self.clangAssemblerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangAssemblerSpec
-        self.clangPreprocessorSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangPreprocessorSpec
-        self.clangStaticAnalyzerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangStaticAnalyzerSpec
-        self.clangModuleVerifierSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangModuleVerifierSpec
-        self._clangStatCacheSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.clang-stat-cache") as ClangStatCacheSpec }
-        self.codesignSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.codesign", domain: domain) as! CodesignToolSpec
-        self._concatenateSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.concatenate") as ConcatenateToolSpec }
-        self.copySpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as CopyToolSpec
-        self.copyPlistSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-plist-file", domain: domain) as! CommandLineToolSpec
-        self.copyPngSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file", domain: domain) as! CommandLineToolSpec
-        self.copyTiffSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-tiff-file", domain: domain) as! CommandLineToolSpec
-        self.cppSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.cpp", domain: domain) as! CommandLineToolSpec
-        self.createAssetPackManifestSpec = workspaceContext.core.specRegistry.getSpec(CreateAssetPackManifestToolSpec.identifier, domain: domain) as! CreateAssetPackManifestToolSpec
-        self.createBuildDirectorySpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.create-build-directory", domain: domain) as! CreateBuildDirectorySpec
-        self.diffSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.diff", domain: domain) as! CommandLineToolSpec
-        self.dsymutilSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.dsymutil", domain: domain) as! DsymutilToolSpec
-        self.infoPlistSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.info-plist-utility", domain: domain) as! InfoPlistToolSpec
-        self.mergeInfoPlistSpec = workspaceContext.core.specRegistry.getSpec(MergeInfoPlistSpec.identifier, domain: domain) as! MergeInfoPlistSpec
-        self.launchServicesRegisterSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.ls-register-url", domain: domain) as! CommandLineToolSpec
-        self.ldLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as LdLinkerSpec
-        self.libtoolLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as LibtoolLinkerSpec
-        self.lipoSpec = workspaceContext.core.specRegistry.getSpec("com.apple.xcode.linkers.lipo", domain: domain) as! LipoToolSpec
-        self.prelinkedObjectLinkSpec = workspaceContext.core.specRegistry.getSpec(PrelinkedObjectLinkSpec.identifier, domain: domain) as! CommandLineToolSpec
-        self.mkdirSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.mkdir", domain: domain) as! MkdirToolSpec
-        self.modulesVerifierSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.modules-verifier", domain: domain) as! ModulesVerifierToolSpec
-        self.clangModuleVerifierInputGeneratorSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.module-verifier-input-generator", domain: domain) as! ClangModuleVerifierInputGeneratorSpec
-        self.productPackagingSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ProductPackagingToolSpec
+        self.clangSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangCompilerSpec.self)
+        self.clangAssemblerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangAssemblerSpec.self)
+        self.clangPreprocessorSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangPreprocessorSpec.self)
+        self.clangStaticAnalyzerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangStaticAnalyzerSpec.self)
+        self.clangModuleVerifierSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangModuleVerifierSpec.self)
+        self._clangStatCacheSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.clang-stat-cache", ofType: ClangStatCacheSpec.self) }
+        self.codesignSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.codesign", domain: domain, ofType: CodesignToolSpec.self)
+        self._concatenateSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.concatenate", ofType: ConcatenateToolSpec.self) }
+        self.copySpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: CopyToolSpec.self)
+        self.copyPlistSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-plist-file", domain: domain, ofType: CommandLineToolSpec.self)
+        self.copyPngSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file", domain: domain, ofType: CommandLineToolSpec.self)
+        self.copyTiffSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-tiff-file", domain: domain, ofType: CommandLineToolSpec.self)
+        self.cppSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.compilers.cpp", domain: domain, ofType: CommandLineToolSpec.self)
+        self.createAssetPackManifestSpec = try! workspaceContext.core.specRegistry.getSpec(CreateAssetPackManifestToolSpec.identifier, domain: domain, ofType: CreateAssetPackManifestToolSpec.self)
+        self.createBuildDirectorySpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.create-build-directory", domain: domain, ofType: CreateBuildDirectorySpec.self)
+        self.diffSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.diff", domain: domain, ofType: CommandLineToolSpec.self)
+        self.dsymutilSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.dsymutil", domain: domain, ofType: DsymutilToolSpec.self)
+        self.infoPlistSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.info-plist-utility", domain: domain, ofType: InfoPlistToolSpec.self)
+        self.mergeInfoPlistSpec = try! workspaceContext.core.specRegistry.getSpec(MergeInfoPlistSpec.identifier, domain: domain, ofType: MergeInfoPlistSpec.self)
+        self.launchServicesRegisterSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.ls-register-url", domain: domain, ofType: CommandLineToolSpec.self)
+        self.ldLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: LdLinkerSpec.self)
+        self.libtoolLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: LibtoolLinkerSpec.self)
+        self.lipoSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.xcode.linkers.lipo", domain: domain, ofType: LipoToolSpec.self)
+        self.prelinkedObjectLinkSpec = try! workspaceContext.core.specRegistry.getSpec(PrelinkedObjectLinkSpec.identifier, domain: domain, ofType: CommandLineToolSpec.self)
+        self.mkdirSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.mkdir", domain: domain, ofType: MkdirToolSpec.self)
+        self.modulesVerifierSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.modules-verifier", domain: domain, ofType: ModulesVerifierToolSpec.self)
+        self.clangModuleVerifierInputGeneratorSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.module-verifier-input-generator", domain: domain, ofType: ClangModuleVerifierInputGeneratorSpec.self)
+        self.productPackagingSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ProductPackagingToolSpec.self)
         self._registerExecutionPolicyExceptionSpec = .init(workspaceContext, settings)
-        self.setAttributesSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.set-attributes", domain: domain) as! SetAttributesSpec
-        self.shellScriptSpec = workspaceContext.core.specRegistry.getSpec("com.apple.commands.shell-script", domain: domain) as! ShellScriptToolSpec
-        self.signatureCollectionSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.signature-collection", domain: domain) as! SignatureCollectionSpec
+        self.setAttributesSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.set-attributes", domain: domain, ofType: SetAttributesSpec.self)
+        self.shellScriptSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.commands.shell-script", domain: domain, ofType: ShellScriptToolSpec.self)
+        self.signatureCollectionSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.signature-collection", domain: domain, ofType: SignatureCollectionSpec.self)
         self.stripSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.strip", domain: domain) as! StripToolSpec
-        self.swiftCompilerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as SwiftCompilerSpec
-        self.swiftHeaderToolSpec = workspaceContext.core.specRegistry.getSpec(SwiftHeaderToolSpec.identifier, domain: domain) as! SwiftHeaderToolSpec
-        self.swiftStdlibToolSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-stdlib-tool", domain: domain) as! SwiftStdLibToolSpec
-        self._swiftABICheckerToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-checker", domain: domain) as SwiftABICheckerToolSpec }
-        self._swiftABIGenerationToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-generation", domain: domain) as SwiftABIGenerationToolSpec }
-        self.symlinkSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.symlink", domain: domain) as! SymlinkToolSpec
-        self.tapiSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.installapi", domain: domain) as! TAPIToolSpec
-        self.tapiMergeSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.merge", domain: domain) as! CommandLineToolSpec
-        self.tapiStubifySpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.stubify", domain: domain) as! CommandLineToolSpec
-        self.touchSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.touch", domain: domain) as! CommandLineToolSpec
-        self.unifdefSpec = workspaceContext.core.specRegistry.getSpec("public.build-task.unifdef", domain: domain) as! UnifdefToolSpec
-        self.validateEmbeddedBinarySpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.validate-embedded-binary-utility", domain: domain) as! ValidateEmbeddedBinaryToolSpec
-        self.validateProductSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.platform.validate", domain: domain) as! ValidateProductToolSpec
-        self.processXCFrameworkLibrarySpec = workspaceContext.core.specRegistry.getSpec(ProcessXCFrameworkLibrarySpec.identifier, domain: domain) as! ProcessXCFrameworkLibrarySpec
-        self.processSDKImportsSpec = workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain) as! ProcessSDKImportsSpec
-        self.validateDependenciesSpec = workspaceContext.core.specRegistry.getSpec(ValidateDependenciesSpec.identifier, domain: domain) as! ValidateDependenciesSpec
-        self.writeFileSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain) as! WriteFileSpec
-        self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain) as CommandLineToolSpec }
-        self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain) as TAPISymbolExtractor }
-        self._swiftSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.swift-symbol-extract", domain: domain) as CommandLineToolSpec }
-        self._developmentAssetsSpec = Result { try workspaceContext.core.specRegistry.getSpec(ValidateDevelopmentAssets.identifier, domain: domain) as CommandLineToolSpec }
-        self._generateAppPlaygroundAssetCatalogSpec = Result { try workspaceContext.core.specRegistry.getSpec(GenerateAppPlaygroundAssetCatalog.identifier, domain: domain) as CommandLineToolSpec }
-        self._realityAssetsCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.compile-rk-assets.xcplugin", domain: domain) as CommandLineToolSpec }
+        self.swiftCompilerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: SwiftCompilerSpec.self)
+        self.swiftHeaderToolSpec = try! workspaceContext.core.specRegistry.getSpec(SwiftHeaderToolSpec.identifier, domain: domain, ofType: SwiftHeaderToolSpec.self)
+        self.swiftStdlibToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-stdlib-tool", domain: domain, ofType: SwiftStdLibToolSpec.self)
+        self._swiftABICheckerToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-checker", domain: domain, ofType: SwiftABICheckerToolSpec.self) }
+        self._swiftABIGenerationToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-generation", domain: domain, ofType: SwiftABIGenerationToolSpec.self) }
+        self.symlinkSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.symlink", domain: domain, ofType: SymlinkToolSpec.self)
+        self.tapiSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.installapi", domain: domain, ofType: TAPIToolSpec.self)
+        self.tapiMergeSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.merge", domain: domain, ofType: CommandLineToolSpec.self)
+        self.tapiStubifySpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.stubify", domain: domain, ofType: CommandLineToolSpec.self)
+        self.touchSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.touch", domain: domain, ofType: CommandLineToolSpec.self)
+        self.unifdefSpec = try! workspaceContext.core.specRegistry.getSpec("public.build-task.unifdef", domain: domain, ofType: UnifdefToolSpec.self)
+        self.validateEmbeddedBinarySpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.tools.validate-embedded-binary-utility", domain: domain, ofType: ValidateEmbeddedBinaryToolSpec.self)
+        self.validateProductSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.platform.validate", domain: domain, ofType: ValidateProductToolSpec.self)
+        self.processXCFrameworkLibrarySpec = try! workspaceContext.core.specRegistry.getSpec(ProcessXCFrameworkLibrarySpec.identifier, domain: domain, ofType: ProcessXCFrameworkLibrarySpec.self)
+        self.processSDKImportsSpec = try! workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain, ofType: ProcessSDKImportsSpec.self)
+        self.validateDependenciesSpec = try! workspaceContext.core.specRegistry.getSpec(ValidateDependenciesSpec.identifier, domain: domain, ofType: ValidateDependenciesSpec.self)
+        self.writeFileSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain, ofType: WriteFileSpec.self)
+        self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain, ofType: CommandLineToolSpec.self) }
+        self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain, ofType: TAPISymbolExtractor.self) }
+        self._swiftSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.swift-symbol-extract", domain: domain, ofType: CommandLineToolSpec.self) }
+        self._developmentAssetsSpec = Result { try workspaceContext.core.specRegistry.getSpec(ValidateDevelopmentAssets.identifier, domain: domain, ofType: CommandLineToolSpec.self) }
+        self._generateAppPlaygroundAssetCatalogSpec = Result { try workspaceContext.core.specRegistry.getSpec(GenerateAppPlaygroundAssetCatalog.identifier, domain: domain, ofType: CommandLineToolSpec.self) }
+        self._realityAssetsCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.compile-rk-assets.xcplugin", domain: domain, ofType: CommandLineToolSpec.self) }
 
         self.compilationRequirementOutputFileTypes = (SpecRegistry.headerFileTypeIdentifiers + [SpecRegistry.modulemapFileTypeIdentifier]).compactMap { workspaceContext.core.specRegistry.lookupFileType(identifier: $0, domain: domain) }
         self.emitFrontendCommandLines = settings.globalScope.evaluate(BuiltinMacros.EMIT_FRONTEND_COMMAND_LINES)
@@ -1333,7 +1333,7 @@ extension TaskProducerContext: CommandProducer {
             // arch is a VALID_ARCHS of the dependency but it's not building for that arch, we need to find a compatible one
             let dependencyArchs = dependencyScope.evaluate(BuiltinMacros.ARCHS)
             if false == dependencyArchs.contains(arch) {
-                guard let archSpec: ArchitectureSpec = try? workspaceContext.core.specRegistry.getSpec(arch) else {
+                guard let archSpec = try? workspaceContext.core.specRegistry.getSpec(arch, ofType: ArchitectureSpec.self) else {
                     return nil
                 }
                 // Currently there is no more than one compatibility arch; first might not be correct otherwise
@@ -1755,6 +1755,6 @@ class PhasedProducerBasedTaskGenerationDelegate: ProducerBasedTaskGenerationDele
 
 fileprivate extension Result where Success: Spec & IdentifiedSpecType, Failure == any Error {
     init(_ workspaceContext: WorkspaceContext, _ settings: Settings) {
-        self = Result { try workspaceContext.core.specRegistry.getSpec(domain: settings.platform?.name ?? "") }
+        self = Result { try workspaceContext.core.specRegistry.getSpec(domain: settings.platform?.name ?? "", ofType: Success.self) }
     }
 }

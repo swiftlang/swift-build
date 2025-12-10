@@ -41,7 +41,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
         // Look up the product type.
         var productType: ProductTypeSpec? = nil
         if let productTypeId {
-            productType = try core.specRegistry.getSpec(productTypeId, domain: platformName) as ProductTypeSpec
+            productType = try core.specRegistry.getSpec(productTypeId, domain: platformName, ofType: ProductTypeSpec.self)
         }
 
         // Create the task action.
@@ -1152,7 +1152,7 @@ fileprivate struct InfoPlistProcessorTaskTests: CoreBasedTests {
             }
             let productTypeSpec: ProductTypeSpec?
             do {
-                productTypeSpec = try productType.map { try core.specRegistry.getSpec($0, domain: platformName) as ProductTypeSpec }
+                productTypeSpec = try productType.map { try core.specRegistry.getSpec($0, domain: platformName, ofType: ProductTypeSpec.self) }
             } catch {
                 Issue.record("\(error)")
                 return

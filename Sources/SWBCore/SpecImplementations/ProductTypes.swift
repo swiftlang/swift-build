@@ -741,7 +741,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         table.push(BuiltinMacros._BUILDABLE_SERIALIZATION_KEY, literal: "test-bundle-with-host: \(testHost)")
 
         // Inject a runpath search path to the host app's Frameworks directory if it isn't already present to ensure the embedded libraries can be found
-        let applicationProductType: ProductTypeSpec? = try? platform?.specRegistryProvider.specRegistry.getSpec("com.apple.product-type.application", domain: platform?.name ?? "")
+        let applicationProductType = try? platform?.specRegistryProvider.specRegistry.getSpec("com.apple.product-type.application", domain: platform?.name ?? "", ofType: ProductTypeSpec.self)
         if let frameworksRunpath = applicationProductType?.frameworksRunpathSearchPath(in: scope)?.str {
             if !scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS).contains(frameworksRunpath) {
                 table.push(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", frameworksRunpath]))
