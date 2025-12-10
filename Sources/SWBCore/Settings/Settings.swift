@@ -3518,11 +3518,16 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
         let destinationSDK: SDK
         do {
-            guard let sdk = try sdkRegistry.lookup(runDestination.sdk, activeRunDestination: runDestination) else {
+            if let sdk = try sdkRegistry.lookup(runDestination.sdk, activeRunDestination: runDestination) {
+                destinationSDK = sdk
+            } else if let sdkManifestPath = runDestination.sdkManifestPath,
+                    let triple = runDestination.triple,
+                    let sdk = try sdkRegistry.synthesizedSDK(sdkManifestPath: sdkManifestPath, triple: triple) {
+                destinationSDK = sdk
+            } else {
                 self.errors.append("unable to resolve run destination SDK: '\(runDestination.sdk)'")
                 return
             }
-            destinationSDK = sdk
         } catch let error as AmbiguousSDKLookupError {
             self.diagnostics.append(error.diagnostic)
             return
