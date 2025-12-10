@@ -1114,7 +1114,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
         // Let's check the active run destination to see if there's an SDK path that we should be using
         if matchedSDK == nil,
-            let sdkManifestPath = activeRunDestination?.sdkManiftestPath,
+            let sdkManifestPath = activeRunDestination?.sdkManifestPath,
             let triple = activeRunDestination?.triple,
             case let llvmTriple = try LLVMTriple(triple) {
 

@@ -325,17 +325,17 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
     public var supportedArchitectures: OrderedSet<String>
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
-    public var sdkManiftestPath: String?
+    public var sdkManifestPath: String?
     public var triple: String?
 
-    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, sdkManiftestPath: String? = nil, triple: String? = nil, disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
+    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, sdkManifestPath: String? = nil, triple: String? = nil, disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
         self.platform = platform
         self.sdk = sdk
         self.sdkVariant = sdkVariant
         self.targetArchitecture = targetArchitecture
         self.supportedArchitectures = supportedArchitectures
         self.disableOnlyActiveArch = disableOnlyActiveArch
-        self.sdkManiftestPath = sdkManiftestPath
+        self.sdkManifestPath = sdkManifestPath
         self.triple = triple
         self.hostTargetedPlatform = hostTargetedPlatform
     }

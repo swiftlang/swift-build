@@ -838,7 +838,7 @@ extension SWBBuildParameters {
 
 fileprivate extension RunDestinationInfo {
     init(_ x: SWBRunDestinationInfo) {
-        self.init(platform: x.platform, sdk: x.sdk, sdkVariant: x.sdkVariant, targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), sdkManiftestPath: x.sdkManifestPath, triple: x.triple, disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        self.init(platform: x.platform, sdk: x.sdk, sdkVariant: x.sdkVariant, targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), sdkManifestPath: x.sdkManifestPath, triple: x.triple, disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
     }
 }
 
