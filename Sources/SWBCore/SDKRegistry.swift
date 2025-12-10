@@ -1184,7 +1184,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                             "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str), // Resource dir for compiling Swift
                             "CLANG_RESOURCE_DIR": .plString(clangResourceDir.str), // Resource dir for linking C/C++/Obj-C
                             "SDKROOT": .plString(sysroot.str),
-                            "OTHER_LDFLAGS": .plArray(["$(OTHER_SWIFT_FLAGS)"]), // The extra swift compiler settings in JSON are intended to go to the linker driver too
+                            "OTHER_LDFLAGS": .plArray(["$(inherited)"] + extraSwiftCompilerSettings.map( {.plString($0)} )), // The extra swift compiler settings in JSON are intended to go to the linker driver too
                         ]),
                         "SupportedTargets": .plDict([
                             "webassembly": .plDict([
