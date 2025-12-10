@@ -221,6 +221,149 @@ fileprivate struct PrelinkedObjectFileTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS, .iOS))
+    func prelinkedObjectFileGenerationVariant_zippered() async throws {
+        let core = try await getCore()
+        // Test that a prelinked object file gets generated even if the target contains no sources or libraries in its build phases.
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                        "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
+                        "SDKROOT": "macosx",
+                        "IS_ZIPPERED": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AllLibraries",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_PRELINK_OBJECT_FILE": "YES",
+                            ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([]),
+                        TestFrameworksBuildPhase([]),
+                    ],
+                    dependencies: ["Tool"]),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try TaskConstructionTester(core, testWorkspace)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        // Check a build for MacCatalyst.
+        await tester.checkBuild(runDestination: .macCatalyst, fs: localFS) { results in
+            // Ignore all tasks we don't want to check.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
+
+            results.checkTarget("AllLibraries") { target in
+                // There should be tasks to create the prelinked object file and then the static library.
+                results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
+                    task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", .equal(results.runDestinationTargetArchitecture), "-platform_version", "1", .any, .any, "-platform_version", "6", .any, .any, "-syslibroot", .equal(core.loadSDK(.macOS).path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug/AllLibraries.build/Objects-normal/libAllLibraries.a-\(results.runDestinationTargetArchitecture)-prelink.o")])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                    task.checkCommandLineMatches([.suffix("libtool"), "-static", "-arch_only", .equal(results.runDestinationTargetArchitecture), "-D", "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("-L\(SRCROOT)/build/Debug"), "-filelist", .equal("\(SRCROOT)/build/aProject.build/Debug/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries.LinkFileList"), "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries_libtool_dependency_info.dat", "-o", .equal("\(SRCROOT)/build/Debug/libAllLibraries.a")])
+                }
+            }
+
+            // There should be no other tasks.
+            results.checkNoTask()
+
+            // There shouldn't be any diagnostics.
+            results.checkNoDiagnostics()
+
+            // Check there are no other targets.
+            #expect(results.otherTargets == [])
+        }
+    }
+
+    @Test(.requireSDKs(.macOS, .iOS))
+    func prelinkedObjectFileGenerationVariant_reverseZippered() async throws {
+        let core = try await getCore()
+        // Test that a prelinked object file gets generated even if the target contains no sources or libraries in its build phases.
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "MACOSX_DEPLOYMENT_TARGET": core.loadSDK(.macOS).defaultDeploymentTarget,
+                        "IPHONEOS_DEPLOYMENT_TARGET": core.loadSDK(.iOS).defaultDeploymentTarget,
+                        "SDKROOT": "macosx",
+                        "IS_ZIPPERED": "YES",
+                        "SDK_VARIANT": MacCatalystInfo.sdkVariantName,
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AllLibraries",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "GENERATE_PRELINK_OBJECT_FILE": "YES",
+                            ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([]),
+                        TestFrameworksBuildPhase([]),
+                    ],
+                    dependencies: ["Tool"]),
+            ])
+        let testWorkspace = TestWorkspace("aWorkspace", projects: [testProject])
+        let tester = try TaskConstructionTester(core, testWorkspace)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        // Check a build for MacCatalyst.
+        await tester.checkBuild(runDestination: .macCatalyst, fs: localFS) { results in
+            // Ignore all tasks we don't want to check.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("RegisterExecutionPolicyException")) { _ in }
+
+            results.checkTarget("AllLibraries") { target in
+                // There should be tasks to create the prelinked object file and then the static library.
+                results.checkTask(.matchTarget(target), .matchRuleType("PrelinkedObjectLink")) { task in
+                    task.checkCommandLineMatches([.suffix("ld"), "-r", "-arch", .equal(results.runDestinationTargetArchitecture), "-platform_version", "1", .any, .any, "-platform_version", "6", .any, .any, "-syslibroot", .equal(core.loadSDK(.macOS).path.str), "-o", .equal("\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AllLibraries.build/Objects-normal/libAllLibraries.a-\(results.runDestinationTargetArchitecture)-prelink.o")])
+                }
+                results.checkTask(.matchTarget(target), .matchRuleType("Libtool")) { task in
+                    task.checkCommandLineMatches([.suffix("libtool"), "-static", "-arch_only", .equal(results.runDestinationTargetArchitecture), "-D", "-syslibroot", .equal(core.loadSDK(.macOS).path.str), .equal("-L\(SRCROOT)/build/Debug-maccatalyst"), "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-L\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/lib", "-L\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/maccatalyst", "-filelist", .equal("\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries.LinkFileList"), "-dependency_info", "\(SRCROOT)/build/aProject.build/Debug-maccatalyst/AllLibraries.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AllLibraries_libtool_dependency_info.dat", "-o", .equal("\(SRCROOT)/build/Debug-maccatalyst/libAllLibraries.a")])
+                }
+            }
+
+            // There should be no other tasks.
+            results.checkNoTask()
+
+            // There shouldn't be any diagnostics.
+            results.checkNoDiagnostics()
+
+            // Check there are no other targets.
+            #expect(results.otherTargets == [])
+        }
+    }
+
     @Test(.requireSDKs(.iOS))
     func prelinkedObjectFileGenerationVariant_ios() async throws {
         let core = try await getCore()
