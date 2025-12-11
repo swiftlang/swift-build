@@ -1337,7 +1337,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             }
         }
 
-        commandLine += addCompilerMetadataFlags(cbc, outputFileDir.join(outputNode.path.str + ".source-metadata.json"),  delegate, &extraOutputs)
+        commandLine += addCompilerSarifFlags(cbc, outputFileDir.join(outputNode.path.str + ".compiled.sarif"),  delegate, &extraOutputs)
 
         // Handle explicit modules build.
         let scanningOutput = delegate.createNode(outputNode.path.dirname.join(outputNode.path.basename + ".scan"))
@@ -1651,12 +1651,12 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }
     }
 
-    func addCompilerMetadataFlags(_ cbc: CommandBuildContext, _ outputPath: Path, _ delegate: any TaskGenerationDelegate, _ taskOutputs: inout [any PlannedNode]) -> [String] {
-        guard cbc.scope.evaluate(BuiltinMacros.EMIT_COMPILER_SOURCE_METADATA) else  {
+    func addCompilerSarifFlags(_ cbc: CommandBuildContext, _ outputPath: Path, _ delegate: any TaskGenerationDelegate, _ taskOutputs: inout [any PlannedNode]) -> [String] {
+        guard cbc.scope.evaluate(BuiltinMacros.EMIT_SARIF_DIAGNOSTICS_FILE) else  {
             return []
         }
 
-        guard let metadatatype = cbc.producer.lookupFileType(identifier: "text.json.compiler-metadata.source") else {
+        guard let metadatatype = cbc.producer.lookupFileType(identifier: "text.json.sarif") else {
             return []
         }
 

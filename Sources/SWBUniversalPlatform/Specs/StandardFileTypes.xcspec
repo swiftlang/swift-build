@@ -1721,10 +1721,10 @@
         UTI = "public.protobuf-source";
     },
     {
-        Identifier = text.json.compiler-metadata.source;
+        Identifier = text.json.sarif;
         Type = FileType;
-        Name = "Source metadata emitted from compiler";
-        UTI = "com.apple.compiler-metadata.source";
+        Name = "Diagnostics log in SARIF format";
+        UTI = "com.apple.sarif";
         BasedOn = text.json;
     },
 )

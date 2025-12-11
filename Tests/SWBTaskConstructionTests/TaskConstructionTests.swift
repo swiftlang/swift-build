@@ -9514,7 +9514,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
-    func testSourceMetadata() async throws {
+    func testEmitSarif() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) async throws -> Void in
             let sources = [
                 "SourceFile0.c",
@@ -9543,7 +9543,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 "GENERATE_INFOPLIST_FILE": "YES",
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "ARCHS": "x86_64 arm64",
-                                "EMIT_COMPILER_SOURCE_METADATA": "YES"
+                                "EMIT_SARIF_DIAGNOSTICS_FILE": "YES"
                             ])
                         ],
                         buildPhases: [
@@ -9563,7 +9563,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     let buildPath = tmpDir.join("build/aProject.build/Debug/AppTarget.build/Objects-normal/")
                     for arch in ["x86_64", "arm64"] {
                         let metadataPath = buildPath.join(arch)
-                        let inputs = sources.map{metadataPath.join(Path($0).basenameWithoutSuffix + ".o.source-metadata.json").str}
+                        let inputs = sources.map{metadataPath.join(Path($0).basenameWithoutSuffix + ".o.compiled.sarif").str}
 
                         for (source, input) in zip(sources, inputs) {
                             results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename(source), .matchRuleItem(arch), body: { task in
@@ -9578,7 +9578,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                                 ])
                                 task.checkOutputs([
                                     .path(buildPath.join(arch).join(Path(source).basenameWithoutSuffix + ".o").str),
-                                    .path(metadataPath.join(Path(source).basenameWithoutSuffix + ".o.source-metadata.json").str)
+                                    .path(metadataPath.join(Path(source).basenameWithoutSuffix + ".o.compiled.sarif").str)
                                 ])
                             })
 
