@@ -14,13 +14,14 @@ concurrency:
 jobs:
   tests:
     name: Test
-    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.2
+    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.3
     needs: [soundness, space-format-check]
     with:
       linux_os_versions: '["amazonlinux2", "bookworm", "noble", "jammy", "rhel-ubi9"]'
       linux_pre_build_command: ./.github/scripts/prebuild.sh
       linux_build_command: 'swift test --no-parallel'
       linux_swift_versions: '["nightly-main", "nightly-6.2"]'
+      linux_host_archs: '["x86_64", "aarch64"]'
       windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1'
       windows_swift_versions: '["nightly-main", "nightly-6.2"]'
       windows_build_command: 'Invoke-Program swift test --no-parallel'
@@ -38,7 +39,7 @@ jobs:
         /usr/bin/xcrun xcodebuild -workspace . -scheme SwiftBuild-Package -destination generic/platform=iOS
   tests_without_docker:
     name: Test without Docker
-    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.2
+    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.3
     needs: [soundness, space-format-check]
     with:
       enable_linux_checks: false
@@ -49,13 +50,14 @@ jobs:
       windows_os_versions: '["windows-2022", "windows-11-arm"]'
   cmake-smoke-test:
     name: cmake-smoke-test
-    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.2
+    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.3
     needs: [soundness, space-format-check]
     with:
       linux_os_versions: '["noble"]'
       linux_pre_build_command: SKIP_ANDROID=1 INSTALL_CMAKE=1 ./.github/scripts/prebuild.sh
       linux_build_command: 'swift package -Xbuild-tools-swiftc -DUSE_PROCESS_SPAWNING_WORKAROUND cmake-smoke-test --disable-sandbox --cmake-path `which cmake` --ninja-path `which ninja` --extra-cmake-arg -DCMAKE_C_COMPILER=`which clang` --extra-cmake-arg -DCMAKE_CXX_COMPILER=`which clang++` --extra-cmake-arg -DCMAKE_Swift_COMPILER=`which swiftc`'
       linux_swift_versions: '["nightly-main"]'
+      linux_host_archs: '["x86_64", "aarch64"]'
       enable_macos_checks: true
       macos_xcode_versions: '["26.0"]'
       macos_pre_build_command: SKIP_ANDROID=1 INSTALL_CMAKE=1 ./.github/scripts/prebuild.sh
@@ -66,7 +68,7 @@ jobs:
 
   soundness:
     name: Soundness
-    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@0.0.2
+    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@0.0.3
     with:
       license_header_check_project_name: "Swift"
       api_breakage_check_enabled: false
