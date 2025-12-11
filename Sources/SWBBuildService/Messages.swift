@@ -683,7 +683,7 @@ private struct GetIndexingHeaderInfoMsg: MessageHandler {
 }
 
 extension MessageHandler {
-    fileprivate func handleIndexingInfoRequest<T: IndexingInfoRequest>(serializationQueue: ActorLock, request: Request, message: T, _ transformResponse: @escaping @Sendable (T, WorkspaceContext, BuildRequest, BuildRequestContext, BuildDescription, ConfiguredTarget, ElapsedTimer) -> any SWBProtocol.Message) async throws -> VoidResponse {
+    fileprivate func handleIndexingInfoRequest<T: IndexingInfoRequest>(serializationQueue: ActorLock, request: Request, message: T, _ transformResponse: @escaping @Sendable (T, WorkspaceContext, BuildRequest, BuildRequestContext, BuildDescription, ConfiguredTarget, ElapsedTimer<ContinuousClock>) -> any SWBProtocol.Message) async throws -> VoidResponse {
         let elapsedTimer = ElapsedTimer()
 
         // FIXME: Move this to use ActiveBuild.

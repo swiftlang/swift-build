@@ -13,15 +13,17 @@
 /// Provides a simple utility for implementing rate-limiting mechanisms.
 ///
 /// This object is NOT thread-safe.
-public struct RateLimiter: ~Copyable {
-    private let start: ContinuousClock.Instant
-    private var last: ContinuousClock.Instant
+public struct RateLimiter<ClockType: Clock>: ~Copyable {
+    private let clock: ClockType
+    private let start: ClockType.Instant
+    private var last: ClockType.Instant
 
     /// The length of the time interval to which updates are rate-limited.
-    public let interval: Duration
+    public let interval: ClockType.Duration
 
-    public init(interval: Duration) {
-        let now = ContinuousClock.now
+    public init(interval: ClockType.Duration, clock: ClockType = ContinuousClock.continuous) {
+        self.clock = clock
+        let now = clock.now
         self.interval = interval
         self.start = now
         self.last = now
@@ -31,8 +33,8 @@ public struct RateLimiter: ~Copyable {
     /// time this function returned `true`, is greater than the time interval
     /// with which this object was initialized.
     public mutating func hasNextIntervalPassed() -> Bool {
-        let now = ContinuousClock.now
-        let elapsed = now - last
+        let now = clock.now
+        let elapsed = last.duration(to: now)
         if elapsed >= interval {
             last = now
             return true
