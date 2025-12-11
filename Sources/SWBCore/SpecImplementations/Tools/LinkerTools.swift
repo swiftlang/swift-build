@@ -302,6 +302,29 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return ["ld", "libtool"]
     }
 
+    static let outputAgnosticLinkerArguments = Set<ByteString>([
+        "-v"
+    ])
+
+    func isOutputAgnosticLinkerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+        if LdLinkerSpec.outputAgnosticLinkerArguments.contains(argument) {
+            return true
+        }
+
+        return false
+    }
+
+    public override func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
+        return task.commandLine.indices.compactMap { index in
+            let arg = task.commandLine[index].asByteString
+            let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
+            if isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
+                return nil
+            }
+            return arg
+        }
+    }
+
     public func sparseSDKSearchPathArguments(_ cbc: CommandBuildContext) -> [String] {
         var specialArgs = [String]()
 
