@@ -835,6 +835,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         "-fmessage-length=",
         "-fmacro-backtrace-limit=",
         "-fbuild-session-timestamp=",
+        "-fdiagnostics-add-output="
     ])
 
     static let outputAgnosticCompilerArgumentsWithValues = Set<ByteString>([
@@ -1219,7 +1220,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             dependencyData = nil
         }
 
-        let extraOutputs: [any PlannedNode]
+        var extraOutputs: [any PlannedNode]
         let moduleDependenciesContext = cbc.producer.moduleDependenciesContext
         let headerDependenciesContext = cbc.producer.headerDependenciesContext
         let dependencyValidationOutputPath: Path?
@@ -1335,6 +1336,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 inputDeps.append(privateModuleMapPath)
             }
         }
+
+        commandLine += addCompilerSarifFlags(cbc, outputFileDir.join(outputNode.path.str + ".compiled.sarif"),  delegate, &extraOutputs)
 
         // Handle explicit modules build.
         let scanningOutput = delegate.createNode(outputNode.path.dirname.join(outputNode.path.basename + ".scan"))
@@ -1646,6 +1649,22 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
             return ClangPrefixInfo(input: prefixHeader, pch: nil)
         }
+    }
+
+    func addCompilerSarifFlags(_ cbc: CommandBuildContext, _ outputPath: Path, _ delegate: any TaskGenerationDelegate, _ taskOutputs: inout [any PlannedNode]) -> [String] {
+        guard cbc.scope.evaluate(BuiltinMacros.EMIT_SARIF_DIAGNOSTICS_FILE) else  {
+            return []
+        }
+
+        guard let metadatatype = cbc.producer.lookupFileType(identifier: "text.json.sarif") else {
+            return []
+        }
+
+        let securityMetadataNode = delegate.createNode(outputPath)
+        let ftb = FileToBuild(absolutePath: securityMetadataNode.path, fileType: metadatatype)
+        taskOutputs.append(securityMetadataNode)
+        delegate.declareOutput(ftb)
+        return ["-fdiagnostics-add-output=sarif:file=" + securityMetadataNode.path.str]
     }
 
     /// Specialized function that creates a task for precompiling a particular header.

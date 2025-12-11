@@ -1720,4 +1720,11 @@
         CanSetIncludeInIndex = YES;
         UTI = "public.protobuf-source";
     },
+    {
+        Identifier = text.json.sarif;
+        Type = FileType;
+        Name = "Diagnostics log in SARIF format";
+        UTI = "com.apple.sarif";
+        BasedOn = text.json;
+    },
 )
