@@ -42,7 +42,7 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
                     let version: Version
                     if cbc.scope.evaluate(BuiltinMacros.IS_ZIPPERED) && buildPlatform == .macCatalyst {
                         guard let correspondingVersion = sdk.versionMap["macOS_iOSMac"]?[sdkVersion] else {
-                            delegate.error("'\(sdk.canonicalName)' us missing a Mac Catalyst version mapping for '\(sdkVersion)'")
+                            delegate.error("'\(sdk.canonicalName)' is missing a Mac Catalyst version mapping for '\(sdkVersion)'")
                             continue
                         }
                         version = correspondingVersion
