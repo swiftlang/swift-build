@@ -35,11 +35,23 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
         var commandLine = [toolSpecInfo.toolPath.str]
         commandLine += ["-r", "-arch", arch]
 
-        if let buildPlatform = cbc.producer.sdk?.targetBuildVersionPlatform(sdkVariant: cbc.producer.sdkVariant),
-           let deploymentTargetMacro = cbc.producer.platform?.deploymentTargetMacro,
-           let minDeploymentTarget = cbc.scope.evaluate(deploymentTargetMacro).nilIfEmpty,
-           let sdkVersion = cbc.producer.sdk?.version {
-            commandLine += ["-platform_version", "\(buildPlatform.rawValue)", minDeploymentTarget, sdkVersion.canonicalDeploymentTargetForm.description]
+        if let sdk = cbc.producer.sdk, let sdkVersion = sdk.version {
+            for buildPlatform in cbc.producer.targetBuildVersionPlatforms(in: cbc.scope)?.sorted() ?? [] {
+                let deploymentTargetSettingName = buildPlatform.deploymentTargetSettingName(infoLookup: cbc.producer)
+                if let minDeploymentTarget = cbc.scope.evaluate(cbc.scope.namespace.parseString("$(\(deploymentTargetSettingName)")).nilIfEmpty {
+                    let version: Version
+                    if cbc.scope.evaluate(BuiltinMacros.IS_ZIPPERED) && buildPlatform == .macCatalyst {
+                        guard let correspondingVersion = sdk.versionMap["macOS_iOSMac"]?[sdkVersion] else {
+                            delegate.error("'\(sdk.canonicalName)' is missing a Mac Catalyst version mapping for '\(sdkVersion)'")
+                            continue
+                        }
+                        version = correspondingVersion
+                    } else {
+                        version = sdkVersion
+                    }
+                    commandLine += ["-platform_version", "\(buildPlatform.rawValue)", minDeploymentTarget, version.canonicalDeploymentTargetForm.description]
+                }
+            }
         }
 
         // We do not pass the deployment target to the linker here.  Instead the linker infers the platform and deployment target from the .o files being collected.  We did briefly pass it to the linker to silence a linker warning - if we ever see issues here we should confer with the linker folks to make sure we do the right thing.  See <rdar://problem/51800525> for more about the history here.
