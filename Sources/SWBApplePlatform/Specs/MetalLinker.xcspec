@@ -16,7 +16,7 @@
         Identifier = "com.apple.compilers.metal-linker";
         Name = "Metal Linker";
         Description = "Links Metal AIR files";
-        CommandLine = "metal [options] [inputs]";
+        CommandLine = "$(MTL_COMPILER_PATH) [options] [inputs]";
         RuleName = "MetalLink [output]";
         ExecDescription = "Linking Metal AIR $(OutputFile:file)";
         ProgressDescription = "Linking Metal AIR $(CommandProgressByType)";
