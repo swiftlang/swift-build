@@ -13,6 +13,7 @@
 import SWBCore
 import SWBUtil
 import SWBMacro
+import Foundation
 
 @PluginExtensionSystemActor internal func taskProducerExtensions(_ workspaceContext: WorkspaceContext) -> [any TaskProducerExtension] {
     let extensions = workspaceContext.core.pluginManager.extensions(of: TaskProducerExtensionPoint.self)
@@ -48,7 +49,8 @@ package struct ProductPlanner
             let targetTaskInfos = globalProductPlan.targetGateNodes
 
             // Create the plans themselves in parallel.
-            var productPlans = await globalProductPlan.allTargets.asyncMap { configuredTarget in
+            let maxParallelism = max(1, ProcessInfo.processInfo.activeProcessorCount)
+            var productPlans = await globalProductPlan.allTargets.concurrentMap(maximumParallelism: maxParallelism) { configuredTarget in
                 // Create the product plan for the this target, and serially add it to the list of product plans.
                 return await ProductPlanBuilder(configuredTarget: configuredTarget, workspaceContext: self.planRequest.workspaceContext, delegate: self.delegate).createProductPlan(targetTaskInfos[configuredTarget]!, globalProductPlan)
             }
