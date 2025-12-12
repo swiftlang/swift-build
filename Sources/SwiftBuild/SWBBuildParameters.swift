@@ -36,15 +36,47 @@ public struct SWBBuildParameters: Codable, Sendable {
 
 /// Refer to `SWBProtocol.RunDestinationInfo`
 public struct SWBRunDestinationInfo: Codable, Sendable {
+    public enum SWBBuildTarget: Codable, Sendable {
+        case appleSDK(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String])
+        case swiftSDK(sdkManifestPath: String, triple: String)
+    }
+    public var disableOnlyActiveArch: Bool
+    public var hostTargetedPlatform: String?
+
+    public var _internalBuildTarget: SWBBuildTarget?
+
+    public var buildTarget: SWBBuildTarget {
+        get {
+            if let bt = _internalBuildTarget {
+                return bt
+            }
+
+            return .appleSDK(platform: self.platform, sdk: self.sdk, sdkVariant: self.sdkVariant, targetArchitecture: self.targetArchitecture, supportedArchitectures: self.supportedArchitectures)
+        }
+        set {
+            switch newValue {
+            case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures):
+                self.platform = platform
+                self.sdk = sdk
+                self.sdkVariant = sdkVariant
+                self.targetArchitecture = targetArchitecture
+                self.supportedArchitectures = supportedArchitectures
+            case .swiftSDK:
+                self._internalBuildTarget = newValue
+                self.platform = ""
+                self.sdk = ""
+                self.sdkVariant = nil
+                self.targetArchitecture = ""
+                self.supportedArchitectures = []
+            }
+        }
+    }
+
     public var platform: String
     public var sdk: String
     public var sdkVariant: String?
     public var targetArchitecture: String
     public var supportedArchitectures: [String]
-    public var disableOnlyActiveArch: Bool
-    public var hostTargetedPlatform: String?
-    public var sdkManifestPath: String?
-    public var triple: String?
 
     public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool) {
         self.platform = platform
@@ -55,11 +87,30 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
         self.disableOnlyActiveArch = disableOnlyActiveArch
     }
 
-    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], sdkManifestPath: String? = nil, triple: String? = nil, disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
+    public init(buildTarget: SWBBuildTarget, disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
+        switch buildTarget {
+        case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures):
+            self.platform = platform
+            self.sdk = sdk
+            self.sdkVariant = sdkVariant
+            self.targetArchitecture = targetArchitecture
+            self.supportedArchitectures = supportedArchitectures
+            break
+        case .swiftSDK:
+            self._internalBuildTarget = buildTarget
+            self.platform = ""
+            self.sdk = ""
+            self.sdkVariant = nil
+            self.targetArchitecture = ""
+            self.supportedArchitectures = []
+        }
+        self.disableOnlyActiveArch = disableOnlyActiveArch
+        self.hostTargetedPlatform = hostTargetedPlatform
+    }
+
+    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
         self.init(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
         self.hostTargetedPlatform = hostTargetedPlatform
-        self.sdkManifestPath = sdkManifestPath
-        self.triple = triple
     }
 }
 

@@ -515,8 +515,8 @@ public protocol SDKRegistryLookup: Sendable {
     /// - returns: The found `SDK`, or `nil` if no SDK with the given name could be found or `name` was in an invalid format.
     func lookup(_ name: String, activeRunDestination: RunDestinationInfo?) throws -> SDK?
 
-    /// Synthesize an SDK with the given manifest JSON file path
-    func synthesizedSDK(sdkManifestPath: String, triple: String) throws -> SDK?
+    /// Synthesize an SDK for the given platform with the given manifest JSON file path
+    func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK?
 
     /// Look up the SDK with the given path.  If the registry is immutable, then this will only return the SDK if it was loaded when the registry was created; only mutable registries can discover and load new SDKs after that point.
     /// - parameter path: Absolute path of the SDK to look up.
@@ -1156,14 +1156,9 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         return sdk
     }
 
-    public func synthesizedSDK(sdkManifestPath: String, triple: String) throws -> SDK? {
+    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
         // Let's check the active run destination to see if there's an SDK path that we should be using
         let llvmTriple = try LLVMTriple(triple)
-
-        // TODO choose the platform based on the triple, and fallback to a default one in the default case
-        guard let platform = delegate.platformRegistry?.lookup(name: "webassembly") else {
-            return nil
-        }
 
         let host = hostOperatingSystem
 
@@ -1266,13 +1261,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         let keyPath = Path(key)
         if !keyPath.dirname.isEmpty {
             return self.lookup(keyPath.isAbsolute ? keyPath : basePath.join(key))
-        }
-
-        // Next try to synthesize an SDK using a provided manifest path and triple
-        if let sdkManifestPath = activeRunDestination?.sdkManifestPath, let triple = activeRunDestination?.triple {
-            if let sdk = try self.synthesizedSDK(sdkManifestPath: sdkManifestPath, triple: triple) {
-                return sdk
-            }
         }
 
         // Otherwise, attempt to resolve the SDK as a canonical name.

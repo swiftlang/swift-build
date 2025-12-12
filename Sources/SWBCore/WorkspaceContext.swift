@@ -214,8 +214,8 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
             return try lookupInEach { try $0.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination) }
         }
 
-        func synthesizedSDK(sdkManifestPath: String, triple: String) throws -> SDK? {
-            return try lookupInEach { try $0.synthesizedSDK(sdkManifestPath: sdkManifestPath, triple: triple) }
+        func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
+            return try lookupInEach { try $0.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple) }
         }
     }
 
@@ -251,8 +251,8 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
         return try underlyingLookup.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination)
     }
 
-    public func synthesizedSDK(sdkManifestPath: String, triple: String) throws -> SDK? {
-        return try underlyingLookup.synthesizedSDK(sdkManifestPath: sdkManifestPath, triple: triple)
+    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
+        return try underlyingLookup.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
     }
 }
 

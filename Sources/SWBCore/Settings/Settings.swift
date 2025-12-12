@@ -1803,11 +1803,24 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
 
             do {
-                sdk = try project.map { try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination) } ?? nil
+                sdk = try project.map {
+                    switch parameters.activeRunDestination?.buildTarget {
+                    case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
+                        // FIXME platform should be decided by the triple
+                        guard let platform = core.platformRegistry.lookup(name: "webassembly") else {
+                            errors.append("unable to find platform 'webassembly'")
+                            return nil
+                        }
+                        return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
+                    default:
+                        return try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
+                    }
+                } ?? nil
             } catch {
                 sdk = nil
                 sdkLookupErrors.append(error)
             }
+
             if let s = sdk {
                 // Evaluate the SDK variant, if there is one.
                 let sdkVariantName: String
@@ -3512,28 +3525,46 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Destination info: since runDestination.{platform,sdk} were set by the IDE, we expect them to resolve in Swift Build correctly
         guard let runDestination = self.parameters.activeRunDestination else { return }
-        guard let destinationPlatform: Platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
-            self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
-            return
-        }
+
+        let destinationPlatform: Platform
         let destinationSDK: SDK
-        do {
-            if let sdk = try sdkRegistry.lookup(runDestination.sdk, activeRunDestination: runDestination) {
-                destinationSDK = sdk
-            } else if let sdkManifestPath = runDestination.sdkManifestPath,
-                    let triple = runDestination.triple,
-                    let sdk = try sdkRegistry.synthesizedSDK(sdkManifestPath: sdkManifestPath, triple: triple) {
-                destinationSDK = sdk
-            } else {
-                self.errors.append("unable to resolve run destination SDK: '\(runDestination.sdk)'")
+        switch runDestination.buildTarget {
+        case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
+            // FIXME: the platform should be determined using the triple
+            guard let platform = self.core.platformRegistry.lookup(name: "webassembly") else {
+                self.errors.append("unable to resolve run destination platform: 'webassembly'")
                 return
             }
-        } catch let error as AmbiguousSDKLookupError {
-            self.diagnostics.append(error.diagnostic)
-            return
-        } catch {
-            self.errors.append("\(error)")
-            return
+
+            destinationPlatform = platform
+
+            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple) else {
+                self.errors.append("unable to synthesize SDK for Swift SDK build target: '\(runDestination.buildTarget)'")
+                return
+            }
+            destinationSDK = sdk
+        default:
+            guard let platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
+                self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
+                return
+            }
+
+            destinationPlatform = platform
+
+            do {
+                if let sdk = try sdkRegistry.lookup(runDestination.sdk, activeRunDestination: runDestination) {
+                    destinationSDK = sdk
+                } else {
+                    self.errors.append("unable to resolve run destination SDK: '\(runDestination.sdk)'")
+                    return
+                }
+            } catch let error as AmbiguousSDKLookupError {
+                self.diagnostics.append(error.diagnostic)
+                return
+            } catch {
+                self.errors.append("\(error)")
+                return
+            }
         }
 
         let destinationPlatformIsMacOS = destinationPlatform.name == "macosx"
@@ -3644,9 +3675,23 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Destination info: since runDestination.{platform,sdk} were set by the IDE, we expect them to resolve in Swift Build correctly
         guard let runDestination = self.parameters.activeRunDestination else { return }
-        guard let destinationPlatform: Platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
-            self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
-            return
+
+        let destinationPlatform: Platform
+
+        switch runDestination.buildTarget {
+        case .swiftSDK:
+            // TODO use the triple to decide the platform, or use a fallback
+            guard let platform: Platform = self.core.platformRegistry.lookup(name: "webassembly") else {
+                self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
+                return
+            }
+            destinationPlatform = platform
+        default:
+            guard let platform: Platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
+                self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
+                return
+            }
+            destinationPlatform = platform
         }
 
         // Target info
