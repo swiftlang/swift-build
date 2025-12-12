@@ -138,6 +138,14 @@
                 DefaultValue = "";
             },
             {
+                Name = SWIFTC_SDKROOT_LINKER_INPUT;
+                Type = Path;
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineFlag = "-sdk";
+                IsInputDependency = Yes;
+            },
+            {
                 Name = "__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
