@@ -684,7 +684,7 @@ extension PendingSerializableCodable {
 /// Elements of these types will be wrapped in a `PolymorphicSerializableWrapper` struct to be serialized.  They should never be serialized directly (which is why this protocol does not adopt `Serializable`).
 ///
 /// `PolymorphicSerializable` does not support serializing multiple types of a given protocol, because deserialization cannot infer the type to instantiate if all it has to work with is the protocol.  A class hierarchy should be used instead.
-public protocol PolymorphicSerializable
+public protocol PolymorphicSerializable: SendableMetatype
 {
     /// Serialize the receiver.
     func serialize<T: Serializer>(to serializer: T)
