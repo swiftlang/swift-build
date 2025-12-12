@@ -174,10 +174,10 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     var copySpec: CopyToolSpec { get }
 
     /// The copy-png spec to use.
-    var copyPngSpec: CommandLineToolSpec { get }
+    var copyPngSpec: CommandLineToolSpec? { get }
 
     /// The copy-tiff spec to use.
-    var copyTiffSpec: CommandLineToolSpec { get }
+    var copyTiffSpec: CommandLineToolSpec? { get }
 
     /// The unifdef spec to use.
     var unifdefSpec: UnifdefToolSpec { get }

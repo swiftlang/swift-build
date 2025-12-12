@@ -26,6 +26,7 @@
     },
 
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.xcstrings";
         Name = "XCStrings Compiler";

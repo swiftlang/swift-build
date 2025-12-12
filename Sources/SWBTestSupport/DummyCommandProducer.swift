@@ -42,7 +42,7 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         self.platform = platform
         self.sdk = (platform?.sdkCanonicalName).map(core.sdkRegistry.lookup) ?? nil
         self.sdkVariant = self.sdk?.defaultVariant
-        self.productType = try core.specRegistry.getSpec(productTypeIdentifier, domain: platform?.name ?? "") as ProductTypeSpec
+        self.productType = try core.specRegistry.getSpec(productTypeIdentifier, domain: platform?.name ?? "", ofType: ProductTypeSpec.self)
 
         // Construct some executable search paths if instructed, by mimicking part of what Settings.createExecutableSearchPaths() does, specifically:
         //  - Add from __XCODE_BUILT_PRODUCTS_DIR_PATHS, if present.
@@ -76,35 +76,35 @@ package struct MockCommandProducer: CommandProducer, Sendable {
         self.toolchains = toolchain.map { [$0] } ?? []
 
         // Work around compiler (can't use self.getSpec before self initialization)
-        func getSpec<T: Spec>(_ identifier: String) throws -> T {
-            try core.specRegistry.getSpec(identifier, domain: platform?.name ?? "")
+        func getSpec<T: Spec>(_ identifier: String, ofType type: T.Type) throws -> T {
+            try core.specRegistry.getSpec(identifier, domain: platform?.name ?? "", ofType: type)
         }
 
-        func getSpec<T: Spec & IdentifiedSpecType>() throws -> T {
-            try getSpec(T.identifier)
+        func getSpec<T: Spec & IdentifiedSpecType>(ofType type: T.Type) throws -> T {
+            try getSpec(T.identifier, ofType: type)
         }
 
-        self.clangSpec = try getSpec() as ClangCompilerSpec
-        self.clangAssemblerSpec = try getSpec() as ClangAssemblerSpec
-        self.clangPreprocessorSpec = try getSpec() as ClangPreprocessorSpec
-        self.clangStaticAnalyzerSpec = try getSpec() as ClangStaticAnalyzerSpec
-        self.clangModuleVerifierSpec = try getSpec() as ClangModuleVerifierSpec
-        self.diffSpec = try getSpec("com.apple.build-tools.diff") as CommandLineToolSpec
-        self.stripSpec = try getSpec("com.apple.build-tools.strip") as StripToolSpec
-        self.ldLinkerSpec = try getSpec() as LdLinkerSpec
-        self.libtoolLinkerSpec = try getSpec() as LibtoolLinkerSpec
-        self.lipoSpec = try getSpec() as LipoToolSpec
-        self.codesignSpec = try getSpec("com.apple.build-tools.codesign") as CodesignToolSpec
-        self.copySpec = try getSpec() as CopyToolSpec
-        self.copyPngSpec = try getSpec("com.apple.build-tasks.copy-png-file") as CommandLineToolSpec
-        self.copyTiffSpec = try getSpec("com.apple.build-tasks.copy-tiff-file") as CommandLineToolSpec
-        self.writeFileSpec = try getSpec("com.apple.build-tools.write-file") as WriteFileSpec
-        self.createBuildDirectorySpec = try getSpec("com.apple.tools.create-build-directory") as CreateBuildDirectorySpec
-        self.unifdefSpec = try getSpec("public.build-task.unifdef") as UnifdefToolSpec
-        self.mkdirSpec = try getSpec("com.apple.tools.mkdir") as MkdirToolSpec
-        self.swiftCompilerSpec = try getSpec() as SwiftCompilerSpec
-        self.processSDKImportsSpec = try getSpec(ProcessSDKImportsSpec.identifier) as ProcessSDKImportsSpec
-        self.validateDependenciesSpec = try getSpec(ValidateDependenciesSpec.identifier) as ValidateDependenciesSpec
+        self.clangSpec = try getSpec(ofType: ClangCompilerSpec.self)
+        self.clangAssemblerSpec = try getSpec(ofType: ClangAssemblerSpec.self)
+        self.clangPreprocessorSpec = try getSpec(ofType: ClangPreprocessorSpec.self)
+        self.clangStaticAnalyzerSpec = try getSpec(ofType: ClangStaticAnalyzerSpec.self)
+        self.clangModuleVerifierSpec = try getSpec(ofType: ClangModuleVerifierSpec.self)
+        self.diffSpec = try getSpec("com.apple.build-tools.diff", ofType: CommandLineToolSpec.self)
+        self.stripSpec = try getSpec("com.apple.build-tools.strip", ofType: StripToolSpec.self)
+        self.ldLinkerSpec = try getSpec(ofType: LdLinkerSpec.self)
+        self.libtoolLinkerSpec = try getSpec(ofType: LibtoolLinkerSpec.self)
+        self.lipoSpec = try getSpec(ofType: LipoToolSpec.self)
+        self.codesignSpec = try getSpec("com.apple.build-tools.codesign", ofType: CodesignToolSpec.self)
+        self.copySpec = try getSpec(ofType: CopyToolSpec.self)
+        self.copyPngSpec = try? getSpec("com.apple.build-tasks.copy-png-file", ofType: CommandLineToolSpec.self)
+        self.copyTiffSpec = try? getSpec("com.apple.build-tasks.copy-tiff-file", ofType: CommandLineToolSpec.self)
+        self.writeFileSpec = try getSpec("com.apple.build-tools.write-file", ofType: WriteFileSpec.self)
+        self.createBuildDirectorySpec = try getSpec("com.apple.tools.create-build-directory", ofType: CreateBuildDirectorySpec.self)
+        self.unifdefSpec = try getSpec("public.build-task.unifdef", ofType: UnifdefToolSpec.self)
+        self.mkdirSpec = try getSpec("com.apple.tools.mkdir", ofType: MkdirToolSpec.self)
+        self.swiftCompilerSpec = try getSpec(ofType: SwiftCompilerSpec.self)
+        self.processSDKImportsSpec = try getSpec(ProcessSDKImportsSpec.identifier, ofType: ProcessSDKImportsSpec.self)
+        self.validateDependenciesSpec = try getSpec(ValidateDependenciesSpec.identifier, ofType: ValidateDependenciesSpec.self)
     }
 
     package let specDataCaches = Registry<Spec, any SpecDataCache>()
@@ -133,8 +133,8 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package let lipoSpec: LipoToolSpec
     package let codesignSpec: CodesignToolSpec
     package let copySpec: CopyToolSpec
-    package let copyPngSpec: CommandLineToolSpec
-    package let copyTiffSpec: CommandLineToolSpec
+    package let copyPngSpec: CommandLineToolSpec?
+    package let copyTiffSpec: CommandLineToolSpec?
     package let writeFileSpec: WriteFileSpec
     package let createBuildDirectorySpec: CreateBuildDirectorySpec
     package let unifdefSpec: UnifdefToolSpec

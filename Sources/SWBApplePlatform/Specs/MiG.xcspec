@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Type = Compiler;
+    {
+        _Domain = darwin;
+        Type = Compiler;
         Identifier = com.apple.compilers.mig;
         Name = "MiG";
         Description = "Mach Interface Stub Generator";

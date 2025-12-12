@@ -25,6 +25,7 @@
         UTI = "com.apple.arkit.referenceobject";
     },
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.referenceobject";
         Name = "Reference Object Compiler";

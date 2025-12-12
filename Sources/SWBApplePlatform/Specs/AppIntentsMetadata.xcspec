@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.appintentsmetadata";
         Name = "App Intents Metadata Extractor";

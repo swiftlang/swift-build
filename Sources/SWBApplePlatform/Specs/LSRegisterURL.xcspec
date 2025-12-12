@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Identifier = com.apple.build-tasks.ls-register-url;
+    {
+        _Domain = darwin;
+        Identifier = com.apple.build-tasks.ls-register-url;
         Type = Compiler;
         Name = "LSRegisterURL";
         Description = "Registers the file at a URL with LaunchServices";

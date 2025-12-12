@@ -886,7 +886,7 @@ public final class SpecRegistry: Sendable {
     }
 
     /// Get the loaded spec of a specific type for a given identifier and domain.  If no such spec exists or if it is not of the expected type, an error will be thrown.
-    public func getSpec<T: Spec>(_ identifier: String, domain: String = "") throws -> T {
+    public func getSpec<T: Spec>(_ identifier: String, domain: String = "", ofType _: T.Type) throws -> T {
         guard let spec = getSpec(identifier, domain: domain) else {
             throw SpecLoadingError.notFound(identifier: identifier, domain: domain)
         }
@@ -899,8 +899,8 @@ public final class SpecRegistry: Sendable {
     /// Get the loaded spec of a specific type for a given identifier and domain.  If no such spec exists or if it is not of the expected type, an error will be thrown.
     ///
     /// This is a convenience overload for identified spec types which removes the need to manually pass in the identifier.
-    public func getSpec<T: Spec & IdentifiedSpecType>(domain: String = "") throws -> T {
-        return try getSpec(T.identifier, domain: domain)
+    public func getSpec<T: Spec & IdentifiedSpecType>(domain: String = "", ofType type: T.Type) throws -> T {
+        return try getSpec(T.identifier, domain: domain, ofType: type)
     }
 
     /// Validate that there are no cases where a spec depends on one in a subdomain.  This is only used by `SpecLoadingTests.testSpecDomainInversion()`.
@@ -1094,15 +1094,15 @@ extension SpecLookupContext {
     }
 
     /// Get the loaded spec of a specific type for a given identifier and domain.  If no such spec exists or if it is not of the expected type, an error will be thrown.
-    public func getSpec<T: Spec>(_ identifier: String) throws -> T {
-        return try specRegistry.getSpec(identifier, domain: domain)
+    public func getSpec<T: Spec>(_ identifier: String, ofType type: T.Type) throws -> T {
+        return try specRegistry.getSpec(identifier, domain: domain, ofType: type)
     }
 
     /// Get the loaded spec of a specific type for a given identifier and domain.  If no such spec exists or if it is not of the expected type, an error will be thrown.
     ///
     /// This is a convenience overload for identified spec types which removes the need to manually pass in the identifier.
-    public func getSpec<T: Spec & IdentifiedSpecType>(domain: String = "") throws -> T {
-        return try getSpec(T.identifier)
+    public func getSpec<T: Spec & IdentifiedSpecType>(domain: String = "", ofType type: T.Type) throws -> T {
+        return try getSpec(T.identifier, ofType: type)
     }
 
     /// Looks up and returns the FileType (if any) that has the identifier `ident`.
