@@ -28,7 +28,6 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
     }
 
     /// Test that Clang serialized diagnostics are supported.
-    @Test(.requireThreadSafeWorkingDirectory)
     func clangSerializedDiagnosticSupported() async throws {
         try await withTemporaryDirectory { tmpDir in
             let diagnosticsPath = tmpDir.join("foo.diag")
@@ -42,7 +41,6 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
     }
 
     /// Test that Clang serialized diagnostics handle relative paths.
-    @Test(.requireThreadSafeWorkingDirectory)
     func clangSerializedDiagnosticRelativePaths() async throws {
         try await withTemporaryDirectory { tmpDir in
             let diagnosticsPath = tmpDir.join("foo.diag")
@@ -71,7 +69,6 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
     }
 
     /// Test some of the the details serialized diagnostics from Clang.
-    @Test(.requireThreadSafeWorkingDirectory)
     func clangSerializedClangDiagnosticClangsDetails() async throws {
         try await withTemporaryDirectory { tmpDir in
             let diagnosticsPath = tmpDir.join("foo.diag")
@@ -98,7 +95,6 @@ fileprivate struct ClangSerializedDiagnosticsTests: CoreBasedTests {
     }
 
     /// Test some of the the details serialized diagnostics from SwiftC.
-    @Test(.requireThreadSafeWorkingDirectory)
     func clangSerializedSwiftDiagnosticsDetails() async throws {
         try await withTemporaryDirectory { tmpDir in
             try localFS.createDirectory(tmpDir.join("dir"), recursive: true)
