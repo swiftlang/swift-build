@@ -229,6 +229,8 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
                 let startBuilds = WaitCondition()
                 let buildsDone = WaitCondition()
 
+                // The threads this test spawns to run the build can outlive the lifetime of the test itself, so it passed attachBuildArifacts = false since if that happens then the test might crash because the reporter needed to add the attachments will no longer exist.
+
                 // build1 cancels immediately
                 _Concurrency.Task<Void, Never> {
                     do {
@@ -236,7 +238,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, body: { results in
+                        try await tester.checkBuild(runDestination: .host, attachBuildArifacts: false, body: { results in
                             results.checkCapstoneEvents(last: .buildCancelled)
                         }) { operation in
                             build1Ready.signal()
@@ -264,7 +266,7 @@ fileprivate struct BuildTaskBehaviorTests: CoreBasedTests {
 
                         tester.userPreferences = prefs
 
-                        try await tester.checkBuild(runDestination: .host, body: { results in
+                        try await tester.checkBuild(runDestination: .host, attachBuildArifacts: false, body: { results in
                             #expect(results.events.first! == .buildStarted)
 
                             let waitTask = try #require(results.getTask(.matchRule(["wait"])))
