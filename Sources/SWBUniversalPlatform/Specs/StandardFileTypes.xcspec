@@ -903,6 +903,7 @@
         Class = PBXMachOFileType;
         BasedOn = compiled.mach-o;
         Extensions = (dylib);
+        Prefix = lib;
         IsLibrary = YES;
         IsDynamicLibrary = YES;
         CodeSignOnCopy = YES;
@@ -939,6 +940,7 @@
         Identifier = sourcecode.text-based-dylib-definition;
         BasedOn = sourcecode;
         Extensions = (tbd);
+        Prefix = lib;
         IsLibrary = YES;
         IsDynamicLibrary = YES;
         CodeSignOnCopy = YES;
@@ -1471,7 +1473,7 @@
         Identifier = archive.ar;
         BasedOn = archive;
         Extensions = (a);
-        Prefix = (lib);
+        Prefix = lib;
         IsLibrary = YES;
         IsStaticLibrary = YES;
         ContainsNativeCode = YES;
