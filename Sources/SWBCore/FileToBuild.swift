@@ -179,4 +179,66 @@ public extension RegionVariable {
         let installLocLanguages = Set(scope.evaluate(BuiltinMacros.INSTALLLOC_LANGUAGE))
         return installLocLanguages.isEmpty || installLocLanguages.contains(regionVariantName)
     }
+
+    /// When the build setting `BUILD_ONLY_KNOWN_LOCALIZATIONS` is active,
+    /// this region must be present in the project's known localizations
+    /// or else the file should not be built.
+    ///
+    /// `delegate` is used to emit a note about skipping this file if the
+    /// method returns `false`.
+    ///
+    /// - Returns: `true` if this file can be built because
+    /// `BUILD_ONLY_KNOWN_LOCALIZATIONS` is disabled, or the file's region
+    /// is present in the project's supported localizations.
+    /// If this file should not be built, `false` is returned.
+    func buildSettingAllowsBuildingLocale(
+        _ scope: MacroEvaluationScope,
+        in project: Project?,
+        inputFileAbsolutePath: Path,
+        _ delegate: (any DiagnosticProducingDelegate)?
+    ) -> Bool {
+
+        guard let project else {
+            // We can't find the project. Allow the file to build:
+            return true
+        }
+
+        // Don't apply the BUILD_ONLY_KNOWN_LOCALIZATIONS setting
+        // for installloc, because installloc's languages have priority:
+        let isInstallloc = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
+        guard !isInstallloc else {
+            // We're in the installloc build phase, and we're not interested
+            // in changing its behavior. Allow the flow to continue:
+            return true
+        }
+
+        guard scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS) else {
+            // Build setting is off, this should build:
+            return true
+        }
+
+        guard let knownLocalizations = project.knownLocalizations, !knownLocalizations.isEmpty else {
+            // We can't read the supported localizations, allow it to build:
+            return true
+        }
+
+        guard let regionVariantName else {
+            // Unable to get a region name, allow it to built:
+            return true
+        }
+
+        if regionVariantName == "mul" {
+            // Allow mul.lproj (multi-lingual) which is used when xcstrings are paired with IB files:
+            return true
+        }
+
+        if knownLocalizations.contains(regionVariantName) {
+            // This is a known locale, allow it to build:
+            return true
+        }
+
+        // This region is not supported, so it shouldn't build.
+        delegate?.note("Skipping .lproj directory '\(regionVariantName).lproj' because '\(regionVariantName)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(inputFileAbsolutePath))
+        return false
+    }
 }
