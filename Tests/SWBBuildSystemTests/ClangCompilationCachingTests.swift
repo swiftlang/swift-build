@@ -246,6 +246,13 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             }
             #expect(try readMetrics("one") == #"{"global":{"clangCacheHits":0,"clangCacheMisses":1,"swiftCacheHits":0,"swiftCacheMisses":0},"tasks":{"CompileC":{"cacheMisses":1,"headerDependenciesNotValidatedTasks":1,"moduleDependenciesNotValidatedTasks":1}}}"#)
 
+            let CASConfigPath = tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination == .macOS ? "": "-" + runDestination.platform)/Library.build/.cas-config")
+
+            #expect(try tester.fs.read(CASConfigPath).asString.contains("\"CASPath\":"))
+            if usePlugin {
+                #expect(try tester.fs.read(CASConfigPath).asString.contains("\"PluginPath\":"))
+            }
+
             // Touch the source file to trigger a new scan.
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/file.c"))
 

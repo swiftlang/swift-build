@@ -116,6 +116,8 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             }
             #expect(try readMetrics("one").contains("\"swiftCacheHits\":0,\"swiftCacheMisses\":\(numCompile)"))
 
+            #expect(try tester.fs.read(tmpDirPath.join("Test/aProject/build/aProject.build/Debug-iphoneos/Application.build/.cas-config")).asString.contains("\"CASPath\":"))
+
             // touch a file, clean build folder, and rebuild.
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/App.swift"))
             try await tester.checkBuild(runDestination: .anyiOSDevice, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
