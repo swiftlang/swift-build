@@ -3855,6 +3855,20 @@ public extension BuildPhaseWithBuildFiles {
         }
         return containsFiles(ofType: swiftFileType, referenceLookupContext, specLookupContext, scope, filePathResolver)
     }
+
+    /// Checks if the build phase contains any ObjC/ObjC++ source files.
+    func containsObjCSources(_ referenceLookupContext: any ReferenceLookupContext, _ specLookupContext: any SpecLookupContext, _ scope: MacroEvaluationScope, _ filePathResolver: FilePathResolver) -> Bool {
+        let objCFileType = specLookupContext.lookupFileType(identifier: "sourcecode.c.objc")
+        let objCPlusPlusFileType = specLookupContext.lookupFileType(identifier: "sourcecode.cpp.objcpp")
+
+        for fileType in [objCFileType, objCPlusPlusFileType] {
+            guard let fileType else { continue }
+            if containsFiles(ofType: fileType, referenceLookupContext, specLookupContext, scope, filePathResolver) {
+                return true
+            }
+        }
+        return false
+    }
 }
 
 struct SwiftOutputFileMap: Codable {
