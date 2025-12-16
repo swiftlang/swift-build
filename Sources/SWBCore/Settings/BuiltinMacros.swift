@@ -2780,7 +2780,7 @@ public enum ModuleVerifierKind: String, Equatable, Hashable, EnumerationMacroTyp
     case both
 }
 
-public enum LinkerDriverChoice: String, Equatable, Hashable, EnumerationMacroType {
+public enum LinkerDriverChoice: String, Equatable, Hashable, EnumerationMacroType, CaseIterable {
     public static let defaultValue: LinkerDriverChoice = .clang
 
     case clang

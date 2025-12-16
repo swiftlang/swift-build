@@ -3061,9 +3061,28 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
         if !forTAPI {
             if shouldStaticLinkStdlib {
-                args += [["-Xlinker", "-force_load_swift_libs"]]
-                // The Swift runtime requires libc++ & Foundation.
-                args += [["-lc++", "-framework", "Foundation"]]
+                // Platform-specific static linking flags
+                if producer.isApplePlatform {
+                    // Darwin/Apple platforms use force_load_swift_libs and Framework linking
+                    args += [["-Xlinker", "-force_load_swift_libs"]]
+                    args += [["-lc++", "-framework", "Foundation"]]
+                } else {
+                    switch scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: lookup) {
+                        case .swiftc:
+                            // Non-Apple platforms (Linux, etc.) use static library linking
+                            // Note: Foundation is not available as a framework on non-Apple platforms
+                            args += [["-static-stdlib"]]
+                        case .clang, .qcc:
+                            // TODO: functionality must be implemented
+                            break
+                        case .auto:
+                            precondition(
+                                false,
+                                "The auto case should already have been replace with a specific value.",
+                            )
+                            break
+                    }
+                }
             }
 
             // Add the AST, if debugging.
