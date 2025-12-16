@@ -838,11 +838,12 @@ extension SWBBuildParameters {
 
 fileprivate extension RunDestinationInfo {
     init(_ x: SWBRunDestinationInfo) {
-        switch x.buildTarget {
-        case .appleSDK:
-            self.init(platform: x.platform, sdk: x.sdk, sdkVariant: x.sdkVariant, targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
-        case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            self.init(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        if let appleSDK = x.buildTarget.asAppleSDK() {
+            self.init(buildTarget: .appleSDK(platform: appleSDK.platform, sdk: appleSDK.sdk, sdkVariant: appleSDK.sdkVariant), targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        } else if let swiftSDK = x.buildTarget.asSwiftSDK() {
+           self.init(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.sdkManifestPath, triple: swiftSDK.triple), targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        } else {
+            fatalError("not implemented")
         }
     }
 }

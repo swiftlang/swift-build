@@ -1521,9 +1521,10 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Add the SDK overrides.
         if let sdk = boundProperties.sdk {
             let scope = createScope(sdkToUse: sdk)
-            let destinationIsMacCatalyst = parameters.activeRunDestination?.sdkVariant == MacCatalystInfo.sdkVariantName
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
-            if destinationIsMacCatalyst && supportsMacCatalyst {
+            if case let .appleSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget,
+               sdkVariant == MacCatalystInfo.sdkVariantName,
+               supportsMacCatalyst {
                 pushTable(.exported) {
                     $0.push(BuiltinMacros.SUPPORTED_PLATFORMS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "macosx"]))
                 }
@@ -1782,8 +1783,9 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             // We will replace SDKROOT values of "auto" here if the run destination is compatible.
             let usesReplaceableAutomaticSDKRoot: Bool
-            if sdkroot == "auto", let activePlatform = parameters.activeRunDestination?.platform {
-                let destinationIsMacCatalyst = parameters.activeRunDestination?.sdkVariant == MacCatalystInfo.sdkVariantName
+            if sdkroot == "auto",
+               case let .appleSDK(platform: activePlatform, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget {
+                let destinationIsMacCatalyst = sdkVariant == MacCatalystInfo.sdkVariantName
 
                 let scope = createScope(effectiveTargetConfig, sdkToUse: sdk)
                 let supportedPlatforms = scope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS)
@@ -1798,7 +1800,8 @@ private class SettingsBuilder: ProjectMatchLookup {
             } else {
                 usesReplaceableAutomaticSDKRoot = false
             }
-            if usesReplaceableAutomaticSDKRoot, let activeSDK = parameters.activeRunDestination?.sdk {
+            if usesReplaceableAutomaticSDKRoot,
+               case let .appleSDK(platform: _, sdk: activeSDK, sdkVariant: _) = parameters.activeRunDestination?.buildTarget {
                 sdkroot = activeSDK
             }
 
@@ -1824,7 +1827,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             if let s = sdk {
                 // Evaluate the SDK variant, if there is one.
                 let sdkVariantName: String
-                if usesReplaceableAutomaticSDKRoot, let activeSDKVariant = parameters.activeRunDestination?.sdkVariant {
+                if usesReplaceableAutomaticSDKRoot, case let .appleSDK(platform: _, sdk: _, sdkVariant: activeSDKVariant) = parameters.activeRunDestination?.buildTarget, let activeSDKVariant {
                     sdkVariantName = activeSDKVariant
                 } else {
                     sdkVariantName = createScope(effectiveTargetConfig, sdkToUse: s).evaluate(BuiltinMacros.SDK_VARIANT)
@@ -3543,19 +3546,19 @@ private class SettingsBuilder: ProjectMatchLookup {
                 return
             }
             destinationSDK = sdk
-        default:
-            guard let platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
-                self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
+        case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant):
+            guard let platform = self.core.platformRegistry.lookup(name: platform) else {
+                self.errors.append("unable to resolve run destination platform: '\(platform)'")
                 return
             }
 
             destinationPlatform = platform
 
             do {
-                if let sdk = try sdkRegistry.lookup(runDestination.sdk, activeRunDestination: runDestination) {
+                if let sdk = try sdkRegistry.lookup(sdk, activeRunDestination: runDestination) {
                     destinationSDK = sdk
                 } else {
-                    self.errors.append("unable to resolve run destination SDK: '\(runDestination.sdk)'")
+                    self.errors.append("unable to resolve run destination SDK: '\(sdk)'")
                     return
                 }
             } catch let error as AmbiguousSDKLookupError {
@@ -3577,7 +3580,9 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         do {
             let scope = createScope(sdkToUse: nil)
-            let destinationIsMacCatalyst = runDestination.sdkVariant == MacCatalystInfo.sdkVariantName
+            let destinationIsMacCatalyst = if case let .appleSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = runDestination.buildTarget {
+                sdkVariant == MacCatalystInfo.sdkVariantName
+            } else { false }
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
             if destinationIsMacCatalyst && supportsMacCatalyst {
                 pushTable(.exported) {
@@ -3682,13 +3687,13 @@ private class SettingsBuilder: ProjectMatchLookup {
         case .swiftSDK:
             // TODO use the triple to decide the platform, or use a fallback
             guard let platform: Platform = self.core.platformRegistry.lookup(name: "webassembly") else {
-                self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
+                self.errors.append("unable to resolve run destination platform: 'webassembly'")
                 return
             }
             destinationPlatform = platform
-        default:
-            guard let platform: Platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
-                self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
+        case let .appleSDK(platform: platformName, sdk: _, sdkVariant: _):
+            guard let platform: Platform = self.core.platformRegistry.lookup(name: platformName) else {
+                self.errors.append("unable to resolve run destination platform: '\(platformName)'")
                 return
             }
             destinationPlatform = platform

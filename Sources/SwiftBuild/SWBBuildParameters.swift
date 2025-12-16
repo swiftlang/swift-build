@@ -36,74 +36,78 @@ public struct SWBBuildParameters: Codable, Sendable {
 
 /// Refer to `SWBProtocol.RunDestinationInfo`
 public struct SWBRunDestinationInfo: Codable, Sendable {
-    public enum SWBBuildTarget: Codable, Sendable {
-        case appleSDK(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String])
-        case swiftSDK(sdkManifestPath: String, triple: String)
+    public struct SWBBuildTarget: Codable, Sendable {
+        fileprivate var _internalBuildTarget: InternalBuildTarget
+
+        public static func appleSDK(platform: String, sdk: String, sdkVariant: String?) -> SWBBuildTarget {
+            SWBBuildTarget(_internalBuildTarget: .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant))
+        }
+
+        public static func swiftSDK(sdkManifestPath: String, triple: String) -> SWBBuildTarget {
+            SWBBuildTarget(_internalBuildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple))
+        }
+
+        public func asAppleSDK() -> (platform: String, sdk: String, sdkVariant: String?)? {
+            guard case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant) = _internalBuildTarget else {
+                return nil
+            }
+
+            return (platform: platform, sdk: sdk, sdkVariant: sdkVariant)
+        }
+
+        public func asSwiftSDK() -> (sdkManifestPath: String, triple: String)? {
+            guard case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple) = _internalBuildTarget else {
+                return nil
+            }
+
+            return (sdkManifestPath: sdkManifestPath, triple: triple)
+        }
     }
+
+    public var buildTarget: SWBBuildTarget
+    public var targetArchitecture: String
+    public var supportedArchitectures: [String]
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
 
-    public var _internalBuildTarget: SWBBuildTarget?
-
-    public var buildTarget: SWBBuildTarget {
-        get {
-            if let bt = _internalBuildTarget {
-                return bt
-            }
-
-            return .appleSDK(platform: self.platform, sdk: self.sdk, sdkVariant: self.sdkVariant, targetArchitecture: self.targetArchitecture, supportedArchitectures: self.supportedArchitectures)
+    @available(*, deprecated, message: "Use buildTarget and match on the appleSDK case instead")
+    public var platform: String {
+        guard case let .appleSDK(platform: platform, _, _) = buildTarget._internalBuildTarget else {
+            return ""
         }
-        set {
-            switch newValue {
-            case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures):
-                self.platform = platform
-                self.sdk = sdk
-                self.sdkVariant = sdkVariant
-                self.targetArchitecture = targetArchitecture
-                self.supportedArchitectures = supportedArchitectures
-            case .swiftSDK:
-                self._internalBuildTarget = newValue
-                self.platform = ""
-                self.sdk = ""
-                self.sdkVariant = nil
-                self.targetArchitecture = ""
-                self.supportedArchitectures = []
-            }
-        }
+
+        return platform
     }
 
-    public var platform: String
-    public var sdk: String
-    public var sdkVariant: String?
-    public var targetArchitecture: String
-    public var supportedArchitectures: [String]
+    @available(*, deprecated, message: "Use buildTarget and match on the appleSDK case instead")
+    public var sdk: String {
+        guard case let .appleSDK(_, sdk: sdk, _) = buildTarget._internalBuildTarget else {
+            return ""
+        }
+
+        return sdk
+    }
+
+    @available(*, deprecated, message: "Use buildTarget and match on the appleSDK case instead")
+    public var sdkVariant: String? {
+        guard case let .appleSDK(_, _, sdkVariant: sdkVariant) = buildTarget._internalBuildTarget else {
+            return nil
+        }
+
+        return sdkVariant
+    }
 
     public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool) {
-        self.platform = platform
-        self.sdk = sdk
-        self.sdkVariant = sdkVariant
+        self.buildTarget = .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
         self.targetArchitecture = targetArchitecture
         self.supportedArchitectures = supportedArchitectures
         self.disableOnlyActiveArch = disableOnlyActiveArch
     }
 
-    public init(buildTarget: SWBBuildTarget, disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
-        switch buildTarget {
-        case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures):
-            self.platform = platform
-            self.sdk = sdk
-            self.sdkVariant = sdkVariant
-            self.targetArchitecture = targetArchitecture
-            self.supportedArchitectures = supportedArchitectures
-            break
-        case .swiftSDK:
-            self._internalBuildTarget = buildTarget
-            self.platform = ""
-            self.sdk = ""
-            self.sdkVariant = nil
-            self.targetArchitecture = ""
-            self.supportedArchitectures = []
-        }
+    public init(buildTarget: SWBBuildTarget, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
+        self.buildTarget = buildTarget
+        self.targetArchitecture = targetArchitecture
+        self.supportedArchitectures = supportedArchitectures
         self.disableOnlyActiveArch = disableOnlyActiveArch
         self.hostTargetedPlatform = hostTargetedPlatform
     }
@@ -111,6 +115,63 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
     public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
         self.init(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
         self.hostTargetedPlatform = hostTargetedPlatform
+    }
+}
+
+fileprivate enum InternalBuildTarget: Codable, Sendable {
+    case appleSDK(platform: String, sdk: String, sdkVariant: String?)
+    case swiftSDK(sdkManifestPath: String, triple: String)
+
+    private enum CodingKeys: String, CodingKey {
+        // Selector
+        case buildTarget
+
+        // Apple SDK
+        case platform
+        case sdk
+        case sdkVariant
+
+        // Swift SDK
+        case sdkManifestPath
+        case triple
+    }
+
+    private enum BuildTarget: String, Codable {
+        case appleSDK
+        case swiftSDK
+
+        init(_ buildTarget: InternalBuildTarget) {
+            switch buildTarget {
+            case .appleSDK:
+                self = .appleSDK
+            case .swiftSDK:
+                self = .swiftSDK
+            }
+        }
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(BuildTarget.self, forKey: .buildTarget) {
+        case .appleSDK:
+            self = try .appleSDK(platform: container.decode(String.self, forKey: .platform), sdk: container.decode(String.self, forKey: .sdk), sdkVariant: container.decode(String?.self, forKey: .sdkVariant))
+        case .swiftSDK:
+            self = try .swiftSDK(sdkManifestPath: container.decode(String.self, forKey: .sdkManifestPath), triple: container.decode(String.self, forKey: .triple))
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(BuildTarget(self), forKey: .buildTarget)
+        switch self {
+        case let .appleSDK(platform, sdk, sdkVariant):
+            try container.encode(platform, forKey: .platform)
+            try container.encode(sdk, forKey: .sdk)
+            try container.encode(sdkVariant, forKey: .sdkVariant)
+        case let .swiftSDK(sdkManifestPath, triple):
+            try container.encode(sdkManifestPath, forKey: .sdkManifestPath)
+            try container.encode(triple, forKey: .triple)
+        }
     }
 }
 

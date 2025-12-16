@@ -318,41 +318,24 @@ public struct BuildParametersMessagePayload: SerializableCodable, Equatable, Sen
 }
 
 public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
+    public var buildTarget: BuildTarget
+
+    public var targetArchitecture: String
+    public var supportedArchitectures: OrderedSet<String>
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
 
-    public var buildTarget: BuildTarget?
-
-    public var platform: String
-    public var sdk: String
-    public var sdkVariant: String?
-    public var targetArchitecture: String
-    public var supportedArchitectures: OrderedSet<String>
-
-    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
-        self.platform = platform
-        self.sdk = sdk
-        self.sdkVariant = sdkVariant
+    public init(buildTarget: BuildTarget, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
+        self.buildTarget = buildTarget
         self.targetArchitecture = targetArchitecture
         self.supportedArchitectures = supportedArchitectures
-        self.disableOnlyActiveArch = disableOnlyActiveArch
-        self.hostTargetedPlatform = hostTargetedPlatform
-        self.buildTarget = nil
-    }
-
-    public init(buildTarget: BuildTarget, disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
-        self.platform = ""
-        self.sdk = ""
-        self.sdkVariant = nil
-        self.targetArchitecture = ""
-        self.supportedArchitectures = []
-        self.buildTarget = buildTarget
         self.disableOnlyActiveArch = disableOnlyActiveArch
         self.hostTargetedPlatform = hostTargetedPlatform
     }
 }
 
 public enum BuildTarget: SerializableCodable, Hashable, Sendable {
+    case appleSDK(platform: String, sdk: String, sdkVariant: String?)
     case swiftSDK(sdkManifestPath: String, triple: String)
 }
 

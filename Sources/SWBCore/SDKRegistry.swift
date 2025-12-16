@@ -1174,7 +1174,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 "GENERATE_TEXT_BASED_STUBS": "NO",
                 "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
-                // TODO check how this impacts operation on Windows
                 "CHOWN": "/usr/bin/chown",
 
                 // TODO are these going to be appropriate for all kinds of SDK's?
@@ -1295,7 +1294,14 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             // If we got here, we have DriverKit SDKs (the only ones which use cohort platforms) for multiple cohort platforms. Narrow down the list by disambiguating using the run destination.
 
             func selectSDKList() -> [SDK]? {
-                if let list = sdksByCohortPlatform[activeRunDestination?.platform] {
+                let platform: String?
+                if case let .appleSDK(platform: p, _, _) = activeRunDestination?.buildTarget {
+                    platform = p
+                } else {
+                    platform = nil
+                }
+
+                if let list = sdksByCohortPlatform[platform] {
                     return list
                 }
 
@@ -1303,7 +1309,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 // by the cohort platforms of the run destination's SDK's platform. This is necessary to resolve
                 // driverkit when we have a DriverKit run destination but with a platform-specific SDK.
                 if let runDestination = activeRunDestination,
-                   let cohortPlatforms = try? lookup(runDestination.sdk, activeRunDestination: nil)?.cohortPlatforms {
+                   case let .appleSDK(_, sdk: sdk, _) = runDestination.buildTarget,
+                   let cohortPlatforms = try? lookup(sdk, activeRunDestination: nil)?.cohortPlatforms {
                     for cohortPlatform in cohortPlatforms {
                         if let list = sdksByCohortPlatform[cohortPlatform] {
                             return list

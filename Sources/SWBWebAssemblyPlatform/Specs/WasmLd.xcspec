@@ -140,7 +140,7 @@
             {
                 Name = SWIFTC_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
+                DefaultValue = "$(SDKROOT)";
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineFlag = "-sdk";
                 IsInputDependency = Yes;
