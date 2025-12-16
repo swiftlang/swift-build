@@ -39,7 +39,7 @@ final class CopySwiftPackageResourcesTaskProducer: PhasedTaskProducer, TaskProdu
         let productTypeIdentifier = scope.evaluate(BuiltinMacros.PRODUCT_TYPE)
         func lookupProductType(_ ident: String) -> ProductTypeSpec? {
             do {
-                return try context.getSpec(ident)
+                return try context.getSpec(ident, ofType: ProductTypeSpec.self)
             } catch {
                 context.error("Couldn't look up product type '\(ident)' in domain '\(context.domain)': \(error)")
                 return nil

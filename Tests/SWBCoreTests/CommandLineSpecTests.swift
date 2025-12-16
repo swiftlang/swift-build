@@ -166,8 +166,8 @@ import SWBMacro
     @Test(.requireHostOS(.macOS))
     func swiftTaskConstruction() async throws {
         let core = try await getCore()
-        let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
-        let headerSpec = try core.specRegistry.getSpec("com.apple.build-tools.swift-header-tool") as SwiftHeaderToolSpec
+        let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
+        let headerSpec = try core.specRegistry.getSpec("com.apple.build-tools.swift-header-tool", ofType: SwiftHeaderToolSpec.self)
 
         let swiftCompilerPath = try await self.swiftCompilerPath
 
@@ -212,9 +212,9 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let inputFiles = [FileToBuild(absolutePath: Path.root.join("tmp/one.swift"), fileType: mockFileType), FileToBuild(absolutePath: Path.root.join("tmp/two.swift"), fileType: mockFileType)]
-        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx") as ArchitectureSpec
+        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx", ofType: ArchitectureSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: inputFiles, currentArchSpec: archSpec, output: nil)
         await swiftSpec.constructTasks(cbc, delegate)
         headerSpec.constructSwiftHeaderToolTask(cbc, delegate, inputs: delegate.generatedSwiftObjectiveCHeaderFiles(), outputPath: Path("App1-Swift.h"))
@@ -307,9 +307,9 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let inputFiles = [FileToBuild(absolutePath: Path.root.join("tmp/one.swift"), fileType: mockFileType), FileToBuild(absolutePath: Path.root.join("tmp/two.swift"), fileType: mockFileType)]
-            let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx") as ArchitectureSpec
+            let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx", ofType: ArchitectureSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: inputFiles, currentArchSpec: archSpec, output: nil)
             await swiftSpec.constructTasks(cbc, delegate)
             headerSpec.constructSwiftHeaderToolTask(cbc, delegate, inputs: delegate.generatedSwiftObjectiveCHeaderFiles(), outputPath: Path.root.join("tmp/output/obj/DerivedFiles/App1-Swift.h"))
@@ -323,8 +323,8 @@ import SWBMacro
     @Test(.requireHostOS(.macOS), .requireLLBuild(apiVersion: 12))
     func swiftTaskConstruction_integratedDriver() async throws {
         let core = try await getCore()
-        let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
-        let headerSpec = try core.specRegistry.getSpec("com.apple.build-tools.swift-header-tool") as SwiftHeaderToolSpec
+        let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
+        let headerSpec = try core.specRegistry.getSpec("com.apple.build-tools.swift-header-tool", ofType: SwiftHeaderToolSpec.self)
 
         let swiftCompilerPath = try await self.swiftCompilerPath
 
@@ -371,9 +371,9 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let inputFiles = [FileToBuild(absolutePath: Path.root.join("tmp/one.swift"), fileType: mockFileType), FileToBuild(absolutePath: Path.root.join("tmp/two.swift"), fileType: mockFileType)]
-        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx") as ArchitectureSpec
+        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx", ofType: ArchitectureSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: inputFiles, currentArchSpec: archSpec, output: nil)
         await swiftSpec.constructTasks(cbc, delegate)
         headerSpec.constructSwiftHeaderToolTask(cbc, delegate, inputs: delegate.generatedSwiftObjectiveCHeaderFiles(), outputPath: Path("App1-Swift.h"))
@@ -490,9 +490,9 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let inputFiles = [FileToBuild(absolutePath: Path.root.join("tmp/one.swift"), fileType: mockFileType), FileToBuild(absolutePath: Path.root.join("tmp/two.swift"), fileType: mockFileType)]
-            let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx") as ArchitectureSpec
+            let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx", ofType: ArchitectureSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: inputFiles, currentArchSpec: archSpec, output: nil)
             await swiftSpec.constructTasks(cbc, delegate)
             headerSpec.constructSwiftHeaderToolTask(cbc, delegate, inputs: delegate.generatedSwiftObjectiveCHeaderFiles(), outputPath: Path.root.join("tmp/output/obj/DerivedFiles/App1-Swift.h"))
@@ -507,8 +507,8 @@ import SWBMacro
     @Test(.requireSDKs(.macOS))
     func swiftTaskConstructionWithoutResponseFile() async throws {
         let core = try await getCore()
-        let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
-        let headerSpec = try core.specRegistry.getSpec("com.apple.build-tools.swift-header-tool") as SwiftHeaderToolSpec
+        let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
+        let headerSpec = try core.specRegistry.getSpec("com.apple.build-tools.swift-header-tool", ofType: SwiftHeaderToolSpec.self)
 
         let swiftCompilerPath = try await self.swiftCompilerPath
 
@@ -549,9 +549,9 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let inputFiles = [FileToBuild(absolutePath: Path.root.join("tmp/one.swift"), fileType: mockFileType), FileToBuild(absolutePath: Path.root.join("tmp/two.swift"), fileType: mockFileType)]
-        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx") as ArchitectureSpec
+        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx", ofType: ArchitectureSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: inputFiles, currentArchSpec: archSpec, output: nil)
         await swiftSpec.constructTasks(cbc, delegate)
         headerSpec.constructSwiftHeaderToolTask(cbc, delegate, inputs: delegate.generatedSwiftObjectiveCHeaderFiles(), outputPath: Path("App1-Swift.h"))
@@ -600,7 +600,7 @@ import SWBMacro
     @Test(.skipHostOS(.windows, "tmp/not-mainone.swift not in command line"))
     func singleFileSwiftTaskConstruction() async throws {
         let core = try await getCore()
-        let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
+        let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
 
         // Create the mock table.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -620,9 +620,9 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let inputFiles = [FileToBuild(absolutePath: Path.root.join("tmp/not-mainone.swift"), fileType: mockFileType)]
-        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx") as ArchitectureSpec
+        let archSpec = try core.specRegistry.getSpec("x86_64", domain: "macosx", ofType: ArchitectureSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: inputFiles, currentArchSpec: archSpec, output: nil)
         await swiftSpec.constructTasks(cbc, delegate)
 
@@ -643,7 +643,7 @@ import SWBMacro
     @Test
     func stripTaskConstruction() async throws {
         let core = try await getCore()
-        let stripSpec = try core.specRegistry.getSpec("com.apple.build-tools.strip") as CommandLineToolSpec
+        let stripSpec = try core.specRegistry.getSpec("com.apple.build-tools.strip", ofType: CommandLineToolSpec.self)
 
         // Create the mock table.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -653,7 +653,7 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+                   let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: Path.root.join("tmp/output"))
         await stripSpec.constructTasks(cbc, delegate)
 
@@ -669,7 +669,7 @@ import SWBMacro
     @Test(.requireSDKs(.macOS))
     func swiftStdlibTool() async throws {
         let core = try await getCore()
-        let stdlibTool = try core.specRegistry.getSpec("com.apple.build-tools.swift-stdlib-tool") as SwiftStdLibToolSpec
+        let stdlibTool = try core.specRegistry.getSpec("com.apple.build-tools.swift-stdlib-tool", ofType: SwiftStdLibToolSpec.self)
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         table.push(BuiltinMacros.CODESIGN_ALLOCATE, literal: "/path/to/codesign_allocate")
         table.push(BuiltinMacros.WRAPPER_NAME, literal: "wrapper")
@@ -677,7 +677,7 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.application", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: nil)
 
         // Check that task construction sets the correct env bindings.
@@ -691,7 +691,7 @@ import SWBMacro
     @Test
     func dsymutilTaskConstruction() async throws {
         let core = try await getCore()
-        let dsymutilSpec = try core.specRegistry.getSpec("com.apple.tools.dsymutil") as DsymutilToolSpec
+        let dsymutilSpec = try core.specRegistry.getSpec("com.apple.tools.dsymutil", ofType: DsymutilToolSpec.self)
 
         do {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -702,7 +702,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+                       let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: Path.root.join("tmp/output"))
             await dsymutilSpec.constructTasks(cbc, delegate, dsymBundle: Path.root.join("tmp/output.dSYM"))
 
@@ -725,7 +725,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)], output: Path.root.join("tmp/output"))
             await dsymutilSpec.constructTasks(cbc, delegate, dsymBundle: Path.root.join("tmp/output.dSYM"))
 
@@ -742,7 +742,7 @@ import SWBMacro
     @Test(.skipHostOS(.windows, "prefix.h header path is coming over as tmp\\tmp\\prefix.h"), .requireSDKs(.macOS))
     func clangCompileTaskConstruction() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
 
         // Create the mock table.  We include all the defaults for the tool specification.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -804,7 +804,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("sourcecode.c.c") as FileTypeSpec
+            let mockFileType = try core.specRegistry.getSpec("sourcecode.c.c", ofType: FileTypeSpec.self)
 
             // Create the build context for the command.
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input.c"), fileType: mockFileType)], output: nil)
@@ -861,7 +861,7 @@ import SWBMacro
     @Test
     func clangCompileWithPrefixHeaderTaskConstruction() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
 
         // Create the mock table.  We include all the defaults for the tool specification.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -908,7 +908,7 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("sourcecode.c.c") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("sourcecode.c.c", ofType: FileTypeSpec.self)
 
         // We need to construct multiple tasks to ensure that they correctly share one precompiled header
         let numCompileTasks = 2
@@ -988,7 +988,7 @@ import SWBMacro
     @Test
     func clangCompileTaskConstructionWithCXXModulesDisabled() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
 
         // Create the dummy table.  We include all the defaults for the tool specification.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1023,7 +1023,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let dummyScope = MacroEvaluationScope(table: table)
-            let dummyFileType = try core.specRegistry.getSpec(spec) as FileTypeSpec
+            let dummyFileType = try core.specRegistry.getSpec(spec, ofType: FileTypeSpec.self)
 
             let fileSuffix = spec.hasSuffix("objcpp") ? ".mm" : ".m"
             // Create the build context for the command.
@@ -1078,7 +1078,7 @@ import SWBMacro
     @Test
     func clangCompileTaskConstructionWithCXX20ModulesDisabled() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
 
         // Create the dummy table.  We include all the defaults for the tool specification.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1115,7 +1115,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let dummyScope = MacroEvaluationScope(table: configTable)
-            let dummyFileType = try core.specRegistry.getSpec(spec) as FileTypeSpec
+            let dummyFileType = try core.specRegistry.getSpec(spec, ofType: FileTypeSpec.self)
 
             // Create the build context for the command.
             let cbc = CommandBuildContext(producer: producer, scope: dummyScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input.mm"), fileType: dummyFileType)], output: nil)
@@ -1186,7 +1186,7 @@ import SWBMacro
     @Test(.skipHostOS(.windows, "output file is coming out as tmp\\input.o (non-absolute)"))
     func cCompilerLauncher() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
 
         // Create the mock table.  We include all the defaults for the tool specification.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1196,7 +1196,7 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("sourcecode.c") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("sourcecode.c", ofType: FileTypeSpec.self)
 
         // Create the build context for the command.
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input.c"), fileType: mockFileType)], output: nil)
@@ -1217,8 +1217,8 @@ import SWBMacro
     @Test
     func cppLanguageStandard() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
-        let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
+        let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp", ofType: FileTypeSpec.self)
         let langStandardMacro = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_CXX_LANGUAGE_STANDARD") as? StringMacroDeclaration)
 
         let macroFlagMapping = [
@@ -1254,12 +1254,12 @@ import SWBMacro
     @Test
     func compilerPathOverrides() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
         let fileTypes = [
-            ".c": try core.specRegistry.getSpec("sourcecode.c.c") as FileTypeSpec,
-            ".cpp": try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec,
-            ".m": try core.specRegistry.getSpec("sourcecode.c.objc") as FileTypeSpec,
-            ".mm": try core.specRegistry.getSpec("sourcecode.cpp.objcpp") as FileTypeSpec
+            ".c": try core.specRegistry.getSpec("sourcecode.c.c", ofType: FileTypeSpec.self),
+            ".cpp": try core.specRegistry.getSpec("sourcecode.cpp.cpp", ofType: FileTypeSpec.self),
+            ".m": try core.specRegistry.getSpec("sourcecode.c.objc", ofType: FileTypeSpec.self),
+            ".mm": try core.specRegistry.getSpec("sourcecode.cpp.objcpp", ofType: FileTypeSpec.self)
         ]
 
         // Check with just CC.
@@ -1321,7 +1321,7 @@ import SWBMacro
     @Test
     func linkerTaskConstruction() async throws {
         let core = try await getCore()
-        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec() as LdLinkerSpec
+        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec(ofType: LdLinkerSpec.self)
 
         // Create the mock table.
         // Since these tests don't use any of the default settings, we need to push any defaults needed for the test here.
@@ -1337,7 +1337,7 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/normal/x86_64/file1.o"), fileType: mockFileType)], output: Path.root.join("tmp/obj/normal/x86_64/output"))
 
         // Test all permutations of library kind, linkage mode and search path usage, except for object files and object libraries.
@@ -1439,7 +1439,7 @@ import SWBMacro
     @Test
     func linkerBuildSettings() async throws {
         let core = try await getCore()
-        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec() as LdLinkerSpec
+        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec(ofType: LdLinkerSpec.self)
         let variant = "normal"
         let arch = "arm64"
 
@@ -1449,7 +1449,7 @@ import SWBMacro
         baseTable.push(BuiltinMacros.variant, literal: variant)
 
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
 
         /// Utility method to add the setting to the table, create a task with the table, and call a checker block.
         func createAndCheckLinkerTask(_ name: String, type: MacroDeclaration.Type, value: String, check: (PlannedTaskBuilder) async throws -> Void) async throws {
@@ -1493,7 +1493,7 @@ import SWBMacro
     @Test
     func linkerAdHocSigningOptions() async throws {
         let core = try await getCore()
-        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec() as LdLinkerSpec
+        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec(ofType: LdLinkerSpec.self)
 
         // Create the mock table, which will get re-used across the tests.We include all the defaults for the tool specification.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1512,7 +1512,7 @@ import SWBMacro
 
         // Construct data we can re-use across the tests.
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
-        let mockFileType: FileTypeSpec = try core.specRegistry.getSpec("file")
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
 
         // Test linking for different macOS archs with a signing identity.
         // Presently we disable ad-hoc code signing always when we have a signing identity.
@@ -1574,7 +1574,7 @@ import SWBMacro
     @Test
     func libtoolTaskConstruction() async throws {
         let core = try await getCore()
-        let librarianSpec: LinkerSpec = try core.specRegistry.getSpec() as LibtoolLinkerSpec
+        let librarianSpec: LinkerSpec = try core.specRegistry.getSpec(ofType: LibtoolLinkerSpec.self)
 
         // Create the mock table.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1586,7 +1586,7 @@ import SWBMacro
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.library.static", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/normal/x86_64/file1.o"), fileType: mockFileType)], output: Path.root.join("tmp/obj/normal/x86_64/output"))
         let libraries = [
             LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo1.a"), mode: .normal, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
@@ -1641,11 +1641,11 @@ import SWBMacro
     @Test
     func linkerPathOverrides() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
-        let spec: LinkerSpec = try core.specRegistry.getSpec() as LdLinkerSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
+        let spec: LinkerSpec = try core.specRegistry.getSpec(ofType: LdLinkerSpec.self)
         let fileTypes = [
-            ".c": try core.specRegistry.getSpec("sourcecode.c.c") as FileTypeSpec,
-            ".cpp": try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec,
+            ".c": try core.specRegistry.getSpec("sourcecode.c.c", ofType: FileTypeSpec.self),
+            ".cpp": try core.specRegistry.getSpec("sourcecode.cpp.cpp", ofType: FileTypeSpec.self),
         ]
 
         func check(name: String, expectedLinker: String, macros: [StringMacroDeclaration: String], sourceLocation: SourceLocation = #_sourceLocation) async throws {
@@ -1698,9 +1698,9 @@ import SWBMacro
     @Test
     func additionalLinkerArgs() async throws {
         let core = try await getCore()
-        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec() as LdLinkerSpec
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
-        let objcFileTypeSpec = try core.specRegistry.getSpec("sourcecode.c.objc") as FileTypeSpec
+        let linkerSpec: LinkerSpec = try core.specRegistry.getSpec(ofType: LdLinkerSpec.self)
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
+        let objcFileTypeSpec = try core.specRegistry.getSpec("sourcecode.c.objc", ofType: FileTypeSpec.self)
         let macroName = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("LLVM_LTO") as? StringMacroDeclaration)
 
         let macroValues = [
@@ -1739,7 +1739,7 @@ import SWBMacro
     @Test
     func copyTaskConstruction() async throws {
         let core = try await getCore()
-        let copySpec = try core.specRegistry.getSpec() as CopyToolSpec
+        let copySpec = try core.specRegistry.getSpec(ofType: CopyToolSpec.self)
 
         // Create the mock table. Note that the defaults from the spec are *not* added to this table.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1751,7 +1751,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/file-to-copy"), fileType: mockFileType)], output: Path.root.join("tmp/dst/file-to-copy"))
             await copySpec.constructCopyTasks(cbc, delegate)
 
@@ -1770,7 +1770,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/file-to-copy"), fileType: mockFileType)], output: Path.root.join("tmp/dst/file-to-copy"))
             await copySpec.constructCopyTasks(cbc, delegate, removeHeaderDirectories: true)
 
@@ -1789,7 +1789,7 @@ import SWBMacro
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
             let mockScope = MacroEvaluationScope(table: table)
-            let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/file-to-copy"), fileType: mockFileType)], output: Path.root.join("tmp/dst/file-to-copy"))
             await copySpec.constructCopyTasks(cbc, delegate, ignoreMissingInputs: true)
 
@@ -1808,14 +1808,14 @@ import SWBMacro
     @Test
     func touchTaskConstruction() async throws {
         let core = try await getCore()
-        let touchSpec = try #require(core.specRegistry.getSpec("com.apple.tools.touch") as? CommandLineToolSpec)
+        let touchSpec = try core.specRegistry.getSpec("com.apple.tools.touch", ofType: CommandLineToolSpec.self)
 
         let table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         let scope = MacroEvaluationScope(table: table)
 
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
-        let mockFileType = try #require(core.specRegistry.getSpec("file") as? FileTypeSpec)
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: scope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/input"), fileType: mockFileType)])
         await touchSpec.constructTasks(cbc, delegate)
 
@@ -1836,7 +1836,7 @@ import SWBMacro
     @Test
     func symlinkTaskConstruction() async throws {
         let core = try await getCore()
-        let symlinkSpec = try #require(core.specRegistry.getSpec("com.apple.tools.symlink") as? SymlinkToolSpec)
+        let symlinkSpec = try core.specRegistry.getSpec("com.apple.tools.symlink", ofType: SymlinkToolSpec.self)
 
         let table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         let scope = MacroEvaluationScope(table: table)
@@ -1857,7 +1857,7 @@ import SWBMacro
     @Test
     func mkdirTaskConstruction() async throws {
         let core = try await getCore()
-        let mkdirSpec = try #require(core.specRegistry.getSpec("com.apple.tools.mkdir") as? MkdirToolSpec)
+        let mkdirSpec = try core.specRegistry.getSpec("com.apple.tools.mkdir", ofType: MkdirToolSpec.self)
 
         let table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         let scope = MacroEvaluationScope(table: table)
@@ -1882,7 +1882,7 @@ import SWBMacro
             // any spec is fine, we're testing the lookup function
             let delegate = TestingCoreDelegate()
             let core = try await Self.makeCore(simulatedInferiorProductsPath: nil, delegate)
-            let spec: CommandLineToolSpec = try core.specRegistry.getSpec("com.apple.tools.touch")
+            let spec = try core.specRegistry.getSpec("com.apple.tools.touch", ofType: CommandLineToolSpec.self)
 
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let namespace = BuiltinMacros.namespace
@@ -1891,7 +1891,7 @@ import SWBMacro
                 table.push(macro, namespace.parseLiteralString(Path.root.join("tmp").str))
             }
             let scope = MacroEvaluationScope(table: table)
-            let mockFileType = try #require(core.specRegistry.getSpec("file") as? FileTypeSpec)
+            let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
             let cbc = CommandBuildContext(producer: producer, scope: scope, inputs: (0..<numberOfInputs).map({ FileToBuild(absolutePath: Path.root.join("tmp/file\($0 + 1).c"), fileType: mockFileType) }), output: output ? Path.root.join("tmp/output.c") : nil)
             #expect(spec.lookup(macro, cbc, core.delegate)?.asLiteralString == expectation)
 
@@ -1953,8 +1953,8 @@ import SWBMacro
     @Test
     func clangDepscanPrefixMap() async throws {
         let core = try await getCore()
-        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0") as CommandLineToolSpec
-        let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp") as FileTypeSpec
+        let clangSpec = try core.specRegistry.getSpec("com.apple.compilers.llvm.clang.1_0", ofType: CommandLineToolSpec.self)
+        let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp", ofType: FileTypeSpec.self)
         let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_COMPILE_CACHE") as? BooleanMacroDeclaration)
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
@@ -2006,9 +2006,9 @@ import SWBMacro
     @Test
     func swiftCachingPrefixMap() async throws {
         let core = try await getCore()
-        let swiftSpec = try core.specRegistry.getSpec("com.apple.xcode.tools.swift.compiler") as CompilerSpec
+        let swiftSpec = try core.specRegistry.getSpec("com.apple.xcode.tools.swift.compiler", ofType: CompilerSpec.self)
 
-        let mockFileType = try core.specRegistry.getSpec("sourcecode.swift") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("sourcecode.swift", ofType: FileTypeSpec.self)
         let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_COMPILE_CACHE") as? BooleanMacroDeclaration)
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
@@ -2227,7 +2227,7 @@ import SWBMacro
 
             do {
                 // Get the tool spec.
-                let thingSpec = try core.specRegistry.getSpec(ThingToolSpec.identifier) as ThingToolSpec
+                let thingSpec = try core.specRegistry.getSpec(ThingToolSpec.identifier, ofType: ThingToolSpec.self)
 
                 // Create a table with the unioned tool defaults, and any other values we want to add.
                 var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -2238,7 +2238,7 @@ import SWBMacro
                 let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
                 let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
                 let mockScope = MacroEvaluationScope(table: table)
-                let mockFileType = try core.specRegistry.getSpec("file.thing") as FileTypeSpec
+                let mockFileType = try core.specRegistry.getSpec("file.thing", ofType: FileTypeSpec.self)
                 let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/file.thing"), fileType: mockFileType)], output: Path.root.join("tmp/dst/file.something"), resourcesDir: Path.root.join("tmp/dst"), unlocalizedResourcesDir: Path.root.join("tmp/dst"))
                 await thingSpec.constructTasks(cbc, delegate)
 
@@ -2272,7 +2272,7 @@ import SWBMacro
 
             do {
                 // Get the tool spec.
-                let thingSpec = try core.specRegistry.getSpec(ThingToolSpec.identifier) as ThingToolSpec
+                let thingSpec = try core.specRegistry.getSpec(ThingToolSpec.identifier, ofType: ThingToolSpec.self)
 
                 // Create a table with the unioned tool defaults, and any other values we want to add.
                 var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -2283,7 +2283,7 @@ import SWBMacro
                 let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
                 let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
                 let mockScope = MacroEvaluationScope(table: table)
-                let mockFileType = try core.specRegistry.getSpec("file.thing") as FileTypeSpec
+                let mockFileType = try core.specRegistry.getSpec("file.thing", ofType: FileTypeSpec.self)
                 let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/file.thing"), fileType: mockFileType, regionVariantName: "en")], output: Path.root.join("tmp/dst/file.something"), resourcesDir: Path.root.join("tmp/dst/en.lproj"), unlocalizedResourcesDir: Path.root.join("tmp/dst"))
                 await thingSpec.constructTasks(cbc, delegate)
 

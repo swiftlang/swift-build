@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.metal";
         Name = "Metal Compiler";

@@ -75,6 +75,7 @@
     },
 
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.instruments-package-builder";
         Name = "Instruments Package Builder";

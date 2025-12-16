@@ -541,12 +541,12 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         // If the product type specifies a validation tool to run, then we create a task to do so.
         // Presently we only create this task for iOS/tvOS/watchOS/macOS device application products.
         // FIXME: The fact that the product type spec defines the identifier of the tool to use is wacky, since nothing is taking advantage of it, so we take advantage of that by just doing the simple thing to get the one tool spec we know about.
-        if let identifier = context.productType?.productValidationToolSpecIdentifier, identifier == context.validateProductSpec.identifier {
+        if let validateProductSpec = context.validateProductSpec, let identifier = context.productType?.productValidationToolSpecIdentifier, identifier == validateProductSpec.identifier {
             await appendGeneratedTasks(&tasks) { delegate in
                 let input = FileToBuild(context: context, absolutePath: scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME)).normalize())
                 let additionalInputs = hostedProductPaths.map({ context.createDirectoryTreeNode($0, excluding: []) })
                 let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [input], commandOrderingInputs: additionalInputs, commandOrderingOutputs: [delegate.createVirtualNode("Validate \(input.absolutePath.str)")])
-                await context.validateProductSpec.constructTasks(cbc, delegate)
+                await validateProductSpec.constructTasks(cbc, delegate)
             }
         }
     }
@@ -648,13 +648,14 @@ private extension ApplicationProductTypeSpec {
         // If we're building for the macOS platform, then register the application with LaunchServices.  c.f. <rdar://problem/18464352> Handoff doesn't work with app launched from Xcode
         let context = producer.context
         guard context.settings.platform?.name == "macosx" else { return }
+        guard let launchServicesRegisterSpec = context.launchServicesRegisterSpec else { return }
 
         let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.WRAPPER_NAME))
         await producer.appendGeneratedTasks(&tasks) { delegate in
             // Mutating tasks *require* the input node, otherwise this task will not properly run for incremental builds.
             let vnode = delegate.createVirtualNode("LSRegisterURL \(path.str)")
 
-            await context.launchServicesRegisterSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: path)], output: path, commandOrderingOutputs: [vnode]), delegate)
+            await launchServicesRegisterSpec.constructTasks(CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(context: context, absolutePath: path)], output: path, commandOrderingOutputs: [vnode]), delegate)
         }
     }
 }

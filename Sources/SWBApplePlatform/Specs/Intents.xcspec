@@ -27,6 +27,7 @@
     },
 
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.intents";
         Name = "Intent Definition Compiler";

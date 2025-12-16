@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = com.apple.compilers.assetcatalog;
         Name = "Asset Catalog Compiler";

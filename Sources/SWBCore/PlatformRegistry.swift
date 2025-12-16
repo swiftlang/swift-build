@@ -546,13 +546,6 @@ public final class PlatformRegistry {
         var defaultSettings: [String: PropertyListItem] = [:]
         if case .plDict(let defaultSettingsItems)? = items["DefaultProperties"] {
             defaultSettings = defaultSettingsItems
-
-            // Rev-lock: rdar://85769354 (Remove DEPLOYMENT_TARGET_CLANG_* properties from SDK)
-            for macroName in [
-                "DEPLOYMENT_TARGET_CLANG_ENV_NAME",
-                "DEPLOYMENT_TARGET_CLANG_FLAG_NAME",
-                "DEPLOYMENT_TARGET_CLANG_FLAG_PREFIX",
-            ] { defaultSettings.removeValue(forKey: macroName) }
         }
 
         // Parse whether this is a deployment platform.

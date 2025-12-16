@@ -3685,7 +3685,7 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         results.checkWarnings([.contains("input unused"), .contains("input unused")], failIfNotFound: false)
 
                         func indexAndPreviewInfo(for task: any ExecutableTask) throws -> (index: SwiftSourceFileIndexingInfo?, preview: TaskGeneratePreviewInfoOutput?) {
-                            let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
+                            let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
                             let sourceFile = SRCROOT.join("Sources/file1.swift")
 
                             return (

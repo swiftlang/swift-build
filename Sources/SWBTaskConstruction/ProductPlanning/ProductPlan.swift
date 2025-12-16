@@ -467,6 +467,10 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             }
             let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
             let scope = settings.globalScope
+            let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
+            guard let artifactBundleFileType = specLookupContext.lookupFileType(identifier: "wrapper.artifactbundle") else {
+                continue
+            }
 
             // Parse artifact bundle info from any bundles this target directly depends upon.
             //
@@ -480,7 +484,8 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     guard case .reference(let referenceGUID) = buildFile.buildableItem else { continue }
                     guard let reference = workspaceContext.workspace.lookupReference(for: referenceGUID) else { continue }
                     let resolvedPath = settings.filePathResolver.resolveAbsolutePath(reference)
-                    if resolvedPath.fileExtension == "artifactbundle" {
+                    // TODO: Remove the fileExtension check once SwiftPM has been updated to consistently set the file type on artifact bundle references in PIF
+                    if resolvedPath.fileExtension == "artifactbundle" || specLookupContext.lookupFileType(reference: reference)?.conformsTo(artifactBundleFileType) == true {
                         do {
                             let metadata = try metadataCache.getOrInsert(resolvedPath) {
                                 try ArtifactBundleMetadata.parse(at: resolvedPath, fileSystem: buildRequestContext.fs)

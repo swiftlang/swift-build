@@ -81,7 +81,7 @@ public protocol PlatformInfoProvider {
 public struct BuildVersion: Equatable, Hashable, Sendable {
     /// Enumerates platforms as defined by dyld.
     ///
-    public struct Platform: RawRepresentable, Equatable, Hashable, Serializable, Sendable {
+    public struct Platform: RawRepresentable, Equatable, Hashable, Serializable, Sendable, Comparable {
         public typealias RawValue = UInt32
 
         public static let macOS = Self(platformID: 1)

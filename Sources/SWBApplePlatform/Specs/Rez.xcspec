@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Identifier = com.apple.compilers.rez;
+    {
+        _Domain = darwin;
+        Identifier = com.apple.compilers.rez;
         Type = Tool;
         Name = "Rez";
         Description = "Resource Manager Resource Compiler";

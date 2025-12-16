@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Identifier = com.apple.compilers.iig;
+    {
+        _Domain = darwin;
+        Identifier = com.apple.compilers.iig;
         Type = Compiler;
         Name = "IOKit Interface Generator";
         Description = "Invoke the 'iig' command line utility to compile an IIG file.";

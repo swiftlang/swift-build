@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.appshortcutstringsmetadata";
         Name = "App Shortcut Strings Metadata Extractor";

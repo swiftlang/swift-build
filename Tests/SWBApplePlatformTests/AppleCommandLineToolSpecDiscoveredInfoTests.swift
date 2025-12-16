@@ -21,7 +21,7 @@ import SWBProtocol
 @Suite
 fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     func _testDiscoveredIbSpecInfo(_ spec: CommandLineToolSpec) async throws {
-        try await withSpec(spec.identifier, .deferred) { (info: DiscoveredIbtoolToolSpecInfo) in
+        try await withSpec(spec.identifier, .deferred, platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
             XCTAssertMatch(info.toolPath.basename, .or(.equal("actool"), .equal("ibtool")))
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion > Version(0, 0, 0))
@@ -35,7 +35,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredActoolSpecInfo() async throws {
         // Once with the real tool
-        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec() as ActoolCompilerSpec)
+        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "macosx", ofType: ActoolCompilerSpec.self))
 
         let output = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -54,7 +54,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
             """
 
         // ...and with fake data
-        try await withSpec(ActoolCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data())) { (info: DiscoveredIbtoolToolSpecInfo) in
+        try await withSpec(ActoolCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
             #expect(info.toolPath.basename == "actool")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(87946))
@@ -68,7 +68,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredIbtoolSpecInfo() async throws {
         // Once with the real tool
-        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec() as IbtoolCompilerSpecStoryboard)
+        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "darwin", ofType: IbtoolCompilerSpecStoryboard.self))
 
         let output = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -87,7 +87,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
             """
 
         // ...and with fake data
-        try await withSpec(IbtoolCompilerSpecStoryboard.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data())) { (info: DiscoveredIbtoolToolSpecInfo) in
+        try await withSpec(IbtoolCompilerSpecStoryboard.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
             #expect(info.toolPath.basename == "ibtool")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(87946))
@@ -101,7 +101,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredStoryboardLinkerSpecInfo() async throws {
         // Once with the real tool
-        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec() as IBStoryboardLinkerCompilerSpec)
+        try await _testDiscoveredIbSpecInfo(getCore().specRegistry.getSpec(domain: "macosx", ofType: IBStoryboardLinkerCompilerSpec.self))
 
         let output = """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -120,7 +120,7 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
             """
 
         // ...and with fake data
-        try await withSpec(IBStoryboardLinkerCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data())) { (info: DiscoveredIbtoolToolSpecInfo) in
+        try await withSpec(IBStoryboardLinkerCompilerSpec.self, .result(status: .exit(0), stdout: Data(output.utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredIbtoolToolSpecInfo) in
             #expect(info.toolPath.basename == "ibtool")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(87946))
@@ -134,20 +134,20 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredMigSpecInfo() async throws {
         // Once with the real tool
-        try await withSpec(MigCompilerSpec.self, .deferred) { (info: DiscoveredMiGToolSpecInfo) in
+        try await withSpec(MigCompilerSpec.self, .deferred, platform: "macosx") { (info: DiscoveredMiGToolSpecInfo) in
             #expect(info.toolPath.basename == "mig")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion > Version(0, 0, 0))
         }
 
         // ...and with fake data
-        try await withSpec(MigCompilerSpec.self, .result(status: .exit(0), stdout: Data("bootstrap_cmds-108\n".utf8), stderr: Data())) { (info: DiscoveredMiGToolSpecInfo) in
+        try await withSpec(MigCompilerSpec.self, .result(status: .exit(0), stdout: Data("bootstrap_cmds-108\n".utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredMiGToolSpecInfo) in
             #expect(info.toolPath.basename == "mig")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(108))
         }
 
-        try await withSpec(MigCompilerSpec.self, .result(status: .exit(0), stdout: Data("bootstrap_cmds-99.0.0.400.6\n".utf8), stderr: Data())) { (info: DiscoveredMiGToolSpecInfo) in
+        try await withSpec(MigCompilerSpec.self, .result(status: .exit(0), stdout: Data("bootstrap_cmds-99.0.0.400.6\n".utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredMiGToolSpecInfo) in
             #expect(info.toolPath.basename == "mig")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(99, 0, 0, 400, 6))
@@ -157,14 +157,14 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
     @Test(.requireHostOS(.macOS))
     func discoveredIigSpecInfo() async throws {
         // Once with the real tool
-        try await withSpec("com.apple.compilers.iig", .deferred) { (info: DiscoveredIiGToolSpecInfo) in
+        try await withSpec("com.apple.compilers.iig", .deferred, platform: "macosx") { (info: DiscoveredIiGToolSpecInfo) in
             #expect(info.toolPath.basename == "iig")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion > Version(0, 0, 0))
         }
 
         // ...and with fake data
-        try await withSpec("com.apple.compilers.iig", .result(status: .exit(0), stdout: Data("DriverKit-29\n".utf8), stderr: Data())) { (info: DiscoveredIiGToolSpecInfo) in
+        try await withSpec("com.apple.compilers.iig", .result(status: .exit(0), stdout: Data("DriverKit-29\n".utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredIiGToolSpecInfo) in
             #expect(info.toolPath.basename == "iig")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(29))
@@ -173,20 +173,20 @@ fileprivate struct AppleCommandLineToolSpecDiscoveredInfoTests: CoreBasedTests {
 
     @Test(.requireHostOS(.macOS))
     func discoveredCoreMLSpecInfo() async throws {
-        try await withSpec(CoreMLCompilerSpec.self, .deferred) { (info: DiscoveredCoreMLToolSpecInfo) in
+        try await withSpec(CoreMLCompilerSpec.self, .deferred, platform: "macosx") { (info: DiscoveredCoreMLToolSpecInfo) in
             #expect(info.toolPath.basename == "coremlc")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion > Version(0, 0, 0))
         }
 
         // ...and with fake data
-        try await withSpec(CoreMLCompilerSpec.self, .result(status: .exit(0), stdout: Data("PROGRAM:coremlcompiler  PROJECT:CoreML-1749.0.0.0.2\nPROGRAM:coremlcompiler  PROJECT:CoreML-1749.0.0.0.2\n".utf8), stderr: Data())) { (info: DiscoveredCoreMLToolSpecInfo) in
+        try await withSpec(CoreMLCompilerSpec.self, .result(status: .exit(0), stdout: Data("PROGRAM:coremlcompiler  PROJECT:CoreML-1749.0.0.0.2\nPROGRAM:coremlcompiler  PROJECT:CoreML-1749.0.0.0.2\n".utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredCoreMLToolSpecInfo) in
             #expect(info.toolPath.basename == "coremlc")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(1749, 0, 0, 0, 2))
         }
 
-        try await withSpec(CoreMLCompilerSpec.self, .result(status: .exit(0), stdout: Data("PROGRAM:coremlc  PROJECT:IDEMLKit-999999\n".utf8), stderr: Data())) { (info: DiscoveredCoreMLToolSpecInfo) in
+        try await withSpec(CoreMLCompilerSpec.self, .result(status: .exit(0), stdout: Data("PROGRAM:coremlc  PROJECT:IDEMLKit-999999\n".utf8), stderr: Data()), platform: "macosx") { (info: DiscoveredCoreMLToolSpecInfo) in
             #expect(info.toolPath.basename == "coremlc")
             let toolVersion = try #require(info.toolVersion)
             #expect(toolVersion == Version(999999))

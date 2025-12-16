@@ -48,7 +48,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
 
         func lookupProductType(_ ident: String) -> ProductTypeSpec? {
             do {
-                return try context.getSpec(ident)
+                return try context.getSpec(ident, ofType: ProductTypeSpec.self)
             } catch {
                 context.error("Couldn't look up product type '\(ident)' in domain '\(context.domain)': \(error)")
                 return nil
@@ -498,7 +498,7 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                 }
 
                 if !scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
-                    await context.validateEmbeddedBinarySpec.constructValidateEmbeddedBinaryTask(cbc, delegate, lookup: lookup)
+                    await context.validateEmbeddedBinarySpec?.constructValidateEmbeddedBinaryTask(cbc, delegate, lookup: lookup)
                 }
             }
         }

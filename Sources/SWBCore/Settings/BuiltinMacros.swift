@@ -120,6 +120,7 @@ public final class BuiltinMacros {
     public static let HOST_PLATFORM = BuiltinMacros.declareStringMacro("HOST_PLATFORM")
     public static let IOS_UNZIPPERED_TWIN_PREFIX_PATH = BuiltinMacros.declareStringMacro("IOS_UNZIPPERED_TWIN_PREFIX_PATH")
     public static let IPHONEOS_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("IPHONEOS_DEPLOYMENT_TARGET")
+    public static let MACOS_UNZIPPERED_TWIN_PREFIX_PATH = BuiltinMacros.declareStringMacro("MACOS_UNZIPPERED_TWIN_PREFIX_PATH")
     public static let MACOSX_DEPLOYMENT_TARGET = BuiltinMacros.declareStringMacro("MACOSX_DEPLOYMENT_TARGET")
     public static let NATIVE_ARCH = BuiltinMacros.declareStringMacro("NATIVE_ARCH")
     public static let NATIVE_ARCH_32_BIT = BuiltinMacros.declareStringMacro("NATIVE_ARCH_32_BIT")
@@ -640,6 +641,7 @@ public final class BuiltinMacros {
     public static let EMBEDDED_CONTENT_CONTAINS_SWIFT = BuiltinMacros.declareBooleanMacro("EMBEDDED_CONTENT_CONTAINS_SWIFT")
     public static let EMBEDDED_PROFILE_NAME = BuiltinMacros.declareStringMacro("EMBEDDED_PROFILE_NAME")
     public static let EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES = BuiltinMacros.declareStringListMacro("EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES")
+    public static let EMIT_SARIF_DIAGNOSTICS_FILE = BuiltinMacros.declareBooleanMacro("EMIT_SARIF_DIAGNOSTICS_FILE")
     public static let EMIT_FRONTEND_COMMAND_LINES = BuiltinMacros.declareBooleanMacro("EMIT_FRONTEND_COMMAND_LINES")
     public static let ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING = BuiltinMacros.declareBooleanMacro("ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING")
     public static let ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING = BuiltinMacros.declareBooleanMacro("ENABLE_ADDITIONAL_CODESIGN_INPUT_TRACKING")
@@ -1717,6 +1719,7 @@ public final class BuiltinMacros {
         EMBEDDED_CONTENT_CONTAINS_SWIFT,
         EMBEDDED_PROFILE_NAME,
         EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES,
+        EMIT_SARIF_DIAGNOSTICS_FILE,
         EMIT_FRONTEND_COMMAND_LINES,
         ENABLE_APPINTENTS_DEPLOYMENT_AWARE_PROCESSING,
         ENABLE_ADDRESS_SANITIZER,
@@ -1993,6 +1996,7 @@ public final class BuiltinMacros {
         MACOS_CREATOR_ARG,
         MACOS_TYPE,
         MACOS_TYPE_ARG,
+        MACOS_UNZIPPERED_TWIN_PREFIX_PATH,
         MAC_OS_X_PRODUCT_BUILD_VERSION,
         MAC_OS_X_VERSION_ACTUAL,
         MAC_OS_X_VERSION_MAJOR,

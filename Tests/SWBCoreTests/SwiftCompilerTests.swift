@@ -126,7 +126,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             return localFS.exists(stdlibPath) ? [["-L\(stdlibPath.str)"], ["-L/usr/lib/swift"]] : [["-L/usr/lib/swift"]]
         }
 
-        let spec = try core.specRegistry.getSpec() as SwiftCompilerSpec
+        let spec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
 
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
         let swiftcPath = defaultToolchain.path.join("usr/bin/swiftc")
