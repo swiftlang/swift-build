@@ -1809,11 +1809,23 @@ private class SettingsBuilder: ProjectMatchLookup {
                 sdk = try project.map {
                     switch parameters.activeRunDestination?.buildTarget {
                     case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-                        // FIXME platform should be decided by the triple
-                        guard let platform = core.platformRegistry.lookup(name: "webassembly") else {
-                            errors.append("unable to find platform 'webassembly'")
+                        let llvmTriple = try LLVMTriple(triple)
+
+                        var platformName: String? = nil
+                        for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+                            platformName = platformExtension.platformName(triple: llvmTriple)
+                            if platformName != nil {
+                                break
+                            }
+                        }
+
+                        // FIXME fall back on a platform if none can be found to match the triple
+
+                        guard let platformName, let platform = core.platformRegistry.lookup(name: platformName) else {
+                            errors.append("unable to find platform for \(triple)")
                             return nil
                         }
+
                         return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
                     default:
                         return try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
@@ -3533,9 +3545,25 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationSDK: SDK
         switch runDestination.buildTarget {
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            // FIXME: the platform should be determined using the triple
-            guard let platform = self.core.platformRegistry.lookup(name: "webassembly") else {
-                self.errors.append("unable to resolve run destination platform: 'webassembly'")
+            let llvmTriple = try? LLVMTriple(triple)
+
+            guard let llvmTriple else {
+                self.errors.append("invalid triple \(triple)")
+                return
+            }
+
+            var platformName: String? = nil
+            for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+                platformName = platformExtension.platformName(triple: llvmTriple)
+                if platformName != nil {
+                    break
+                }
+            }
+
+            // FIXME fall back on a platform if none can be found to match the triple
+
+            guard let platformName, let platform = core.platformRegistry.lookup(name: platformName) else {
+                self.errors.append("unable to find platform for \(triple)")
                 return
             }
 
@@ -3684,10 +3712,25 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationPlatform: Platform
 
         switch runDestination.buildTarget {
-        case .swiftSDK:
-            // TODO use the triple to decide the platform, or use a fallback
-            guard let platform: Platform = self.core.platformRegistry.lookup(name: "webassembly") else {
-                self.errors.append("unable to resolve run destination platform: 'webassembly'")
+        case let .swiftSDK(_, triple: triple):
+            let llvmTriple = try? LLVMTriple(triple)
+            guard let llvmTriple else {
+                errors.append("Invalid triple: \(triple)")
+                return
+            }
+
+            var platformName: String? = nil
+            for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+                platformName = platformExtension.platformName(triple: llvmTriple)
+                if platformName != nil {
+                    break
+                }
+            }
+
+            // FIXME fall back on a platform if none can be found to match the triple
+
+            guard let platformName, let platform = core.platformRegistry.lookup(name: platformName) else {
+                errors.append("unable to find platform for \(triple)")
                 return
             }
             destinationPlatform = platform
