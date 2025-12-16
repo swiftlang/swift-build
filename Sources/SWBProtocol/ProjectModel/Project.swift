@@ -63,7 +63,7 @@ extension Project: Serializable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(12)
+        let count = try deserializer.beginAggregate(11...12)
         self.guid = try deserializer.deserialize()
         self.isPackage = try deserializer.deserialize()
         self.xcodeprojPath = try deserializer.deserialize()
@@ -73,7 +73,11 @@ extension Project: Serializable {
         self.buildConfigurations = try deserializer.deserialize()
         self.defaultConfigurationName = try deserializer.deserialize()
         self.developmentRegion = try deserializer.deserialize()
-        self.knownLocalizations = try deserializer.deserialize()
+        if count >= 12 {
+            self.knownLocalizations = try deserializer.deserialize()
+        } else {
+            self.knownLocalizations = nil
+        }
         self.classPrefix = try deserializer.deserialize()
         self.appPreferencesBuildSettings = try deserializer.deserialize()
     }
