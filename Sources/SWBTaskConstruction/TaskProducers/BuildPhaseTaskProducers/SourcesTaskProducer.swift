@@ -1852,8 +1852,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         // we don't need to worry about targets with mixed languages.
         if buildPhase.containsSwiftSources(workspace, context, scope, context.filePathResolver) {
             return await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName)
-        } else {
+        } else if buildPhase.containsObjCSources(workspace, context, scope, context.filePathResolver) {
             return await generatePackageTargetBundleAccessorForObjC(scope, bundleName: bundleName)
+        } else {
+            return nil
         }
     }
 
