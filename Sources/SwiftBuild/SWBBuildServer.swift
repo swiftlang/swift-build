@@ -255,6 +255,7 @@ public actor SWBBuildServer: QueueBasedMessageHandler {
                         throw ResponseError.unknown("Failed to get build description ID")
                     }
                     self.buildDescriptionID = SWBBuildDescriptionID(buildDescriptionID)
+                    self.connectionToClient.send(OnBuildTargetDidChangeNotification(changes: nil))
                 }
             } catch {
                 self.logToClient(.error, "Error generating build description: \(error)")
