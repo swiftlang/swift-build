@@ -70,6 +70,57 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
 
+    public enum CodingKeys: CodingKey {
+        case buildTarget
+        case targetArchitecture
+        case supportedArchitectures
+        case disableOnlyActiveArch
+        case hostTargetedPlatform
+
+        // These are the old coding keys that were previously associated with toolchain SDK's
+        case platform
+        case sdk
+        case sdkVariant
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        do {
+            // Handle the message payload from earlier versions that didn't have the buildTarget enumeration
+            let platform = try container.decode(String.self, forKey: .platform)
+            let sdk: String = try container.decode(String.self, forKey: .sdk)
+            let sdkVariant: String? = try container.decode(String?.self, forKey: .sdkVariant)
+            self.buildTarget = .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
+        } catch DecodingError.keyNotFound {
+            // This message is current and has the build target
+            self.buildTarget = try container.decode(SWBBuildTarget.self, forKey: .buildTarget)
+        }
+
+        self.targetArchitecture = try container.decode(String.self, forKey: .targetArchitecture)
+        self.supportedArchitectures = try container.decode([String].self, forKey: .supportedArchitectures)
+        self.disableOnlyActiveArch = try container.decode(Bool.self, forKey: .disableOnlyActiveArch)
+        self.hostTargetedPlatform = try container.decode(String?.self, forKey: .hostTargetedPlatform)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self.buildTarget._internalBuildTarget {
+        case let .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant):
+            try container.encode(platform, forKey: .platform)
+            try container.encode(sdk, forKey: .sdk)
+            try container.encode(sdkVariant, forKey: .sdkVariant)
+        case .swiftSDK:
+            try container.encode(buildTarget, forKey: .buildTarget)
+        }
+
+        try container.encode(self.targetArchitecture, forKey: .targetArchitecture)
+        try container.encode(self.supportedArchitectures, forKey: .supportedArchitectures)
+        try container.encode(self.disableOnlyActiveArch, forKey: .disableOnlyActiveArch)
+        try container.encode(self.hostTargetedPlatform, forKey: .hostTargetedPlatform)
+    }
+
     @available(*, deprecated, message: "Use buildTarget and match on the toolchainSDK case instead")
     public var platform: String {
         guard case let .toolchainSDK(platform: platform, _, _) = buildTarget._internalBuildTarget else {
