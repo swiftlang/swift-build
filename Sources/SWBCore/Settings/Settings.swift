@@ -1265,6 +1265,35 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
     }
 
+    enum FindPlatformError: Error { case message(String) }
+
+    func findPlatform(for triple: String, core: Core) -> Result<Platform,FindPlatformError> {
+        let llvmTriple = try? LLVMTriple(triple)
+
+        guard let llvmTriple else {
+            return .failure(.message("invalid triple \(triple)"))
+        }
+
+        var platformNames = OrderedSet<String>()
+        for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+            if let platformName = platformExtension.platformName(triple: llvmTriple) {
+                platformNames.append(platformName)
+            }
+        }
+
+        guard let platformName = platformNames.first, platformNames.count == 1 else {
+            return .failure(.message("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)"))
+        }
+
+        // FIXME fall back on a platform if none can be found to match the triple
+
+        guard let platform = core.platformRegistry.lookup(name: platformName) else {
+            return .failure(.message("unable to find platform for '\(platformName)'"))
+        }
+
+        return .success(platform)
+    }
+
     // Properties the builder was initialized with.
 
     let workspaceContext: WorkspaceContext
@@ -1522,7 +1551,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         if let sdk = boundProperties.sdk {
             let scope = createScope(sdkToUse: sdk)
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
-            if case let .appleSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget,
+            if case let .toolchainSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget,
                sdkVariant == MacCatalystInfo.sdkVariantName,
                supportsMacCatalyst {
                 pushTable(.exported) {
@@ -1784,7 +1813,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             // We will replace SDKROOT values of "auto" here if the run destination is compatible.
             let usesReplaceableAutomaticSDKRoot: Bool
             if sdkroot == "auto",
-               case let .appleSDK(platform: activePlatform, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget {
+               case let .toolchainSDK(platform: activePlatform, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget {
                 let destinationIsMacCatalyst = sdkVariant == MacCatalystInfo.sdkVariantName
 
                 let scope = createScope(effectiveTargetConfig, sdkToUse: sdk)
@@ -1801,7 +1830,7 @@ private class SettingsBuilder: ProjectMatchLookup {
                 usesReplaceableAutomaticSDKRoot = false
             }
             if usesReplaceableAutomaticSDKRoot,
-               case let .appleSDK(platform: _, sdk: activeSDK, sdkVariant: _) = parameters.activeRunDestination?.buildTarget {
+               case let .toolchainSDK(platform: _, sdk: activeSDK, sdkVariant: _) = parameters.activeRunDestination?.buildTarget {
                 sdkroot = activeSDK
             }
 
@@ -1809,21 +1838,15 @@ private class SettingsBuilder: ProjectMatchLookup {
                 sdk = try project.map {
                     switch parameters.activeRunDestination?.buildTarget {
                     case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-                        let llvmTriple = try LLVMTriple(triple)
+                        let findPlatformResult = findPlatform(for: triple, core: core)
+                        let platform: Platform
 
-                        var platformName: String? = nil
-                        for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
-                            platformName = platformExtension.platformName(triple: llvmTriple)
-                            if platformName != nil {
-                                break
-                            }
-                        }
-
-                        // FIXME fall back on a platform if none can be found to match the triple
-
-                        guard let platformName, let platform = core.platformRegistry.lookup(name: platformName) else {
-                            errors.append("unable to find platform for \(triple)")
+                        switch findPlatformResult {
+                        case let .failure(.message(msg)):
+                            errors.append(msg)
                             return nil
+                        case let .success(platform: p):
+                            platform = p
                         }
 
                         return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
@@ -1839,7 +1862,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             if let s = sdk {
                 // Evaluate the SDK variant, if there is one.
                 let sdkVariantName: String
-                if usesReplaceableAutomaticSDKRoot, case let .appleSDK(platform: _, sdk: _, sdkVariant: activeSDKVariant) = parameters.activeRunDestination?.buildTarget, let activeSDKVariant {
+                if usesReplaceableAutomaticSDKRoot, case let .toolchainSDK(platform: _, sdk: _, sdkVariant: activeSDKVariant) = parameters.activeRunDestination?.buildTarget, let activeSDKVariant {
                     sdkVariantName = activeSDKVariant
                 } else {
                     sdkVariantName = createScope(effectiveTargetConfig, sdkToUse: s).evaluate(BuiltinMacros.SDK_VARIANT)
@@ -3545,36 +3568,22 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationSDK: SDK
         switch runDestination.buildTarget {
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            let llvmTriple = try? LLVMTriple(triple)
+            let findPlatformResult = findPlatform(for: triple, core: core)
 
-            guard let llvmTriple else {
-                self.errors.append("invalid triple \(triple)")
+            switch findPlatformResult {
+            case let .failure(.message(msg)):
+                self.errors.append(msg)
                 return
+            case let .success(platform):
+                destinationPlatform = platform
             }
 
-            var platformName: String? = nil
-            for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
-                platformName = platformExtension.platformName(triple: llvmTriple)
-                if platformName != nil {
-                    break
-                }
-            }
-
-            // FIXME fall back on a platform if none can be found to match the triple
-
-            guard let platformName, let platform = core.platformRegistry.lookup(name: platformName) else {
-                self.errors.append("unable to find platform for \(triple)")
-                return
-            }
-
-            destinationPlatform = platform
-
-            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple) else {
+            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: destinationPlatform, sdkManifestPath: sdkManifestPath, triple: triple) else {
                 self.errors.append("unable to synthesize SDK for Swift SDK build target: '\(runDestination.buildTarget)'")
                 return
             }
             destinationSDK = sdk
-        case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant):
+        case let .toolchainSDK(platform: platform, sdk: sdk, _):
             guard let platform = self.core.platformRegistry.lookup(name: platform) else {
                 self.errors.append("unable to resolve run destination platform: '\(platform)'")
                 return
@@ -3608,7 +3617,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         do {
             let scope = createScope(sdkToUse: nil)
-            let destinationIsMacCatalyst = if case let .appleSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = runDestination.buildTarget {
+            let destinationIsMacCatalyst = if case let .toolchainSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = runDestination.buildTarget {
                 sdkVariant == MacCatalystInfo.sdkVariantName
             } else { false }
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
@@ -3713,28 +3722,16 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         switch runDestination.buildTarget {
         case let .swiftSDK(_, triple: triple):
-            let llvmTriple = try? LLVMTriple(triple)
-            guard let llvmTriple else {
-                errors.append("Invalid triple: \(triple)")
+            let findPlatformResult = findPlatform(for: triple, core: core)
+
+            switch findPlatformResult {
+            case let .failure(.message(msg)):
+                self.errors.append(msg)
                 return
+            case let .success(p):
+                destinationPlatform = p
             }
-
-            var platformName: String? = nil
-            for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
-                platformName = platformExtension.platformName(triple: llvmTriple)
-                if platformName != nil {
-                    break
-                }
-            }
-
-            // FIXME fall back on a platform if none can be found to match the triple
-
-            guard let platformName, let platform = core.platformRegistry.lookup(name: platformName) else {
-                errors.append("unable to find platform for \(triple)")
-                return
-            }
-            destinationPlatform = platform
-        case let .appleSDK(platform: platformName, sdk: _, sdkVariant: _):
+        case let .toolchainSDK(platform: platformName, sdk: _, sdkVariant: _):
             guard let platform: Platform = self.core.platformRegistry.lookup(name: platformName) else {
                 self.errors.append("unable to resolve run destination platform: '\(platformName)'")
                 return

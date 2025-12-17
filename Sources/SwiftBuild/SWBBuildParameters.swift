@@ -37,18 +37,18 @@ public struct SWBBuildParameters: Codable, Sendable {
 /// Refer to `SWBProtocol.RunDestinationInfo`
 public struct SWBRunDestinationInfo: Codable, Sendable {
     public struct SWBBuildTarget: Codable, Sendable {
-        fileprivate var _internalBuildTarget: InternalBuildTarget
+        var _internalBuildTarget: InternalBuildTarget
 
-        public static func appleSDK(platform: String, sdk: String, sdkVariant: String?) -> SWBBuildTarget {
-            SWBBuildTarget(_internalBuildTarget: .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant))
+        public static func toolchainSDK(platform: String, sdk: String, sdkVariant: String?) -> SWBBuildTarget {
+            SWBBuildTarget(_internalBuildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant))
         }
 
         public static func swiftSDK(sdkManifestPath: String, triple: String) -> SWBBuildTarget {
             SWBBuildTarget(_internalBuildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple))
         }
 
-        public func asAppleSDK() -> (platform: String, sdk: String, sdkVariant: String?)? {
-            guard case let .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant) = _internalBuildTarget else {
+        public func asToolchainSDK() -> (platform: String, sdk: String, sdkVariant: String?)? {
+            guard case let .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant) = _internalBuildTarget else {
                 return nil
             }
 
@@ -70,27 +70,27 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
 
-    @available(*, deprecated, message: "Use buildTarget and match on the appleSDK case instead")
+    @available(*, deprecated, message: "Use buildTarget and match on the toolchainSDK case instead")
     public var platform: String {
-        guard case let .appleSDK(platform: platform, _, _) = buildTarget._internalBuildTarget else {
+        guard case let .toolchainSDK(platform: platform, _, _) = buildTarget._internalBuildTarget else {
             return ""
         }
 
         return platform
     }
 
-    @available(*, deprecated, message: "Use buildTarget and match on the appleSDK case instead")
+    @available(*, deprecated, message: "Use buildTarget and match on the toolchainSDK case instead")
     public var sdk: String {
-        guard case let .appleSDK(_, sdk: sdk, _) = buildTarget._internalBuildTarget else {
+        guard case let .toolchainSDK(_, sdk: sdk, _) = buildTarget._internalBuildTarget else {
             return ""
         }
 
         return sdk
     }
 
-    @available(*, deprecated, message: "Use buildTarget and match on the appleSDK case instead")
+    @available(*, deprecated, message: "Use buildTarget and match on the toolchainSDK case instead")
     public var sdkVariant: String? {
-        guard case let .appleSDK(_, _, sdkVariant: sdkVariant) = buildTarget._internalBuildTarget else {
+        guard case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = buildTarget._internalBuildTarget else {
             return nil
         }
 
@@ -98,7 +98,7 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
     }
 
     public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool) {
-        self.buildTarget = .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
+        self.buildTarget = .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
         self.targetArchitecture = targetArchitecture
         self.supportedArchitectures = supportedArchitectures
         self.disableOnlyActiveArch = disableOnlyActiveArch
@@ -118,8 +118,8 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
     }
 }
 
-fileprivate enum InternalBuildTarget: Codable, Sendable {
-    case appleSDK(platform: String, sdk: String, sdkVariant: String?)
+enum InternalBuildTarget: Codable, Sendable {
+    case toolchainSDK(platform: String, sdk: String, sdkVariant: String?)
     case swiftSDK(sdkManifestPath: String, triple: String)
 
     private enum CodingKeys: String, CodingKey {
@@ -137,13 +137,13 @@ fileprivate enum InternalBuildTarget: Codable, Sendable {
     }
 
     private enum BuildTarget: String, Codable {
-        case appleSDK
+        case toolchainSDK
         case swiftSDK
 
         init(_ buildTarget: InternalBuildTarget) {
             switch buildTarget {
-            case .appleSDK:
-                self = .appleSDK
+            case .toolchainSDK:
+                self = .toolchainSDK
             case .swiftSDK:
                 self = .swiftSDK
             }
@@ -153,8 +153,8 @@ fileprivate enum InternalBuildTarget: Codable, Sendable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(BuildTarget.self, forKey: .buildTarget) {
-        case .appleSDK:
-            self = try .appleSDK(platform: container.decode(String.self, forKey: .platform), sdk: container.decode(String.self, forKey: .sdk), sdkVariant: container.decode(String?.self, forKey: .sdkVariant))
+        case .toolchainSDK:
+            self = try .toolchainSDK(platform: container.decode(String.self, forKey: .platform), sdk: container.decode(String.self, forKey: .sdk), sdkVariant: container.decode(String?.self, forKey: .sdkVariant))
         case .swiftSDK:
             self = try .swiftSDK(sdkManifestPath: container.decode(String.self, forKey: .sdkManifestPath), triple: container.decode(String.self, forKey: .triple))
         }
@@ -164,7 +164,7 @@ fileprivate enum InternalBuildTarget: Codable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(BuildTarget(self), forKey: .buildTarget)
         switch self {
-        case let .appleSDK(platform, sdk, sdkVariant):
+        case let .toolchainSDK(platform, sdk, sdkVariant):
             try container.encode(platform, forKey: .platform)
             try container.encode(sdk, forKey: .sdk)
             try container.encode(sdkVariant, forKey: .sdkVariant)

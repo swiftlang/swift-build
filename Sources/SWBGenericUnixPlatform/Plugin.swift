@@ -92,6 +92,15 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
             ])
         }
     }
+
+    func platformName(triple: LLVMTriple) -> String? {
+        // FIXME this shouldn't be the webassembly platform here
+        if triple.system == "linux" {
+            return "webassembly"
+        }
+
+        return nil
+    }
 }
 
 struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {

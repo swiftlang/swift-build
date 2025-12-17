@@ -300,7 +300,7 @@ extension RunDestinationInfo {
     ///
     /// - note: Returns `nil` for non-Mach-O platforms such as Linux.
     package func buildVersionPlatform(_ core: Core) -> BuildVersion.Platform? {
-        guard case let .appleSDK(_, sdk: sdk, sdkVariant: sdkVariant) = buildTarget,
+        guard case let .toolchainSDK(_, sdk: sdk, sdkVariant: sdkVariant) = buildTarget,
            let sdk = try? core.sdkRegistry.lookup(sdk, activeRunDestination: self) else {
             return nil
         }
@@ -309,7 +309,7 @@ extension RunDestinationInfo {
 
     package func imageFormat(_ core: Core) -> ImageFormat {
         switch buildTarget {
-        case let .appleSDK(platform: platform, _, _):
+        case let .toolchainSDK(platform: platform, _, _):
             switch platform {
             case "webassembly":
                 fatalError("not implemented")
@@ -335,11 +335,16 @@ extension RunDestinationInfo {
         }
         switch imageFormat(core) {
         case .elf:
-            if case let .appleSDK(platform: platform, _, _) = buildTarget {
+            switch buildTarget {
+            case let .toolchainSDK(platform, _, _):
                 environment.prependPath(key: "LD_LIBRARY_PATH", value: toolchain.path.join("usr/lib/swift/\(platform)").str)
-            } else {
-                // Fall back to the OS provided Swift runtime
-                break
+            case let .swiftSDK(_, triple):
+                guard let llvmTriple = try? LLVMTriple(triple) else {
+                    // Fall back to the OS provided Swift runtime
+                    break
+                }
+
+                environment.prependPath(key: "LD_LIBRARY_PATH", value: toolchain.path.join("usr/lib/swift/\(llvmTriple.system)").str)
             }
         case .pe:
             environment.prependPath(key: .path, value: core.developerPath.path.join("Runtimes").join(toolchain.version.description).join("usr/bin").str)
@@ -399,11 +404,11 @@ extension _RunDestinationInfo {
 
 extension RunDestinationInfo: _RunDestinationInfo {
     package init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool) {
-        self.init(buildTarget: .appleSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant), targetArchitecture: targetArchitecture, supportedArchitectures: OrderedSet(supportedArchitectures), disableOnlyActiveArch: disableOnlyActiveArch, hostTargetedPlatform: nil)
+        self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant), targetArchitecture: targetArchitecture, supportedArchitectures: OrderedSet(supportedArchitectures), disableOnlyActiveArch: disableOnlyActiveArch, hostTargetedPlatform: nil)
     }
 
     package var platform: String {
-        guard case let .appleSDK(platform: platform, _, _) = buildTarget else {
+        guard case let .toolchainSDK(platform: platform, _, _) = buildTarget else {
             return ""
         }
 
@@ -411,7 +416,7 @@ extension RunDestinationInfo: _RunDestinationInfo {
     }
 
     package var sdk: String {
-        guard case let .appleSDK(_, sdk: sdk, _) = buildTarget else {
+        guard case let .toolchainSDK(_, sdk: sdk, _) = buildTarget else {
             return ""
         }
 
@@ -419,7 +424,7 @@ extension RunDestinationInfo: _RunDestinationInfo {
     }
 
     package var sdkVariant: String? {
-        guard case let .appleSDK(_, _, sdkVariant: sdkVariant) = buildTarget else {
+        guard case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = buildTarget else {
             return nil
         }
 

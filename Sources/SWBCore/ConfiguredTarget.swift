@@ -67,7 +67,7 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
         }
         if specializeGuidForActiveRunDestination,
            let runDestination = self.parameters.activeRunDestination,
-           case let .appleSDK(platform: platform, _, sdkVariant: sdkVariant) = runDestination.buildTarget {
+           case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = runDestination.buildTarget {
             var runDestString = platform
             if let sdkVariant = sdkVariant {
                 runDestString += "+\(sdkVariant)"
@@ -112,7 +112,7 @@ public final class ConfiguredTarget: Hashable, CustomStringConvertible, Serializ
         if specializeGuidForActiveRunDestination {
             let discriminator: String
             switch self.parameters.activeRunDestination?.buildTarget {
-                case let .appleSDK(platform: platform, _, sdkVariant: sdkVariant):
+                case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant):
                     discriminator = "\(platform)-\(sdkVariant ?? "")"
                 case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
                     discriminator = "\(sdkManifestPath)-\(triple)"

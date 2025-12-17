@@ -335,7 +335,7 @@ public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
 }
 
 public enum BuildTarget: SerializableCodable, Hashable, Sendable {
-    case appleSDK(platform: String, sdk: String, sdkVariant: String?)
+    case toolchainSDK(platform: String, sdk: String, sdkVariant: String?)
     case swiftSDK(sdkManifestPath: String, triple: String)
 }
 

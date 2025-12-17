@@ -188,7 +188,7 @@ public final class ValidateProductTaskAction: TaskAction {
         // Validate the iPad multitasking/splitview support in the Info.plist.  This never causes the tool to fail, but it may emit warnings.
         validateiPadMultiTaskingSplitViewSupport(infoPlist, outputDelegate: outputDelegate)
 
-        if let configuredTarget = task.forTarget, case let .appleSDK(platform: platform, _, _) = configuredTarget.parameters.activeRunDestination?.buildTarget {
+        if let configuredTarget = task.forTarget, case let .toolchainSDK(platform: platform, _, _) = configuredTarget.parameters.activeRunDestination?.buildTarget {
             // Validate that this is actually an App Store category.
             validateAppStoreCategory(infoPlist, platform: platform, targetName: configuredTarget.target.name, schemeCommand: executionDelegate.schemeCommand, options: options, outputDelegate: outputDelegate)
 

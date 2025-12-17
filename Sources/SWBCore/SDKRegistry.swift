@@ -1295,7 +1295,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
             func selectSDKList() -> [SDK]? {
                 let platform: String?
-                if case let .appleSDK(platform: p, _, _) = activeRunDestination?.buildTarget {
+                if case let .toolchainSDK(platform: p, _, _) = activeRunDestination?.buildTarget {
                     platform = p
                 } else {
                     platform = nil
@@ -1309,7 +1309,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 // by the cohort platforms of the run destination's SDK's platform. This is necessary to resolve
                 // driverkit when we have a DriverKit run destination but with a platform-specific SDK.
                 if let runDestination = activeRunDestination,
-                   case let .appleSDK(_, sdk: sdk, _) = runDestination.buildTarget,
+                   case let .toolchainSDK(_, sdk: sdk, _) = runDestination.buildTarget,
                    let cohortPlatforms = try? lookup(sdk, activeRunDestination: nil)?.cohortPlatforms {
                     for cohortPlatform in cohortPlatforms {
                         if let list = sdksByCohortPlatform[cohortPlatform] {

@@ -197,7 +197,7 @@ extension BuildRequestContext {
         func platformAndSDKVariant(for target: ConfiguredTarget) -> PlatformAndSDKVariant {
             if hasEnabledIndexBuildArena,
                let activeRunDestination = target.parameters.activeRunDestination,
-               case let .appleSDK(platform: platform, _, sdkVariant: sdkVariant) = activeRunDestination.buildTarget,
+               case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = activeRunDestination.buildTarget,
                let platform = workspaceContext.core.platformRegistry.lookup(name: platform) {
                 // Configured targets include their platform in parameters, we can use it directly and avoid the expense of `getCachedSettings()` calls.
                 // If in future `ConfiguredTarget` carries along an instance of its Settings, we can avoid this check and go back to using `Settings` without the cost of `getCachedSettings`.
@@ -251,7 +251,7 @@ extension BuildRequestContext {
             return selectWithoutRunDestination()
         }
 
-        guard case let .appleSDK(platform: platform, _, sdkVariant: sdkVariant) = destination.buildTarget else {
+        guard case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = destination.buildTarget else {
             return selectWithoutRunDestination()
         }
 

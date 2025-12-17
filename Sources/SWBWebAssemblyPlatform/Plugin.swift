@@ -47,8 +47,7 @@ struct WebAssemblyPlatformExtension: PlatformInfoExtension {
     }
 
     func platformName(triple: LLVMTriple) -> String? {
-        // FIXME this shouldn't be recommending webassembly for linux triples
-        if triple.arch == "wasm32" || triple.system == "linux" {
+        if triple.system.hasPrefix("wasi") {
             return "webassembly"
         }
 

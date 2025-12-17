@@ -24,7 +24,7 @@ import Testing
             action: "build",
             configuration: "Debug",
             activeRunDestination: RunDestinationInfo(
-                buildTarget: .appleSDK(
+                buildTarget: .toolchainSDK(
                     platform: "osOS",
                     sdk: "osos",
                     sdkVariant: "x",

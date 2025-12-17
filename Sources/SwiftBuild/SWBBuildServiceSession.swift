@@ -838,12 +838,11 @@ extension SWBBuildParameters {
 
 fileprivate extension RunDestinationInfo {
     init(_ x: SWBRunDestinationInfo) {
-        if let appleSDK = x.buildTarget.asAppleSDK() {
-            self.init(buildTarget: .appleSDK(platform: appleSDK.platform, sdk: appleSDK.sdk, sdkVariant: appleSDK.sdkVariant), targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
-        } else if let swiftSDK = x.buildTarget.asSwiftSDK() {
-           self.init(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.sdkManifestPath, triple: swiftSDK.triple), targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
-        } else {
-            fatalError("not implemented")
+        switch x.buildTarget._internalBuildTarget {
+        case let .toolchainSDK(platform, sdk, sdkVariant):
+            self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
+            self.init(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
         }
     }
 }
