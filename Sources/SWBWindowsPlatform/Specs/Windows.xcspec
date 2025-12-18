@@ -48,6 +48,7 @@
         Identifier = com.apple.product-type.bundle.unit-test;
         BasedOn = com.apple.product-type.library.dynamic;
         DefaultBuildProperties = {
+            ENABLE_TESTING_SEARCH_PATHS = YES;
             // Index store data is required to discover XCTest tests
             COMPILER_INDEX_STORE_ENABLE = YES;
             SWIFT_INDEX_STORE_ENABLE = YES;
@@ -87,6 +88,7 @@
         BasedOn = default:com.apple.product-type.library.dynamic;
         HasInfoPlist = NO;
         DefaultBuildProperties = {
+            EXECUTABLE_PREFIX = "";
             PUBLIC_HEADERS_FOLDER_PATH = "";
             PRIVATE_HEADERS_FOLDER_PATH = "";
         };
@@ -111,4 +113,25 @@
         Identifier = org.swift.product-type.common.object;
         BasedOn = com.apple.product-type.library.static;
     },
+
+    {
+        Domain = windows;
+        Type = FileType;
+        Identifier = archive.ar;
+        BasedOn = archive;
+        Extensions = (lib);
+        IsLibrary = YES;
+        IsStaticLibrary = YES;
+        ContainsNativeCode = YES;
+    },
+
+    {
+        Domain = windows;
+        Type = FileType;
+        Identifier = compiled.mach-o.dylib;
+        BasedOn = compiled.mach-o;
+        Extensions = (dll);
+        IsLibrary = YES;
+        IsDynamicLibrary = YES;
+    }
 )

@@ -29,7 +29,7 @@ fileprivate struct CustomTaskBuildOperationTests: CoreBasedTests {
         try await withTemporaryDirectory { tmpDir in
             let destination: RunDestinationInfo = .host
             let core = try await getCore()
-            let environment = destination.hostRuntimeEnvironment(core)
+            let environment = try destination.hostRuntimeEnvironment(core)
 
             let testProject = TestProject(
                 "aProject",
