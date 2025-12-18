@@ -169,9 +169,15 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
     override func constructTasksForRule(_ rule: any BuildRuleAction, _ group: FileToBuildGroup, _ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate) async {
         let dstFolder = computeOutputDirectory(scope)
 
-        // FIXME: Merge the region variant.
+        // Merge the region variant.
+        // Since this behavior was not always here, some people have hardcoded lproj directories in their destination folder path.
+        // Only add an additional component if there isn't one already.
+        var locDST = dstFolder
+        if !locDST.containsRegionVariantPathComponent {
+            locDST = dstFolder.join(group.regionVariantPathComponent)
+        }
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: dstFolder, unlocalizedResourcesDir: dstFolder)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: locDST, unlocalizedResourcesDir: dstFolder)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
