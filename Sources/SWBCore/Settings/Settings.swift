@@ -1268,20 +1268,17 @@ private class SettingsBuilder: ProjectMatchLookup {
     enum FindPlatformError: Error { case message(String) }
 
     func findPlatform(for triple: String, core: Core) -> Result<Platform,FindPlatformError> {
-        let llvmTriple = try? LLVMTriple(triple)
+        let llvmTriple: LLVMTriple
 
-        guard let llvmTriple else {
-            return .failure(.message("invalid triple \(triple)"))
+        do {
+            llvmTriple = try LLVMTriple(triple)
+        } catch {
+            return .failure(.message("\(error)"))
         }
 
-        var platformNames = OrderedSet<String>()
-        for platformExtension in core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
-            if let platformName = platformExtension.platformName(triple: llvmTriple) {
-                platformNames.append(platformName)
-            }
-        }
+        let platformNames = core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self).compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
 
-        guard let platformName = platformNames.first, platformNames.count == 1 else {
+        guard let platformName = platformNames.only else {
             return .failure(.message("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)"))
         }
 

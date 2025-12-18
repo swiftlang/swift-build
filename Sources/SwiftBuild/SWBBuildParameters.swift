@@ -46,22 +46,6 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
         public static func swiftSDK(sdkManifestPath: String, triple: String) -> SWBBuildTarget {
             SWBBuildTarget(_internalBuildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple))
         }
-
-        public func asToolchainSDK() -> (platform: String, sdk: String, sdkVariant: String?)? {
-            guard case let .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant) = _internalBuildTarget else {
-                return nil
-            }
-
-            return (platform: platform, sdk: sdk, sdkVariant: sdkVariant)
-        }
-
-        public func asSwiftSDK() -> (sdkManifestPath: String, triple: String)? {
-            guard case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple) = _internalBuildTarget else {
-                return nil
-            }
-
-            return (sdkManifestPath: sdkManifestPath, triple: triple)
-        }
     }
 
     public var buildTarget: SWBBuildTarget
@@ -86,21 +70,20 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        do {
+        if let buildTarget = try container.decodeIfPresent(SWBBuildTarget.self, forKey: .buildTarget) {
+            self.buildTarget = buildTarget
+        } else {
             // Handle the message payload from earlier versions that didn't have the buildTarget enumeration
             let platform = try container.decode(String.self, forKey: .platform)
             let sdk: String = try container.decode(String.self, forKey: .sdk)
             let sdkVariant: String? = try container.decode(String?.self, forKey: .sdkVariant)
             self.buildTarget = .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
-        } catch DecodingError.keyNotFound {
-            // This message is current and has the build target
-            self.buildTarget = try container.decode(SWBBuildTarget.self, forKey: .buildTarget)
         }
 
         self.targetArchitecture = try container.decode(String.self, forKey: .targetArchitecture)
         self.supportedArchitectures = try container.decode([String].self, forKey: .supportedArchitectures)
         self.disableOnlyActiveArch = try container.decode(Bool.self, forKey: .disableOnlyActiveArch)
-        self.hostTargetedPlatform = try container.decode(String?.self, forKey: .hostTargetedPlatform)
+        self.hostTargetedPlatform = try container.decodeIfPresent(String.self, forKey: .hostTargetedPlatform)
     }
 
     public func encode(to encoder: any Encoder) throws {
