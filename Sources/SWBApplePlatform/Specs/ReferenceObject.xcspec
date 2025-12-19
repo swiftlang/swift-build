@@ -12,19 +12,6 @@
 
 (
     {
-        Type = FileType;
-        Identifier = "file.referenceobject";
-        BasedOn = sourcecode;
-        Name = "ARKit Reference Object";
-        Extensions = (
-            referenceobject,
-        );
-        AppliesToBuildRules = YES;
-        IncludeInIndex = YES;
-        CanSetIncludeInIndex = YES;
-        UTI = "com.apple.arkit.referenceobject";
-    },
-    {
         _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.referenceobject";

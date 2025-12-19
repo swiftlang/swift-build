@@ -46,20 +46,4 @@
             },
         );
     },
-
-    {
-        AppliesToBuildRules = YES;
-        CanSetIncludeInIndex = YES;
-        Extensions = (
-            rkassets,
-        );
-        Identifier = "folder.rkassets";
-        IncludeInIndex = YES;
-        IsFolder = YES;
-        IsTextFile = NO;
-        IsWrapperFolder = YES;
-        Name = "Reality Assets";
-        Type = FileType;
-        UTI = "com.apple.rkassets";
-    },
 )
