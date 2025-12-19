@@ -35,6 +35,8 @@ public protocol PlatformInfoExtension: Sendable {
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])]
 
     func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path])
+
+    func platformName(triple: LLVMTriple) -> String?
 }
 
 extension PlatformInfoExtension {
@@ -63,6 +65,10 @@ extension PlatformInfoExtension {
     }
 
     public func adjustPlatformSDKSearchPaths(platformName: String, platformPath: Path, sdkSearchPaths: inout [Path]) {
+    }
+
+    public func platformName(triple: LLVMTriple) -> String? {
+        return nil
     }
 }
 

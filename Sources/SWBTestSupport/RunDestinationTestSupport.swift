@@ -19,6 +19,7 @@ import Foundation
 package protocol _RunDestinationInfo {
     init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool)
 
+    // These assume that this is an Apple SDK build target, otherwise you get default values
     var platform: String { get }
     var sdk: String { get }
     var sdkVariant: String? { get }
@@ -299,20 +300,28 @@ extension RunDestinationInfo {
     ///
     /// - note: Returns `nil` for non-Mach-O platforms such as Linux.
     package func buildVersionPlatform(_ core: Core) -> BuildVersion.Platform? {
-        guard let sdk = try? core.sdkRegistry.lookup(sdk, activeRunDestination: self) else { return nil }
+        guard case let .toolchainSDK(_, sdk: sdk, sdkVariant: sdkVariant) = buildTarget,
+           let sdk = try? core.sdkRegistry.lookup(sdk, activeRunDestination: self) else {
+            return nil
+        }
         return sdk.targetBuildVersionPlatform(sdkVariant: sdkVariant.map { sdkVariant in sdk.variant(for: sdkVariant) } ?? sdk.defaultVariant)
     }
 
     package func imageFormat(_ core: Core) -> ImageFormat {
-        switch platform {
-        case "webassembly":
+        switch buildTarget {
+        case let .toolchainSDK(platform: platform, _, _):
+            switch platform {
+            case "webassembly":
+                fatalError("not implemented")
+            case "windows":
+                return .pe
+            case _ where buildVersionPlatform(core) != nil:
+                return .macho
+            default:
+                return .elf
+            }
+        case .swiftSDK:
             fatalError("not implemented")
-        case "windows":
-            return .pe
-        case _ where buildVersionPlatform(core) != nil:
-            return .macho
-        default:
-            return .elf
         }
     }
 
@@ -326,7 +335,17 @@ extension RunDestinationInfo {
         }
         switch imageFormat(core) {
         case .elf:
-            environment.prependPath(key: "LD_LIBRARY_PATH", value: toolchain.path.join("usr/lib/swift/\(platform)").str)
+            switch buildTarget {
+            case let .toolchainSDK(platform, _, _):
+                environment.prependPath(key: "LD_LIBRARY_PATH", value: toolchain.path.join("usr/lib/swift/\(platform)").str)
+            case let .swiftSDK(_, triple):
+                guard let llvmTriple = try? LLVMTriple(triple) else {
+                    // Fall back to the OS provided Swift runtime
+                    break
+                }
+
+                environment.prependPath(key: "LD_LIBRARY_PATH", value: toolchain.path.join("usr/lib/swift/\(llvmTriple.system)").str)
+            }
         case .pe:
             if let path = core.platformRegistry.lookup(name: platform)?.platform?.path.join("Developer/Library") {
                 func matchesArch(_ path: Path) -> Bool {
@@ -400,6 +419,30 @@ extension _RunDestinationInfo {
 
 extension RunDestinationInfo: _RunDestinationInfo {
     package init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool) {
-        self.init(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: OrderedSet(supportedArchitectures), disableOnlyActiveArch: disableOnlyActiveArch, hostTargetedPlatform: nil)
+        self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant), targetArchitecture: targetArchitecture, supportedArchitectures: OrderedSet(supportedArchitectures), disableOnlyActiveArch: disableOnlyActiveArch, hostTargetedPlatform: nil)
+    }
+
+    package var platform: String {
+        guard case let .toolchainSDK(platform: platform, _, _) = buildTarget else {
+            return ""
+        }
+
+        return platform
+    }
+
+    package var sdk: String {
+        guard case let .toolchainSDK(_, sdk: sdk, _) = buildTarget else {
+            return ""
+        }
+
+        return sdk
+    }
+
+    package var sdkVariant: String? {
+        guard case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = buildTarget else {
+            return nil
+        }
+
+        return sdkVariant
     }
 }

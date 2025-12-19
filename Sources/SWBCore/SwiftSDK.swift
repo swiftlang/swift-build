@@ -25,22 +25,53 @@ public struct SwiftSDK: Sendable {
         public var sdkRootPath: String
         public var swiftResourcesPath: String?
         public var swiftStaticResourcesPath: String?
+        public var clangResourcesPath: String? {
+            guard let swiftResourcesPath = self.swiftResourcesPath else {
+                return nil
+            }
+
+            // The clang resource path is conventionally the clang subdirectory of the swift resource path
+            return Path(swiftResourcesPath).join("clang").str
+        }
+        public var clangStaticResourcesPath: String? {
+            guard let swiftResourcesPath = self.swiftStaticResourcesPath else {
+                return nil
+            }
+
+            // The clang resource path is conventionally the clang subdirectory of the swift resource path
+            return Path(swiftResourcesPath).join("clang").str
+        }
         public var includeSearchPaths: [String]?
         public var librarySearchPaths: [String]?
         public var toolsetPaths: [String]?
+
+        public func loadToolsets(sdk: SwiftSDK, fs: any FSProxy) throws -> [Toolset] {
+            var toolsets: [Toolset] = []
+
+            for toolsetPath in self.toolsetPaths ?? [] {
+                let metadataData = try Data(fs.read(sdk.path.join(toolsetPath)))
+
+                let schema = try JSONDecoder().decode(SchemaVersionInfo.self, from: metadataData)
+                guard schema.schemaVersion == "1.0" else { return [] } // FIXME throw an error
+
+                let toolset = try JSONDecoder().decode(Toolset.self, from: metadataData)
+                toolsets.append(toolset)
+            }
+
+            return toolsets
+        }
     }
     struct MetadataV4: Codable {
         let targetTriples: [String: TripleProperties]
     }
 
-    struct Toolset: Codable {
-        struct ToolProperties: Codable {
-            var path: String?
-            var extraCLIOptions: [String]
+    public struct Toolset: Codable {
+        public struct Tool: Codable {
+            public let extraCLIOptions: [String]?
         }
 
-        var knownTools: [String: ToolProperties] = [:]
-        var rootPaths: [String] = []
+        public let rootPath: String
+        public let swiftCompiler: Tool?
     }
 
     /// The identifier of the artifact bundle containing this SDK.
@@ -55,12 +86,11 @@ public struct SwiftSDK: Sendable {
     init?(identifier: String, version: String, path: Path, fs: any FSProxy) throws {
         self.identifier = identifier
         self.version = version
-        self.path = path
+        self.path = path.dirname
 
-        let metadataPath = path.join("swift-sdk.json")
-        guard fs.exists(metadataPath) else { return nil }
+        guard fs.exists(path) else { return nil }
 
-        let metadataData = try Data(fs.read(metadataPath))
+        let metadataData = try Data(fs.read(path))
         let schema = try JSONDecoder().decode(SchemaVersionInfo.self, from: metadataData)
         guard schema.schemaVersion == "4.0" else { return nil }
 
@@ -118,7 +148,7 @@ public struct SwiftSDK: Sendable {
     }
 
     /// Find Swift SDKs in an artifact bundle supporting one of the given targets.
-    private static func findSDKs(artifactBundle: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [SwiftSDK] {
+    public static func findSDKs(artifactBundle: Path, targetTriples: [String]?, fs: any FSProxy) throws -> [SwiftSDK] {
         // Load info.json from the artifact bundle
         let infoPath = artifactBundle.join("info.json")
         guard try fs.isFile(infoPath) else { return [] }

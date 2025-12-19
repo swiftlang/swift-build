@@ -36,26 +36,176 @@ public struct SWBBuildParameters: Codable, Sendable {
 
 /// Refer to `SWBProtocol.RunDestinationInfo`
 public struct SWBRunDestinationInfo: Codable, Sendable {
-    public var platform: String
-    public var sdk: String
-    public var sdkVariant: String?
+    public struct SWBBuildTarget: Codable, Sendable {
+        var _internalBuildTarget: InternalBuildTarget
+
+        public static func toolchainSDK(platform: String, sdk: String, sdkVariant: String?) -> SWBBuildTarget {
+            SWBBuildTarget(_internalBuildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant))
+        }
+
+        public static func swiftSDK(sdkManifestPath: String, triple: String) -> SWBBuildTarget {
+            SWBBuildTarget(_internalBuildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple))
+        }
+    }
+
+    public var buildTarget: SWBBuildTarget
     public var targetArchitecture: String
     public var supportedArchitectures: [String]
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
 
+    public enum CodingKeys: CodingKey {
+        case buildTarget
+        case targetArchitecture
+        case supportedArchitectures
+        case disableOnlyActiveArch
+        case hostTargetedPlatform
+
+        // These are the old coding keys that were previously associated with toolchain SDK's
+        case platform
+        case sdk
+        case sdkVariant
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        if let buildTarget = try container.decodeIfPresent(SWBBuildTarget.self, forKey: .buildTarget) {
+            self.buildTarget = buildTarget
+        } else {
+            // Handle the message payload from earlier versions that didn't have the buildTarget enumeration
+            let platform = try container.decode(String.self, forKey: .platform)
+            let sdk: String = try container.decode(String.self, forKey: .sdk)
+            let sdkVariant: String? = try container.decode(String?.self, forKey: .sdkVariant)
+            self.buildTarget = .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
+        }
+
+        self.targetArchitecture = try container.decode(String.self, forKey: .targetArchitecture)
+        self.supportedArchitectures = try container.decode([String].self, forKey: .supportedArchitectures)
+        self.disableOnlyActiveArch = try container.decode(Bool.self, forKey: .disableOnlyActiveArch)
+        self.hostTargetedPlatform = try container.decodeIfPresent(String.self, forKey: .hostTargetedPlatform)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self.buildTarget._internalBuildTarget {
+        case let .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant):
+            try container.encode(platform, forKey: .platform)
+            try container.encode(sdk, forKey: .sdk)
+            try container.encode(sdkVariant, forKey: .sdkVariant)
+        case .swiftSDK:
+            try container.encode(buildTarget, forKey: .buildTarget)
+        }
+
+        try container.encode(self.targetArchitecture, forKey: .targetArchitecture)
+        try container.encode(self.supportedArchitectures, forKey: .supportedArchitectures)
+        try container.encode(self.disableOnlyActiveArch, forKey: .disableOnlyActiveArch)
+        try container.encode(self.hostTargetedPlatform, forKey: .hostTargetedPlatform)
+    }
+
+    @available(*, deprecated, message: "Use buildTarget and match on the toolchainSDK case instead")
+    public var platform: String {
+        guard case let .toolchainSDK(platform: platform, _, _) = buildTarget._internalBuildTarget else {
+            return ""
+        }
+
+        return platform
+    }
+
+    @available(*, deprecated, message: "Use buildTarget and match on the toolchainSDK case instead")
+    public var sdk: String {
+        guard case let .toolchainSDK(_, sdk: sdk, _) = buildTarget._internalBuildTarget else {
+            return ""
+        }
+
+        return sdk
+    }
+
+    @available(*, deprecated, message: "Use buildTarget and match on the toolchainSDK case instead")
+    public var sdkVariant: String? {
+        guard case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = buildTarget._internalBuildTarget else {
+            return nil
+        }
+
+        return sdkVariant
+    }
+
     public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool) {
-        self.platform = platform
-        self.sdk = sdk
-        self.sdkVariant = sdkVariant
+        self.buildTarget = .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
         self.targetArchitecture = targetArchitecture
         self.supportedArchitectures = supportedArchitectures
         self.disableOnlyActiveArch = disableOnlyActiveArch
     }
 
+    public init(buildTarget: SWBBuildTarget, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
+        self.buildTarget = buildTarget
+        self.targetArchitecture = targetArchitecture
+        self.supportedArchitectures = supportedArchitectures
+        self.disableOnlyActiveArch = disableOnlyActiveArch
+        self.hostTargetedPlatform = hostTargetedPlatform
+    }
+
     public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: [String], disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
         self.init(platform: platform, sdk: sdk, sdkVariant: sdkVariant, targetArchitecture: targetArchitecture, supportedArchitectures: supportedArchitectures, disableOnlyActiveArch: disableOnlyActiveArch)
         self.hostTargetedPlatform = hostTargetedPlatform
+    }
+}
+
+enum InternalBuildTarget: Codable, Sendable {
+    case toolchainSDK(platform: String, sdk: String, sdkVariant: String?)
+    case swiftSDK(sdkManifestPath: String, triple: String)
+
+    private enum CodingKeys: String, CodingKey {
+        // Selector
+        case buildTarget
+
+        // Apple SDK
+        case platform
+        case sdk
+        case sdkVariant
+
+        // Swift SDK
+        case sdkManifestPath
+        case triple
+    }
+
+    private enum BuildTarget: String, Codable {
+        case toolchainSDK
+        case swiftSDK
+
+        init(_ buildTarget: InternalBuildTarget) {
+            switch buildTarget {
+            case .toolchainSDK:
+                self = .toolchainSDK
+            case .swiftSDK:
+                self = .swiftSDK
+            }
+        }
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(BuildTarget.self, forKey: .buildTarget) {
+        case .toolchainSDK:
+            self = try .toolchainSDK(platform: container.decode(String.self, forKey: .platform), sdk: container.decode(String.self, forKey: .sdk), sdkVariant: container.decode(String?.self, forKey: .sdkVariant))
+        case .swiftSDK:
+            self = try .swiftSDK(sdkManifestPath: container.decode(String.self, forKey: .sdkManifestPath), triple: container.decode(String.self, forKey: .triple))
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(BuildTarget(self), forKey: .buildTarget)
+        switch self {
+        case let .toolchainSDK(platform, sdk, sdkVariant):
+            try container.encode(platform, forKey: .platform)
+            try container.encode(sdk, forKey: .sdk)
+            try container.encode(sdkVariant, forKey: .sdkVariant)
+        case let .swiftSDK(sdkManifestPath, triple):
+            try container.encode(sdkManifestPath, forKey: .sdkManifestPath)
+            try container.encode(triple, forKey: .triple)
+        }
     }
 }
 
