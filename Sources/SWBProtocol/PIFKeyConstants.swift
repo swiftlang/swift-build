@@ -34,6 +34,7 @@ public let PIFKey_Project_targets                       = "targets"
 public let PIFKey_Project_groupTree                     = "groupTree"
 public let PIFKey_Project_defaultConfigurationName      = "defaultConfigurationName"
 public let PIFKey_Project_developmentRegion             = "developmentRegion"
+public let PIFKey_Project_knownRegions                  = "knownRegions"
 public let PIFKey_Project_classPrefix                   = "classPrefix"
 public let PIFKey_Project_appPreferencesBuildSettings   = "appPreferencesBuildSettings"
 
