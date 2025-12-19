@@ -183,5 +183,32 @@ import SWBMacro
         let middleLookedupCondParam = middleNamespace.lookupConditionParameter("upper")
         #expect(middleLookedupCondParam == nil)
     }
+
+    @Test
+    func deepNamespaceHierarchy() throws {
+        let depth = 600
+        var namespaces: [MacroNamespace] = []
+
+        let root = MacroNamespace(debugDescription: "root")
+        let rootMacro = try root.declareStringMacro("ROOT_MACRO")
+        namespaces.append(root)
+
+        for i in 1..<depth {
+            let parent = namespaces[i - 1]
+            let child = MacroNamespace(parent: parent, debugDescription: "namespace_\(i)")
+            namespaces.append(child)
+        }
+
+        let deepest = namespaces[depth - 1]
+        let lookedUp = deepest.lookupMacroDeclaration("ROOT_MACRO")
+        #expect(lookedUp === rootMacro)
+
+        let nonExistent = deepest.lookupMacroDeclaration("NON_EXISTENT_MACRO")
+        #expect(nonExistent == nil)
+
+        let rootCondParam = root.declareConditionParameter("rootCond")
+        let lookedUpCondParam = deepest.lookupConditionParameter("rootCond")
+        #expect(lookedUpCondParam === rootCondParam)
+    }
 }
 
