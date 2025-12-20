@@ -667,7 +667,7 @@ extension XCFramework.Library {
 
 extension XCFramework {
     /// Determines the location that the processed xcframework output should go to.
-    public static func computeOutputDirectory(_ scope: MacroEvaluationScope) -> Path {
+    public static func computeOutputDirectory(_ scope: MacroEvaluationScope, xcframeworkPath: Path) -> Path {
 
         let subfolder: Path
         if scope.evaluate(BuiltinMacros.DEPLOYMENT_LOCATION) {
@@ -677,8 +677,8 @@ extension XCFramework {
             subfolder = scope.unmodifiedTargetBuildDir
         }
 
-        // Trim any trailing slashes, as the result is directly combined in spec files.
-        return subfolder.withoutTrailingSlash()
+        let xcframeworkName = xcframeworkPath.basenameWithoutSuffix
+        return subfolder.join(xcframeworkName).withoutTrailingSlash()
     }
 }
 
