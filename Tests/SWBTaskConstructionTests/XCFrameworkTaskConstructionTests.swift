@@ -1328,20 +1328,32 @@ fileprivate struct XCFrameworkTaskConstructionTests: CoreBasedTests {
         try fs.createDirectory(sentryDynamicXCFrameworkPath, recursive: true)
         try await XCFrameworkTestSupport.writeXCFramework(sentryDynamicXCFramework, fs: fs, path: sentryDynamicXCFrameworkPath, infoLookup: core)
 
+        // Both xcframeworks contain Sentry.framework, but should output to different directories
+        // to avoid "Multiple commands produce" errors.
+        let sentryOutputDir = "\(SRCROOT)/build/Debug/Sentry"
+        let sentryDynamicOutputDir = "\(SRCROOT)/build/Debug/Sentry-Dynamic"
+
         try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+            // Verify the output directories are different (the core fix for this issue)
+            #expect(sentryOutputDir != sentryDynamicOutputDir, "XCFrameworks with same-named libraries must output to different directories")
+
             results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("Sentry.xcframework")) { task in
+                // Verify Sentry.xcframework outputs to its own subdirectory
+                task.checkCommandLineContains(["--target-path", sentryOutputDir])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Sentry/Sentry.framework"),
-                    .path("\(SRCROOT)/build/Debug/Sentry/Sentry.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Sentry/Sentry.framework/Sentry")
+                    .path("\(sentryOutputDir)/Sentry.framework"),
+                    .path("\(sentryOutputDir)/Sentry.framework/Info.plist"),
+                    .path("\(sentryOutputDir)/Sentry.framework/Sentry")
                 ])
             }
 
             results.checkTask(.matchRuleType("ProcessXCFramework"), .matchRuleItemBasename("Sentry-Dynamic.xcframework")) { task in
+                // Verify Sentry-Dynamic.xcframework outputs to its own subdirectory
+                task.checkCommandLineContains(["--target-path", sentryDynamicOutputDir])
                 task.checkOutputs([
-                    .path("\(SRCROOT)/build/Debug/Sentry-Dynamic/Sentry.framework"),
-                    .path("\(SRCROOT)/build/Debug/Sentry-Dynamic/Sentry.framework/Info.plist"),
-                    .path("\(SRCROOT)/build/Debug/Sentry-Dynamic/Sentry.framework/Sentry")
+                    .path("\(sentryDynamicOutputDir)/Sentry.framework"),
+                    .path("\(sentryDynamicOutputDir)/Sentry.framework/Info.plist"),
+                    .path("\(sentryDynamicOutputDir)/Sentry.framework/Sentry")
                 ])
             }
 

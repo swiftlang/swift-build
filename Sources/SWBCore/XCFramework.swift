@@ -667,6 +667,16 @@ extension XCFramework.Library {
 
 extension XCFramework {
     /// Determines the location that the processed xcframework output should go to.
+    ///
+    /// The output directory includes a subdirectory named after the xcframework to ensure
+    /// that multiple xcframeworks containing libraries with the same name don't conflict.
+    /// For example, `Sentry.xcframework` outputs to `build/Debug/Sentry/` while
+    /// `Sentry-Dynamic.xcframework` outputs to `build/Debug/Sentry-Dynamic/`.
+    ///
+    /// - Parameters:
+    ///   - scope: The macro evaluation scope for build settings.
+    ///   - xcframeworkPath: Path to the xcframework, used to derive the output subdirectory name.
+    /// - Returns: The path where the xcframework's library should be copied to.
     public static func computeOutputDirectory(_ scope: MacroEvaluationScope, xcframeworkPath: Path) -> Path {
 
         let subfolder: Path
