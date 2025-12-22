@@ -932,6 +932,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.swift"),
                     TestFile("main.m"),
+                    TestFile("main.c"),
                     TestFile("Assets.xcassets"),
                 ]),
             buildConfigurations: [
@@ -947,7 +948,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             targets: [
                 TestAggregateTarget(
                     "ALL",
-                    dependencies: ["tool", "objctool",
+                    dependencies: ["tool", "objctool", "ctool",
                                    "tool_without_resource_bundle_without_catalog",
                                    "tool_without_resource_bundle_with_catalog"]
                 ),
@@ -981,6 +982,21 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.m"]),
+                    ],
+                    dependencies: ["mallory"]
+                ),
+                TestStandardTarget(
+                    "ctool", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"]),
                     ],
                     dependencies: ["mallory"]
                 ),
@@ -1075,6 +1091,15 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
 
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.m")) { task in
                     task.checkCommandLineContains(["-include", "/tmp/Test/aProject/build/aProject.build/Debug/objctool.build/DerivedSources/resource_bundle_accessor.h"])
+                }
+            }
+
+            results.checkTarget("ctool") { target in
+                results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.m"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.h"))
+
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.c")) { task in
+                    task.checkCommandLineDoesNotContain("-include")
                 }
             }
 

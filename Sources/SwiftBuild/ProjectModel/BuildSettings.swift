@@ -29,6 +29,7 @@ extension ProjectModel {
             case COPY_PHASE_STRIP
             case DEBUG_INFORMATION_FORMAT
             case DEFINES_MODULE
+            case DEPLOYMENT_POSTPROCESSING
             case DRIVERKIT_DEPLOYMENT_TARGET
             case DYLIB_INSTALL_NAME_BASE
             case EMBEDDED_CONTENT_CONTAINS_SWIFT

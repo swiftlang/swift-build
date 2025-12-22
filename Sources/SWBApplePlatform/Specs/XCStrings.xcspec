@@ -12,20 +12,6 @@
 
 (
     {
-        Type = FileType;
-        Identifier = "text.json.xcstrings";
-        BasedOn = text.json;
-        Name = "XCStrings files";
-        UTI = "com.apple.xcode.xcstrings";
-        Extensions = (
-            xcstrings,
-        );
-        AppliesToBuildRules = YES;
-        IncludeInIndex = YES;
-        CanSetIncludeInIndex = YES;
-    },
-
-    {
         _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.xcstrings";

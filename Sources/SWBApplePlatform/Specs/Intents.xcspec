@@ -12,21 +12,6 @@
 
 (
     {
-        Type = FileType;
-        Identifier = "file.intentdefinition";
-        BasedOn = sourcecode;
-        Name = "SiriKit Intent Definition";
-        Extensions = (
-            intentdefinition,
-        );
-        AppliesToBuildRules = YES;
-        IncludeInIndex = YES;
-        CanSetIncludeInIndex = YES;
-        UTI = "com.apple.sirikit.intentdefinition";
-        "FallbackAutoroutingBuildPhase" = Resources;
-    },
-
-    {
         _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.intents";

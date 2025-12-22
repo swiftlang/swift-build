@@ -29,6 +29,7 @@
     },
 
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.appextension-plist-generator";
         Name = "AppExtension plist generator";

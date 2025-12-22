@@ -11,27 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 (
-
     {
-        Type = FileType;
-        Identifier = "com.apple.instruments.package-definition";
-        BasedOn = text.xml;
-        Name = "Instruments Package Definition";
-        Extensions = (instrpkg);
-        AppliesToBuildRules = Yes;
-        UTI = "com.apple.instruments.package-definition";
-    },
-
-    {
-        Type = FileType;
-        Identifier = "com.apple.instruments.instrdst";
-        BasedOn = wrapper;
-        Name = "Instruments Distribution Package";
-        Extensions = (instrdst);
-        UTI = "com.apple.instruments.instrdst";
-    },
-
-    {
+        _Domain = darwin;
         Type = ProductType;
         Identifier = "com.apple.product-type.instruments-package";
         Name = "Instruments Package";
@@ -56,8 +37,8 @@
 
         HasInfoPlist = NO;
     },
-
     {
+        _Domain = darwin;
         Type = PackageType;
         Identifier = com.apple.package-type.instruments-package;
         Name = "Instruments Package";
@@ -73,7 +54,6 @@
             IsLaunchable = NO;
         };
     },
-
     {
         _Domain = darwin;
         Type = Compiler;
@@ -158,5 +138,4 @@
             },
         );
     },
-
 )

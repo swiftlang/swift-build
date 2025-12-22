@@ -177,7 +177,12 @@ fileprivate struct BuildServerTests: CoreBasedTests {
             }
 
             return (testWorkspace, request)
-        }) { connection, _, _ in
+        }) { connection, handler, _ in
+            #expect(handler.notifications.withLock { notifications in
+                notifications.contains { notification in
+                    notification is OnBuildTargetDidChangeNotification
+                }
+            })
             let targetsResponse = try await connection.send(WorkspaceBuildTargetsRequest())
             let firstLibrary = try #require(targetsResponse.targets.filter { $0.displayName == "Target" }.only)
             let secondLibrary = try #require(targetsResponse.targets.filter { $0.displayName == "Target2" }.only)
