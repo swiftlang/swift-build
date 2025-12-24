@@ -564,6 +564,32 @@ import SWBTestSupport
         let result: String = scope.evaluate(Y)
         #expect(result == "¡x!")
     }
+
+    @Test
+    func deeplyNestedEvaluation() throws {
+        let depth = 600
+        var macros: [StringMacroDeclaration] = []
+
+        let namespace = MacroNamespace(debugDescription: "test")
+        var table = MacroValueAssignmentTable(namespace: namespace)
+
+        let rootMacro = try namespace.declareStringMacro("MACRO_0")
+        table.push(rootMacro, literal: "root")
+        macros.append(rootMacro)
+
+        for i in 1..<depth {
+            let macro = try namespace.declareStringMacro("MACRO_\(i)")
+            macros.append(macro)
+            table.push(macro, namespace.parseString("$(MACRO_\(i-1))-\(i)"))
+        }
+
+        let scope = MacroEvaluationScope(table: table)
+
+        let deepest = macros[depth - 1]
+        let result = scope.evaluate(deepest)
+
+        #expect(result == "root-\((1..<depth).map(String.init).joined(separator: "-"))")
+    }
 }
 
 @Suite fileprivate struct MacroStringListEvaluationTests {
