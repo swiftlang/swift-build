@@ -163,6 +163,15 @@
                 );
                 IsInputDependency = Yes;
             },
+            // TODO(yuta): Remove this override entry after https://github.com/swiftlang/swift-driver/pull/2053
+            {
+                Name = SWIFTC_SDKROOT_LINKER_INPUT;
+                Type = Path;
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineFlag = "-sdk";
+                IsInputDependency = Yes;
+            },
         );
     },
 )
