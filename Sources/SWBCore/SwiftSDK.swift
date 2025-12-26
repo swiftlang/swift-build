@@ -52,13 +52,10 @@ public struct SwiftSDK: Sendable {
     /// Target-specific properties for this SDK.
     public let targetTriples: [String: TripleProperties]
 
-    init?(identifier: String, version: String, path: Path, fs: any FSProxy) throws {
+    init?(identifier: String, version: String, metadataPath: Path, fs: any FSProxy) throws {
         self.identifier = identifier
         self.version = version
-        self.path = path
-
-        let metadataPath = path.join("swift-sdk.json")
-        guard fs.exists(metadataPath) else { return nil }
+        self.path = metadataPath.dirname
 
         let metadataData = try Data(fs.read(metadataPath))
         let schema = try JSONDecoder().decode(SchemaVersionInfo.self, from: metadataData)
@@ -137,13 +134,20 @@ public struct SwiftSDK: Sendable {
 
         for (identifier, artifact) in info.artifacts {
             for variant in artifact.variants {
-                let sdkPath = artifactBundle.join(variant.path)
-                guard fs.isDirectory(sdkPath) else { continue }
+                // A variant's path may be a directory or a file. If it's a directory, we assume it
+                // contains a swift-sdk.json file. If it's a file, we use it directly as a Swift SDK
+                // metadata file.
+                var sdkPath = artifactBundle.join(variant.path)
+                if sdkPath.fileExtension != "json" && fs.isDirectory(sdkPath) {
+                    sdkPath = sdkPath.join("swift-sdk.json")
+                }
+
+                guard fs.exists(sdkPath) else { continue }
 
                 // FIXME: For now, we only support SDKs that are compatible with any host triple.
                 guard variant.supportedTriples?.isEmpty ?? true else { continue }
 
-                guard let sdk = try SwiftSDK(identifier: identifier, version: artifact.version, path: sdkPath, fs: fs) else { continue }
+                guard let sdk = try SwiftSDK(identifier: identifier, version: artifact.version, metadataPath: sdkPath, fs: fs) else { continue }
                 // Filter out SDKs that don't support any of the target triples.
                 if let targetTriples {
                     guard targetTriples.contains(where: { sdk.targetTriples[$0] != nil }) else { continue }
