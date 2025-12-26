@@ -148,6 +148,21 @@
                 Type = Path;
                 Condition = "NO"; // wasm-ld does not support -filelist
             },
+            {
+                Name = "SWIFTC_LINKER_RESOURCE_DIR";
+                Type = Path;
+                DefaultValue = "$(SWIFT_RESOURCE_DIR)";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = (
+                    "-resource-dir",
+                    "$(value)",
+                    "-Xclang-linker",
+                    "-resource-dir",
+                    "-Xclang-linker",
+                    "$(value)/clang",
+                );
+                IsInputDependency = Yes;
+            },
         );
     },
 )
