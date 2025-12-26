@@ -67,6 +67,8 @@ public struct SwiftSDK: Sendable {
 
     /// The default location storing Swift SDKs installed by SwiftPM.
     static func defaultSwiftSDKsDirectory(hostOperatingSystem: OperatingSystem) throws -> Path {
+        // NOTE: Keep in sync with SwiftPM's defaultSwiftSDKsDirectory implementation.
+        // https://github.com/swiftlang/swift-package-manager/blob/deac56dc94d85d28f2f2b5c37ec347ae3523a3fe/Sources/Basics/FileSystem/FileSystem%2BExtensions.swift#L492
         let spmURL: URL
         if hostOperatingSystem == .macOS {
             spmURL = try FileManager.default.url(
@@ -76,7 +78,11 @@ public struct SwiftSDK: Sendable {
                 create: false
             ).appendingPathComponent("org.swift.swiftpm")
         } else {
-            spmURL = URL.homeDirectory.appendingPathComponent(".swiftpm")
+            if let configurationDirectory = Environment.current["XDG_CONFIG_HOME"] {
+                spmURL = URL(fileURLWithPath: configurationDirectory, isDirectory: true).appendingPathComponent("swiftpm")
+            } else {
+                spmURL = URL.homeDirectory.appendingPathComponent(".swiftpm")
+            }
         }
         return try spmURL.appendingPathComponent("swift-sdks").filePath
     }
