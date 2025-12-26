@@ -106,10 +106,6 @@ struct WebAssemblySDKRegistryExtension: SDKRegistryExtension {
                         "LLVM_TARGET_TRIPLE_OS_VERSION": .plString(os),
                         "SWIFT_LIBRARY_PATH": .plString(swiftResourceDir.join("wasi").str),
                         "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str),
-                        // HACK: Ld step does not use swiftc as linker driver but instead uses clang, so we need to add some Swift specific flags
-                        // assuming static linking.
-                        // Tracked in https://github.com/swiftlang/swift-build/issues/3
-                        "OTHER_LDFLAGS": .plArray(["-lc++", "-lc++abi", "-resource-dir", "$(SWIFT_RESOURCE_DIR)/clang", "@$(SWIFT_LIBRARY_PATH)/static-executable-args.lnk"]),
                     ]),
                     "SupportedTargets": .plDict([
                         "webassembly": .plDict([
