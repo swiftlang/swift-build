@@ -203,6 +203,7 @@ let package = Package(
             name: "SWBTaskConstruction",
             dependencies: [
                 "SWBCore",
+                "SWBMacro",
                 "SWBUtil",
                 .product(name: "SwiftDriver", package: "swift-driver")
             ],
@@ -219,7 +220,6 @@ let package = Package(
                 "SWBCSupport",
                 "SWBLibc",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "SwiftDriver", package: "swift-driver"),
                 .product(name: "SystemPackage", package: "swift-system", condition: .when(platforms: [.linux, .openbsd, .android, .windows, .custom("freebsd")])),
             ],
             exclude: ["CMakeLists.txt"],

@@ -2953,6 +2953,18 @@ private class SettingsBuilder: ProjectMatchLookup {
         table.push(BuiltinMacros.PROJECT_DIR, literal: project.sourceRoot.str)
         table.push(BuiltinMacros.PROJECT_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(OBJROOT)/$(PROJECT_NAME).build") })
 
+        do {
+            // A fair number of Swift packages have products/targets which only differ in case. In order to avoid collisions
+            // of build intermediates on case-insensitive file systems, add a discriminant if we detect this.
+            var seenTargetNames: Set<String> = []
+            for target in project.targets {
+                if !seenTargetNames.insert(target.name.lowercased()).inserted {
+                    table.push(BuiltinMacros.TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR, Static { BuiltinMacros.namespace.parseString("$(TARGET_NAME:__md5)") })
+                    break
+                }
+            }
+        }
+
         if usePerConfigurationBuildLocations {
             table.push(BuiltinMacros.CONFIGURATION_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)") })
             table.push(BuiltinMacros.CONFIGURATION_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(PROJECT_TEMP_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)") })
@@ -2960,7 +2972,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             table.push(BuiltinMacros.CONFIGURATION_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(BUILD_DIR)") })
             table.push(BuiltinMacros.CONFIGURATION_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(PROJECT_TEMP_DIR)") })
         }
-        table.push(BuiltinMacros.TARGET_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME).build") })
+        table.push(BuiltinMacros.TARGET_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME)$(TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR).build") })
         table.push(BuiltinMacros.TARGET_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_BUILD_DIR)$(TARGET_BUILD_SUBPATH)") })
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_BUILD_DIR)") })
         table.push(BuiltinMacros.DEVELOPMENT_LANGUAGE, literal: project.developmentRegion ?? "en")

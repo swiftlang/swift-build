@@ -23,7 +23,8 @@ add_library(SWBMacro
   MacroExpressionParsing.swift
   MacroNamespace.swift
   MacroType.swift
-  MacroValueAssignmentTable.swift)
+  MacroValueAssignmentTable.swift
+  SwiftDriverTripleExtensions.swift)
 set_target_properties(SWBMacro PROPERTIES
   Swift_LANGUAGE_VERSION 6)
 target_link_libraries(SWBMacro PUBLIC

@@ -1312,41 +1312,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     private static func computeLibraryArgs(_ libraries: [LibrarySpecifier], scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
         // Construct the library arguments.
         return libraries.compactMap { specifier -> (args: [String], inputs: [Path]) in
-            let basename = specifier.path.basename
-
-            // FIXME: This isn't a good system, we need to redesign how we talk to the linker w.r.t. search paths and our notion of paths.
             switch specifier.kind {
-            case .static:
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(".a") {
-                    return (specifier.searchPathFlagsForLd(basename.withoutPrefix("lib").withoutSuffix(".a")), [])
-                }
-                return (specifier.absolutePathFlagsForLd(), [specifier.path])
-            case .dynamic:
-                let suffix = ".\(scope.evaluate(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION))"
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(suffix) {
-                    return (specifier.searchPathFlagsForLd(basename.withoutPrefix("lib").withoutSuffix(suffix)), [])
-                }
-                return (specifier.absolutePathFlagsForLd(), [specifier.path])
-            case .textBased:
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(".tbd") {
-                    // .merge and .reexport are not supported for text-based libraries.
-                    return (specifier.searchPathFlagsForLd(basename.withoutPrefix("lib").withoutSuffix(".tbd")), [])
-                }
-                return (specifier.absolutePathFlagsForLd(), [specifier.path])
-            case .framework:
-                let frameworkName = Path(basename).withoutSuffix
+            case .static, .dynamic, .textBased, .framework:
                 if specifier.useSearchPaths {
-                    return (specifier.searchPathFlagsForLd(frameworkName), [])
+                    return (specifier.searchPathFlagsForLd(), [])
                 }
-                let absPathArgs = specifier.absolutePathFlagsForLd()
-                let returnPath: Path
-                if let pathArg = absPathArgs.last, Path(pathArg).basename == frameworkName {
-                    returnPath = Path(pathArg)
-                }
-                else {
-                    returnPath = specifier.path
-                }
-                return (absPathArgs, [returnPath])
+                return (specifier.absolutePathFlagsForLd(), [specifier.path])
             case .object:
                 // Object files are added to linker inputs in the sources task producer.
                 return ([], [])
@@ -1582,35 +1553,47 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
 /// Extensions to `LinkerSpec.LibrarySpecifier` specific to the dynamic linker.
 fileprivate extension LinkerSpec.LibrarySpecifier {
-    func searchPathFlagsForLd(_ name: String) -> [String] {
+
+    func searchPathFlagsForLd() -> [String] {
+        precondition(useSearchPaths)
+        // Extract basename once to avoid redundant operations
+        let basename = path.basename
+        let basenameWithoutSuffix = Path(basename).withoutSuffix
+        // Strip the prefix if one exists and is present in the basename
+        let strippedName: String
+        if let prefix = libPrefix, basename.hasPrefix(prefix) {
+            strippedName = basenameWithoutSuffix.withoutPrefix(prefix)
+        } else {
+            strippedName = basenameWithoutSuffix
+        }
         switch (kind, mode) {
         case (.dynamic, .normal):
-            return ["-l" + name]
+            return ["-l" + strippedName]
         case (.dynamic, .reexport):
-            return ["-Xlinker", "-reexport-l" + name]
+            return ["-Xlinker", "-reexport-l" + strippedName]
         case (.dynamic, .merge):
-            return ["-Xlinker", "-merge-l" + name]
+            return ["-Xlinker", "-merge-l" + strippedName]
         case (.dynamic, .reexport_merge):
-            return ["-Xlinker", "-no_merge-l" + name]
+            return ["-Xlinker", "-no_merge-l" + strippedName]
         case (.dynamic, .weak):
-            return ["-weak-l" + name]
+            return ["-weak-l" + strippedName]
         case (.static, .weak),
              (.textBased, .weak):
-            return ["-weak-l" + name]
+            return ["-weak-l" + strippedName]
         case (.static, _),
              (.textBased, _):
             // Other modes are not supported for these kinds.
-            return ["-l" + name]
+            return ["-l" + strippedName]
         case (.framework, .normal):
-            return ["-framework", name]
+            return ["-framework", strippedName]
         case (.framework, .reexport):
-            return ["-Xlinker", "-reexport_framework", "-Xlinker", name]
+            return ["-Xlinker", "-reexport_framework", "-Xlinker", strippedName]
         case (.framework, .merge):
-            return ["-Xlinker", "-merge_framework", "-Xlinker", name]
+            return ["-Xlinker", "-merge_framework", "-Xlinker", strippedName]
         case (.framework, .reexport_merge):
-            return ["-Xlinker", "-no_merge_framework", "-Xlinker", name]
+            return ["-Xlinker", "-no_merge_framework", "-Xlinker", strippedName]
         case (.framework, .weak):
-            return ["-weak_framework", name]
+            return ["-weak_framework", strippedName]
         case (.object, _):
             // Object files are added to linker inputs in the sources task producer.
             return []
@@ -1752,15 +1735,17 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
                     delegate.warning("Product \(cbc.output.basename) cannot weak-link \(specifier.kind) \(basename)")
                 }
 
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(".a") {
+                if specifier.useSearchPaths {
                     // Locate using search paths: Add a -l option and *don't* add the path to the library as an input to the task.
-                    return ["-l" + basename.withoutPrefix("lib").withoutSuffix(".a")]
+                    let basename = specifier.path.basename
+                    let expectedPrefix = specifier.libPrefix ?? "lib"
+                    if basename.hasPrefix(expectedPrefix) {
+                        return ["-l" + Path(basename).withoutSuffix.withoutPrefix(expectedPrefix)]
+                    }
                 }
-                else {
-                    // Locate using an absolute path: Add the path as an option and as an input to the task.
-                    inputPaths.append(specifier.path)
-                    return [specifier.path.str]
-                }
+                // Locate using an absolute path: Add the path as an option and as an input to the task.
+                inputPaths.append(specifier.path)
+                return [specifier.path.str]
 
             case .object:
                 // Object files are added to linker inputs in the sources task producer and so end up in the link-file-list.

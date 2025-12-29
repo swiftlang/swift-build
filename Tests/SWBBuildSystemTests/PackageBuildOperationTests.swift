@@ -470,6 +470,68 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
         }
     }
 
+    // Regression test which ensures we can build successfully when a project has two targets whose
+    // names only differ in case. Previously this would fail because the intermediate TARGET_TEMP_DIRs would
+    // collide.
+    @Test(.requireSDKs(.host))
+    func packageCaseInsensitiveCollisions() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDir.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file_1.swift"),
+                                TestFile("file_2.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "DSTROOT": tmpDir.join("dstroot").str,
+                            ])],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_1.swift"]),
+                                ], dependencies: ["library"]),
+                            TestStandardTarget(
+                                "library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file_2.swift"]),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_1.swift")) { stream in
+                stream <<<
+            """
+            public let x = 42
+            """
+            }
+
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file_2.swift")) { stream in
+                stream <<<
+            """
+            public let y = 10
+            """
+            }
+
+            try await tester.checkBuild(runDestination: .host) { results in
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func packageModuleAliasing() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
