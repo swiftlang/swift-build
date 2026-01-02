@@ -42,6 +42,10 @@ extension PIF.Project : PIFRepresentable {
             dict[PIFKey_Project_developmentRegion] = developmentRegion
         }
 
+        if let knownLocalizations {
+            dict[PIFKey_Project_knownRegions] = knownLocalizations
+        }
+
         return dict
     }
 }
