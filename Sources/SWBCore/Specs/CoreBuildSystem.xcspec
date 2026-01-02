@@ -3655,6 +3655,13 @@ When this setting is enabled:
                 Category = "Localization";
                 Description = "When enabled, literal strings in SwiftUI will be extracted during localization export. This will only extract string literals in `Text()` initializers, unless `SWIFT_EMIT_LOC_STRINGS` is also enabled.";
             },
+            {   Name = LOCALIZED_STRING_CODE_COMMENTS;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Localized Strings in Code Comments";
+                Category = "Localization";
+                Description = "When enabled, localizable strings wrapped in NSLocalizedString and similar string macros will be extracted even if commented out or wrapped in `#if 0`.";
+            },
             {
                 Name = "STRINGSDATA_ROOT";
                 Type = Path;
