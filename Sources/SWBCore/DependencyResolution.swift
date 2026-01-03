@@ -206,7 +206,17 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
     func imposed(on parameters: BuildParameters, workspaceContext: WorkspaceContext) -> BuildParameters {
         var overrides = parameters.overrides
         if let sdkRoot {
-            overrides["SDKROOT"] = sdkRoot
+            // The sdkCanonicalName from a Platform is not guaranteed to be available
+            let defaultSDKAvailable: Bool
+            do {
+                let foundSDK = try workspaceContext.core.sdkRegistry.lookup(sdkRoot, activeRunDestination: parameters.activeRunDestination)
+                defaultSDKAvailable = foundSDK != nil
+            } catch {
+                defaultSDKAvailable = false
+            }
+            if defaultSDKAvailable {
+                overrides["SDKROOT"] = sdkRoot
+            }
         }
         if let sdkVariant {
             overrides["SDK_VARIANT"] = sdkVariant.name

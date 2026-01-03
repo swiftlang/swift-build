@@ -52,13 +52,10 @@ public struct SwiftSDK: Sendable {
     /// Target-specific properties for this SDK.
     public let targetTriples: [String: TripleProperties]
 
-    init?(identifier: String, version: String, path: Path, fs: any FSProxy) throws {
+    init?(identifier: String, version: String, metadataPath: Path, fs: any FSProxy) throws {
         self.identifier = identifier
         self.version = version
-        self.path = path
-
-        let metadataPath = path.join("swift-sdk.json")
-        guard fs.exists(metadataPath) else { return nil }
+        self.path = metadataPath.dirname
 
         let metadataData = try Data(fs.read(metadataPath))
         let schema = try JSONDecoder().decode(SchemaVersionInfo.self, from: metadataData)
@@ -70,6 +67,8 @@ public struct SwiftSDK: Sendable {
 
     /// The default location storing Swift SDKs installed by SwiftPM.
     static func defaultSwiftSDKsDirectory(hostOperatingSystem: OperatingSystem) throws -> Path {
+        // NOTE: Keep in sync with SwiftPM's defaultSwiftSDKsDirectory implementation.
+        // https://github.com/swiftlang/swift-package-manager/blob/deac56dc94d85d28f2f2b5c37ec347ae3523a3fe/Sources/Basics/FileSystem/FileSystem%2BExtensions.swift#L492
         let spmURL: URL
         if hostOperatingSystem == .macOS {
             spmURL = try FileManager.default.url(
@@ -79,7 +78,11 @@ public struct SwiftSDK: Sendable {
                 create: false
             ).appendingPathComponent("org.swift.swiftpm")
         } else {
-            spmURL = URL.homeDirectory.appendingPathComponent(".swiftpm")
+            if let configurationDirectory = Environment.current["XDG_CONFIG_HOME"] {
+                spmURL = URL(fileURLWithPath: configurationDirectory, isDirectory: true).appendingPathComponent("swiftpm")
+            } else {
+                spmURL = URL.homeDirectory.appendingPathComponent(".swiftpm")
+            }
         }
         return try spmURL.appendingPathComponent("swift-sdks").filePath
     }
@@ -137,13 +140,20 @@ public struct SwiftSDK: Sendable {
 
         for (identifier, artifact) in info.artifacts {
             for variant in artifact.variants {
-                let sdkPath = artifactBundle.join(variant.path)
-                guard fs.isDirectory(sdkPath) else { continue }
+                // A variant's path may be a directory or a file. If it's a directory, we assume it
+                // contains a swift-sdk.json file. If it's a file, we use it directly as a Swift SDK
+                // metadata file.
+                var sdkPath = artifactBundle.join(variant.path)
+                if sdkPath.fileExtension != "json" && fs.isDirectory(sdkPath) {
+                    sdkPath = sdkPath.join("swift-sdk.json")
+                }
+
+                guard fs.exists(sdkPath) else { continue }
 
                 // FIXME: For now, we only support SDKs that are compatible with any host triple.
                 guard variant.supportedTriples?.isEmpty ?? true else { continue }
 
-                guard let sdk = try SwiftSDK(identifier: identifier, version: artifact.version, path: sdkPath, fs: fs) else { continue }
+                guard let sdk = try SwiftSDK(identifier: identifier, version: artifact.version, metadataPath: sdkPath, fs: fs) else { continue }
                 // Filter out SDKs that don't support any of the target triples.
                 if let targetTriples {
                     guard targetTriples.contains(where: { sdk.targetTriples[$0] != nil }) else { continue }
