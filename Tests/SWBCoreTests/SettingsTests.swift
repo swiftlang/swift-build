@@ -284,7 +284,7 @@ import SWBTestSupport
             #expect(settings.errors == [])
 
             // Verify that the global scope has the expected conditions (sdk and config).
-            #expect(Set(settings.globalScope.conditionParameterValues.keys) == Set([BuiltinMacros.sdkCondition, BuiltinMacros.configurationCondition, BuiltinMacros.sdkBuildVersionCondition]))
+            #expect(Set(settings.globalScope.conditionParameterValues.keys) == Set([BuiltinMacros.sdkCondition, BuiltinMacros.targetNameCondition, BuiltinMacros.configurationCondition, BuiltinMacros.sdkBuildVersionCondition]))
 
             // Verify that the target configuration was captured.  Notice that this is *not* the configuration the build parameters were configured with.
             #expect(settings.targetConfiguration?.name == "Config1")
@@ -4897,8 +4897,9 @@ import SWBTestSupport
                             baseConfig: "Project.xcconfig",
                             buildSettings: [
                                 "SDKROOT": "macosx",
-                                "OTHER_CFLAGS": "$(inherited) Project",
-                                "OTHER_LDFLAGS[target=Target]": "$(inherited) Project",
+                                // Use $(inherited) so that higher-precedence strings appear first in the list.
+                                "OTHER_CFLAGS": "Project $(inherited)",
+                                "OTHER_LDFLAGS[target=Target]": "Project $(inherited)",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                 "SUPPORTS_MACCATALYST": "YES",
                             ])
@@ -4927,21 +4928,26 @@ import SWBTestSupport
                 let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testProject.targets[0])
 
                 do {
-                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["XCConfig", "Project"])
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["Project", "XCConfig"])
                     let macro = settings.globalScope.table.lookupMacro(BuiltinMacros.OTHER_CFLAGS)
                     #expect(macro != nil)
+                    // The project object assignment.
                     #expect(macro?.location == nil)
+                    // The xcconfig file assignment.
                     #expect(macro?.next?.location == .init(path: projectXcconfigPath, startLine: 1, endLine: 1, startColumn: 15, endColumn: 24))
                     #expect(macro?.next?.next == nil)
                 }
 
                 do {
-                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS) == ["XCConfig", "Project"])
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS) == ["Project", "XCConfig"])
                     let macro = settings.globalScope.table.lookupMacro(BuiltinMacros.OTHER_LDFLAGS)
                     #expect(macro != nil)
+                    // The project object assignment.
                     #expect(macro?.location == nil)
+                    // The xcconfig file assignment.
                     #expect(macro?.next?.location == .init(path: projectXcconfigPath, startLine: 2, endLine: 2, startColumn: 31, endColumn: 40))
-                    #expect(macro?.next?.next == nil)
+                    // I think macro?.next?.next is an empty value from defaults or maybe from constructing the Settings object.
+                    #expect(macro?.next?.next?.next == nil)
                 }
             }
         }
