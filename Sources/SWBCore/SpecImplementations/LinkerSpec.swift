@@ -89,11 +89,12 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
         /// The path to the privacy file, if one exists.
         public let privacyFile: Path?
 
-        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, swiftModulePaths: [String: Path], swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path], explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
+        public let libPrefix: String?
+
+        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, swiftModulePaths: [String: Path], swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path], prefix: String? = nil, explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
             self.kind = kind
             self.path = path
             self.mode = mode
-            self.useSearchPaths = useSearchPaths
             self.swiftModulePaths = swiftModulePaths
             self.swiftModuleAdditionalLinkerArgResponseFilePaths = swiftModuleAdditionalLinkerArgResponseFilePaths
             self.explicitDependencies = explicitDependencies
@@ -101,6 +102,10 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
             self.dsymPath = dsymPath
             self.xcframeworkSourcePath = xcframeworkSourcePath
             self.privacyFile = privacyFile
+            self.libPrefix = prefix
+            // Only use search paths when no prefix is required or when the prefix matches
+            let hasValidPrefix = libPrefix.map { path.basename.hasPrefix($0) } ?? true
+            self.useSearchPaths = hasValidPrefix && useSearchPaths
         }
     }
 

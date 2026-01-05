@@ -50,6 +50,7 @@ add_library(SWBApplePlatform
 SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/AppIntentsMetadata.xcspec
   Specs/AppIntentsNLTraining.xcspec
+  Specs/AppleFileTypes.xcspec
   Specs/AppShortcutStringsMetadata.xcspec
   Specs/AssetCatalogCompiler.xcspec
   Specs/CompileSkybox.xcspec

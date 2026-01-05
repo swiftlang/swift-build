@@ -12,35 +12,6 @@
 
 (
     {
-        Type = FileType;
-        Identifier = "file.mlmodel";
-        BasedOn = sourcecode;
-        Name = "CoreML Machine Learning Model";
-        Extensions = (
-            mlmodel,
-            mlkitmodel,
-        );
-        AppliesToBuildRules = YES;
-        IncludeInIndex = YES;
-        CanSetIncludeInIndex = YES;
-        UTI = "com.apple.coreml.model";
-    },
-    {
-        Type = FileType;
-        Identifier = "folder.mlpackage";
-        BasedOn = wrapper;
-        Name = "CoreML Machine Learning Model Package";
-        Extensions = (
-            mlpackage,
-        );
-        IsWrapperFolder = YES;
-        IsFolder = YES;
-        AppliesToBuildRules = YES;
-        IncludeInIndex = YES;
-        CanSetIncludeInIndex = YES;
-        UTI = "com.apple.coreml.mlpackage";
-    },
-    {
         _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.coreml";

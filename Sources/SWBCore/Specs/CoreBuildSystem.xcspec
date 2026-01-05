@@ -2987,7 +2987,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {
                 Name = "TARGET_TEMP_DIR";
                 Type = Path;
-                DefaultValue = "$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME).build";
+                DefaultValue = "$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME)$(TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR).build";
                 Description = "Identifies the directory containing the target’s intermediate build files. Run Script build phases should place intermediate files at the location indicated by `DERIVED_FILE_DIR`, not the directory identified by this build setting.";
             },
             {
