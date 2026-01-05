@@ -367,20 +367,18 @@ final class MacroEvaluationProgram: Serializable, Sendable {
         // when the child needs to output to the parent's subresult buffer.
         final class EvaluationFrame {
             let instructions: [EvalInstr]
-            var instructionIndex: Int
+            var instructionIndex: Int = 0
             let context: MacroEvaluationContext
             let resultBuilder: MacroEvaluationResultBuilder
             let alwaysEvalAsString: Bool
             // Stack of subresult buffers.  All instructions that affect buffers apply to the top one on this stack.
-            var subresults: [MacroEvaluationResultBuilder]
+            var subresults: [MacroEvaluationResultBuilder] = []
 
-            init(instructions: [EvalInstr], instructionIndex: Int, context: MacroEvaluationContext, resultBuilder: MacroEvaluationResultBuilder, alwaysEvalAsString: Bool, subresults: [MacroEvaluationResultBuilder]) {
+            init(instructions: [EvalInstr], context: MacroEvaluationContext, resultBuilder: MacroEvaluationResultBuilder, alwaysEvalAsString: Bool) {
                 self.instructions = instructions
-                self.instructionIndex = instructionIndex
                 self.context = context
                 self.resultBuilder = resultBuilder
                 self.alwaysEvalAsString = alwaysEvalAsString
-                self.subresults = subresults
             }
         }
 
@@ -401,11 +399,9 @@ final class MacroEvaluationProgram: Serializable, Sendable {
         var stack: [EvaluationFrame] = [
             EvaluationFrame(
                 instructions: instructions,
-                instructionIndex: 0,
                 context: context,
                 resultBuilder: resultBuilder,
                 alwaysEvalAsString: alwaysEvalAsString,
-                subresults: []
             )
         ]
 
@@ -465,11 +461,9 @@ final class MacroEvaluationProgram: Serializable, Sendable {
                         case .instructions(let nestedInstructions):
                             let nextFrame = EvaluationFrame(
                                 instructions: nestedInstructions,
-                                instructionIndex: 0,
                                 context: MacroEvaluationContext(scope: frame.context.scope, macro: macro, value: value, parent: frame.context),
                                 resultBuilder: frame.subresults.last ?? frame.resultBuilder,
                                 alwaysEvalAsString: asString || frame.alwaysEvalAsString,
-                                subresults: []
                             )
                             // Frame will be processed in the next iteration. The current frame remains on the stack and will continue after the nested frame completes
                             stack.append(nextFrame)
