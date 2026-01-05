@@ -114,6 +114,7 @@ extension ProjectModel {
 
             // @available(*, deprecated, renamed: "GENERATE_PRELINK_OBJECT_FILE") // can't add @available because it breaks CaseIterable
             case GENERATE_MASTER_OBJECT_FILE // ignore-unacceptable-language
+            case MTL_COMPILER_PATH
         }
 
         public enum MultipleValueSetting: String, CaseIterable, Sendable, Hashable, Codable {
