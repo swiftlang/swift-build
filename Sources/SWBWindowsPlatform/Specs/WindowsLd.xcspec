@@ -69,6 +69,10 @@
                 IsInputDependency = Yes;
             },
             {
+                Name = LD_OBJC_RUNTIME_ARGS;
+                DefaultValue = "";
+            },
+            {
                 Name = _LD_MULTIARCH;
                 Type = Boolean;
                 DefaultValue = NO;
