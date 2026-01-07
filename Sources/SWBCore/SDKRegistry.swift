@@ -442,6 +442,9 @@ public protocol SDKRegistryLookup: Sendable {
     /// - returns: The found `SDK`, or `nil` if no SDK with the given name could be found or `name` was in an invalid format.
     func lookup(_ name: String, activeRunDestination: RunDestinationInfo?) throws -> SDK?
 
+    /// Synthesize an SDK for the given platform with the given manifest JSON file path
+    func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK?
+
     /// Look up the SDK with the given path.  If the registry is immutable, then this will only return the SDK if it was loaded when the registry was created; only mutable registries can discover and load new SDKs after that point.
     /// - parameter path: Absolute path of the SDK to look up.
     /// - returns: The found `SDK`, or `nil` if no SDK was found at the given path.
@@ -1078,6 +1081,95 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         return sdk
     }
 
+    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String) throws -> SDK? {
+        // Let's check the active run destination to see if there's an SDK path that we should be using
+        let llvmTriple = try LLVMTriple(triple)
+
+        let host = hostOperatingSystem
+
+        // Don't allow re-registering the same SDK
+        if let existing = sdksByPath[Path(sdkManifestPath)] {
+            return existing
+        }
+
+        if let swiftSDK = try SwiftSDK(identifier: sdkManifestPath, version: "1.0.0", path: Path(sdkManifestPath), fs: localFS) {
+            let defaultProperties: [String: PropertyListItem] = [
+                "SDK_STAT_CACHE_ENABLE": "NO",
+
+                "GENERATE_TEXT_BASED_STUBS": "NO",
+                "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+
+                "CHOWN": "/usr/bin/chown",
+
+                // TODO are these going to be appropriate for all kinds of SDK's?
+                // SwiftSDK _could_ have tool entries for these, so use them if they are available
+                "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
+                "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
+            ]
+
+            for (sdkTriple, tripleProperties) in swiftSDK.targetTriples {
+                guard triple == sdkTriple else {
+                    continue
+                }
+
+                let toolsets = try tripleProperties.loadToolsets(sdk: swiftSDK, fs: localFS)
+
+                let sysroot = swiftSDK.path.join(tripleProperties.sdkRootPath)
+
+                // TODO support dynamic resources path
+                let swiftResourceDir = swiftSDK.path.join(tripleProperties.swiftStaticResourcesPath)
+                let clangResourceDir = swiftSDK.path.join(tripleProperties.clangStaticResourcesPath)
+
+                let tripleSystem = llvmTriple.system + (llvmTriple.systemVersion?.description ?? "")
+
+                // TODO handle tripleProperties.toolSearchPaths
+
+                let extraSwiftCompilerSettings = Array(toolsets.map( { $0.swiftCompiler?.extraCLIOptions ?? [] }).flatMap( { $0 }))
+                let headerSearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.includeSearchPaths ?? []).map( { PropertyListItem.plString($0) } )
+                let librarySearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.librarySearchPaths ?? []).map( { PropertyListItem.plString($0) } )
+
+                let sdk = registerSDK(sysroot, sysroot, platform, .plDict([
+                    "Type": .plString("SDK"),
+                    "Version": .plString(swiftSDK.version),
+                    "CanonicalName": .plString(swiftSDK.identifier),
+                    "Aliases": [],
+                    "IsBaseSDK": .plBool(true),
+                    "DefaultProperties": .plDict([
+                        "PLATFORM_NAME": .plString(platform.name),
+                    ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
+                    "CustomProperties": .plDict([
+                        "LIBRARY_SEARCH_PATHS": .plArray(librarySearchPaths),
+                        "HEADER_SEARCH_PATHS": .plArray(headerSearchPaths),
+                        "OTHER_SWIFT_FLAGS": .plArray(["$(inherited)"] + extraSwiftCompilerSettings.map( {.plString($0)} )),
+                        "SWIFTC_RESOURCE_DIR": .plString(swiftResourceDir.str), // Resource dir for linking Swift
+                        "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str), // Resource dir for compiling Swift
+                        "CLANG_RESOURCE_DIR": .plString(clangResourceDir.str), // Resource dir for linking C/C++/Obj-C
+                        "SDKROOT": .plString(sysroot.str),
+                        "OTHER_LDFLAGS": .plArray(["$(inherited)"] + extraSwiftCompilerSettings.map( {.plString($0)} )), // The extra swift compiler settings in JSON are intended to go to the linker driver too
+                    ]),
+                    "SupportedTargets": .plDict([
+                        platform.name: .plDict([
+                            "Archs": .plArray([.plString(llvmTriple.arch)]),
+                            "LLVMTargetTripleEnvironment": .plString(llvmTriple.environment ?? ""),
+                            "LLVMTargetTripleSys": .plString(tripleSystem),
+                            "LLVMTargetTripleVendor": .plString(llvmTriple.vendor),
+                        ])
+                    ]),
+                    // TODO: Leave compatible toolchain information in Swift SDKs
+                    // "Toolchains": .plArray([])
+                ]))
+
+                if let sdk {
+                    try sdk.loadExtendedInfo(delegate.namespace)
+                    sdksByPath[Path(sdkManifestPath)] = sdk
+                    return sdk
+                }
+            }
+        }
+
+        return nil
+    }
+
     public func lookup(nameOrPath key: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
         #if !os(Windows)
         // TODO: Turn this validation back on once our path handling is cleaned up a bit more
@@ -1127,7 +1219,14 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             // If we got here, we have DriverKit SDKs (the only ones which use cohort platforms) for multiple cohort platforms. Narrow down the list by disambiguating using the run destination.
 
             func selectSDKList() -> [SDK]? {
-                if let list = sdksByCohortPlatform[activeRunDestination?.platform] {
+                let platform: String?
+                if case let .toolchainSDK(platform: p, _, _) = activeRunDestination?.buildTarget {
+                    platform = p
+                } else {
+                    platform = nil
+                }
+
+                if let list = sdksByCohortPlatform[platform] {
                     return list
                 }
 
@@ -1135,7 +1234,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 // by the cohort platforms of the run destination's SDK's platform. This is necessary to resolve
                 // driverkit when we have a DriverKit run destination but with a platform-specific SDK.
                 if let runDestination = activeRunDestination,
-                   let cohortPlatforms = try? lookup(runDestination.sdk, activeRunDestination: nil)?.cohortPlatforms {
+                   case let .toolchainSDK(_, sdk: sdk, _) = runDestination.buildTarget,
+                   let cohortPlatforms = try? lookup(sdk, activeRunDestination: nil)?.cohortPlatforms {
                     for cohortPlatform in cohortPlatforms {
                         if let list = sdksByCohortPlatform[cohortPlatform] {
                             return list
