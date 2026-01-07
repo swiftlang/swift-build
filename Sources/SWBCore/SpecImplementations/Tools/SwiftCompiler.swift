@@ -2240,7 +2240,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             var environment: [(String, String)] = environmentFromSpec(cbc, delegate)
             environment.append(("DEVELOPER_DIR", cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str))
             let sdkroot = cbc.scope.evaluate(BuiltinMacros.SDKROOT)
-            if !sdkroot.isEmpty {
+            if !sdkroot.isEmpty && cbc.scope.evaluate(BuiltinMacros.SWIFTC_PASS_SDKROOT) {
                 environment.append(("SDKROOT", sdkroot.str))
             }
             let toolchains = cbc.scope.evaluateAsString(BuiltinMacros.TOOLCHAINS)
