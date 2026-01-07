@@ -66,6 +66,14 @@ struct QNXPlatformExtension: PlatformInfoExtension {
             ])
         ]
     }
+
+    func platformName(triple: LLVMTriple) -> String? {
+        if triple.system == "nto" {
+            return "qnx"
+        }
+
+        return nil
+    }
 }
 
 struct QNXSDKRegistryExtension: SDKRegistryExtension {
