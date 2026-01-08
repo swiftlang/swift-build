@@ -174,24 +174,46 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = CLANG_RESOURCE_DIR;
+                Name = CLANG_RESOURCE_DIR_CLANG;
+                DefaultValue = "$(CLANG_RESOURCE_DIR)";
                 Type = Path;
                 Condition = "$(LINKER_DRIVER) == clang";
-                CommandLineFlag = "-resource-dir";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-resource-dir",
+                        "$(value)"
+                    );
+                };
                 IsInputDependency = Yes;
             },
             {
-                Name = CLANG_RESOURCE_DIR;
+                Name = CLANG_RESOURCE_DIR_SWIFTC;
+                DefaultValue = "$(CLANG_RESOURCE_DIR)";
                 Type = Path;
                 Condition = "$(LINKER_DRIVER) == swiftc";
-                CommandLineArgs = ("-Xclang-linker", "-resource-dir", "-Xclang-linker", "$(CLANG_RESOURCE_DIR)");
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xclang-linker",
+                        "-resource-dir",
+                        "-Xclang-linker",
+                        "$(value)"
+                    );
+                };
                 IsInputDependency = Yes;
             },
             {
                 Name = SWIFTC_RESOURCE_DIR;
                 Type = Path;
                 Condition = "$(LINKER_DRIVER) == swiftc";
-                CommandLineArgs = ("-resource-dir", "$(SWIFTC_RESOURCE_DIR)");
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-resource-dir",
+                        "$(value)"
+                    );
+                };
                 IsInputDependency = Yes;
             },
             {
