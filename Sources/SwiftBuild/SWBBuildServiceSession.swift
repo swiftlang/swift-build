@@ -838,7 +838,12 @@ extension SWBBuildParameters {
 
 fileprivate extension RunDestinationInfo {
     init(_ x: SWBRunDestinationInfo) {
-        self.init(platform: x.platform, sdk: x.sdk, sdkVariant: x.sdkVariant, targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        switch x.buildTarget._internalBuildTarget {
+        case let .toolchainSDK(platform, sdk, sdkVariant):
+            self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
+            self.init(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        }
     }
 }
 
