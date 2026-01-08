@@ -64,7 +64,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     var phase: TaskProducerPhase = .none
 
     /// The project this context is for.
-    let project: Project?
+    public let project: Project?
 
     /// The high-level global build information.
     package let globalProductPlan: GlobalProductPlan

@@ -99,6 +99,21 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
             guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
         }
 
+        var inputFiles = group.files
+
+        // Check if we should build the input file based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+        inputFiles = inputFiles.filter { file in
+            file.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: file.absolutePath,
+                delegate
+            )
+        }
+        guard !inputFiles.isEmpty else {
+            return
+        }
+
         // Compute the path to the effective localized directories (.lproj) in the resources and temp resources directories to define the output file for the tool.
 
         let assetPackInfo = context.onDemandResourcesAssetPack(for: group)
@@ -112,7 +127,7 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
             context.didProduceAssetPackSubPath(assetPackInfo, subPath)
         }
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: tmpResourcesDir, unlocalizedResourcesDir: unlocalizedResourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputFiles, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: tmpResourcesDir, unlocalizedResourcesDir: unlocalizedResourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -172,6 +187,16 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
         }
 
         await appendGeneratedTasks(&tasks) { delegate in
+            // Check if we should filter localizations based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+            guard ftb.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: ftb.absolutePath,
+                delegate
+            ) else {
+                return
+            }
+
             // Compute the output path, taking the region into account.
             let assetPackInfo = context.onDemandResourcesAssetPack(for: FileToBuildGroup(nil, files: [ftb], action: nil))
             let outputDir = assetPackInfo?.path ?? buildFilesContext.resourcesDir

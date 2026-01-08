@@ -3703,6 +3703,13 @@ When this setting is enabled:
                 Category = "Localization";
                 Description = "When enabled, symbols will be generated for manually-managed strings in String Catalogs.";
             },
+            {   Name = BUILD_ONLY_KNOWN_LOCALIZATIONS;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Build Known Localizations Only";
+                Category = "Localization";
+                Description = "When enabled, only builds content for languages explicitly supported by the project.";
+            },
 
             // rdar://108915072 (Move Siri Category and relevant configs out of CoreBuildSystem)
             // Siri Settings

@@ -1635,6 +1635,18 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
             tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
+        } else if scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS) {
+            // For non-installLoc builds, filter based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+            tasks = tasks.filter { task in
+                task.inputs.allSatisfy { input in
+                    input.path.buildSettingAllowsBuildingLocale(
+                        scope,
+                        in: context.project,
+                        inputFileAbsolutePath: input.path,
+                        nil
+                    )
+                }
+            }
         }
 
         // Create a task to validate dependencies if that feature is enabled.
@@ -1729,10 +1741,24 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
         }
 
+        var inputFiles = group.files
+
+        inputFiles = inputFiles.filter { file in
+            return file.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: file.absolutePath,
+                delegate
+            )
+        }
+        guard !inputFiles.isEmpty else {
+            return
+        }
+
         // Compute the resources directory.
         let resourcesDir = buildFilesContext.resourcesDir.join(group.regionVariantPathComponent)
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputFiles, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 

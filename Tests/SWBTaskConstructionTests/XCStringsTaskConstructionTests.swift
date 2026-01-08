@@ -621,6 +621,99 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func compileMixedProject_WithKnownLocalizations() async throws {
+        let testProject = try await TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "ProjectSources",
+                path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    TestFile("Localizable.xcstrings"),
+                    TestVariantGroup("CustomTable.strings", children: [
+                        TestFile("en.lproj/CustomTable.strings", regionVariantName: "en"),
+                        TestFile("de.lproj/CustomTable.strings", regionVariantName: "de"),
+                        TestFile("ja.lproj/CustomTable.strings", regionVariantName: "ja"),
+                    ]),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift"
+                        ]),
+                        TestResourcesBuildPhase([
+                            "Localizable.xcstrings",
+                            "CustomTable.strings"
+                        ])
+                    ]
+                )
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"]
+        )
+
+        // Pretend our xcstrings file contains English, German, and Japanese strings.
+        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+            "/tmp/Test/Project/Sources/Localizable.xcstrings" : [
+                "en.lproj/Localizable.strings",
+                "de.lproj/Localizable.strings",
+                "ja.lproj/Localizable.strings",
+            ],
+        ], requiredCommandLine: nil)
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
+            results.checkTarget("MyFramework") { target in
+                // XCStrings compilation should include -l flags for known localizations
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/", "/tmp/Test/Project/Sources/Localizable.xcstrings"])) { task in
+                    task.checkCommandLineContains(["-l", "en"])
+                    task.checkCommandLineContains(["-l", "de"])
+                    task.checkCommandLineDoesNotContain("-l ja")
+                }
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXCStrings"))
+
+                // Only en and de CopyStringsFile tasks for xcstrings outputs
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/en.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/de.lproj/Localizable.strings"])) { _ in }
+
+                // Only en and de for CustomTable.strings (variant group)
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/CustomTable.strings", "/tmp/Test/Project/Sources/en.lproj/CustomTable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/de.lproj/CustomTable.strings", "/tmp/Test/Project/Sources/de.lproj/CustomTable.strings"])) { _ in }
+
+                // No Japanese files
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+            }
+
+            // Check for note about XCStrings language filtering
+            results.checkNote(.contains("XCStrings will compile languages for known regions: en, de"))
+
+            // Check for note about skipped localization
+            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+
+            results.checkNoDiagnostics()
+        }
+    }
+
     // .xcstrings and .strings/dict files in the same project are not allowed to have table overlap.
     @Test(.requireSDKs(.macOS))
     func compileMixedProjectWithTableOverlap() async throws {
@@ -970,7 +1063,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                     ]
                 )
             ],
-            developmentRegion: "en"
+            developmentRegion: "en",
+            knownLocalizations: ["Base", "de"] // ignored since installloc languages take precedence in an installloc phase
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
@@ -1059,7 +1153,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                     ]
                 )
             ],
-            developmentRegion: "en"
+            developmentRegion: "en",
+            knownLocalizations: ["Base", "de"] // ignored since installloc languages take precedence in an installloc phase
         )
 
         // Pretend our xcstrings file contains English, German, and Japanese strings, and that they have variations.
@@ -1477,6 +1572,123 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.macOS))
+    func xcstringsInVariantGroup_WithKnownLocalizations() async throws {
+        let testProject = try await TestProject(
+            "Project",
+            groupTree: TestGroup(
+                "ProjectSources",
+                path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    TestVariantGroup("LegacyView.xib", children: [
+                        TestFile("Base.lproj/LegacyView.xib", regionVariantName: "Base"),
+                        TestFile("fr.lproj/LegacyView.strings", regionVariantName: "fr"),
+                        TestFile("de.lproj/LegacyView.strings", regionVariantName: "de"),
+                    ]),
+                    TestVariantGroup("View.xib", children: [
+                        TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
+                        TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),
+                    ]),
+                    TestVariantGroup("OtherView.nib", children: [
+                        TestFile("Base.lproj/OtherView.nib", regionVariantName: "Base"),
+                        TestFile("mul.lproj/OtherView.xcstrings", regionVariantName: "mul"),
+                    ]),
+                    TestVariantGroup("Main.storyboard", children: [
+                        TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
+                        TestFile("mul.lproj/Main.xcstrings", regionVariantName: "mul"),
+                    ])
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "IBC_EXEC": ibtoolPath.str,
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                ])
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift"
+                        ]),
+                        TestResourcesBuildPhase([
+                            "LegacyView.xib",
+                            "View.xib",
+                            "OtherView.nib",
+                            "Main.storyboard",
+                        ])
+                    ]
+                )
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "fr", "Base"]
+        )
+
+        // Pretend our xcstrings files contain French and German strings.
+        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+            "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings" : [
+                "fr.lproj/View.strings",
+                "de.lproj/View.strings",
+            ],
+            "/tmp/Test/Project/Sources/mul.lproj/OtherView.xcstrings" : [
+                "fr.lproj/OtherView.strings",
+                "de.lproj/OtherView.strings",
+            ],
+            "/tmp/Test/Project/Sources/mul.lproj/Main.xcstrings" : [
+                "fr.lproj/Main.strings",
+                "de.lproj/Main.strings",
+            ],
+        ], requiredCommandLine: nil)
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
+            results.checkTarget("MyFramework") { target in
+                // IB files should compile
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "/tmp/Test/Project/Sources/Base.lproj/LegacyView.xib"])) { task in
+                    task.checkCommandLineContains(["--companion-strings-file", "fr:/tmp/Test/Project/Sources/fr.lproj/LegacyView.strings"])
+                }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "/tmp/Test/Project/Sources/Base.lproj/View.xib"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileStoryboard", "/tmp/Test/Project/Sources/Base.lproj/Main.storyboard"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["LinkStoryboards"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CpResource", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/Base.lproj/OtherView.nib", "/tmp/Test/Project/Sources/Base.lproj/OtherView.nib"])) { _ in }
+
+                // Each xcstrings should compile with language filtering
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/", "/tmp/Test/Project/Sources/mul.lproj/View.xcstrings"])) { task in
+                    task.checkCommandLineContains(["-l", "fr"])
+                    task.checkCommandLineDoesNotContain("-l de")
+                }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/", "/tmp/Test/Project/Sources/mul.lproj/OtherView.xcstrings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/", "/tmp/Test/Project/Sources/mul.lproj/Main.xcstrings"])) { _ in }
+
+                // Only French xcstrings outputs should be copied (not German)
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/fr.lproj/View.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/fr.lproj/View.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/fr.lproj/OtherView.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/fr.lproj/OtherView.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/Project/build/Debug/MyFramework.framework/Versions/A/Resources/fr.lproj/Main.strings", "/tmp/Test/Project/build/Project.build/Debug/MyFramework.build/fr.lproj/Main.strings"])) { _ in }
+
+                // LegacyView should not have CopyStringsFile tasks because ibtool is responsible for copying those .strings files:
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+            }
+
+            // Check for note about skipped localizations
+            results.checkNote(.contains("Skipping .lproj directory 'de.lproj' because 'de' is not in project's known localizations"))
+
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
     func xcstringsInVariantGroupDuringInstallloc() async throws {
         let testProject = try await TestProject(
             "Project",
@@ -1534,7 +1746,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                     ]
                 )
             ],
-            developmentRegion: "en"
+            developmentRegion: "en",
+            knownLocalizations: ["Base", "de"] // ignored since installloc languages take precedence in an installloc phase
         )
 
         // Pretend our xcstrings file contains English and German strings, and that they have variations.
@@ -1792,4 +2005,110 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // Test BUILD_ONLY_KNOWN_LOCALIZATIONS filtering in Sources build phase with IB files and xcstrings.
+    @Test(.requireSDKs(.macOS))
+    func sourcesPhaseKnownLocalizationsFiltering() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("MyFramework.swift"),
+                    // a) IB file with .strings files:
+                    TestVariantGroup("LegacyView.xib", children: [
+                        TestFile("Base.lproj/LegacyView.xib", regionVariantName: "Base"),
+                        TestFile("en.lproj/LegacyView.strings", regionVariantName: "en"),
+                        TestFile("fr.lproj/LegacyView.strings", regionVariantName: "fr"),
+                        TestFile("de.lproj/LegacyView.strings", regionVariantName: "de"),
+                    ]),
+                    // b) IB file with .xcstrings:
+                    TestVariantGroup("View.xib", children: [
+                        TestFile("Base.lproj/View.xib", regionVariantName: "Base"),
+                        TestFile("mul.lproj/View.xcstrings", regionVariantName: "mul"),
+                    ]),
+                    // c) Variant group with .strings:
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "IBC_EXEC": ibtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyFramework",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "SKIP_INSTALL": "YES",
+                            "SWIFT_EXEC": swiftCompilerPath.str,
+                            "SWIFT_VERSION": "5.5",
+                            "GENERATE_INFOPLIST_FILE": "YES",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "MyFramework.swift",
+                            // IB files and strings in Sources phase:
+                            "LegacyView.xib",
+                            "View.xib",
+                            "Localizable.strings",
+                        ]),
+                    ])
+            ],
+            knownLocalizations: ["en", "de", "Base"])
+
+        // Pretend our xcstrings file contains English, French, German, and Japanese strings:
+        let xcstringsTool = MockXCStringsTool(relativeOutputFilePaths: [
+            "/tmp/Test/aProject/Sources/mul.lproj/View.xcstrings" : [
+                "en.lproj/View.strings",
+                "fr.lproj/View.strings",
+                "de.lproj/View.strings",
+                "ja.lproj/View.strings",
+            ],
+        ], requiredCommandLine: nil)
+
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // Regular build: BUILD_ONLY_KNOWN_LOCALIZATIONS should filter out "ja" and "fr":
+        await tester.checkBuild(runDestination: .macOS, clientDelegate: xcstringsTool) { results in
+            results.checkTarget("MyFramework") { target in
+                // LegacyView.xib should only compile with en and de companion strings (not fr):
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "/tmp/Test/aProject/Sources/Base.lproj/LegacyView.xib"])) { task in
+                    task.checkCommandLineContains(["--companion-strings-file", "en:/tmp/Test/aProject/Sources/en.lproj/LegacyView.strings"])
+                    task.checkCommandLineContains(["--companion-strings-file", "de:/tmp/Test/aProject/Sources/de.lproj/LegacyView.strings"])
+                    task.checkCommandLineDoesNotContain("fr:/tmp/Test/aProject/Sources/fr.lproj/LegacyView.strings")
+                }
+
+                // View.xib should compile (Base localization):
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "/tmp/Test/aProject/Sources/Base.lproj/View.xib"])) { _ in }
+
+                // xcstrings should be compiled:
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXCStrings", "/tmp/Test/aProject/build/aProject.build/Debug/MyFramework.build/", "/tmp/Test/aProject/Sources/mul.lproj/View.xcstrings"])) { _ in }
+
+                // Only en and de strings from xcstrings should be copied (not fr or ja):
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/View.strings", "/tmp/Test/aProject/build/aProject.build/Debug/MyFramework.build/en.lproj/View.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/de.lproj/View.strings", "/tmp/Test/aProject/build/aProject.build/Debug/MyFramework.build/de.lproj/View.strings"])) { _ in }
+                results.checkNoTask(.matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/fr.lproj/View.strings", "/tmp/Test/aProject/build/aProject.build/Debug/MyFramework.build/fr.lproj/View.strings"]))
+                results.checkNoTask(.matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/ja.lproj/View.strings", "/tmp/Test/aProject/build/aProject.build/Debug/MyFramework.build/ja.lproj/View.strings"]))
+
+                // Only en and de Localizable.strings should be copied (not ja):
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"])) { _ in }
+                results.checkNoTask(.matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+            }
+
+            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj'"))
+            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj'"))
+            results.checkNoDiagnostics()
+        }
+    }
 }
