@@ -1442,7 +1442,16 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .flaky("Occasionally fails in CI due to SwiftExplicitDependencyCompileModuleFromInterface missing from the dependency graph"), .bug("rdar://138160283"))
+    @Test(
+        .requireSDKs(.macOS),
+        .flaky("Occasionally fails in CI due to SwiftExplicitDependencyCompileModuleFromInterface missing from the dependency graph"),
+        .bug("rdar://138160283"),
+        .disabled("Skip test in debug builds for performance reasons") {
+            #if DEBUG
+            return true
+            #endif
+        }
+    )
     func explicitBuildModuleSharingWithResponseFiles() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let moduleCacheDir = tmpDirPath.join("ModuleCache")
