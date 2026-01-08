@@ -23,4 +23,10 @@
         );
         SortNumber = 0;
     },
+    {
+        Domain = webassembly;
+        Type = ProductType;
+        Identifier = org.swift.product-type.common.object;
+        BasedOn = com.apple.product-type.library.static;
+    },
 )

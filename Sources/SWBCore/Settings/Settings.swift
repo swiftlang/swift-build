@@ -1257,6 +1257,30 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
     }
 
+    enum FindPlatformError: Error { case message(String) }
+
+    func findBuiltinPlatform(for triple: String, core: Core) -> Result<Platform, FindPlatformError> {
+        let llvmTriple: LLVMTriple
+
+        do {
+            llvmTriple = try LLVMTriple(triple)
+        } catch {
+            return .failure(.message("\(error)"))
+        }
+
+        let platformNames = core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self).compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
+
+        guard let platformName = platformNames.only else {
+            return .failure(.message("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)"))
+        }
+
+        guard let platform = core.platformRegistry.lookup(name: platformName) else {
+            return .failure(.message("unable to find platform for '\(platformName)'"))
+        }
+
+        return .success(platform)
+    }
+
     // Properties the builder was initialized with.
 
     let workspaceContext: WorkspaceContext
@@ -1513,9 +1537,10 @@ private class SettingsBuilder: ProjectMatchLookup {
         // Add the SDK overrides.
         if let sdk = boundProperties.sdk {
             let scope = createScope(sdkToUse: sdk)
-            let destinationIsMacCatalyst = parameters.activeRunDestination?.sdkVariant == MacCatalystInfo.sdkVariantName
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
-            if destinationIsMacCatalyst && supportsMacCatalyst {
+            if case let .toolchainSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget,
+               sdkVariant == MacCatalystInfo.sdkVariantName,
+               supportsMacCatalyst {
                 pushTable(.exported) {
                     $0.push(BuiltinMacros.SUPPORTED_PLATFORMS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "macosx"]))
                 }
@@ -1774,8 +1799,9 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             // We will replace SDKROOT values of "auto" here if the run destination is compatible.
             let usesReplaceableAutomaticSDKRoot: Bool
-            if sdkroot == "auto", let activePlatform = parameters.activeRunDestination?.platform {
-                let destinationIsMacCatalyst = parameters.activeRunDestination?.sdkVariant == MacCatalystInfo.sdkVariantName
+            if sdkroot == "auto",
+               case let .toolchainSDK(platform: activePlatform, sdk: _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget {
+                let destinationIsMacCatalyst = sdkVariant == MacCatalystInfo.sdkVariantName
 
                 let scope = createScope(effectiveTargetConfig, sdkToUse: sdk)
                 let supportedPlatforms = scope.evaluate(BuiltinMacros.SUPPORTED_PLATFORMS)
@@ -1790,20 +1816,40 @@ private class SettingsBuilder: ProjectMatchLookup {
             } else {
                 usesReplaceableAutomaticSDKRoot = false
             }
-            if usesReplaceableAutomaticSDKRoot, let activeSDK = parameters.activeRunDestination?.sdk {
+            if usesReplaceableAutomaticSDKRoot,
+               case let .toolchainSDK(platform: _, sdk: activeSDK, sdkVariant: _) = parameters.activeRunDestination?.buildTarget {
                 sdkroot = activeSDK
             }
 
             do {
-                sdk = try project.map { try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination) } ?? nil
+                sdk = try project.map {
+                    switch parameters.activeRunDestination?.buildTarget {
+                    case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
+                        let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+                        let platform: Platform
+
+                        switch findPlatformResult {
+                        case let .failure(.message(msg)):
+                            errors.append(msg)
+                            return nil
+                        case let .success(platform: p):
+                            platform = p
+                        }
+
+                        return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
+                    default:
+                        return try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
+                    }
+                } ?? nil
             } catch {
                 sdk = nil
                 sdkLookupErrors.append(error)
             }
+
             if let s = sdk {
                 // Evaluate the SDK variant, if there is one.
                 let sdkVariantName: String
-                if usesReplaceableAutomaticSDKRoot, let activeSDKVariant = parameters.activeRunDestination?.sdkVariant {
+                if usesReplaceableAutomaticSDKRoot, case let .toolchainSDK(platform: _, sdk: _, sdkVariant: activeSDKVariant) = parameters.activeRunDestination?.buildTarget, let activeSDKVariant {
                     sdkVariantName = activeSDKVariant
                 } else {
                     sdkVariantName = createScope(effectiveTargetConfig, sdkToUse: s).evaluate(BuiltinMacros.SDK_VARIANT)
@@ -3517,23 +3563,48 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Destination info: since runDestination.{platform,sdk} were set by the IDE, we expect them to resolve in Swift Build correctly
         guard let runDestination = self.parameters.activeRunDestination else { return }
-        guard let destinationPlatform: Platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
-            self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
-            return
-        }
+
+        let destinationPlatform: Platform
         let destinationSDK: SDK
-        do {
-            guard let sdk = try sdkRegistry.lookup(runDestination.sdk, activeRunDestination: runDestination) else {
-                self.errors.append("unable to resolve run destination SDK: '\(runDestination.sdk)'")
+        switch runDestination.buildTarget {
+        case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
+            let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+
+            switch findPlatformResult {
+            case let .failure(.message(msg)):
+                self.errors.append(msg)
+                return
+            case let .success(platform):
+                destinationPlatform = platform
+            }
+
+            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: destinationPlatform, sdkManifestPath: sdkManifestPath, triple: triple) else {
+                self.errors.append("unable to synthesize SDK for Swift SDK build target: '\(runDestination.buildTarget)'")
                 return
             }
             destinationSDK = sdk
-        } catch let error as AmbiguousSDKLookupError {
-            self.diagnostics.append(error.diagnostic)
-            return
-        } catch {
-            self.errors.append("\(error)")
-            return
+        case let .toolchainSDK(platform: platform, sdk: sdk, _):
+            guard let platform = self.core.platformRegistry.lookup(name: platform) else {
+                self.errors.append("unable to resolve run destination platform: '\(platform)'")
+                return
+            }
+
+            destinationPlatform = platform
+
+            do {
+                if let sdk = try sdkRegistry.lookup(sdk, activeRunDestination: runDestination) {
+                    destinationSDK = sdk
+                } else {
+                    self.errors.append("unable to resolve run destination SDK: '\(sdk)'")
+                    return
+                }
+            } catch let error as AmbiguousSDKLookupError {
+                self.diagnostics.append(error.diagnostic)
+                return
+            } catch {
+                self.errors.append("\(error)")
+                return
+            }
         }
 
         let destinationPlatformIsMacOS = destinationPlatform.name == "macosx"
@@ -3546,7 +3617,9 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         do {
             let scope = createScope(sdkToUse: nil)
-            let destinationIsMacCatalyst = runDestination.sdkVariant == MacCatalystInfo.sdkVariantName
+            let destinationIsMacCatalyst = if case let .toolchainSDK(platform: _, sdk: _, sdkVariant: sdkVariant) = runDestination.buildTarget {
+                sdkVariant == MacCatalystInfo.sdkVariantName
+            } else { false }
             let supportsMacCatalyst = Settings.supportsMacCatalyst(scope: scope, core: core)
             if destinationIsMacCatalyst && supportsMacCatalyst {
                 pushTable(.exported) {
@@ -3644,9 +3717,26 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         // Destination info: since runDestination.{platform,sdk} were set by the IDE, we expect them to resolve in Swift Build correctly
         guard let runDestination = self.parameters.activeRunDestination else { return }
-        guard let destinationPlatform: Platform = self.core.platformRegistry.lookup(name: runDestination.platform) else {
-            self.errors.append("unable to resolve run destination platform: '\(runDestination.platform)'")
-            return
+
+        let destinationPlatform: Platform
+
+        switch runDestination.buildTarget {
+        case let .swiftSDK(_, triple: triple):
+            let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+
+            switch findPlatformResult {
+            case let .failure(.message(msg)):
+                self.errors.append(msg)
+                return
+            case let .success(p):
+                destinationPlatform = p
+            }
+        case let .toolchainSDK(platform: platformName, sdk: _, sdkVariant: _):
+            guard let platform: Platform = self.core.platformRegistry.lookup(name: platformName) else {
+                self.errors.append("unable to resolve run destination platform: '\(platformName)'")
+                return
+            }
+            destinationPlatform = platform
         }
 
         // Target info

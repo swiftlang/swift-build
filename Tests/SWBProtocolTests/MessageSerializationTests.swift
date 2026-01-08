@@ -24,9 +24,11 @@ import Testing
             action: "build",
             configuration: "Debug",
             activeRunDestination: RunDestinationInfo(
-                platform: "osOS",
-                sdk: "osos",
-                sdkVariant: "x",
+                buildTarget: .toolchainSDK(
+                    platform: "osOS",
+                    sdk: "osos",
+                    sdkVariant: "x",
+                ),
                 targetArchitecture: "arm128",
                 supportedArchitectures: ["arm128"],
                 disableOnlyActiveArch: true,
