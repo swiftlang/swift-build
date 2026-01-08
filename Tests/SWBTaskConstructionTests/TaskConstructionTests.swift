@@ -3552,8 +3552,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             ]),
                         ]),
                 ])
-            // Use a dedicated core for this test so the SDKs it registers do not impact other tests
-            let core = try await Self.makeCore()
+            let core = try await getCore()
             let tester = try TaskConstructionTester(core, testProject)
 
             // Swift SDK contents
