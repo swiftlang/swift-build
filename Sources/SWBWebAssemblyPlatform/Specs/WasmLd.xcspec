@@ -53,14 +53,6 @@
                 Condition = "NO";
             },
             {
-                // Wasm doesn't have search paths
-                Name = "LD_RUNPATH_SEARCH_PATHS";
-                //Note: Cannot be of type 'PathList' as value is used with relative '../' paths
-                Type = StringList;
-                Condition = "NO";
-                CommandLineArgs = ();
-            },
-            {
                 Name = GOLD_BUILDID;
                 Type = Boolean;
                 DefaultValue = NO;
@@ -136,14 +128,6 @@
                 Name = "LD_DEPENDENCY_INFO_FILE";
                 Type = Path;
                 DefaultValue = "";
-            },
-            {
-                Name = SWIFTC_SDKROOT_LINKER_INPUT;
-                Type = Path;
-                DefaultValue = "$(SDKROOT)";
-                Condition = "$(LINKER_DRIVER) == swiftc";
-                CommandLineFlag = "-sdk";
-                IsInputDependency = Yes;
             },
             {
                 Name = "__INPUT_FILE_LIST_PATH__";

@@ -45,14 +45,6 @@ struct WebAssemblyPlatformExtension: PlatformInfoExtension {
             ])
         ]
     }
-
-    func platformName(triple: LLVMTriple) -> String? {
-        if triple.system.hasPrefix("wasi") {
-            return "webassembly"
-        }
-
-        return nil
-    }
 }
 
 // TODO: We currently hardcode WebAssembly-specific information here but

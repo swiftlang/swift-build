@@ -174,27 +174,6 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = CLANG_RESOURCE_DIR;
-                Type = Path;
-                Condition = "$(LINKER_DRIVER) == clang";
-                CommandLineFlag = "-resource-dir";
-                IsInputDependency = Yes;
-            },
-            {
-                Name = CLANG_RESOURCE_DIR;
-                Type = Path;
-                Condition = "$(LINKER_DRIVER) == swiftc";
-                CommandLineArgs = ("-Xclang-linker", "-resource-dir", "-Xclang-linker", "$(CLANG_RESOURCE_DIR)");
-                IsInputDependency = Yes;
-            },
-            {
-                Name = SWIFTC_RESOURCE_DIR;
-                Type = Path;
-                Condition = "$(LINKER_DRIVER) == swiftc";
-                CommandLineArgs = ("-resource-dir", "$(SWIFTC_RESOURCE_DIR)");
-                IsInputDependency = Yes;
-            },
-            {
                 Name = "LD_OPTIMIZATION_LEVEL";
                 Type = String;
                 Condition = "$(LINKER_DRIVER) == clang || $(LINKER_DRIVER) == qcc";
