@@ -175,7 +175,9 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 sysroot = .root
                 architectures = [Architecture.hostStringValue ?? "unknown"]
                 tripleVersion = nil
-                customProperties = [:]
+                customProperties = [
+                    "SWIFTC_PASS_SDKROOT": "NO",
+                ]
             } else {
                 do {
                     let swiftSDKs = try SwiftSDK.findSDKs(
