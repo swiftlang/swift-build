@@ -563,7 +563,11 @@ package final class BuildDescriptionBuilder {
     /// - Parameters:
     ///   - path: The path of a directory to store the build description to.
     ///   - bypassActualTasks: If enabled, replace tasks with fake ones (`/usr/bin/true`).
-    init(path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, taskAdditionalInputs: [Ref<any PlannedTask>: NodeList], mutatedNodes: Set<Ref<any PlannedNode>>, mutatingTasks: [Ref<any PlannedTask>: MutatingTaskInfo], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool, moduleSessionFilePath: Path?, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], outputPathsPerTarget: [ConfiguredTarget?: [Path]], allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo], casValidationInfos: [BuildDescription.CASValidationInfo], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String], settingsPerTarget: [ConfiguredTarget: Settings], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], workspace: Workspace) {
+
+    /// The process environment to merge into task environments.
+    private let processEnvironment: [String: String]
+
+    init(path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, taskAdditionalInputs: [Ref<any PlannedTask>: NodeList], mutatedNodes: Set<Ref<any PlannedNode>>, mutatingTasks: [Ref<any PlannedTask>: MutatingTaskInfo], bypassActualTasks: Bool, targetsBuildInParallel: Bool, emitFrontendCommandLines: Bool, moduleSessionFilePath: Path?, invalidationPaths: [Path], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult], copiedPathMap: [String: String], outputPathsPerTarget: [ConfiguredTarget?: [Path]], allOutputPaths: Set<Path>, rootPathsPerTarget: [ConfiguredTarget: [Path]], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo], casValidationInfos: [BuildDescription.CASValidationInfo], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String], settingsPerTarget: [ConfiguredTarget: Settings], targetDependencies: [TargetDependencyRelationship], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], workspace: Workspace, processEnvironment: [String: String]) {
         self.path = path
         self.signature = signature
         self.taskAdditionalInputs = taskAdditionalInputs
@@ -586,6 +590,7 @@ package final class BuildDescriptionBuilder {
         self.settingsPerTarget = settingsPerTarget
         self.targetDependencies = targetDependencies
         self.definingTargetsByModuleName = definingTargetsByModuleName
+        self.processEnvironment = processEnvironment
         self.taskStore = TaskStore()
     }
 
@@ -904,11 +909,11 @@ package final class BuildDescriptionBuilder {
                 $0["inputs"] = inputs.map { $0.identifier }
                 $0["outputs"] = outputs.map { $0.identifier }
                 $0["args"] = commandLine
-                // FIXME: inherit-env defaults to true; we should pass false and inject the process environment explicitly, so that it is overridable for tests
-                // $0["inherit-env"] = "true"
-                if let environment {
-                    $0["env"] = environment.bindings
-                }
+                // Merge processEnvironment with task environment; task bindings take precedence.
+                let taskEnvDict = environment?.bindings.reduce(into: [String: String]()) { $0[$1.0] = $1.1 } ?? [:]
+                let mergedEnvDict = processEnvironment.merging(taskEnvDict, uniquingKeysWith: { _, taskValue in taskValue })
+                let mergedEnvBindings = mergedEnvDict.map { ($0.key, $0.value) }.sorted(by: { $0.0 < $1.0 })
+                $0["env"] = mergedEnvBindings
                 if allowMissingInputs {
                     $0["allow-missing-inputs"] = true
                 }
@@ -935,7 +940,7 @@ package final class BuildDescriptionBuilder {
 
                 // We always compute the signature ourselves instead of letting llbuild use its default logic.
                 // However, we currently do use roughly the same information to compute it.
-                let signature = Self.computeShellToolSignature(args: task.type.commandLineForSignature(for: task.execTask) ?? commandLine, environment: environment, dependencyData: deps, isUnsafeToInterrupt: isUnsafeToInterrupt, additionalSignatureData: task.additionalSignatureData)
+                let signature = Self.computeShellToolSignature(args: task.type.commandLineForSignature(for: task.execTask) ?? commandLine, environment: EnvironmentBindings(mergedEnvBindings), dependencyData: deps, isUnsafeToInterrupt: isUnsafeToInterrupt, additionalSignatureData: task.additionalSignatureData)
 
                 $0["signature"] = signature
             }
@@ -1027,7 +1032,7 @@ extension BuildDescription {
     // FIXME: Bypass actual tasks should go away, eventually.
     //
     // FIXME: This layering isn't working well, we are plumbing a bunch of stuff through here just because we don't want to talk to TaskConstruction.
-    static package func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, targetsBuildInParallel: Bool = true, emitFrontendCommandLines: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], casValidationInfos: [BuildDescription.CASValidationInfo] = [], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], delegate: any BuildDescriptionConstructionDelegate, targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], userPreferences: UserPreferences) async throws -> BuildDescription? {
+    static package func construct(workspace: Workspace, tasks: [any PlannedTask], path: Path, signature: BuildDescriptionSignature, buildCommand: BuildCommand, diagnostics: [ConfiguredTarget?: [Diagnostic]] = [:], indexingInfo: [(forTarget: ConfiguredTarget?, path: Path, indexingInfo: any SourceFileIndexingInfo)] = [], fs: any FSProxy = localFS, bypassActualTasks: Bool = false, targetsBuildInParallel: Bool = true, emitFrontendCommandLines: Bool = false, moduleSessionFilePath: Path? = nil, invalidationPaths: [Path] = [], recursiveSearchPathResults: [RecursiveSearchPathResolver.CachedResult] = [], copiedPathMap: [String: String] = [:], rootPathsPerTarget: [ConfiguredTarget:[Path]] = [:], moduleCachePathsPerTarget: [ConfiguredTarget: [Path]] = [:], artifactInfoPerTarget: [ConfiguredTarget: ArtifactInfo] = [:], casValidationInfos: [BuildDescription.CASValidationInfo] = [], staleFileRemovalIdentifierPerTarget: [ConfiguredTarget?: String] = [:], settingsPerTarget: [ConfiguredTarget: Settings] = [:], delegate: any BuildDescriptionConstructionDelegate, targetDependencies: [TargetDependencyRelationship] = [], definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>], userPreferences: UserPreferences, processEnvironment: [String: String] = [:]) async throws -> BuildDescription? {
         var diagnostics = diagnostics
 
         // We operate on the sorted tasks here to ensure that the list of task additional inputs is deterministic.
@@ -1290,7 +1295,7 @@ extension BuildDescription {
         }
 
         // Create the builder.
-        let builder = BuildDescriptionBuilder(path: path, signature: signature, buildCommand: buildCommand, taskAdditionalInputs: taskAdditionalInputs, mutatedNodes: Set(mutableNodes.keys), mutatingTasks: mutatingTasks, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, outputPathsPerTarget: outputPathsPerTarget, allOutputPaths: Set(producers.keys.map { $0.instance.path }), rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, workspace: workspace)
+        let builder = BuildDescriptionBuilder(path: path, signature: signature, buildCommand: buildCommand, taskAdditionalInputs: taskAdditionalInputs, mutatedNodes: Set(mutableNodes.keys), mutatingTasks: mutatingTasks, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: targetsBuildInParallel, emitFrontendCommandLines: emitFrontendCommandLines, moduleSessionFilePath: moduleSessionFilePath, invalidationPaths: invalidationPaths, recursiveSearchPathResults: recursiveSearchPathResults, copiedPathMap: copiedPathMap, outputPathsPerTarget: outputPathsPerTarget, allOutputPaths: Set(producers.keys.map { $0.instance.path }), rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, targetDependencies: targetDependencies, definingTargetsByModuleName: definingTargetsByModuleName, workspace: workspace, processEnvironment: processEnvironment)
         for (target, diagnostics) in diagnostics {
             let engine = builder.diagnosticsEngines.getOrInsert(target, { DiagnosticsEngine() })
             for diag in diagnostics {
