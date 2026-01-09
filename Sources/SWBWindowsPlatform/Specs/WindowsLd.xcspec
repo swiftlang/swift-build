@@ -72,13 +72,21 @@
                 Name = _LD_MULTIARCH;
                 Type = Boolean;
                 DefaultValue = NO;
-                Condition = "$(ALTERNATE_LINKER) == link";
             },
             {
                 Name = _LD_MULTIARCH_PREFIX_MAP;
                 Type = StringList;
                 DefaultValue = "aarch64:arm64 armv7:arm arm64ec:arm64 x86_64:x64 i686:x86";
-                Condition = "$(ALTERNATE_LINKER) == link";
+            },
+            {
+                Name = _LD_MACHINE_ARCH;
+                Type = Boolean;
+                DefaultValue = YES;
+                Condition = "$(MACH_O_TYPE) == mh_dylib";
+                CommandLineArgs = {
+                    YES = ("-Xlinker", "/MACHINE:$(_LD_ARCH)");
+                    NO = ();
+                };
             },
             {
                 // No such concept
@@ -176,6 +184,18 @@
                 Name = "LD_DONT_RUN_DEDUPLICATION";
                 Type = Boolean;
                 DefaultValue = YES;
+                Condition = "NO";
+            },
+            {
+                Name = "SWIFTC_LD_EXPORT_GLOBAL_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = "$(LD_EXPORT_GLOBAL_SYMBOLS)";
+                Condition = "NO";
+            },
+            {
+                Name = "CLANG_LD_EXPORT_GLOBAL_SYMBOLS";
+                Type = Boolean;
+                DefaultValue = "$(LD_EXPORT_GLOBAL_SYMBOLS)";
                 Condition = "NO";
             },
             {

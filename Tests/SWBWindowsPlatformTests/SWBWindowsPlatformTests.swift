@@ -46,11 +46,10 @@ import SWBMacro
         // link.exe cannot be used for multipler architectures and requires a distinct link.exe for each target architecture
         table.push(BuiltinMacros.ALTERNATE_LINKER, literal: "link")
         table.push(BuiltinMacros._LD_MULTIARCH, literal: false)
-        table.push(BuiltinMacros._LD_MULTIARCH_PREFIX_MAP, literal: ["aarch64:arm64", "arm64ec:arm64", "armv7:arm", "x86_64:x64", "i686:x86"])
 
         // link x86_64
         if try await core.hasVisualStudioComponent(.visualCppBuildTools_x86_x64) {
-            table.push(BuiltinMacros.ARCHS, literal: ["x86_64"])
+            table.push(BuiltinMacros._LD_ARCH, literal: "x86")
             try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
                 #expect(!info.toolPath.isEmpty)
                 #expect(info.toolVersion != nil)
@@ -62,7 +61,7 @@ import SWBMacro
         }
         // link i686
         if try await core.hasVisualStudioComponent(.visualCppBuildTools_x86_x64) {
-            table.push(BuiltinMacros.ARCHS, literal: ["i686"])
+            table.push(BuiltinMacros._LD_ARCH, literal: "x86")
             try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
                 #expect(!info.toolPath.isEmpty)
                 #expect(info.toolVersion != nil)
@@ -74,7 +73,7 @@ import SWBMacro
         }
         // link aarch64
         if try await core.hasVisualStudioComponent(.visualCppBuildTools_arm64) {
-            table.push(BuiltinMacros.ARCHS, literal: ["aarch64"])
+            table.push(BuiltinMacros._LD_ARCH, literal: "arm64")
             try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
                 #expect(!info.toolPath.isEmpty)
                 #expect(info.toolVersion != nil)
@@ -86,7 +85,7 @@ import SWBMacro
         }
         // link armv7
         if try await core.hasVisualStudioComponent(.visualCppBuildTools_arm) {
-            table.push(BuiltinMacros.ARCHS, literal: ["armv7"])
+            table.push(BuiltinMacros._LD_ARCH, literal: "arm64")
             try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
                 #expect(!info.toolPath.isEmpty)
                 #expect(info.toolVersion != nil)
@@ -98,7 +97,7 @@ import SWBMacro
         }
         // link arm64ec
         if try await core.hasVisualStudioComponent(.visualCppBuildTools_arm64ec) {
-            table.push(BuiltinMacros.ARCHS, literal: ["arm64ec"])
+            table.push(BuiltinMacros._LD_ARCH, literal: "arm64")
             try await withSpec(LdLinkerSpec.self, .deferred, platform: "windows", additionalTable: table) { (info: DiscoveredLdLinkerToolSpecInfo) in
                 #expect(!info.toolPath.isEmpty)
                 #expect(info.toolVersion != nil)

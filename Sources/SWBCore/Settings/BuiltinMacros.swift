@@ -833,6 +833,7 @@ public final class BuiltinMacros {
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
     public static let _LD_MULTIARCH = BuiltinMacros.declareBooleanMacro("_LD_MULTIARCH")
     public static let _LD_MULTIARCH_PREFIX_MAP = BuiltinMacros.declareStringListMacro("_LD_MULTIARCH_PREFIX_MAP")
+    public static let _LD_ARCH = BuiltinMacros.declareStringMacro("_LD_ARCH")
     public static let LEX = BuiltinMacros.declarePathMacro("LEX")
     public static let LEXFLAGS = BuiltinMacros.declareStringListMacro("LEXFLAGS")
     public static let LIBRARIAN = BuiltinMacros.declareStringMacro("LIBRARIAN")
@@ -1949,6 +1950,7 @@ public final class BuiltinMacros {
         LD_WARN_UNUSED_DYLIBS,
         _LD_MULTIARCH,
         _LD_MULTIARCH_PREFIX_MAP,
+        _LD_ARCH,
         LEGACY_DEVELOPER_DIR,
         LEX,
         LEXFLAGS,
