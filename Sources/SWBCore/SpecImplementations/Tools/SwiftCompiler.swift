@@ -1093,6 +1093,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case emitPackageModuleInterfacePath = "emit-package-module-interface-path"
         case compilationCaching = "compilation-caching"
         case Isystem = "Isystem"
+        case apiDigesterXcc = "api-digester-Xcc"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ flag: String) -> Bool {
