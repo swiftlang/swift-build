@@ -101,10 +101,7 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
             commandLine += ["-disable-fail-on-error"]
         }
         let allInputs = cbc.inputs.map { delegate.createNode($0.absolutePath) } + [baselinePath, allowlistPath].compactMap { $0 }.map { delegate.createNode($0.normalize()) }
-        // Add import search paths
-        for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
-            commandLine += ["-I", searchPath]
-        }
+        commandLine.append(contentsOf: computeSharedAPIDigesterFlags(cbc: cbc, toolSpecInfo: toolSpecInfo))
         delegate.createTask(type: self,
                             payload: ABICheckerPayload(
                                 serializedDiagnosticsPath: serializedDiagsPath,
