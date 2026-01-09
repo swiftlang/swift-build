@@ -187,7 +187,7 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                     return cbc.scope.namespace.parseLiteralStringList(knownLocalizations)
                 }
                 return nil
-                
+
             default:
                 return nil
             }
