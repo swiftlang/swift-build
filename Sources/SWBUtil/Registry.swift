@@ -39,14 +39,19 @@ public final class Registry<K: Hashable & Sendable, V: Sendable>: KeyValueStorag
     ///
     /// NOTE:  Currently there is only one lock for the whole registry.  If contention becomes a problem we could also have a separate lock for each value, and only hold the registry-wide lock while probing for (and potentially creating a slot for) the key.  The per-value lock would then be held while checking for (and potentially creating) the value.  This is possible because the key is known without invoking the creator block.
     public func getOrInsert(_ key: K, _ creator: () throws -> V) rethrows -> V {
-        try dict.withLock {
+        if let cachedValue = dict.withLock({ $0[key] }) {
             // If there is already a value for the key, return it
-            if let value = $0[key] {
-                return value
-            }
+            return cachedValue
+        }
 
-            // Otherwise, create the value and assign it (while holding the lock).
-            let value = try creator()
+        // Otherwise, create the value
+        let value = try creator()
+
+        return dict.withLock {
+            // Check if value was set during creation (while holding the lock)
+            if let cachedValue = $0[key] {
+                return cachedValue
+            }
             $0[key] = value
             return value
         }
