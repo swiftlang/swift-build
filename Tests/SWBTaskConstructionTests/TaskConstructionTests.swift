@@ -3513,6 +3513,156 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test
+    func swiftSDKRunDestination() async throws {
+        let clangCompilerPath = try await self.clangCompilerPath
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+        let targetName = "CoreFoo"
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("SourceFile.m"),
+                    TestFile("SwiftFile.swift"),
+                ]),
+            targets: [
+                TestStandardTarget(
+                    targetName,
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "GENERATE_INFOPLIST_FILE": "YES",
+                                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                "SDKROOT": "macosx",
+                                                "CLANG_ENABLE_MODULES": "YES",
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": swiftVersion,
+                                                "TAPI_EXEC": tapiToolPath.str,
+                                                "CC": clangCompilerPath.str,
+                                                "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                                                "CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING": "",
+                                                "CLANG_WARN_COMMA": "",
+                                                "CLANG_WARN_FLOAT_CONVERSION": "",
+                                                "CLANG_WARN_NON_LITERAL_NULL_CONVERSION": "",
+                                                "CLANG_WARN_OBJC_LITERAL_CONVERSION": "",
+                                                "CLANG_WARN_STRICT_PROTOTYPES": "",
+                                                "CLANG_WARN_IMPLICIT_FALLTHROUGH": "",
+                                                "CLANG_USE_RESPONSE_FILE": "NO",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("SourceFile.m"),
+                            TestBuildFile("SwiftFile.swift"),
+                        ]),
+                    ]),
+                TestStandardTarget(
+                    "FrameworkWithModule",
+                    type: .framework,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "GENERATE_INFOPLIST_FILE": "YES",
+                                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                                "SDKROOT": "macosx",
+                                                "CLANG_ENABLE_MODULES": "YES",
+                                                "DEFINES_MODULE": "YES",
+                                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                                "SWIFT_VERSION": swiftVersion,
+                                                "TAPI_EXEC": tapiToolPath.str,
+                                                "CC": clangCompilerPath.str,
+                                                "CLANG_EXPLICIT_MODULES_LIBCLANG_PATH": libClangPath.str,
+                                                "CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING": "",
+                                                "CLANG_WARN_COMMA": "",
+                                                "CLANG_WARN_FLOAT_CONVERSION": "",
+                                                "CLANG_WARN_NON_LITERAL_NULL_CONVERSION": "",
+                                                "CLANG_WARN_OBJC_LITERAL_CONVERSION": "",
+                                                "CLANG_WARN_STRICT_PROTOTYPES": "",
+                                                "CLANG_WARN_IMPLICIT_FALLTHROUGH": "",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            TestBuildFile("SourceFile.m"),
+                            TestBuildFile("SwiftFile.swift"),
+                        ]),
+                    ])
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        // Swift SDK contents
+        let sdkManifestContents = """
+        {
+            "schemaVersion" : "4.0",
+            "targetTriples" : {
+                "wasm32-unknown-wasip1" : {
+                    "sdkRootPath" : "WASI.sdk",
+                    "swiftResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                    "swiftStaticResourcesPath" : "swift.xctoolchain/usr/lib/swift_static",
+                    "toolsetPaths" : [
+                        "toolset.json"
+                    ]
+                }
+            }
+        }
+        """
+        let sdkManifestDir = try localFS.createTemporaryDirectory(parent: localFS.realpath(Path.root.join("tmp")))
+        let sdkManifestPath = sdkManifestDir.join("swift-sdk.json")
+        try await localFS.writeFileContents(sdkManifestDir.join("swift-sdk.json"), waitForNewTimestamp: false, body: { $0.write(sdkManifestContents) })
+        try await localFS.writeFileContents(sdkManifestDir.join("toolset.json"), waitForNewTimestamp: false, body: { stream in
+            stream.write("""
+            {
+                "rootPath" : "swift.xctoolchain/usr/bin",
+                "schemaVersion" : "1.0",
+                "swiftCompiler" : {
+                    "extraCLIOptions" : [
+                        "-static-stdlib"
+                    ]
+                }
+            }
+            """)
+        })
+
+        let sysroot = sdkManifestDir.join("WASI.sdk")
+        let sdkroot = sdkManifestDir.join("WASI.sdk")
+
+        // Check a build with both targets; this should use the VFS since one defines a module.
+        let derivedData = Path("\(SRCROOT)/DerivedData")
+        let arena = ArenaInfo.buildArena(derivedDataRoot: derivedData, enableIndexDataStore: true)
+        let parameters = BuildParameters(configuration: "Debug", activeRunDestination: RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false), arena: arena)
+        let request1 = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false)
+        await tester.checkBuild(parameters, runDestination: nil, buildRequest: request1) { results in
+            results.checkTarget(targetName) { target in
+                // There should be one CompileC task.
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC")) { task in
+                    task.checkCommandLineContains([
+                        [clangCompilerPath.str],
+                        ["-target", "wasm32-unknown-wasip1"],
+                        ["--sysroot", sysroot.str],
+                    ].reduce([], +))
+                }
+
+                // There should be one SwiftDriver task.
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains([
+                        ["-resource-dir", sdkManifestDir.join("swift.xctoolchain").join("usr").join("lib").join("swift_static").str],
+                        ["-static-stdlib"],
+                        ["-sdk", sdkroot.str],
+                        ["-target", "wasm32-unknown-wasip1"],
+                    ].reduce([], +))
+                }
+            }
+
+            // Check there are no diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func moduleCompilerOptions() async throws {
         let clangCompilerPath = try await self.clangCompilerPath

@@ -136,6 +136,6 @@ private extension BuildParameters {
         // All relevant platforms define a preferredArch, so the undefined_arch fallback case should never happen
         // in practice, and indicates a serious issue occurred during plugin loading.
         let targetArchitecture = platform.preferredArch ?? "undefined_arch"
-        return RunDestinationInfo(platform: platform.name, sdk: platform.name, sdkVariant: nil, targetArchitecture: targetArchitecture, supportedArchitectures: [targetArchitecture], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
+        return RunDestinationInfo(buildTarget: .toolchainSDK(platform: platform.name, sdk: platform.name, sdkVariant: nil), targetArchitecture: targetArchitecture, supportedArchitectures: [targetArchitecture], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
     }
 }
