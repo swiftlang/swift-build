@@ -206,6 +206,13 @@
                 DefaultValue = "$(TARGET_TEMP_DIR)/assetcatalog_generated_info.plist";
                 CommandLineArgs = ( "--output-partial-info-plist", "$(value)" );
             },
+            
+            {
+                Name = ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES;
+                Type = StringList;
+                DefaultValue = "";
+                CommandLineFlag = "--include-languages";
+            },
 
             {
                 Name = "ASSETCATALOG_COMPILER_STICKER_PACK_STRINGS";

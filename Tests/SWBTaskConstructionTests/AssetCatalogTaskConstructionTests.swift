@@ -438,4 +438,94 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func assetCatalogKnownLocalizationsFiltering() async throws {
+        let actoolPath = try await self.actoolPath
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "AssetCatalogKnownRegionsTest",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup("Root", children: [
+                    TestFile("Assets.xcassets"),
+                ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ASSETCATALOG_EXEC": actoolPath.str,
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget("App", type: .application,
+                                       buildPhases: [
+                                        TestResourcesBuildPhase([
+                                            "Assets.xcassets",
+                                        ])
+                                       ])
+                ],
+                knownLocalizations: ["en", "de", "Base"] // Only en and de should be compiled
+            )
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            await tester.checkBuild(runDestination: .macOS) { results in
+
+                results.checkTask(
+                    .matchRuleType("CompileAssetCatalogVariant"),
+                    .matchRuleItem("thinned")
+                ) { task in
+                    task.checkCommandLineContains(["--include-languages", "en"])
+                    task.checkCommandLineContains(["--include-languages", "de"])
+                    task.checkCommandLineDoesNotContain("Base")
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func assetCatalogEmptyKnownLocalizations() async throws {
+        let actoolPath = try await self.actoolPath
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = TestProject(
+                "AssetCatalogEmptyKnownLocalizationsTest",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup("Root", children: [
+                    TestFile("Assets.xcassets"),
+                ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ASSETCATALOG_EXEC": actoolPath.str,
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget("App", type: .application,
+                                       buildPhases: [
+                                        TestResourcesBuildPhase([
+                                            "Assets.xcassets",
+                                        ])
+                                       ])
+                ],
+                knownLocalizations: [] // Empty array, all localizations should build
+            )
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+
+            await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkTask(
+                    .matchRuleType("CompileAssetCatalogVariant"),
+                    .matchRuleItem("thinned")
+                ) { task in
+                    // When knownLocalizations is empty, no --include-languages should appear
+                    task.checkCommandLineDoesNotContain("--include-languages")
+                }
+                results.checkNoDiagnostics()
+            }
+        }
+    }
 }

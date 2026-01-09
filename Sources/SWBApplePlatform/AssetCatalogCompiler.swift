@@ -177,6 +177,17 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                     return [base, region, path].joined(separator: ":")
                 }))
 
+            case BuiltinMacros.ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES:
+                if cbc.scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS), var knownLocalizations = cbc.producer.project?.knownLocalizations {
+
+                    knownLocalizations.removeAll(where: { $0 == "Base" })
+                    if !knownLocalizations.isEmpty {
+                        delegate.note("Asset Catalog will compile languages for known regions: \(knownLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
+                    }
+                    return cbc.scope.namespace.parseLiteralStringList(knownLocalizations)
+                }
+                return nil
+                
             default:
                 return nil
             }
