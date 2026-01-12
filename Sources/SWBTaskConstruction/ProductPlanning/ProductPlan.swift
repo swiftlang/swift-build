@@ -173,6 +173,10 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// A map of `MH_BUNDLE` targets to any clients of that target.
     let clientsOfBundlesByTarget: [ConfiguredTarget:[ConfiguredTarget]]
 
+    /// The set of targets which should compile any swiftmodules they emit assuming the corresponding binary will be statically linked.
+    /// Currently, this information is only used when targeting Windows.
+    let targetsWhichShouldCompileSwiftModulesForStaticLinking: Set<ConfiguredTarget>
+
     private static let dynamicMachOTypes = ["mh_execute", "mh_dylib", "mh_bundle"]
 
     // Checks that we have either been passed a configuration override for packages or we are building Debug/Release.
@@ -230,6 +234,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.swiftMacroImplementationDescriptorsByTarget = Self.computeSwiftMacroImplementationDescriptors(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, delegate: delegate)
         self.targetsRequiredToBuildForIndexing = Self.computeTargetsRequiredToBuildForIndexing(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
         self.targetsWhichShouldBuildModulesDuringInstallAPI = Self.computeTargetsWhichShouldBuildModulesInInstallAPI(buildRequest: planRequest.buildRequest, buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+        self.targetsWhichShouldCompileSwiftModulesForStaticLinking = await Self.computeTargetsWhichShouldCompileSwiftModulesForStaticLinking(buildRequest: planRequest.buildRequest, buildGraph: planRequest.buildGraph, getLinkageGraph: getLinkageGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, delegate: delegate)
 
         // Diagnostics reporting
         diagnoseInvalidDeploymentTargets(diagnosticDelegate: delegate)
@@ -454,6 +459,46 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         } else {
             return []
         }
+    }
+
+    // TODO: We should consider an additional pass which duplicates targets which are both incorporated in a shared library and used statically.
+    private static func computeTargetsWhichShouldCompileSwiftModulesForStaticLinking(buildRequest: BuildRequest, buildGraph: TargetBuildGraph, getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext, delegate: any GlobalProductPlanDelegate) async -> Set<ConfiguredTarget> {
+        // For the time being, we only perform this analysis when targeting Windows, where it's necessary for correctness. In the future, this may be useful to enable elsewhere to enable optimizations.
+        guard buildGraph.allTargets.contains(where: { configuredTarget in
+            buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget]).platform?.name == "windows"
+        }) else {
+            return []
+        }
+        let linkageGraph: TargetLinkageGraph
+        do {
+            linkageGraph = try await getLinkageGraph()
+        } catch {
+            delegate.error("failed to compute statically linked targets: \(error.localizedDescription)")
+            return []
+        }
+        var targetsIncludedInDylib: Set<ConfiguredTarget> = []
+        // Process the targets in topological order by linkage
+        for configuredTarget in linkageGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+            // If this target is a dylib/bundle or is linked into one, review its linkage dependencies for any other targets which may also be incorporated in it.
+            // Because we review targets in topological order, `configuredTarget` will already have been added to `targetsIncludedInDylib` if it produces a binary incorporated into a dylib.
+            if ["mh_dylib", "mh_bundle"].contains(settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE)) || targetsIncludedInDylib.contains(configuredTarget) {
+                targetsIncludedInDylib.insert(configuredTarget)
+                for linkageDependencyConfiguredTarget in linkageGraph.dependencies(of: configuredTarget) {
+                    // If we've already determined this target contributes to a dylib, we can skip the following checks.
+                    if targetsIncludedInDylib.contains(linkageDependencyConfiguredTarget) {
+                        continue
+                    }
+                    let dependencySettings = buildRequestContext.getCachedSettings(linkageDependencyConfiguredTarget.parameters, target: linkageDependencyConfiguredTarget.target, provisioningTaskInputs: provisioningInputs[linkageDependencyConfiguredTarget])
+                    // If the dependency is not itself dynamically linked, it will be incorporated into the dylib.
+                    if !["mh_dylib", "mh_bundle"].contains(dependencySettings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE)) {
+                        targetsIncludedInDylib.insert(linkageDependencyConfiguredTarget)
+                    }
+                }
+            }
+        }
+        // Any target which is not incorporated into a dylib is one which should compile swiftmodules assuming static linking.
+        return Set(linkageGraph.allTargets.subtracting(targetsIncludedInDylib))
     }
 
     /// Compute artifactbundle metadata for each target in the build graph.

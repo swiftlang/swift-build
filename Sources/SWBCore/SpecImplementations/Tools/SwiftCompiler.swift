@@ -1883,6 +1883,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Instruct the compiler to serialize diagnostics.
             args.append("-serialize-diagnostics")
 
+            if cbc.producer.swiftModuleShouldCompileForStaticLinking {
+                args.append("-static")
+            }
+
             if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                 // Instruct the compiler to emit dependencies information.
                 args.append("-emit-dependencies")

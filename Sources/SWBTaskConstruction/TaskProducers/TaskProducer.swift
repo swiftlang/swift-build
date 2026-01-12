@@ -1356,6 +1356,11 @@ extension TaskProducerContext: CommandProducer {
         configuredTarget.flatMap { globalProductPlan.swiftMacroImplementationDescriptorsByTarget[$0] }
     }
 
+    public var swiftModuleShouldCompileForStaticLinking: Bool {
+        guard let configuredTarget else { return false }
+        return globalProductPlan.targetsWhichShouldCompileSwiftModulesForStaticLinking.contains(configuredTarget)
+    }
+
     /// Returns true if eager linking is supported in this context and scope. The eager linking optimization is only permitted if certain criteria are met.
     public func supportsEagerLinking(scope: MacroEvaluationScope) -> Bool {
         let buildComponents = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS)

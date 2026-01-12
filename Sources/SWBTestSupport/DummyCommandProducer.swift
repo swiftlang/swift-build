@@ -259,4 +259,8 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
         false
     }
+
+    package var swiftModuleShouldCompileForStaticLinking: Bool {
+        false
+    }
 }
