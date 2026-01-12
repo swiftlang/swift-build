@@ -148,6 +148,14 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             return []
         }
     }
+
+    public func platformName(triple: LLVMTriple) -> String? {
+        if triple.system == "windows" {
+            return triple.system
+        }
+
+        return nil
+    }
 }
 
 struct WindowsSDKRegistryExtension: SDKRegistryExtension {

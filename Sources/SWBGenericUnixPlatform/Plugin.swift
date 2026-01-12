@@ -92,6 +92,17 @@ struct GenericUnixPlatformInfoExtension: PlatformInfoExtension {
             ])
         }
     }
+
+    func platformName(triple: LLVMTriple) -> String? {
+        switch triple.system {
+        case "linux" where triple.environment?.hasPrefix("gnu") == true || triple.environment == "musl",
+            "freebsd",
+            "openbsd":
+            return triple.system
+        default:
+            return nil
+        }
+    }
 }
 
 struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
@@ -164,7 +175,9 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 sysroot = .root
                 architectures = [Architecture.hostStringValue ?? "unknown"]
                 tripleVersion = nil
-                customProperties = [:]
+                customProperties = [
+                    "SWIFTC_PASS_SDKROOT": "NO",
+                ]
             } else {
                 do {
                     let swiftSDKs = try SwiftSDK.findSDKs(

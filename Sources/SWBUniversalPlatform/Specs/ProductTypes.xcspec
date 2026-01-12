@@ -205,6 +205,23 @@
         );
     },
 
+    {
+        Type = ProductType;
+        Identifier = org.swift.product-type.common.object;
+        BasedOn = com.apple.product-type.objfile;
+        Name = "Mappable Common Object Type";
+        Description = "This type should be used as the top level product type for object files as it may map to different types on different platforms";
+    },
+
+    {
+        Type = ProductType;
+        Identifier = org.swift.product-type.library.static;
+        BasedOn = com.apple.product-type.objfile;
+        Name = "Mappable Common Static Library Type";
+        Description = "This type should be used as the top level product type for static libraries as it may map to different types on different platforms";
+    },
+
+
     //
     // Wrapper product types
     //

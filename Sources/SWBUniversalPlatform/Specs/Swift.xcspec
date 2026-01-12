@@ -918,11 +918,16 @@
                     NO  = ();
                 };
             },
-
+            {
+                Name = SWIFTC_PASS_SDKROOT;
+                Type = Boolean;
+                DefaultValue = YES;
+            },
             {
                 Name = SDKROOT;
                 Type = Path;
                 CommandLineFlag = "-sdk";
+                Condition = "$(SWIFTC_PASS_SDKROOT)";
             },
             {
                 Name = "SWIFT_DEPLOYMENT_TARGET";

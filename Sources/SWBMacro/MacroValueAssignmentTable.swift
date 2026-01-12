@@ -111,10 +111,12 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         return lookupMacro(macro)?.location
     }
 
+    /// - remark: This is to handle fallback setting conditions, and is not intended to be used for any other purpose.
     public func bindConditionParameter(_ parameter: MacroConditionParameter, _ conditionValues: [String]) -> MacroValueAssignmentTable {
         return bindConditionParameter(parameter, conditionValues.map { .string($0) })
     }
 
+    /// - remark: This is to handle fallback setting conditions, and is not intended to be used for any other purpose.
     public func bindConditionParameter(_ parameter: MacroConditionParameter, _ filter: any CustomConditionParameterCondition) -> MacroValueAssignmentTable {
         return bindConditionParameter(parameter, [.customCondition(filter)])
     }
@@ -138,6 +140,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     }
 
     /// Returns a new `MacroValueAssignmentTable` formed by "binding" a condition parameter to a specific value.  Assignments that are conditional on the given parameter and that match one of the given literal values will become unconditional on that parameter.  Assignments that are conditional on the given parameter and that do not match any of the given literal values will be omitted.  All other conditions will be preserved.  If none of the assignments in the receiver are conditional on the given parameter, the resulting macro assignment table will be equal to the receiver.
+    /// - remark: This is to handle fallback setting conditions, and is not intended to be used for any other purpose.
     private func bindConditionParameter(_ parameter: MacroConditionParameter, _ conditionValues: [ConditionValue]) -> MacroValueAssignmentTable {
         // Go through the assignments
         var table = MacroValueAssignmentTable(namespace: namespace)

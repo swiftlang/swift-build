@@ -810,8 +810,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             tasks.append(generateKernelExtensionModuleInfoFileTask)
         }
 
-        let packageTargetBundleAccessorResult = await generatePackageTargetBundleAccessorResult(scope)
-        tasks += packageTargetBundleAccessorResult?.tasks ?? []
+        let packageTargetBundleAccessorResults = await generatePackageTargetBundleAccessorResult(scope)
+        for result in packageTargetBundleAccessorResults {
+            tasks += result.tasks
+        }
 
         let bundleLookupHelperResult = await generateBundleLookupHelper(scope)
         tasks += bundleLookupHelperResult?.tasks ?? []
@@ -909,7 +911,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         result.append((generateKernelExtensionModuleInfoFileTask.outputs.first!.path, context.lookupFileType(languageDialect: .c)!, /* shouldUsePrefixHeader */ false))
                     }
 
-                    if let packageTargetBundleAccessorResult {
+                    for packageTargetBundleAccessorResult in packageTargetBundleAccessorResults {
                         result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
@@ -1245,7 +1247,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
                     var result: [(Path, FileTypeSpec, Bool)] = []
 
-                    if let packageTargetBundleAccessorResult {
+                    for packageTargetBundleAccessorResult in packageTargetBundleAccessorResults {
                         result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
@@ -1633,6 +1635,18 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
             tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
+        } else if scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS) {
+            // For non-installLoc builds, filter based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+            tasks = tasks.filter { task in
+                task.inputs.allSatisfy { input in
+                    input.path.buildSettingAllowsBuildingLocale(
+                        scope,
+                        in: context.project,
+                        inputFileAbsolutePath: input.path,
+                        nil
+                    )
+                }
+            }
         }
 
         // Create a task to validate dependencies if that feature is enabled.
@@ -1727,10 +1741,24 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
         }
 
+        var inputFiles = group.files
+
+        inputFiles = inputFiles.filter { file in
+            return file.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: file.absolutePath,
+                delegate
+            )
+        }
+        guard !inputFiles.isEmpty else {
+            return
+        }
+
         // Compute the resources directory.
         let resourcesDir = buildFilesContext.resourcesDir.join(group.regionVariantPathComponent)
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputFiles, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -1855,34 +1883,31 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     /// Generates a task for creating the resource bundle accessor for package targets.
     ///
     /// This produces the `Bundle.module` accessor.
-    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> GeneratedResourceAccessorResult? {
+    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> [GeneratedResourceAccessorResult] {
         let bundleName = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_BUNDLE_NAME)
         let isRegularPackage = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_TARGET_KIND) == .regular
         let targetHasAssetCatalog = targetContext.configuredTarget?.target.hasAssetCatalog(scope: scope, context: context, includeGenerated: false) ?? false
 
         let needsPackageTargetBundleAccessor = !bundleName.isEmpty || (isRegularPackage && targetHasAssetCatalog)
-        guard needsPackageTargetBundleAccessor else { return nil }
+        guard needsPackageTargetBundleAccessor else { return [] }
 
         if !scope.evaluate(BuiltinMacros.GENERATE_RESOURCE_ACCESSORS) {
-            return nil
+            return []
         }
 
         let workspace = self.context.workspaceContext.workspace
 
-        // Swift package target can only contain either Swift or C-family languages so
-        // we don't need to worry about targets with mixed languages.
+        var results: [GeneratedResourceAccessorResult] = []
         if buildPhase.containsSwiftSources(workspace, context, scope, context.filePathResolver) {
-            return await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName)
-        } else if buildPhase.containsObjCSources(workspace, context, scope, context.filePathResolver) {
-            return await generatePackageTargetBundleAccessorForObjC(scope, bundleName: bundleName)
-        } else {
-            return nil
+            results.append(await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName))
         }
+        if buildPhase.containsObjCSources(workspace, context, scope, context.filePathResolver) {
+            results.append(await generatePackageTargetBundleAccessorForObjC(scope, bundleName: bundleName))
+        }
+        return results
     }
 
-    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult? {
-        guard !bundleName.isEmpty else { return nil }
-
+    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult {
         let headerFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.h")
         let implFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.m")
 
