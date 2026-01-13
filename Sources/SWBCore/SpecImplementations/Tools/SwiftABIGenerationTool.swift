@@ -49,10 +49,7 @@ public final class SwiftABIGenerationToolSpec : GenericCommandLineToolSpec, Spec
 
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
         commandLine += ["-o", baselineFile.normalize().str]
-        // Add import search paths
-        for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
-            commandLine += ["-I", searchPath]
-        }
+        commandLine.append(contentsOf: computeSharedAPIDigesterFlags(cbc: cbc, toolSpecInfo: toolSpecInfo))
         delegate.createTask(type: self,
                             ruleInfo: defaultRuleInfo(cbc, delegate),
                             commandLine: commandLine,
@@ -62,4 +59,32 @@ public final class SwiftABIGenerationToolSpec : GenericCommandLineToolSpec, Spec
                             outputs: [delegate.createNode(cbc.output)],
                             enableSandboxing: enableSandboxing)
     }
+}
+
+func computeSharedAPIDigesterFlags(cbc: CommandBuildContext, toolSpecInfo: DiscoveredSwiftCompilerToolSpecInfo) -> [String] {
+    var commandLine: [String] = []
+    for searchPath in SwiftCompilerSpec.collectInputSearchPaths(cbc, toolInfo: toolSpecInfo) {
+        commandLine += ["-I", searchPath]
+    }
+    if toolSpecInfo.toolFeatures.has(.apiDigesterXcc) {
+        let headerSearchPaths = GCCCompatibleCompilerSpecSupport.headerSearchPathArguments(cbc.producer, cbc.scope, usesModules: true)
+        let commonHeaderSearchArgs = headerSearchPaths.searchPathArguments(for: cbc.producer.swiftCompilerSpec, scope: cbc.scope)
+        for option in commonHeaderSearchArgs {
+            commandLine.append(contentsOf: ["-Xcc", option])
+        }
+        for cppDefinition in cbc.scope.evaluate(BuiltinMacros.GCC_PREPROCESSOR_DEFINITIONS) {
+            // FIXME: Separate -D and its argument.
+            commandLine.append(contentsOf: ["-Xcc", "-D" + cppDefinition])
+        }
+        let otherFlags = cbc.scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS)
+        var index = 0
+        while index + 1 < otherFlags.count {
+            if otherFlags[index] == "-Xcc" {
+                commandLine.append("-Xcc")
+                commandLine.append(otherFlags[index + 1])
+            }
+            index += 1
+        }
+    }
+    return commandLine
 }
