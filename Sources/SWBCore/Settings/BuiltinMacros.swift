@@ -220,7 +220,6 @@ public final class BuiltinMacros {
     public static let TARGET_BUILD_DIR = BuiltinMacros.declarePathMacro("TARGET_BUILD_DIR")
     public static let TARGET_BUILD_SUBPATH = BuiltinMacros.declarePathMacro("TARGET_BUILD_SUBPATH")
     public static let TARGET_NAME = BuiltinMacros.declareStringMacro("TARGET_NAME")
-    public static let TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR = BuiltinMacros.declareStringMacro("TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR")
     public static let TARGET_TEMP_DIR = BuiltinMacros.declarePathMacro("TARGET_TEMP_DIR")
     // FIXME: This macro should be deprecated.
     public static let TARGETNAME = BuiltinMacros.declareStringMacro("TARGETNAME")
@@ -2385,7 +2384,6 @@ public final class BuiltinMacros {
         TARGET_DEVICE_OS_VERSION,
         TARGET_DEVICE_PLATFORM_NAME,
         TARGET_NAME,
-        TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR,
         TARGET_TEMP_DIR,
         TEMP_DIR,
         TEMP_FILES_DIR,
