@@ -132,6 +132,11 @@
                 Condition = "NO";
             },
             {
+                Name = "LD_DEBUG_VARIANT";
+                Type = Boolean;
+                Condition = "NO";
+            },
+            {
                 // wasm-ld doesn't support dependency info
                 Name = "LD_DEPENDENCY_INFO_FILE";
                 Type = Path;
