@@ -3270,6 +3270,24 @@
                 // Not visible in the build settings editor
             },
 
+            // Memory-Tagging Address Sanitizer options.
+            {
+                Name = "CLANG_MEMORY_TAGGING_ADDRESS_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xclang",
+                        "-target-feature",
+                        "-Xclang",
+                        "+mte",
+                        "-fsanitize=memtag-stack",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+
             {
                 Name = "CLANG_ENABLE_PREFIX_MAPPING";
                 Type = Boolean;

@@ -263,7 +263,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             enableDebugDylib: true,
                             enableAddressSanitizer: false,
                             enableThreadSanitizer: false,
-                            enableUndefinedBehaviorSanitizer: false
+                            enableUndefinedBehaviorSanitizer: false,
+                            enableMemoryTaggingAddressSanitizer: false
                         )
                     ])
 
@@ -409,7 +410,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             enableDebugDylib: false,
                             enableAddressSanitizer: false,
                             enableThreadSanitizer: false,
-                            enableUndefinedBehaviorSanitizer: false
+                            enableUndefinedBehaviorSanitizer: false,
+                            enableMemoryTaggingAddressSanitizer: false
                         )
                     ]
                 )
@@ -537,7 +539,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             enableDebugDylib: false,
                             enableAddressSanitizer: false,
                             enableThreadSanitizer: false,
-                            enableUndefinedBehaviorSanitizer: false
+                            enableUndefinedBehaviorSanitizer: false,
+                            enableMemoryTaggingAddressSanitizer: false
                         )
                     ]
                 )

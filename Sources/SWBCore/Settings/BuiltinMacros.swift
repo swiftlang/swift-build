@@ -405,6 +405,7 @@ public final class BuiltinMacros {
     public static let ENABLE_ADDRESS_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_ADDRESS_SANITIZER")
     public static let ENABLE_THREAD_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_THREAD_SANITIZER")
     public static let ENABLE_UNDEFINED_BEHAVIOR_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_UNDEFINED_BEHAVIOR_SANITIZER")
+    public static let ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = BuiltinMacros.declareBooleanMacro("ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER")
     public static let ENABLE_SYSTEM_SANITIZERS = BuiltinMacros.declareBooleanMacro("ENABLE_SYSTEM_SANITIZERS")
 
     // MARK: Unit testing macros
@@ -1759,6 +1760,7 @@ public final class BuiltinMacros {
         ENABLE_PRIVATE_TESTING_SEARCH_PATHS,
         ENABLE_THREAD_SANITIZER,
         ENABLE_UNDEFINED_BEHAVIOR_SANITIZER,
+        ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER,
         DISABLE_TASK_SANDBOXING,
         ENABLE_USER_SCRIPT_SANDBOXING,
         ENTITLEMENTS_ALLOWED,
