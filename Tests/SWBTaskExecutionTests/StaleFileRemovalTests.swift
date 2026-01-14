@@ -26,6 +26,7 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
         case address
         case thread
         case undefinedBehavior
+        case memoryTaggingAddress
 
         var settingName: String {
             switch self {
@@ -35,6 +36,8 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                 return "ENABLE_THREAD_SANITIZER"
             case .undefinedBehavior:
                 return "ENABLE_UNDEFINED_BEHAVIOR_SANITIZER"
+            case .memoryTaggingAddress:
+                return "ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER"
             }
         }
 
@@ -46,6 +49,8 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
                 return "tsan"
             case .undefinedBehavior:
                 return "ubsan"
+            case .memoryTaggingAddress:
+                return "mtasan"
             }
         }
     }

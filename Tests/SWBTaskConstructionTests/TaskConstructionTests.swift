@@ -4507,6 +4507,45 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                 // Check there are no diagnostics.
                 results.checkNoDiagnostics()
             }
+
+            // Check the memory-tagging address sanitizer.
+            let arm64RunDestination = RunDestinationInfo(platform: "macosx", sdk: "macosx", sdkVariant: "macosx", targetArchitecture: "arm64", supportedArchitectures: ["arm64"], disableOnlyActiveArch: false)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER": "YES", "ONLY_ACTIVE_ARCH": "YES"]), runDestination: arm64RunDestination, fs: fs) { results in
+                results.checkTarget(targetName) { target in
+                    // There should be one CompileC task, which includes the Memory-Tagging Address Sanitizer option, and which puts its output in a -mtasan directory.
+                    results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItem("arm64")) { task in
+                        task.checkRuleInfo([.equal("CompileC"), .equal("\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-mtasan/arm64/SourceFile.o"), .suffix("SourceFile.m"), .any, .any, .any, .any])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-fsanitize=memtag-stack", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-mtasan/arm64/SourceFile.o"])
+                    }
+
+                    // There should be one CompileSwiftSources task, which includes the Memory-Tagging Address Sanitizer option, and which puts its output in a -mtasan directory.
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation"), .matchRuleItem("arm64")) { task in
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-sanitize=memtag-stack", "\(SRCROOT)/build/aProject.build/Debug/\(targetName).build/Objects-normal-mtasan/arm64/\(targetName)-OutputFileMap.json"])
+                    }
+
+                    // There should be one Ld task.
+                    results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
+                        task.checkRuleInfo([.equal("Ld"), .equal("\(SRCROOT)/build/Debug/AppTarget.app/Contents/MacOS/AppTarget"), .any])
+                        task.checkCommandLineContains(["\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"])
+                    }
+
+                    // The main app should still be code signed.
+                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("\(targetName).app")) { task in
+                        task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug/\(targetName).app")])
+                        task.checkCommandLine(["/usr/bin/codesign", "--force", "--sign", "-", "--entitlements", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/AppTarget.app.xcent", "--timestamp=none", "--generate-entitlement-der", "\(SRCROOT)/build/Debug/\(targetName).app"])
+                    }
+                }
+
+                // Check there are no diagnostics.
+                results.checkNoDiagnostics()
+            }
+
+            // Check that memory-tagging address sanitizer shows an error on unsupported architectures.
+            let x86_64RunDestination = RunDestinationInfo(platform: "macosx", sdk: "macosx", sdkVariant: "macosx", targetArchitecture: "x86_64", supportedArchitectures: ["x86_64"], disableOnlyActiveArch: false)
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER": "YES", "ONLY_ACTIVE_ARCH": "YES"]), runDestination: x86_64RunDestination, fs: fs) { results in
+                // Should get an error for x86_64 architecture not being supported
+                results.checkError(.contains("Memory-Tagging Address Sanitizer is enabled (ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = YES), but is not supported for architecture(s): x86_64"))
+            }
         }
     }
 

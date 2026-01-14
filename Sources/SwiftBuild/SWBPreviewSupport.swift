@@ -106,6 +106,10 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
     /// user to disable the sanitizer in some cases where it is known to fail.
     public let enableUndefinedBehaviorSanitizer: Bool
 
+    /// Reads from `ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER`. Previews currently uses this to ask the
+    /// user to disable the sanitizer in some cases where it is known to fail.
+    public let enableMemoryTaggingAddressSanitizer: Bool
+
     @_spi(Testing) public init(
         sdkRoot: String,
         sdkVariant: String? = nil,
@@ -122,7 +126,8 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         enableDebugDylib: Bool,
         enableAddressSanitizer: Bool,
         enableThreadSanitizer: Bool,
-        enableUndefinedBehaviorSanitizer: Bool
+        enableUndefinedBehaviorSanitizer: Bool,
+        enableMemoryTaggingAddressSanitizer: Bool
     ) {
         self.sdkRoot = sdkRoot
         self.sdkVariant = sdkVariant
@@ -140,5 +145,6 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         self.enableAddressSanitizer = enableAddressSanitizer
         self.enableThreadSanitizer = enableThreadSanitizer
         self.enableUndefinedBehaviorSanitizer = enableUndefinedBehaviorSanitizer
+        self.enableMemoryTaggingAddressSanitizer = enableMemoryTaggingAddressSanitizer
     }
 }

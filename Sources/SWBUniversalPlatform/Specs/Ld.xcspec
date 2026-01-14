@@ -690,7 +690,7 @@
                 Name = "LD_DEBUG_VARIANT";
                 Type = Boolean;
                 DefaultValue = YES;
-                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
+                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
                 CommandLineArgs = {
                     YES = (
                         "-Xlinker",

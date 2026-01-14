@@ -243,14 +243,17 @@ fileprivate struct StaleFileRemovalTests: CoreBasedTests {
             let sanitizerCombinations = [
                 "ENABLE_ADDRESS_SANITIZER",
                 "ENABLE_THREAD_SANITIZER",
-                "ENABLE_UNDEFINED_BEHAVIOR_SANITIZER"
+                "ENABLE_UNDEFINED_BEHAVIOR_SANITIZER",
+                "ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER"
             ].combinationsWithoutRepetition
 
             var previousBuildParameters = [BuildParameters]()
 
             for combination in sanitizerCombinations {
-                // Skip combinations with asan and tsan, since they're invalid to the compiler.
-                if combination.contains("ENABLE_ADDRESS_SANITIZER") && combination.contains("ENABLE_THREAD_SANITIZER") {
+                // Skip combinations with (asan + tsan) or (asan + mtsan), since they're invalid to the compiler.
+                if (combination.contains("ENABLE_ADDRESS_SANITIZER") && combination.contains("ENABLE_THREAD_SANITIZER")) ||
+                   (combination.contains("ENABLE_ADDRESS_SANITIZER") && combination.contains("ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER"))
+                {
                     continue
                 }
 
