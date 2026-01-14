@@ -317,6 +317,7 @@ fileprivate struct UnitTestTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "CODE_SIGN_IDENTITY": "",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SDKROOT": "auto",
                         "SWIFT_VERSION": swiftVersion,
                         "INDEX_DATA_STORE_DIR": "/index",

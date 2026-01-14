@@ -251,6 +251,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// Swift macro implementation descriptors to be applied to this target.
     var swiftMacroImplementationDescriptors: Set<SwiftMacroImplementationDescriptor>? { get }
 
+    var swiftModuleShouldCompileForStaticLinking: Bool { get }
+
     func supportsEagerLinking(scope: MacroEvaluationScope) -> Bool
 
     /// Returns information on the headers referenced by an individual project, identified by one of the targets in that project.

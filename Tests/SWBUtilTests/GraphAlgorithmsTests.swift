@@ -77,6 +77,76 @@ import SWBUtil
         #expect([4] == dupes)
     }
 
+    @Test
+    func topologicalSort() throws {
+        let linear: [Int: [Int]] = [
+            1: [2],
+            2: [3],
+            3: []
+        ]
+        let linearResult = SWBUtilTests.topologicalSort([1, 2, 3], linear)
+        #expect(linearResult == [1, 2, 3])
+
+        let diamond: [Int: [Int]] = [
+            1: [2, 3],
+            2: [4],
+            3: [4],
+            4: []
+        ]
+        let diamondResult = SWBUtilTests.topologicalSort([1, 2, 3, 4], diamond)
+        #expect(diamondResult.first == 1)
+        #expect(diamondResult.last == 4)
+        let diamondIndex1 = try #require(diamondResult.firstIndex(of: 1))
+        let diamondIndex2 = try #require(diamondResult.firstIndex(of: 2))
+        let diamondIndex3 = try #require(diamondResult.firstIndex(of: 3))
+        let diamondIndex4 = try #require(diamondResult.firstIndex(of: 4))
+        #expect(diamondIndex1 < diamondIndex2)
+        #expect(diamondIndex1 < diamondIndex3)
+        #expect(diamondIndex2 < diamondIndex4)
+        #expect(diamondIndex3 < diamondIndex4)
+
+        let empty: [Int: [Int]] = [:]
+        #expect(SWBUtilTests.topologicalSort([], empty) == [])
+
+        let single: [Int: [Int]] = [1: []]
+        #expect(SWBUtilTests.topologicalSort([1], single) == [1])
+
+        let independent: [Int: [Int]] = [
+            1: [2],
+            2: [],
+            3: [4],
+            4: []
+        ]
+        let indepResult = SWBUtilTests.topologicalSort([1, 2, 3, 4], independent)
+        #expect(indepResult.count == 4)
+        let indepIndex1 = try #require(indepResult.firstIndex(of: 1))
+        let indepIndex2 = try #require(indepResult.firstIndex(of: 2))
+        let indepIndex3 = try #require(indepResult.firstIndex(of: 3))
+        let indepIndex4 = try #require(indepResult.firstIndex(of: 4))
+        #expect(indepIndex1 < indepIndex2)
+        #expect(indepIndex3 < indepIndex4)
+
+        let complex: [Int: [Int]] = [
+            1: [3],
+            2: [3, 4],
+            3: [5],
+            4: [5],
+            5: []
+        ]
+        let complexResult = SWBUtilTests.topologicalSort([1, 2, 3, 4, 5], complex)
+        #expect(complexResult.last == 5)
+        let complexIndex1 = try #require(complexResult.firstIndex(of: 1))
+        let complexIndex2 = try #require(complexResult.firstIndex(of: 2))
+        let complexIndex3 = try #require(complexResult.firstIndex(of: 3))
+        let complexIndex4 = try #require(complexResult.firstIndex(of: 4))
+        let complexIndex5 = try #require(complexResult.firstIndex(of: 5))
+        #expect(complexIndex1 < complexIndex3)
+        #expect(complexIndex2 < complexIndex3)
+        #expect(complexIndex2 < complexIndex4)
+        #expect(complexIndex3 < complexIndex5)
+        #expect(complexIndex4 < complexIndex5)
+    }
+
 }
 
 private func minimumDistance<T>(
@@ -96,4 +166,8 @@ private func transitiveClosure(_ nodes: [Int], _ successors: [Int: [Int]]) -> [I
 }
 private func transitiveClosure(_ node: Int, _ successors: [Int: [Int]]) -> [Int] {
     return transitiveClosure([node], successors)
+}
+
+private func topologicalSort<T: Hashable>(_ vertices: [T], _ graph: [T: [T]]) -> [T] {
+    return topologicalSort(vertices, successors: { graph[$0] ?? [] })
 }
