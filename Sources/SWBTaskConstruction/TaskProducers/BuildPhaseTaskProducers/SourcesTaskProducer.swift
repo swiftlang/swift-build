@@ -971,8 +971,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
-                let objectsInFrameworkPhase = librariesToLink.filter{ $0.kind == .object }
-                linkerInputNodes.append(contentsOf: objectsInFrameworkPhase.map{ $0.path }.map(context.createNode))
+                let staticallyLinkedItemsInFrameworkPhase = librariesToLink.filter{ [.object, .static].contains($0.kind) }
+                // Only add the object files as explicit input nodes here because libraries found via search paths will be tracked using dependency info files.
+                let objectsInFrameworksPhase = librariesToLink.filter{ $0.kind == .object }
+                linkerInputNodes.append(contentsOf: objectsInFrameworksPhase.map{ $0.path }.map(context.createNode))
 
                 if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
                     // If this flag isn't enabled we still want the dylib to be a dependency for this task.
@@ -986,7 +988,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let additionalLinkerOrderingInputs = librariesToLink.flatMap { $0.explicitDependencies.map(context.createNode) }
 
                 // If there is at least one object file that was built using Swift, ensure the Swift tool is present in the used tools to allow linker spec to add swift specific linker arguments.
-                if objectsInFrameworkPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
+                if objectsInFrameworksPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
                     usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "compiled.mach-o.objfile")!]
                 }
 
@@ -994,13 +996,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 // Except that we do want to run the linker when creating a merged library, because the binary needs to either reexport or merge its mergeable libraries.
                 //
                 // FIXME: This is a crude approximation of the actual logic, but works for now.
-                if isForAPI || (perArchTasks.isEmpty && objectsInFrameworkPhase.isEmpty), !scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
+                if isForAPI || (perArchTasks.isEmpty && staticallyLinkedItemsInFrameworkPhase.isEmpty), !scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
                     tasks.append(contentsOf: perArchTasks)
                     continue
                 }
 
                 // Create the linker task.  If we have no input files but decide to create the task anyway, then this task will rely on gate tasks to be properly ordered (which is what happens for the prelinked object file task above if there are no input files).
-                if !linkerInputNodes.isEmpty || (components.contains("build") && scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)) {
+                if !linkerInputNodes.isEmpty || !staticallyLinkedItemsInFrameworkPhase.isEmpty || (components.contains("build") && scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)) {
                     // Compute the output path.
                     let output: Path
                     let commandOrderingOutputs: [any PlannedNode]
