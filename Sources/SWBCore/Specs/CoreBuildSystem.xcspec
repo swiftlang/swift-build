@@ -3490,6 +3490,13 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DisplayName = "Deployment Target Build Setting Name";
                 Description = "The name of the build setting for the deployment target for the effective platform. This can be used to evaluate the build setting using build setting interpolation without hard-coding the name, e.g. `$($(DEPLOYMENT_TARGET_SETTING_NAME))`, or to compose the names of other settings which contain its name, such as the `RECOMMENDED_<platform>_DEPLOYMENT_TARGET` settings.";
             },
+            {
+                Name = "C_COMPILER_LAUNCHER";
+                Type = String;
+                DefaultValue = "";
+                DisplayName = "Compiler Launcher";
+                Description = "The path to a compiler launcher. This build setting causes the build system to invoke the launcher tool with the original compiler path and arguments. Examples include `distcc` and `ccache`. Don't use the `CC`, `CPLUSPLUS`, `OBJCC`, or `OBJCPLUSPLUS` build settings to specify a compiler launcher.";
+            },
 
             // Index-while-building options
             {
