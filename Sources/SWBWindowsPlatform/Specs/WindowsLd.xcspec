@@ -89,6 +89,18 @@
                 };
             },
             {
+                // FIXME - This should be revisited as it may be more correct to only include
+                // this for the immediate targets for the .dynamic product
+                Name = _LD_WHOLEARCHIVE;
+                Type = Boolean;
+                DefaultValue = YES;
+                Condition = "$(MACH_O_TYPE) == mh_dylib";
+                CommandLineArgs = {
+                    YES = ("-Xlinker", "/WHOLEARCHIVE");
+                    NO = ();
+                };
+            },
+            {
                 // No such concept
                 Name = LD_DETERMINISTIC_MODE;
                 Type = Boolean;
