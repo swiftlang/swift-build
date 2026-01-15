@@ -4296,6 +4296,18 @@ private class SettingsBuilder: ProjectMatchLookup {
         table.push(BuiltinMacros.__SWIFT_MODULE_ONLY_ARCHS__, literal: originalModuleOnlyArchs)
         table.push(BuiltinMacros.SWIFT_MODULE_ONLY_ARCHS, literal: moduleOnlyArchs)
 
+        let archMap = scope.evaluate(BuiltinMacros._LD_MULTIARCH_PREFIX_MAP)
+        let archMappings = archMap.reduce(into: [String?: String]()) { mappings, map in
+            let (arch, prefixDir) = map.split(":")
+            if !arch.isEmpty && !prefixDir.isEmpty {
+                return mappings[arch] = prefixDir
+            }
+        }
+
+        if let prefix = archMappings[self.preferredArch] {
+            table.push(BuiltinMacros._LD_ARCH, literal: prefix)
+        }
+
         // FIXME: There is a more random, but questionable stuff here. To be added in a test case driven fashion.
 
         // Resolve some of the key path settings to be absolute.

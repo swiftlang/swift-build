@@ -111,7 +111,7 @@
         Domain = windows;
         Type = ProductType;
         Identifier = org.swift.product-type.common.object;
-        BasedOn = com.apple.product-type.library.static;
+        BasedOn = org.swift.product-type.library.object;
     },
 
     {
