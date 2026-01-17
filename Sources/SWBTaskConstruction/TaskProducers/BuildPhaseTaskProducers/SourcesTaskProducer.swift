@@ -1857,7 +1857,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         // Package targets do something similar but they generate the Bundle.module extensions and #bundle calls that.
 
         // We need to do this for all mergeable libraries, even if it will just be re-exported in this build.
-        guard scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) else {
+        guard scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) && !scope.evaluate(BuiltinMacros.SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK) else {
             return nil
         }
 

@@ -2319,9 +2319,17 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             // Even if not being merged in this build, a mergeable library still uses a generated bundle lookup helper to power #bundle support.
             if scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) {
+                let skipBundleHook = scope.evaluate(BuiltinMacros.SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK)
                 let pathResolver = FilePathResolver(scope: scope)
                 if (target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(workspaceContext.workspace, specLookupContext, scope, pathResolver) ?? false {
-                    table.push(BuiltinMacros.SWIFT_ACTIVE_COMPILATION_CONDITIONS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "SWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"]))
+                    if skipBundleHook {
+                        table.push(BuiltinMacros.SWIFT_ACTIVE_COMPILATION_CONDITIONS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"]))
+                    } else {
+                        table.push(BuiltinMacros.SWIFT_ACTIVE_COMPILATION_CONDITIONS, BuiltinMacros.namespace.parseStringList(["$(inherited)", "SWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"]))
+                    }
+                }
+                if skipBundleHook {
+                    table.push(BuiltinMacros.LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK, literal: true)
                 }
             }
 

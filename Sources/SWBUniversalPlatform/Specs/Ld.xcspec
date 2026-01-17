@@ -781,6 +781,18 @@
                 SupportedVersionRanges = ( "1217" );
             },
 
+            {   Name = LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-no_merged_libraries_hook",
+                    );
+                    NO = ();
+                };
+            },
+
             {
                 Name = "LD_SHARED_CACHE_ELIGIBLE";
                 Type = Enumeration;

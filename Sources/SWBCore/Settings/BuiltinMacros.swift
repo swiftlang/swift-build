@@ -430,6 +430,8 @@ public final class BuiltinMacros {
     public static let MERGE_LINKED_LIBRARIES = BuiltinMacros.declareBooleanMacro("MERGE_LINKED_LIBRARIES")
     public static let MERGED_BINARY_TYPE = BuiltinMacros.declareEnumMacro("MERGED_BINARY_TYPE") as EnumMacroDeclaration<MergedBinaryType>
     public static let MAKE_MERGEABLE = BuiltinMacros.declareBooleanMacro("MAKE_MERGEABLE")
+    public static let SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // user-set
+    public static let LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // synthesized based on above + MERGEABLE_LIBRARY
 
     // MARK: Task Planning Macros
 
@@ -1950,6 +1952,7 @@ public final class BuiltinMacros {
         LD_NO_PIE,
         LD_RUNPATH_SEARCH_PATHS,
         LD_SDK_IMPORTS_FILE,
+        LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK,
         LD_WARN_UNUSED_DYLIBS,
         _LD_MULTIARCH,
         _LD_MULTIARCH_PREFIX_MAP,
@@ -2206,6 +2209,7 @@ public final class BuiltinMacros {
         SKIP_INSTALL,
         SKIP_CLANG_STATIC_ANALYZER,
         SKIP_EMBEDDED_FRAMEWORKS_VALIDATION,
+        SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK,
         SOURCE_ROOT,
         SPECIALIZATION_SDK_OPTIONS,
         SRCROOT,
