@@ -1102,7 +1102,8 @@ private extension PreviewInfoOutput {
                     enableDebugDylib: info.enableDebugDylib,
                     enableAddressSanitizer: info.enableAddressSanitizer,
                     enableThreadSanitizer: info.enableThreadSanitizer,
-                    enableUndefinedBehaviorSanitizer: info.enableUndefinedBehaviorSanitizer
+                    enableUndefinedBehaviorSanitizer: info.enableUndefinedBehaviorSanitizer,
+                    enableMemoryTaggingAddressSanitizer: info.enableMemoryTaggingAddressSanitizer
                 )
             )
         }

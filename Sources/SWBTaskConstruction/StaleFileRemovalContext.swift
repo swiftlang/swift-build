@@ -82,6 +82,9 @@ extension StaleFileRemovalContext {
         if scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) {
             staleFileRemovalIdentifier += "-ubsan"
         }
+        if scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) {
+            staleFileRemovalIdentifier += "-mtasan"
+        }
 
         // Add the build components to ensure the various styles of builds do not stomp on one another.
         staleFileRemovalIdentifier += scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).sorted().map({ "-\($0)" }).joined()

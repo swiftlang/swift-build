@@ -506,6 +506,7 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
     public let enableAddressSanitizer: Bool
     public let enableThreadSanitizer: Bool
     public let enableUndefinedBehaviorSanitizer: Bool
+    public let enableMemoryTaggingAddressSanitizer: Bool
 
     public init(
         productModuleName: String,
@@ -518,7 +519,8 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
         enableDebugDylib: Bool,
         enableAddressSanitizer: Bool,
         enableThreadSanitizer: Bool,
-        enableUndefinedBehaviorSanitizer: Bool
+        enableUndefinedBehaviorSanitizer: Bool,
+        enableMemoryTaggingAddressSanitizer: Bool,
     ) {
         self.productModuleName = productModuleName
         self.objectFileInputMap = objectFileInputMap
@@ -531,6 +533,7 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
         self.enableAddressSanitizer = enableAddressSanitizer
         self.enableThreadSanitizer = enableThreadSanitizer
         self.enableUndefinedBehaviorSanitizer = enableUndefinedBehaviorSanitizer
+        self.enableMemoryTaggingAddressSanitizer = enableMemoryTaggingAddressSanitizer
     }
 }
 

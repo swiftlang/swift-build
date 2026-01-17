@@ -47,6 +47,7 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
             Sanitizer(name: "Address", macro: BuiltinMacros.ENABLE_ADDRESS_SANITIZER, libraryNameInfix: "asan"),
             Sanitizer(name: "Thread", macro: BuiltinMacros.ENABLE_THREAD_SANITIZER, libraryNameInfix: "tsan"),
             Sanitizer(name: "Undefined Behavior", macro: BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER, libraryNameInfix: "ubsan"),
+            // Note: Memory-Tagging Address Sanitizer is not included here because it doesn't have a runtime library to copy
         ]
     }
 

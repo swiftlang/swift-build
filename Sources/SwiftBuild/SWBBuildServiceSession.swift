@@ -1006,6 +1006,7 @@ fileprivate extension SWBPreviewTargetDependencyInfo {
             self.enableAddressSanitizer = targetDependencyInfo.enableAddressSanitizer
             self.enableThreadSanitizer = targetDependencyInfo.enableThreadSanitizer
             self.enableUndefinedBehaviorSanitizer = targetDependencyInfo.enableUndefinedBehaviorSanitizer
+            self.enableMemoryTaggingAddressSanitizer = targetDependencyInfo.enableMemoryTaggingAddressSanitizer
         }
     }
 }

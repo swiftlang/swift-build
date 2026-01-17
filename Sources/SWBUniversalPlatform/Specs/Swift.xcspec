@@ -1270,6 +1270,19 @@
                 };
                 // Not visible in the build settings editor
             },
+            // Memory-Tagging Address Sanitizer options.
+            {
+                Name = "SWIFT_MEMORY_TAGGING_ADDRESS_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=memtag-stack",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
             {
                 Name = "ENABLE_SYSTEM_SANITIZERS";
                 Type = Boolean;
