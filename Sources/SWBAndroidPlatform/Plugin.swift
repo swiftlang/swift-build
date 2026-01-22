@@ -109,6 +109,14 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             ])
         ]
     }
+
+    func platformName(triple: LLVMTriple) -> String? {
+        if triple.system == "linux" && triple.environment?.hasPrefix("android") == true {
+            return "android"
+        }
+
+        return nil
+    }
 }
 
 @_spi(Testing) public struct AndroidSDKRegistryExtension: SDKRegistryExtension {

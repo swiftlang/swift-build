@@ -19,7 +19,7 @@ public class MacroExpression : PolymorphicSerializable, CustomStringConvertible,
     public let stringRep: String
 
     /// A “compiled program” that can be “run” in order to evaluate the expression in a MacroEvaluationContext.
-    private let evalProgram: MacroEvaluationProgram
+    let evalProgram: MacroEvaluationProgram
 
     /// Initializes the macro expression with `stringRep` as its string representation.  Clients don’t create MacroExpression objects directly; rather, they use MacroNamespace to parse strings into macro expressions.
     init(stringRep: String, evalProgram: MacroEvaluationProgram) {

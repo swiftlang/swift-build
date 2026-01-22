@@ -220,7 +220,6 @@ public final class BuiltinMacros {
     public static let TARGET_BUILD_DIR = BuiltinMacros.declarePathMacro("TARGET_BUILD_DIR")
     public static let TARGET_BUILD_SUBPATH = BuiltinMacros.declarePathMacro("TARGET_BUILD_SUBPATH")
     public static let TARGET_NAME = BuiltinMacros.declareStringMacro("TARGET_NAME")
-    public static let TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR = BuiltinMacros.declareStringMacro("TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR")
     public static let TARGET_TEMP_DIR = BuiltinMacros.declarePathMacro("TARGET_TEMP_DIR")
     // FIXME: This macro should be deprecated.
     public static let TARGETNAME = BuiltinMacros.declareStringMacro("TARGETNAME")
@@ -431,6 +430,8 @@ public final class BuiltinMacros {
     public static let MERGE_LINKED_LIBRARIES = BuiltinMacros.declareBooleanMacro("MERGE_LINKED_LIBRARIES")
     public static let MERGED_BINARY_TYPE = BuiltinMacros.declareEnumMacro("MERGED_BINARY_TYPE") as EnumMacroDeclaration<MergedBinaryType>
     public static let MAKE_MERGEABLE = BuiltinMacros.declareBooleanMacro("MAKE_MERGEABLE")
+    public static let SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // user-set
+    public static let LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK = BuiltinMacros.declareBooleanMacro("LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK") // synthesized based on above + MERGEABLE_LIBRARY
 
     // MARK: Task Planning Macros
 
@@ -463,6 +464,7 @@ public final class BuiltinMacros {
     public static let ARCHS_STANDARD_64_BIT = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_64_BIT")
     public static let ARCHS_STANDARD_INCLUDING_64_BIT = BuiltinMacros.declareStringListMacro("ARCHS_STANDARD_INCLUDING_64_BIT")
     public static let ASSETCATALOG_COMPILER_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("ASSETCATALOG_COMPILER_DEPENDENCY_INFO_FILE")
+    public static let ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES = BuiltinMacros.declareStringListMacro("ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES")
     public static let ASSETCATALOG_COMPILER_INCLUDE_STICKER_CONTENT = BuiltinMacros.declareBooleanMacro("ASSETCATALOG_COMPILER_INCLUDE_STICKER_CONTENT")
     public static let ASSETCATALOG_COMPILER_INFOPLIST_CONTENT_FILE = BuiltinMacros.declarePathMacro("ASSETCATALOG_COMPILER_INFOPLIST_CONTENT_FILE")
     public static let ASSETCATALOG_COMPILER_INPUTS = BuiltinMacros.declarePathListMacro("ASSETCATALOG_COMPILER_INPUTS")
@@ -833,6 +835,7 @@ public final class BuiltinMacros {
     public static let LD_WARN_UNUSED_DYLIBS = BuiltinMacros.declareBooleanMacro("LD_WARN_UNUSED_DYLIBS")
     public static let _LD_MULTIARCH = BuiltinMacros.declareBooleanMacro("_LD_MULTIARCH")
     public static let _LD_MULTIARCH_PREFIX_MAP = BuiltinMacros.declareStringListMacro("_LD_MULTIARCH_PREFIX_MAP")
+    public static let _LD_ARCH = BuiltinMacros.declareStringMacro("_LD_ARCH")
     public static let LEX = BuiltinMacros.declarePathMacro("LEX")
     public static let LEXFLAGS = BuiltinMacros.declareStringListMacro("LEXFLAGS")
     public static let LIBRARIAN = BuiltinMacros.declareStringMacro("LIBRARIAN")
@@ -1002,6 +1005,7 @@ public final class BuiltinMacros {
     public static let SHARED_FRAMEWORKS_FOLDER_PATH = BuiltinMacros.declarePathMacro("SHARED_FRAMEWORKS_FOLDER_PATH")
     public static let SHARED_SUPPORT_FOLDER_PATH = BuiltinMacros.declarePathMacro("SHARED_SUPPORT_FOLDER_PATH")
     public static let STRING_CATALOG_GENERATE_SYMBOLS = BuiltinMacros.declareBooleanMacro("STRING_CATALOG_GENERATE_SYMBOLS")
+    public static let BUILD_ONLY_KNOWN_LOCALIZATIONS = BuiltinMacros.declareBooleanMacro("BUILD_ONLY_KNOWN_LOCALIZATIONS")
     public static let STRINGS_FILE_INPUT_ENCODING = BuiltinMacros.declareStringMacro("STRINGS_FILE_INPUT_ENCODING")
     public static let STRINGS_FILE_OUTPUT_ENCODING = BuiltinMacros.declareStringMacro("STRINGS_FILE_OUTPUT_ENCODING")
     public static let STRINGS_FILE_OUTPUT_FILENAME = BuiltinMacros.declareStringMacro("STRINGS_FILE_OUTPUT_FILENAME")
@@ -1014,6 +1018,7 @@ public final class BuiltinMacros {
     public static let PLATFORM_REQUIRES_SWIFT_MODULEWRAP = BuiltinMacros.declareBooleanMacro("PLATFORM_REQUIRES_SWIFT_MODULEWRAP")
     public static let RPATH_ORIGIN = BuiltinMacros.declareStringMacro("RPATH_ORIGIN")
     public static let PLATFORM_USES_DSYMS = BuiltinMacros.declareBooleanMacro("PLATFORM_USES_DSYMS")
+    public static let SWIFTC_PASS_SDKROOT = BuiltinMacros.declareBooleanMacro("SWIFTC_PASS_SDKROOT")
     public static let SWIFT_ABI_CHECKER_BASELINE_DIR = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_BASELINE_DIR")
     public static let SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS = BuiltinMacros.declareBooleanMacro("SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS")
     public static let SWIFT_ABI_CHECKER_EXCEPTIONS_FILE = BuiltinMacros.declareStringMacro("SWIFT_ABI_CHECKER_EXCEPTIONS_FILE")
@@ -1460,6 +1465,7 @@ public final class BuiltinMacros {
         ARCHS_STANDARD_64_BIT,
         ARCHS_STANDARD_INCLUDING_64_BIT,
         ASSETCATALOG_COMPILER_DEPENDENCY_INFO_FILE,
+        ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES,
         ASSETCATALOG_COMPILER_INCLUDE_STICKER_CONTENT,
         ASSETCATALOG_COMPILER_INFOPLIST_CONTENT_FILE,
         ASSETCATALOG_COMPILER_INPUTS,
@@ -1946,9 +1952,11 @@ public final class BuiltinMacros {
         LD_NO_PIE,
         LD_RUNPATH_SEARCH_PATHS,
         LD_SDK_IMPORTS_FILE,
+        LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK,
         LD_WARN_UNUSED_DYLIBS,
         _LD_MULTIARCH,
         _LD_MULTIARCH_PREFIX_MAP,
+        _LD_ARCH,
         LEGACY_DEVELOPER_DIR,
         LEX,
         LEXFLAGS,
@@ -2201,10 +2209,12 @@ public final class BuiltinMacros {
         SKIP_INSTALL,
         SKIP_CLANG_STATIC_ANALYZER,
         SKIP_EMBEDDED_FRAMEWORKS_VALIDATION,
+        SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK,
         SOURCE_ROOT,
         SPECIALIZATION_SDK_OPTIONS,
         SRCROOT,
         STRING_CATALOG_GENERATE_SYMBOLS,
+        BUILD_ONLY_KNOWN_LOCALIZATIONS,
         STRINGSDATA_DIR,
         STRINGS_FILE_INPUT_ENCODING,
         STRINGS_FILE_OUTPUT_ENCODING,
@@ -2230,6 +2240,7 @@ public final class BuiltinMacros {
         PLATFORM_REQUIRES_SWIFT_MODULEWRAP,
         RPATH_ORIGIN,
         PLATFORM_USES_DSYMS,
+        SWIFTC_PASS_SDKROOT,
         SWIFT_ABI_CHECKER_BASELINE_DIR,
         SWIFT_ABI_CHECKER_DOWNGRADE_ERRORS,
         SWIFT_ABI_CHECKER_EXCEPTIONS_FILE,
@@ -2377,7 +2388,6 @@ public final class BuiltinMacros {
         TARGET_DEVICE_OS_VERSION,
         TARGET_DEVICE_PLATFORM_NAME,
         TARGET_NAME,
-        TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR,
         TARGET_TEMP_DIR,
         TEMP_DIR,
         TEMP_FILES_DIR,

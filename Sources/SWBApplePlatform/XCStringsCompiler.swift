@@ -189,7 +189,35 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
 
     /// Generates a task for compiling the .xcstrings to .strings/dict files.
     private func constructCatalogCompilationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
-        let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
+        let isRunningInstallloc = cbc.scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
+
+        /// Custom lookup function to overwrite `XCSTRINGS_LANGUAGES_TO_COMPILE`
+        /// when `BUILD_ONLY_KNOWN_LOCALIZATIONS` is enabled for a regular build.
+        func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
+            switch macro {
+            case BuiltinMacros.XCSTRINGS_LANGUAGES_TO_COMPILE:
+                guard !isRunningInstallloc else {
+                    // No need to intercept anything for installloc, its
+                    // language specification should always take precedence.
+                    return nil
+                }
+                if cbc.scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS), var knownLocalizations = cbc.producer.project?.knownLocalizations {
+
+                    knownLocalizations.removeAll(where: { $0 == "Base" })
+                    if !knownLocalizations.isEmpty {
+                        delegate.note("XCStrings will compile languages for known regions: \(knownLocalizations.joined(separator: ", "))")
+                    }
+
+                    // Only build the languages specified by the project:
+                    return cbc.scope.namespace.parseLiteralStringList(knownLocalizations)
+                }
+            default:
+                break
+            }
+            return nil
+        }
+
+        let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
 
         // We can't know our precise outputs statically because we don't know what languages are in the xcstrings file,
         // nor do we know if any strings have variations (which would require one or more .stringsdict outputs).

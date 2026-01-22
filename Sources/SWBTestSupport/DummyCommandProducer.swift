@@ -22,6 +22,9 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     package let platform: Platform?
     package let sdk: SDK?
     package let sdkVariant: SDKVariant?
+    package var project: SWBCore.Project? {
+        return nil
+    }
     package var specRegistry: SpecRegistry {
         return core.specRegistry
     }
@@ -254,6 +257,10 @@ package struct MockCommandProducer: CommandProducer, Sendable {
     }
 
     package func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+        false
+    }
+
+    package var swiftModuleShouldCompileForStaticLinking: Bool {
         false
     }
 }

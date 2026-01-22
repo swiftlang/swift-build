@@ -949,6 +949,11 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
                 DefaultValue = NO;
             },
             {
+                Name = "SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
                 Name = "LD_SHARED_CACHE_ELIGIBLE";
                 Type = Enumeration;
                 Values = (
@@ -1770,6 +1775,16 @@ For more information on mergeable libraries, see [Configuring your project to us
                 Name = "MAKE_MERGEABLE";
                 Type = Boolean;
                 DefaultValue = NO;
+            },
+            {
+                Name = "SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK";
+                Type = Boolean;
+                DefaultValue = NO;
+                Category = "Linking - Mergeable Libraries";
+                DisplayName = "Skip Mergeable Library Bundle Hook";
+                Description = "For mergeable libraries, skips adding a hook into the library's resource bundle. This will prevent `Bundle(for:)` from returning this library's resource bundle.
+
+For more information on mergeable libraries, see [Configuring your project to use mergeable libraries](https://developer.apple.com/documentation/xcode/configuring-your-project-to-use-mergeable-libraries).";
             },
 
             {
@@ -2987,7 +3002,7 @@ For more information on mergeable libraries, see [Configuring your project to us
             {
                 Name = "TARGET_TEMP_DIR";
                 Type = Path;
-                DefaultValue = "$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME)$(TARGET_NAME_CASE_SENSITIVITY_DISCRIMINATOR).build";
+                DefaultValue = "$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME).build";
                 Description = "Identifies the directory containing the target’s intermediate build files. Run Script build phases should place intermediate files at the location indicated by `DERIVED_FILE_DIR`, not the directory identified by this build setting.";
             },
             {
@@ -3490,6 +3505,13 @@ For more information on mergeable libraries, see [Configuring your project to us
                 DisplayName = "Deployment Target Build Setting Name";
                 Description = "The name of the build setting for the deployment target for the effective platform. This can be used to evaluate the build setting using build setting interpolation without hard-coding the name, e.g. `$($(DEPLOYMENT_TARGET_SETTING_NAME))`, or to compose the names of other settings which contain its name, such as the `RECOMMENDED_<platform>_DEPLOYMENT_TARGET` settings.";
             },
+            {
+                Name = "C_COMPILER_LAUNCHER";
+                Type = String;
+                DefaultValue = "";
+                DisplayName = "Compiler Launcher";
+                Description = "The path to a compiler launcher. This build setting causes the build system to invoke the launcher tool with the original compiler path and arguments. Examples include `distcc` and `ccache`. Don't use the `CC`, `CPLUSPLUS`, `OBJCC`, or `OBJCPLUSPLUS` build settings to specify a compiler launcher.";
+            },
 
             // Index-while-building options
             {
@@ -3655,6 +3677,13 @@ When this setting is enabled:
                 Category = "Localization";
                 Description = "When enabled, literal strings in SwiftUI will be extracted during localization export. This will only extract string literals in `Text()` initializers, unless `SWIFT_EMIT_LOC_STRINGS` is also enabled.";
             },
+            {   Name = LOCALIZED_STRING_CODE_COMMENTS;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Localized Strings in Code Comments";
+                Category = "Localization";
+                Description = "When enabled, localizable strings wrapped in NSLocalizedString and similar string macros will be extracted even if commented out or wrapped in `#if 0`.";
+            },
             {
                 Name = "STRINGSDATA_ROOT";
                 Type = Path;
@@ -3695,6 +3724,13 @@ When this setting is enabled:
                 DisplayName = "Generate String Catalog Symbols";
                 Category = "Localization";
                 Description = "When enabled, symbols will be generated for manually-managed strings in String Catalogs.";
+            },
+            {   Name = BUILD_ONLY_KNOWN_LOCALIZATIONS;
+                Type = Boolean;
+                DefaultValue = NO;
+                DisplayName = "Build Known Localizations Only";
+                Category = "Localization";
+                Description = "When enabled, only builds content for languages explicitly supported by the project.";
             },
 
             // rdar://108915072 (Move Siri Category and relevant configs out of CoreBuildSystem)

@@ -138,6 +138,53 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func swiftAPIBaselineGenerationClangImporterConfiguration() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            sourceRoot: Path.root.join("TEST"),
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("file.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "RUN_SWIFT_ABI_GENERATION_TOOL": "YES",
+                    "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": Path.root.join("tmp").join("baseline").str,
+                    "SWIFT_EXEC": swiftCompilerPath.str,
+                    "SWIFT_VERSION": swiftVersion,
+                    "HEADER_SEARCH_PATHS": Path.root.join("header_search_path").str,
+                    "OTHER_SWIFT_FLAGS": "-Xcc -fmodule-map-file -Xcc \(Path.root.join("module.modulemap").str)",
+                    "CODE_SIGNING_ALLOWED": "NO",
+                    "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
+                ])],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["file.swift"])
+                    ]),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        try await tester.checkBuild(BuildParameters(action: .build, configuration: "Debug"), runDestination: .host) { results in
+            results.checkNoDiagnostics()
+            if try await self.swiftFeatures.has(.apiDigesterXcc) {
+                results.checkTask(.matchRuleType("GenerateSwiftABIBaseline")) { task in
+                    task.checkCommandLineContains([
+                        "-Xcc", "-fmodule-map-file", "-Xcc", Path.root.join("module.modulemap").str
+                    ])
+                    task.checkCommandLineContains([
+                        "-Xcc", "-I\(Path.root.join("header_search_path").str)"
+                    ])
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.iOS))
     func swiftABIBaselineGenerationModes() async throws {
         let testProject = try await TestProject(

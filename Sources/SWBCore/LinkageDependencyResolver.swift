@@ -126,13 +126,9 @@ actor LinkageDependencyResolver {
             }
         }
 
-        var allTargets = OrderedSet<ConfiguredTarget>()
-        for (target, dependencies) in dependenciesPerTarget {
-            allTargets.insert(target, at: 0)
-            for dependency in dependencies {
-                allTargets.insert(dependency.target, at: 0)
-            }
-        }
+        let allTargets = OrderedSet(topologicalSort(Array(dependenciesPerTarget.keys), successors: { vertex in
+            return dependenciesPerTarget[vertex]?.map { dependency in dependency.target } ?? []
+        }))
 
         return (allTargets, dependenciesPerTarget)
     }

@@ -64,7 +64,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     var phase: TaskProducerPhase = .none
 
     /// The project this context is for.
-    let project: Project?
+    public let project: Project?
 
     /// The high-level global build information.
     package let globalProductPlan: GlobalProductPlan
@@ -1354,6 +1354,11 @@ extension TaskProducerContext: CommandProducer {
 
     public var swiftMacroImplementationDescriptors: Set<SWBCore.SwiftMacroImplementationDescriptor>? {
         configuredTarget.flatMap { globalProductPlan.swiftMacroImplementationDescriptorsByTarget[$0] }
+    }
+
+    public var swiftModuleShouldCompileForStaticLinking: Bool {
+        guard let configuredTarget else { return false }
+        return globalProductPlan.targetsWhichShouldCompileSwiftModulesForStaticLinking.contains(configuredTarget)
     }
 
     /// Returns true if eager linking is supported in this context and scope. The eager linking optimization is only permitted if certain criteria are met.

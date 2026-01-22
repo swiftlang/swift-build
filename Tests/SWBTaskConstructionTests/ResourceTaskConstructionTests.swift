@@ -2872,6 +2872,219 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func interfaceBuilderCompilers_LegacyLocalization_WithKnownLocalizationsFilter() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Info.plist"),
+                    TestFile("en.lproj/Foo.xib", regionVariantName: "en"),
+                    TestFile("de.lproj/Foo.xib", regionVariantName: "de"),
+                    TestFile("ja.lproj/Foo.xib", regionVariantName: "ja"),
+                    TestFile("fr.lproj/Foo.xib", regionVariantName: "fr"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "IBC_EXEC": ibtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SDKROOT": "macosx",
+                                                "INFOPLIST_FILE": "Sources/Info.plist",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "en.lproj/Foo.xib",
+                            "de.lproj/Foo.xib",
+                            "ja.lproj/Foo.xib",
+                            "fr.lproj/Foo.xib",
+                        ]),
+                    ])
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"] // only build for en and de
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        let ibtoolPath = try await self.ibtoolPath
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("App") { target in
+                // Check that en.lproj/Foo.xib is compiled:
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/en.lproj/Foo.xib"])) { task in
+                    task.checkCommandLineContains([ibtoolPath.str, "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/en.lproj/Foo.nib", "\(SRCROOT)/Sources/en.lproj/Foo.xib"])
+                }
+
+                // Check that de.lproj/Foo.xib is compiled:
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/de.lproj/Foo.xib"])) { task in
+                    task.checkCommandLineContains([ibtoolPath.str, "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/de.lproj/Foo.nib", "\(SRCROOT)/Sources/de.lproj/Foo.xib"])
+                }
+
+                // Check that ja.lproj and fr.lproj are NOT compiled:
+                results.checkNoTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/ja.lproj/Foo.xib"]))
+                results.checkNoTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/fr.lproj/Foo.xib"]))
+            }
+
+            // Check for notes about skipped localizations:
+            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func interfaceBuilderCompilers_FullLocalization_WithKnownLocalizationsFilter() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("foo.xib",
+                                     children: [
+                                        TestFile("Base.lproj/foo.xib", regionVariantName: "Base"),
+                                        TestFile("fr.lproj/foo.xib", regionVariantName: "fr"),
+                                        TestFile("ja.lproj/foo.strings", regionVariantName: "ja"),
+                                        TestFile("en.lproj/foo.strings", regionVariantName: "en"),
+                                        TestFile("de.lproj/foo.strings", regionVariantName: "de"),
+                                     ]
+                                    ),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SDKROOT": "macosx",
+                                                "IBC_EXEC": ibtoolPath.str,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "foo.xib",
+                        ]),
+                    ])
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"]
+        )
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        let ibtoolPath = try await self.ibtoolPath
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("App") { target in
+                // Base.lproj/foo.xib should compile with only en and de companion strings:
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileXIB"), .matchRuleItem("\(SRCROOT)/Sources/Base.lproj/foo.xib")) { task in
+                    task.checkRuleInfo(["CompileXIB", "\(SRCROOT)/Sources/Base.lproj/foo.xib"])
+                    task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--companion-strings-file", "en:\(SRCROOT)/Sources/en.lproj/foo.strings", "--companion-strings-file", "de:\(SRCROOT)/Sources/de.lproj/foo.strings", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Base.lproj/foo-PartialInfo.plist", "--auto-activate-custom-fonts", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text", "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/Base.lproj/foo.nib", "\(SRCROOT)/Sources/Base.lproj/foo.xib"])
+                }
+
+                // fr.lproj and ja.lproj should NOT be compiled:
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXIB"), .matchRuleItem("\(SRCROOT)/Sources/fr.lproj/foo.xib"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXIB"), .matchRuleItem("\(SRCROOT)/Sources/ja.lproj/foo.strings"))
+            }
+
+            // Check for notes about skipped localizations:
+            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func variantGroupResourceCopyingWithKnownLocalizationsFilter() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Info.plist"),
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                        TestFile("fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SDKROOT": "macosx",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "Localizable.strings",
+                        ]),
+                    ])
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"]
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("App") { target in
+                // Check that en.lproj/Localizable.strings is copied:
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/en.lproj/Localizable.strings", "\(SRCROOT)/Sources/en.lproj/Localizable.strings"])) { _ in }
+
+                // Check that de.lproj/Localizable.strings is copied:
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/de.lproj/Localizable.strings", "\(SRCROOT)/Sources/de.lproj/Localizable.strings"])) { _ in }
+
+                // Check that ja.lproj and fr.lproj are NOT copied:
+                results.checkNoTask(.matchTarget(target), .matchRuleItem("\(SRCROOT)/Sources/ja.lproj/Localizable.strings"))
+                results.checkNoTask(.matchTarget(target), .matchRuleItem("\(SRCROOT)/Sources/fr.lproj/Localizable.strings"))
+            }
+
+            // Check for notes about skipped localizations:
+            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNoDiagnostics()
+        }
+    }
+
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {

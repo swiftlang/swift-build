@@ -160,7 +160,9 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 "FwkTarget2",
                                 type: .framework,
                                 buildConfigurations: [
-                                    TestBuildConfiguration("Debug"),
+                                    TestBuildConfiguration("Debug", buildSettings: [
+                                        "SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK": "YES"
+                                    ]),
                                 ],
                                 buildPhases: [
                                     TestSourcesBuildPhase([
@@ -226,12 +228,20 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     // Check mergeable framework targets.
                     for targetName in ["FwkTarget1", "FwkTarget2"] {
-                        results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
+                        let skipBundleHook = targetName == "FwkTarget2"
+                        if !skipBundleHook {
+                            results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
+                        } else {
+                            results.checkNoTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift"))
+                        }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineDoesNotContain("-make_mergeable")
                             if supportsMergeableDebugHook {
                                 task.checkCommandLineContains("-add_mergeable_debug_hook")
+                            }
+                            if skipBundleHook {
+                                task.checkCommandLineContains("-no_merged_libraries_hook")
                             }
                             task.checkCommandLineContains(["-o", "\(SYMROOT)/Debug-iphoneos/\(targetName).framework/\(targetName)"])
                         }
@@ -411,11 +421,19 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
 
                     // Check mergeable framework targets
                     for targetName in ["FwkTarget1", "FwkTarget2"] {
-                        results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
+                        let skipBundleHook = targetName == "FwkTarget2"
+                        if !skipBundleHook {
+                            results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift")) { _ in }
+                        } else {
+                            results.checkNoTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile"), .matchRuleItem("Compiling bundle_lookup_helper.swift"))
+                        }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("SwiftCompile")) { _ in }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("Ld")) { task in
                             task.checkCommandLineContains("-make_mergeable")
                             task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")
+                            if skipBundleHook {
+                                task.checkCommandLineContains("-no_merged_libraries_hook")
+                            }
                             task.checkCommandLineContains(["-o", "\(OBJROOT)/UninstalledProducts/iphoneos/\(targetName).framework/\(targetName)"])
                         }
                         results.checkTasks(.matchTargetName(targetName), .matchRuleType("Copy")) { _ in /* likely Swift-related */ }

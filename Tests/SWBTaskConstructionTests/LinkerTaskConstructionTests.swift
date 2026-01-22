@@ -222,4 +222,55 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
 
     }
 
+    @Test(.requireSDKs(.host))
+    func dynamicLibraryWithNoSourcesButStaticLibrariesInFrameworksPhase() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("source.c"),
+                    TestFile("libStaticLib.a"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "LIBTOOL": libtoolPath.str,
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "DynamicLib",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([]),
+                        TestFrameworksBuildPhase(["libStaticLib.a"]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
+                TestStandardTarget(
+                    "StaticLib",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["source.c"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("DynamicLib") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("Ld"))
+            }
+        }
+    }
+
 }

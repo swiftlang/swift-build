@@ -810,8 +810,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             tasks.append(generateKernelExtensionModuleInfoFileTask)
         }
 
-        let packageTargetBundleAccessorResult = await generatePackageTargetBundleAccessorResult(scope)
-        tasks += packageTargetBundleAccessorResult?.tasks ?? []
+        let packageTargetBundleAccessorResults = await generatePackageTargetBundleAccessorResult(scope)
+        for result in packageTargetBundleAccessorResults {
+            tasks += result.tasks
+        }
 
         let bundleLookupHelperResult = await generateBundleLookupHelper(scope)
         tasks += bundleLookupHelperResult?.tasks ?? []
@@ -909,7 +911,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         result.append((generateKernelExtensionModuleInfoFileTask.outputs.first!.path, context.lookupFileType(languageDialect: .c)!, /* shouldUsePrefixHeader */ false))
                     }
 
-                    if let packageTargetBundleAccessorResult {
+                    for packageTargetBundleAccessorResult in packageTargetBundleAccessorResults {
                         result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
@@ -969,8 +971,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
-                let objectsInFrameworkPhase = librariesToLink.filter{ $0.kind == .object }
-                linkerInputNodes.append(contentsOf: objectsInFrameworkPhase.map{ $0.path }.map(context.createNode))
+                let staticallyLinkedItemsInFrameworkPhase = librariesToLink.filter{ [.object, .static].contains($0.kind) }
+                // Only add the object files as explicit input nodes here because libraries found via search paths will be tracked using dependency info files.
+                let objectsInFrameworksPhase = librariesToLink.filter{ $0.kind == .object }
+                linkerInputNodes.append(contentsOf: objectsInFrameworksPhase.map{ $0.path }.map(context.createNode))
 
                 if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
                     // If this flag isn't enabled we still want the dylib to be a dependency for this task.
@@ -984,7 +988,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let additionalLinkerOrderingInputs = librariesToLink.flatMap { $0.explicitDependencies.map(context.createNode) }
 
                 // If there is at least one object file that was built using Swift, ensure the Swift tool is present in the used tools to allow linker spec to add swift specific linker arguments.
-                if objectsInFrameworkPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
+                if objectsInFrameworksPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
                     usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "compiled.mach-o.objfile")!]
                 }
 
@@ -992,13 +996,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 // Except that we do want to run the linker when creating a merged library, because the binary needs to either reexport or merge its mergeable libraries.
                 //
                 // FIXME: This is a crude approximation of the actual logic, but works for now.
-                if isForAPI || (perArchTasks.isEmpty && objectsInFrameworkPhase.isEmpty), !scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
+                if isForAPI || (perArchTasks.isEmpty && staticallyLinkedItemsInFrameworkPhase.isEmpty), !scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
                     tasks.append(contentsOf: perArchTasks)
                     continue
                 }
 
                 // Create the linker task.  If we have no input files but decide to create the task anyway, then this task will rely on gate tasks to be properly ordered (which is what happens for the prelinked object file task above if there are no input files).
-                if !linkerInputNodes.isEmpty || (components.contains("build") && scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)) {
+                if !linkerInputNodes.isEmpty || !staticallyLinkedItemsInFrameworkPhase.isEmpty || (components.contains("build") && scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)) {
                     // Compute the output path.
                     let output: Path
                     let commandOrderingOutputs: [any PlannedNode]
@@ -1245,7 +1249,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
                     var result: [(Path, FileTypeSpec, Bool)] = []
 
-                    if let packageTargetBundleAccessorResult {
+                    for packageTargetBundleAccessorResult in packageTargetBundleAccessorResults {
                         result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
@@ -1633,6 +1637,18 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
             tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
+        } else if scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS) {
+            // For non-installLoc builds, filter based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+            tasks = tasks.filter { task in
+                task.inputs.allSatisfy { input in
+                    input.path.buildSettingAllowsBuildingLocale(
+                        scope,
+                        in: context.project,
+                        inputFileAbsolutePath: input.path,
+                        nil
+                    )
+                }
+            }
         }
 
         // Create a task to validate dependencies if that feature is enabled.
@@ -1727,10 +1743,24 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
         }
 
+        var inputFiles = group.files
+
+        inputFiles = inputFiles.filter { file in
+            return file.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: file.absolutePath,
+                delegate
+            )
+        }
+        guard !inputFiles.isEmpty else {
+            return
+        }
+
         // Compute the resources directory.
         let resourcesDir = buildFilesContext.resourcesDir.join(group.regionVariantPathComponent)
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputFiles, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -1827,7 +1857,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         // Package targets do something similar but they generate the Bundle.module extensions and #bundle calls that.
 
         // We need to do this for all mergeable libraries, even if it will just be re-exported in this build.
-        guard scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) else {
+        guard scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) && !scope.evaluate(BuiltinMacros.SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK) else {
             return nil
         }
 
@@ -1855,34 +1885,31 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     /// Generates a task for creating the resource bundle accessor for package targets.
     ///
     /// This produces the `Bundle.module` accessor.
-    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> GeneratedResourceAccessorResult? {
+    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> [GeneratedResourceAccessorResult] {
         let bundleName = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_BUNDLE_NAME)
         let isRegularPackage = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_TARGET_KIND) == .regular
         let targetHasAssetCatalog = targetContext.configuredTarget?.target.hasAssetCatalog(scope: scope, context: context, includeGenerated: false) ?? false
 
         let needsPackageTargetBundleAccessor = !bundleName.isEmpty || (isRegularPackage && targetHasAssetCatalog)
-        guard needsPackageTargetBundleAccessor else { return nil }
+        guard needsPackageTargetBundleAccessor else { return [] }
 
         if !scope.evaluate(BuiltinMacros.GENERATE_RESOURCE_ACCESSORS) {
-            return nil
+            return []
         }
 
         let workspace = self.context.workspaceContext.workspace
 
-        // Swift package target can only contain either Swift or C-family languages so
-        // we don't need to worry about targets with mixed languages.
+        var results: [GeneratedResourceAccessorResult] = []
         if buildPhase.containsSwiftSources(workspace, context, scope, context.filePathResolver) {
-            return await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName)
-        } else if buildPhase.containsObjCSources(workspace, context, scope, context.filePathResolver) {
-            return await generatePackageTargetBundleAccessorForObjC(scope, bundleName: bundleName)
-        } else {
-            return nil
+            results.append(await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName))
         }
+        if buildPhase.containsObjCSources(workspace, context, scope, context.filePathResolver) {
+            results.append(await generatePackageTargetBundleAccessorForObjC(scope, bundleName: bundleName))
+        }
+        return results
     }
 
-    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult? {
-        guard !bundleName.isEmpty else { return nil }
-
+    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult {
         let headerFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.h")
         let implFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.m")
 

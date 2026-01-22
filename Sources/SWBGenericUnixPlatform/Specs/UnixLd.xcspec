@@ -155,6 +155,11 @@
                 Condition = "NO";
             },
             {
+                Name = "LD_DEBUG_VARIANT";
+                Type = Boolean;
+                Condition = "NO";
+            },
+            {
                 // Don't deduplicate is broken in gold
                 Name = "LD_DONT_RUN_DEDUPLICATION";
                 Type = Boolean;

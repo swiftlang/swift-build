@@ -69,7 +69,7 @@ public class IbtoolCompilerSpec : GenericCompilerSpec, IbtoolCompilerSupport, @u
         specialArgs += minimumDeploymentTargetArguments(cbc, delegate)
 
         // Get the strings file paths and regions.
-        let stringsFiles = stringsFilesAndRegions(cbc)
+        let stringsFiles = stringsFilesAndRegions(cbc, delegate)
 
         // Define the inputs, including the strings files from any variant groups.
         let inputs = cbc.inputs.map({ $0.absolutePath }) + stringsFiles.map({ $0.stringsFile })

@@ -68,6 +68,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
     public let buildConfigurations: [BuildConfiguration]
     public let defaultConfigurationName: String
     public let developmentRegion: String?
+    public let knownLocalizations: [String]?
     public let classPrefix: String
     public let appPreferencesBuildSettings: [String: PropertyListItem]
     public let isPackage: Bool
@@ -100,6 +101,7 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
         self.buildConfigurations = model.buildConfigurations.map{ BuildConfiguration($0, pifLoader) }
         self.defaultConfigurationName = model.defaultConfigurationName
         self.developmentRegion = model.developmentRegion
+        self.knownLocalizations = model.knownLocalizations
         self.classPrefix = model.classPrefix
         self.appPreferencesBuildSettings = BuildConfiguration.convertMacroBindingSourceToPlistDictionary(model.appPreferencesBuildSettings)
 
@@ -146,6 +148,8 @@ public final class Project: ProjectModelItem, PIFObject, Hashable, Encodable
 
         // The development region name is required.
         developmentRegion = try Self.parseOptionalValueForKeyAsString(PIFKey_Project_developmentRegion, pifDict: pifDict)
+
+        knownLocalizations = try Self.parseOptionalValueForKeyAsArrayOfStrings(PIFKey_Project_knownRegions, pifDict: pifDict)
 
         classPrefix = try Self.parseOptionalValueForKeyAsString(PIFKey_Project_classPrefix, pifDict: pifDict) ?? ""
 

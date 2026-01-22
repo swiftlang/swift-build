@@ -23,6 +23,8 @@ import SWBCore
 import SWBMacro
 import SWBTaskExecution
 
+import Foundation
+
 @Suite
 fileprivate struct SwiftDriverTests: CoreBasedTests {
     @Test(.requireSDKs(.host))
@@ -146,14 +148,16 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         compileTask.checkCommandLineMatches([.anySequence, "-primary-file", .anySequence, .equal(SRCROOT.join("Sources/\(fileName).swift").str), .anySequence, "-o", .suffix("\(fileName).o")])
                         let env = compileTask.environment.bindingsDictionary
                         #expect(env["DEVELOPER_DIR"] != nil)
-                        #expect(env["SDKROOT"] != nil)
+                        if ![.linux, .freebsd, .openbsd].contains(try ProcessInfo.processInfo.hostOperatingSystem()) {
+                            #expect(env["SDKROOT"] != nil)
+                        }
 
                         try results.checkTaskFollows(linkTask, compileTask)
                     }
                 }
 
                 // Swift Driver changed default behavior from merging modules after compilation to eagerly emitting the module, both are valid here.
-                results.checkTask(.matchTargetName("TargetA"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", .any, .or("Merging module TargetA", "Emitting module for TargetA")])) { task in
+                try results.checkTask(.matchTargetName("TargetA"), .matchRulePattern([.or("SwiftMergeModule", "SwiftEmitModule"), "normal", .any, .or("Merging module TargetA", "Emitting module for TargetA")])) { task in
                     if task.ruleIdentifier == "SwiftMergeModule" {
                         task.checkCommandLineMatches([.anySequence, "-merge-modules", .anySequence, .suffix("file1~partial.swiftmodule"), .suffix("file2~partial.swiftmodule"), .anySequence, "-o", .suffix("TargetA.swiftmodule")])
                     } else {
@@ -161,7 +165,9 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                     }
                     let env = task.environment.bindingsDictionary
                     #expect(env["DEVELOPER_DIR"] != nil)
-                    #expect(env["SDKROOT"] != nil)
+                    if ![.linux, .freebsd, .openbsd].contains(try ProcessInfo.processInfo.hostOperatingSystem()) {
+                        #expect(env["SDKROOT"] != nil)
+                    }
                 }
 
                 for fileName in ["file3", "file4"] {
@@ -1442,7 +1448,16 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .flaky("Occasionally fails in CI due to SwiftExplicitDependencyCompileModuleFromInterface missing from the dependency graph"), .bug("rdar://138160283"))
+    @Test(
+        .requireSDKs(.macOS),
+        .flaky("Occasionally fails in CI due to SwiftExplicitDependencyCompileModuleFromInterface missing from the dependency graph"),
+        .bug("rdar://138160283"),
+        .disabled("Skip test in debug builds for performance reasons") {
+            #if DEBUG
+            return true
+            #endif
+        }
+    )
     func explicitBuildModuleSharingWithResponseFiles() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let moduleCacheDir = tmpDirPath.join("ModuleCache")

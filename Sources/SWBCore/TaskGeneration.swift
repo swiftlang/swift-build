@@ -106,6 +106,9 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// The configured target the command is being produced for, if any.
     var configuredTarget: ConfiguredTarget? { get }
 
+    /// The project the command is being produced for, if any.
+    var project: Project? { get }
+
     /// The product type being built. (Only `StandardTarget`s have product types.)
     var productType: ProductTypeSpec? { get }
 
@@ -247,6 +250,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
 
     /// Swift macro implementation descriptors to be applied to this target.
     var swiftMacroImplementationDescriptors: Set<SwiftMacroImplementationDescriptor>? { get }
+
+    var swiftModuleShouldCompileForStaticLinking: Bool { get }
 
     func supportsEagerLinking(scope: MacroEvaluationScope) -> Bool
 

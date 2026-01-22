@@ -41,11 +41,17 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     /// Descriptive label, for diagnostic purposes.
     public let debugDescription: String
 
-    /// Looks up and returns the macro declaration that's associated with ‘name’, if any.  The name is not allowed to be the empty string.
+    /// Looks up and returns the macro declaration that's associated with 'name', if any.  The name is not allowed to be the empty string.
     public func lookupMacroDeclaration(_ name: String) -> MacroDeclaration? {
-        return macroRegistry.withLock { macroRegistry in
-            return _lookupMacroDeclarationUnlocked(name, in: macroRegistry)
+        precondition(name != "")
+        var currentNamespace: MacroNamespace? = self
+        while let namespace = currentNamespace {
+            if let macroDecl = namespace.macroRegistry.withLock({ $0[name] }) {
+                return macroDecl
+            }
+            currentNamespace = namespace.parentNamespace
         }
+        return nil
     }
 
     /// Perform an unlocked macro lookup.
@@ -137,11 +143,17 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     /// Maps condition parameter names to condition parameters.  Each declaration is an instance of MacroConditionParameter.
     private let conditionParameters = LockedValue<Dictionary<String,MacroConditionParameter>>([:])
 
-    /// Looks up and returns the macro condition parameter that's associated with ‘name’, if any.  The name is not allowed to be the empty string.
+    /// Looks up and returns the macro condition parameter that's associated with 'name', if any.  The name is not allowed to be the empty string.
     public func lookupConditionParameter(_ name: String) -> MacroConditionParameter? {
-        conditionParameters.withLock { conditionParameters in
-            _lookupConditionParameterUnlocked(name, in: conditionParameters)
+        precondition(name != "")
+        var currentNamespace: MacroNamespace? = self
+        while let namespace = currentNamespace {
+            if let condParam = namespace.conditionParameters.withLock({ $0[name] }) {
+                return condParam
+            }
+            currentNamespace = namespace.parentNamespace
         }
+        return nil
     }
 
     private func _lookupConditionParameterUnlocked(_ name: String, in conditionParameters: [String: MacroConditionParameter]) -> MacroConditionParameter? {

@@ -101,3 +101,36 @@ public func transitiveClosure<T>(
 
     return (result, dupes)
 }
+
+public func topologicalSort<T: Hashable>(_ vertices: [T], successors: (T) throws -> [T]) rethrows -> [T] {
+    var degreeByVertex: [T: UInt] = Dictionary(uniqueKeysWithValues: vertices.map { ($0, 0) })
+    for vertex in vertices {
+        for successor in try successors(vertex) {
+            degreeByVertex[successor, default: 0] += 1
+        }
+    }
+
+    var queue: [T] = []
+    for (vertex, degree) in degreeByVertex {
+        if degree == 0 {
+            queue.append(vertex)
+        }
+    }
+
+    var result: [T] = []
+    while !queue.isEmpty {
+        let currentVertex = queue.removeFirst()
+        result.append(currentVertex)
+        for successor in try successors(currentVertex) {
+            guard let currentDegree = degreeByVertex[successor] else {
+                fatalError("programmer error: encountered inconsistent state during topological sort")
+            }
+            if currentDegree == 1 {
+                queue.append(successor)
+            }
+            degreeByVertex[successor] = currentDegree - 1
+        }
+    }
+
+    return result
+}

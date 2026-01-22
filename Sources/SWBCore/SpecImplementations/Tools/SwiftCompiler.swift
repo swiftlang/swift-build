@@ -1093,6 +1093,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case emitPackageModuleInterfacePath = "emit-package-module-interface-path"
         case compilationCaching = "compilation-caching"
         case Isystem = "Isystem"
+        case apiDigesterXcc = "api-digester-Xcc"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ flag: String) -> Bool {
@@ -1882,6 +1883,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // Instruct the compiler to serialize diagnostics.
             args.append("-serialize-diagnostics")
 
+            if cbc.producer.swiftModuleShouldCompileForStaticLinking {
+                args.append("-static")
+            }
+
             if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                 // Instruct the compiler to emit dependencies information.
                 args.append("-emit-dependencies")
@@ -2240,7 +2245,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             var environment: [(String, String)] = environmentFromSpec(cbc, delegate)
             environment.append(("DEVELOPER_DIR", cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str))
             let sdkroot = cbc.scope.evaluate(BuiltinMacros.SDKROOT)
-            if !sdkroot.isEmpty {
+            if !sdkroot.isEmpty && cbc.scope.evaluate(BuiltinMacros.SWIFTC_PASS_SDKROOT) {
                 environment.append(("SDKROOT", sdkroot.str))
             }
             let toolchains = cbc.scope.evaluateAsString(BuiltinMacros.TOOLCHAINS)

@@ -3735,6 +3735,47 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host), .requireHostOS(.linux))
+    func linuxFallbackSystemToolchainDoesNotPassSDKArg() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("File1.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "Tool",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File1.swift"),
+                            ]),
+                        ]),
+                ])
+
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .host) { results in
+                results.checkNoDiagnostics()
+
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-sdk")
+                }
+            }
+        }
+    }
+
     private func checkLibraryLevelForConfig(targetType: TestStandardTarget.TargetType,
                                             buildSettings: [String:String],
                                             body: (any PlannedTask) -> Void) async throws {
@@ -4615,6 +4656,175 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     compileTask.checkCommandLineDoesNotContain("-index-store-compress")
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-clang-modules")
                     compileTask.checkCommandLineDoesNotContain("-index-ignore-system-modules")
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.windows))
+    func swiftStaticLinkingOnWindows() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "ProjectName",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("file.swift"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "Executable",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                            TestFrameworksBuildPhase(["libDynamic1.dll", "libStatic1.a"]),
+                        ],
+                        dependencies: ["Dynamic1", "Static1"]
+                    ),
+                    TestStandardTarget(
+                        "Dynamic1",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                            TestFrameworksBuildPhase(["libStatic2.a"]),
+                        ],
+                        dependencies: ["Static2"]
+                    ),
+                    TestStandardTarget(
+                        "Static1",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "LIBTOOL": libtoolPath.str,
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                            TestFrameworksBuildPhase(["libStatic4.a"]),
+                        ],
+                        dependencies: ["Static4"]
+                    ),
+
+                    TestStandardTarget(
+                        "Static2",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "LIBTOOL": libtoolPath.str,
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                            TestFrameworksBuildPhase(["libStatic3.a"]),
+                        ],
+                        dependencies: ["Static3"]
+                    ),
+
+                    TestStandardTarget(
+                        "Static3",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "LIBTOOL": libtoolPath.str,
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                        ]
+                    ),
+
+                    TestStandardTarget(
+                        "Static4",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SWIFT_EXEC": swiftCompilerPath.str,
+                                    "SWIFT_VERSION": swiftVersion,
+                                    "LIBTOOL": libtoolPath.str,
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",                                ]
+                            ),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["file.swift"]),
+                        ]
+                    ),
+                ])
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+            await tester.checkBuild(BuildParameters(configuration: "Debug"), runDestination: .host) { results in
+                results.checkTarget("Executable") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTask in
+                        compileTask.checkCommandLineContains(["-static"])
+                    }
+                }
+
+                results.checkTarget("Dynamic1") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTask in
+                        compileTask.checkCommandLineDoesNotContain("-static")
+                    }
+                }
+
+                results.checkTarget("Static1") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTask in
+                        compileTask.checkCommandLineContains(["-static"])
+                    }
+                }
+
+                results.checkTarget("Static2") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTask in
+                        compileTask.checkCommandLineDoesNotContain("-static")
+                    }
+                }
+
+                results.checkTarget("Static3") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTask in
+                        compileTask.checkCommandLineDoesNotContain("-static")
+                    }
+                }
+
+                results.checkTarget("Static4") { target in
+                    results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { compileTask in
+                        compileTask.checkCommandLineContains(["-static"])
+                    }
                 }
             }
         }
