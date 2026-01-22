@@ -1132,7 +1132,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                     "Type": .plString("SDK"),
                     "Version": .plString(swiftSDK.version),
                     "CanonicalName": .plString(swiftSDK.identifier),
-                    "Aliases": [],
+                    "Aliases": ["Swift SDK"],
                     "IsBaseSDK": .plBool(true),
                     "DefaultProperties": .plDict([
                         "PLATFORM_NAME": .plString(platform.name),
