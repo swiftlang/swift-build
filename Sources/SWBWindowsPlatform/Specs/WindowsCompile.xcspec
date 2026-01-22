@@ -98,7 +98,13 @@
             "PATH" = "$(TOOLCHAIN_DIR)/usr/bin;$(DEVELOPER_DIR)/Runtimes/$(TOOLCHAIN_VERSION)/usr/bin;$(PATH)";
         };
         Options = (
-
+            {
+                Name = __WINDOWS_STATIC_FLAG;
+                Type = Bool;
+                DefaultValue = YES;
+                Condition = "$(PRODUCT_TYPE) == 'com.apple.product-type.library.static' || $(PRODUCT_TYPE) == 'org.swift.product-type.library.static' || $(PRODUCT_TYPE) == 'org.swift.product-type.common.object'";
+                CommandLineArgs = ("-static");
+            }
         );
     },
 )

@@ -33,7 +33,6 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SDKROOT": "auto",
                     ]),
             ],
@@ -87,7 +86,6 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SDKROOT": "auto",
                     ]),
             ],
@@ -148,7 +146,6 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SDKROOT": "auto",
                     ]),
             ],
@@ -199,7 +196,6 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SDKROOT": "auto",
                         "MY_SETTING": "FOO",
                     ]),
@@ -250,7 +246,6 @@ fileprivate struct CustomTaskConstructionTests: CoreBasedTests {
                     buildSettings: [
                         "GENERATE_INFOPLIST_FILE": "YES",
                         "PRODUCT_NAME": "$(TARGET_NAME)",
-                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
                         "SDKROOT": "auto",
                     ]),
             ],
