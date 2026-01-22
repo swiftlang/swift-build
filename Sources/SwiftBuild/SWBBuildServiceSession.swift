@@ -384,11 +384,7 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     public func computeDependencyGraph(targetGUIDs: [SWBTargetGUID], buildParameters: SWBBuildParameters, includeImplicitDependencies: Bool) async throws -> [SWBTargetGUID: [SWBTargetGUID]] {
-        var result: [SWBTargetGUID: [SWBTargetGUID]] = [:]
-        for (key, value) in try await service.send(request: ComputeDependencyGraphRequest(sessionHandle: uid, targetGUIDs: targetGUIDs.map { TargetGUID(rawValue: $0.rawValue) }, buildParameters: buildParameters.messagePayloadRepresentation, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: .workspace)).adjacencyList {
-            result[SWBTargetGUID(rawValue: key.rawValue)] = value.map { SWBTargetGUID(rawValue: $0.rawValue) }
-        }
-        return result
+        return try await computeDependencyGraph(targetGUIDs: targetGUIDs, buildParameters: buildParameters, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: .workspace)
     }
 
     public func computeDependencyClosure(targetGUIDs: [String], buildParameters: SWBBuildParameters, includeImplicitDependencies: Bool, dependencyScope: SWBDependencyScope) async throws -> [String] {
@@ -396,8 +392,11 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     public func computeDependencyGraph(targetGUIDs: [SWBTargetGUID], buildParameters: SWBBuildParameters, includeImplicitDependencies: Bool, dependencyScope: SWBDependencyScope) async throws -> [SWBTargetGUID: [SWBTargetGUID]] {
+        guard let msg: DependencyGraphResponse = try await handleDelegateMessageOnChannel(makeMessage: { [uid] in NonBlockingComputeDependencyGraphRequest(sessionHandle: uid, responseChannel: $0, targetGUIDs: targetGUIDs.map { TargetGUID(rawValue: $0.rawValue) }, buildParameters: buildParameters.messagePayloadRepresentation, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: dependencyScope.messagePayload) }, delegate: nil) else {
+            throw StubError.error("Failed to receive dependency graph response")
+        }
         var result: [SWBTargetGUID: [SWBTargetGUID]] = [:]
-        for (key, value) in try await service.send(request: ComputeDependencyGraphRequest(sessionHandle: uid, targetGUIDs: targetGUIDs.map { TargetGUID(rawValue: $0.rawValue) }, buildParameters: buildParameters.messagePayloadRepresentation, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: dependencyScope.messagePayload)).adjacencyList {
+        for (key, value) in msg.adjacencyList {
             result[SWBTargetGUID(rawValue: key.rawValue)] = value.map { SWBTargetGUID(rawValue: $0.rawValue) }
         }
         return result

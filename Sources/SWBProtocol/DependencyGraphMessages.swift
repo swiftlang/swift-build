@@ -12,6 +12,61 @@
 
 public import SWBUtil
 
+public struct NonBlockingComputeDependencyGraphRequest: SessionChannelMessage, RequestMessage, SerializableCodable, Equatable {
+    public typealias ResponseMessage = VoidResponse
+
+    public static let name = "NONBLOCKING_COMPUTE_DEPENDENCY_GRAPH_REQUEST"
+
+    public let sessionHandle: String
+    public let responseChannel: UInt64
+    public let targetGUIDs: [TargetGUID]
+    public let buildParameters: BuildParametersMessagePayload
+    public let includeImplicitDependencies: Bool
+    public let dependencyScope: DependencyScopeMessagePayload
+
+    public init(sessionHandle: String, responseChannel: UInt64, targetGUIDs: [TargetGUID], buildParameters: BuildParametersMessagePayload, includeImplicitDependencies: Bool, dependencyScope: DependencyScopeMessagePayload) {
+        self.sessionHandle = sessionHandle
+        self.responseChannel = responseChannel
+        self.targetGUIDs = targetGUIDs
+        self.buildParameters = buildParameters
+        self.includeImplicitDependencies = includeImplicitDependencies
+        self.dependencyScope = dependencyScope
+    }
+
+    enum CodingKeys: CodingKey {
+        case sessionHandle
+        case responseChannel
+        case targetGUIDs
+        case buildParameters
+        case includeImplicitDependencies
+        case dependencyScope
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container: KeyedDecodingContainer<NonBlockingComputeDependencyGraphRequest.CodingKeys> = try decoder.container(keyedBy: NonBlockingComputeDependencyGraphRequest.CodingKeys.self)
+
+        self.sessionHandle = try container.decode(String.self, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.sessionHandle)
+        self.responseChannel = try container.decode(UInt64.self, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.responseChannel)
+        self.targetGUIDs = try container.decode([TargetGUID].self, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.targetGUIDs)
+        self.buildParameters = try container.decode(BuildParametersMessagePayload.self, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.buildParameters)
+        self.includeImplicitDependencies = try container.decode(Bool.self, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.includeImplicitDependencies)
+        self.dependencyScope = try container.decodeIfPresent(DependencyScopeMessagePayload.self, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.dependencyScope) ?? .workspace
+
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container: KeyedEncodingContainer<NonBlockingComputeDependencyGraphRequest.CodingKeys> = encoder.container(keyedBy: NonBlockingComputeDependencyGraphRequest.CodingKeys.self)
+
+        try container.encode(self.sessionHandle, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.sessionHandle)
+        try container.encode(self.responseChannel, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.responseChannel)
+        try container.encode(self.targetGUIDs, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.targetGUIDs)
+        try container.encode(self.buildParameters, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.buildParameters)
+        try container.encode(self.includeImplicitDependencies, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.includeImplicitDependencies)
+        try container.encode(self.dependencyScope, forKey: NonBlockingComputeDependencyGraphRequest.CodingKeys.dependencyScope)
+    }
+}
+
+// Maintained for message format compatibility only
 public struct ComputeDependencyGraphRequest: SessionMessage, RequestMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = DependencyGraphResponse
 
@@ -105,6 +160,7 @@ public struct DumpBuildDependencyInfoRequest: SessionChannelBuildMessage, Reques
 
 let dependencyGraphMessageTypes: [any Message.Type] = [
     ComputeDependencyGraphRequest.self,
+    NonBlockingComputeDependencyGraphRequest.self,
     DependencyGraphResponse.self,
     DumpBuildDependencyInfoRequest.self,
 ]
