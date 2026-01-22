@@ -686,8 +686,10 @@ private func convertToPropertyListItem(_ item: Any) -> PropertyListItem {
     case let asDict as NSDictionary:
         var result = Dictionary<String, PropertyListItem>(minimumCapacity: asDict.count)
         for (key,value) in asDict {
+            var key = (key as! String)
+            key.makeContiguousUTF8()
             let valueItem = convertToPropertyListItem(value)
-            result[key as! String] = valueItem
+            result[key] = valueItem
         }
         return .plDict(result)
 
