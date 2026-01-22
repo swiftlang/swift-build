@@ -866,9 +866,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         // line. In some cases we will have to postprocess, because of settings
         // like OTHER_CFLAGS where the user can't possibly add this metadata to
         // the values, but those settings be handled on a case-by-case basis.
-        return task.commandLine.indices.compactMap { index in
-            let arg = task.commandLine[index].asByteString
-            let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
+        let taskCommandLine = task.commandLine
+        return taskCommandLine.indices.compactMap { index in
+            let arg = taskCommandLine[index].asByteString
+            let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
             if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
                 return nil
             }

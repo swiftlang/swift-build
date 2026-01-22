@@ -315,9 +315,10 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     }
 
     public override func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
-        return task.commandLine.indices.compactMap { index in
-            let arg = task.commandLine[index].asByteString
-            let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
+        let taskCommandLine = task.commandLine
+        return taskCommandLine.indices.compactMap { index in
+            let arg = taskCommandLine[index].asByteString
+            let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
             if isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
                 return nil
             }
