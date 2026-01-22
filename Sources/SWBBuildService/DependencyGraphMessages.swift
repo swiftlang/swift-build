@@ -87,6 +87,7 @@ struct ComputeDependencyClosureMsg: MessageHandler {
     }
 }
 
+// Maintained for message format compatibility only.
 struct ComputeDependencyGraphMsg: MessageHandler {
     func handle(request: Request, message: ComputeDependencyGraphRequest) async throws -> DependencyGraphResponse {
         let session = try request.session(for: message)
@@ -99,5 +100,40 @@ struct ComputeDependencyGraphMsg: MessageHandler {
             adjacencyList[TargetGUID(rawValue: configuredTarget.target.guid), default: []].append(contentsOf: buildGraph.dependencies(of: configuredTarget).map { TargetGUID(rawValue: $0.target.guid) })
         }
         return DependencyGraphResponse(adjacencyList: adjacencyList)
+    }
+}
+
+
+struct NonBlockingComputeDependencyGraphMsg: MessageHandler {
+    func handle(request: Request, message: NonBlockingComputeDependencyGraphRequest) async throws -> VoidResponse {
+        let session = try request.session(for: message)
+        guard let workspaceContext = session.workspaceContext else {
+            throw MsgParserError.missingWorkspaceContext
+        }
+        let buildParameters = try BuildParameters(from: message.buildParameters)
+
+        let requestForReply = Request(service: request.service, channel: message.responseChannel, name: "compute_dependency_graph")
+
+        let priority: _Concurrency.TaskPriority
+        if buildParameters.action == .indexBuild {
+            priority = .utility
+        } else {
+            priority = .userInitiated
+        }
+
+        _Concurrency.Task<Void, Never>(priority: priority) {
+            do {
+                let buildGraph = try await constructTargetBuildGraph(for: message.targetGUIDs, in: workspaceContext, buildParameters: message.buildParameters, includeImplicitDependencies: message.includeImplicitDependencies, dependencyScope: message.dependencyScope)
+                var adjacencyList: [TargetGUID: [TargetGUID]] = [:]
+                for configuredTarget in buildGraph.allTargets {
+                    adjacencyList[TargetGUID(rawValue: configuredTarget.target.guid), default: []].append(contentsOf: buildGraph.dependencies(of: configuredTarget).map { TargetGUID(rawValue: $0.target.guid) })
+                }
+                requestForReply.reply(DependencyGraphResponse(adjacencyList: adjacencyList))
+            } catch {
+                return requestForReply.reply(ErrorResponse("unable to compute dependency graph: \(error)"))
+            }
+        }
+
+        return VoidResponse()
     }
 }
