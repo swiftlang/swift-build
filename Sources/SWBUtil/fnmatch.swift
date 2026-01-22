@@ -44,7 +44,11 @@ private enum RangeStatus {
 /// - returns: `true` if the pattern matches the input, `false` otherwise.
 ///
 /// - note: On Windows and when using the ``FnmatchOptions/pathname`` option, both separators (`/` and `\`) are recognized (see note on pattern parameter).
-public func fnmatch(pattern: some StringProtocol, input: some StringProtocol, options: FnmatchOptions = .default, pathSeparators: (some Collection<Character>)? = ([Character]?).none) throws
+@_specialize(where PatternType == String, InputType == String, SeparatorsType == [Character])
+@_specialize(where PatternType == Substring, InputType == String, SeparatorsType == [Character])
+@_specialize(where PatternType == String, InputType == Substring, SeparatorsType == [Character])
+@_specialize(where PatternType == Substring, InputType == Substring, SeparatorsType == [Character])
+public func fnmatch<PatternType: StringProtocol, InputType: StringProtocol, SeparatorsType: Collection<Character>>(pattern: PatternType, input: InputType, options: FnmatchOptions = .default, pathSeparators: SeparatorsType? = ([Character]?).none) throws
     -> Bool
 {
     // Use Substrings to avoid String allocations
