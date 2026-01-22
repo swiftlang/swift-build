@@ -142,30 +142,54 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
     /// Returns a new `MacroValueAssignmentTable` formed by "binding" a condition parameter to a specific value.  Assignments that are conditional on the given parameter and that match one of the given literal values will become unconditional on that parameter.  Assignments that are conditional on the given parameter and that do not match any of the given literal values will be omitted.  All other conditions will be preserved.  If none of the assignments in the receiver are conditional on the given parameter, the resulting macro assignment table will be equal to the receiver.
     /// - remark: This is to handle fallback setting conditions, and is not intended to be used for any other purpose.
     private func bindConditionParameter(_ parameter: MacroConditionParameter, _ conditionValues: [ConditionValue]) -> MacroValueAssignmentTable {
-        // Go through the assignments
-        var table = MacroValueAssignmentTable(namespace: namespace)
-        for (macro, firstAssignment) in valueAssignments {
-            // The `firstAssignment` is the head of a linked list of assignments, each of which might have a condition set.
+        struct ConditionEvaluationCacheKey: Hashable {
+            let stringConditionValue: String
+            let condition: MacroCondition
+        }
+        var evaluationCache: [ConditionEvaluationCacheKey: Bool] = [:]
 
-            // Local helper function to find the first condition value that matches at least one condition in any of the assignments.  There might not be one (if there are no conditions that match any of the candidate values).
-            func findEffectiveConditionValue() -> ConditionValue? {
-                // Go through the condition values in order, returning the first one for which any condition of any of the assignments matches.
-                for conditionValue in conditionValues {
-                    // Iterate over the macro value assignments until we find a conditional that matches the current value.
-                    var nextAssignment: MacroValueAssignment? = firstAssignment
-                    while let assignment = nextAssignment {
-                        // If the assignment is conditioned on the parameter and it matches, we have found the effective condition.
-                        if let condition = assignment.conditions?[parameter], conditionValue.evaluate(condition) {
-                            return conditionValue
-                        }
-                        nextAssignment = assignment.next
-                    }
+        func evaluateConditionCached(conditionValue: ConditionValue, condition: MacroCondition) -> Bool {
+            let key: ConditionEvaluationCacheKey?
+            if case .string(let stringValue) = conditionValue {
+                let k = ConditionEvaluationCacheKey(
+                    stringConditionValue: stringValue,
+                    condition: condition
+                )
+                key = k
+                if let cached = evaluationCache[k] {
+                    return cached
                 }
-                return nil
+            } else {
+                key = nil
+            }
+            let result = conditionValue.evaluate(condition)
+            if let key {
+                evaluationCache[key] = result
+            }
+            return result
+        }
+
+        var table = MacroValueAssignmentTable(namespace: namespace)
+        // Go through the assignments
+        // The `firstAssignment` is the head of a linked list of assignments, each of which might have a condition set.
+        for (macro, firstAssignment) in valueAssignments {
+            var effectiveConditionValue: ConditionValue? = nil
+            // Go through the condition values in order, returning the first one for which any condition of any of the assignments matches.
+            outer: for conditionValue in conditionValues {
+                // Iterate over the macro value assignments until we find a conditional that matches the current value.
+                var nextAssignment: MacroValueAssignment? = firstAssignment
+                while let assignment = nextAssignment {
+                    // If the assignment is conditioned on the parameter and it matches, we have found the effective condition.
+                    if let condition = assignment.conditions?[parameter], evaluateConditionCached(conditionValue: conditionValue, condition: condition) {
+                        effectiveConditionValue = conditionValue
+                        break outer
+                    }
+                    nextAssignment = assignment.next
+                }
             }
 
             // Find the effective condition value for this macro, if there is one.
-            guard let effectiveConditionValue = findEffectiveConditionValue() else {
+            guard let effectiveConditionValue else {
                 // None of the assignments are conditioned on the parameter, so there's nothing to bind for this list of assignments.
                 table.valueAssignments[macro] = firstAssignment
                 continue
@@ -174,16 +198,19 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             // We only get this far if a condition value matches one of the conditions for the given parameter for at least one of the assignments.  This means that we have some actual binding to do.
 
             // Local function to push a chain of assignments while evaluating and binding any assignment that is conditioned on the specified parameter.
-            func bindAndPushAssignment(_ assignment: MacroValueAssignment) {
-                // First deal with the next assignment, so that we end up pushing assignments in the same order as the original list.
-                if let nextAssignment = assignment.next {
-                    bindAndPushAssignment(nextAssignment)
-                }
+            var assignments: [MacroValueAssignment] = []
+            var current: MacroValueAssignment? = firstAssignment
+            while let currentAssignment = current {
+                assignments.append(currentAssignment)
+                current = currentAssignment.next
+            }
 
+            // Process in reverse order to ensure assignments are pushed in the same order as the original list.
+            for assignment in assignments.reversed() {
                 // Evaluate the condition for the parameter we're binding (if any).
                 if let conditions = assignment.conditions, let condition = conditions[parameter] {
                     // Assignment is conditioned on the specified parameter; we need to evaluate it in order to decide what to do.
-                    if effectiveConditionValue.evaluate(condition) == true {
+                    if evaluateConditionCached(conditionValue: effectiveConditionValue, condition: condition) == true {
                         // Condition evaluates to true, so we push an assignment with a condition set that excludes the condition.
                         let filteredConditions = conditions.conditions.filter{ $0.parameter != parameter }
                         table.push(macro, assignment.expression, conditions: filteredConditions.isEmpty ? nil : MacroConditionSet(conditions: filteredConditions), locationRef: assignment._location)
@@ -197,8 +224,6 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                     table.push(macro, assignment.expression, conditions: assignment.conditions, locationRef: assignment._location)
                 }
             }
-            bindAndPushAssignment(firstAssignment)
-
         }
         return table
     }
@@ -475,8 +500,16 @@ package struct InternedMacroValueAssignmentLocation: Serializable, Sendable {
     }
 }
 
-/// Private function that inserts a copy of the given linked list of MacroValueAssignments (starting at `srcAsgn`) in front of `dstAsgn` (which is optional).  The order of the copies is the same as the order of the originals, and the last one will have `dstAsgn` as its `next` property.  This function returns the copy that corresponds to `srcAsgn` so the client can add a reference to it wherever it sees fit.
+
+
+@inline(__always)
 private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssignment, inFrontOf dstAsgn: MacroValueAssignment?) -> MacroValueAssignment {
+    struct PendingMacroValueAssignment {
+        let expression: MacroExpression
+        let conditions: MacroConditionSet?
+        let locationRef: InternedMacroValueAssignmentLocation?
+    }
+
     // If we aren't inserting in front of anything, we can preserve the input as is.
     //
     // This is a very important optimization as it ensures that inserting a pre-bound table into an otherwise empty table will avoid duplicating assignments.
@@ -489,18 +522,33 @@ private func insertCopiesOfMacroValueAssignmentNodes(_ srcAsgn: MacroValueAssign
         return srcAsgn
     }
 
-    if let srcNext = srcAsgn.next {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: insertCopiesOfMacroValueAssignmentNodes(srcNext, inFrontOf: dstAsgn), locationRef: srcAsgn._location)
+    var currentAssignment: MacroValueAssignment? = srcAsgn
+    var newAssignments: [PendingMacroValueAssignment] = []
+    // First traverse srcAsgn, adding to the list
+    while let current = currentAssignment {
+        newAssignments.append(PendingMacroValueAssignment(expression: current.expression, conditions: current.conditions, locationRef: current._location))
+        currentAssignment = current.next
     }
-    else {
-        return MacroValueAssignment(expression: srcAsgn.expression, conditions:srcAsgn.conditions, next: dstAsgn, locationRef: srcAsgn._location)
+
+    var newCurrent: MacroValueAssignment? = dstAsgn
+    for i in newAssignments.indices.reversed() {
+        let assignment = MacroValueAssignment(expression: newAssignments[i].expression, conditions: newAssignments[i].conditions, next: newCurrent, locationRef: newAssignments[i].locationRef)
+        newCurrent = assignment
     }
+    return newCurrent!
 }
 
 private extension MacroValueAssignment {
     /// Returns true if unconditional assignment in the list is a literal.
     var containsUnconditionalLiteralInChain: Bool {
-        return (expression.isLiteral && conditions == nil) || (next?.containsUnconditionalLiteralInChain ?? false)
+        var currentAssignment: MacroValueAssignment? = self
+        while let current = currentAssignment {
+            if current.expression.isLiteral && current.conditions == nil {
+                return true
+            }
+            currentAssignment = current.next
+        }
+        return false
     }
 }
 
