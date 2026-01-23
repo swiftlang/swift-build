@@ -1661,7 +1661,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             let regexes: [Regex<(Substring, libtool: Substring)>]
             if producer.isApplePlatform {
-                regexes = [#/^Apple Inc\. version cctools(?:_[A-Za-z0-9_]+)?-(?<libtool>[0-9\.]+)$/#]
+                regexes = [#/^Apple Inc\. version .*-(?<libtool>[0-9\.]+)$/#]
             } else {
                 regexes = [
                     #/^libtool \(GNU libtool\) (?<libtool>[0-9\.]+).*/#,
