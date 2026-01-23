@@ -337,12 +337,13 @@ public enum ImageFormat {
     case macho
     case elf
     case pe
+    case wasm
 }
 
 extension ImageFormat {
     public var executableExtension: String {
         switch self {
-        case .macho, .elf:
+        case .macho, .elf, .wasm:
             return ""
         case .pe:
             return "exe"
@@ -361,6 +362,8 @@ extension ImageFormat {
             return "so"
         case .pe:
             return "dll"
+        case .wasm:
+            return ""
         }
     }
 
@@ -371,6 +374,8 @@ extension ImageFormat {
         case .elf:
             return true
         case .pe:
+            return false
+        case .wasm:
             return false
         }
     }
@@ -386,7 +391,7 @@ extension ImageFormat {
 
     public var usesRpaths: Bool {
         switch self {
-            case .macho, .elf:
+            case .macho, .elf, .wasm:
                 return true
             case .pe:
                 return false

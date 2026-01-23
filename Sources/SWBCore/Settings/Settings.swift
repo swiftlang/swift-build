@@ -2702,12 +2702,14 @@ private class SettingsBuilder: ProjectMatchLookup {
                 imageFormat = .macho
             } else if variant.llvmTargetTripleSys == "windows" {
                 imageFormat = .pe
+            } else if variant.llvmTargetTripleSys?.hasPrefix("wasi") == true {
+                imageFormat = .wasm
             } else {
                 imageFormat = .elf
             }
 
             sdkTable.push(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, literal: imageFormat.dynamicLibraryExtension)
-            sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, literal: imageFormat.requiresSwiftAutolinkExtract && !sdk.aliases.contains("Swift SDK"))
+            sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, literal: imageFormat.requiresSwiftAutolinkExtract)
             sdkTable.push(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, literal: imageFormat.requiresSwiftModulewrap)
             if let origin = imageFormat.rpathOrigin {
                 sdkTable.push(BuiltinMacros.RPATH_ORIGIN, literal: origin)

@@ -334,7 +334,7 @@ extension RunDestinationInfo {
             return environment
         }
         switch imageFormat(core) {
-        case .elf:
+        case .elf, .wasm:
             switch buildTarget {
             case let .toolchainSDK(platform, _, _):
                 environment.prependPath(key: "LD_LIBRARY_PATH", value: toolchain.path.join("usr/lib/swift/\(platform)").str)

@@ -70,8 +70,10 @@ public struct SwiftSDK: Sendable {
             public let extraCLIOptions: [String]?
         }
 
-        public let rootPath: String
+        public let rootPath: String?
+        public let cCompiler: Tool?
         public let swiftCompiler: Tool?
+        public let linker: Tool?
     }
 
     /// The identifier of the artifact bundle containing this SDK.
