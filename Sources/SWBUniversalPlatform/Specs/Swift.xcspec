@@ -384,12 +384,14 @@
                 Name = "SWIFT_ENFORCE_EXCLUSIVE_ACCESS";
                 Type = Enumeration;
                 Values = (
+                    "default",
                     "on",
                     "debug-only",
                     "off",
                 );
-                DefaultValue = "on";
+                DefaultValue = "default";
                 CommandLineArgs = {
+                    "default" = "";
                     "on" = "-enforce-exclusivity=checked";
                     "full" = (); // Handled by __SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT
                     "debug-only" = (); // Handled by __SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT
