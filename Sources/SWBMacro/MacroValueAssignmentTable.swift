@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -42,46 +42,46 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
 
     /// Adds a mapping from `macro` to the literal string `value`.
     public mutating func push(_ macro: BooleanMacroDeclaration, literal: Bool, conditions: MacroConditionSet? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
         push(macro, namespace.parseLiteralString(literal ? "YES" : "NO"), conditions: conditions)
     }
 
     /// Adds a mapping from `macro` to the literal enumeration value.
     public mutating func push<T: EnumerationMacroType>(_ macro: EnumMacroDeclaration<T>, literal: T, conditions: MacroConditionSet? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
         push(macro, namespace.parseLiteralString(literal.rawValue), conditions: conditions)
     }
 
     /// Adds a mapping from `macro` to the literal string `value`.
     public mutating func push(_ macro: StringMacroDeclaration, literal: String, conditions: MacroConditionSet? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
         push(macro, namespace.parseLiteralString(literal), conditions: conditions)
     }
 
     /// Adds a mapping from `macro` to the given literal string list `value`.
     public mutating func push(_ macro: StringListMacroDeclaration, literal: [String], conditions: MacroConditionSet? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
         push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
     }
 
     /// Adds a mapping from `macro` to the literal string `value`.
     public mutating func push(_ macro: PathMacroDeclaration, literal: String, conditions: MacroConditionSet? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
         push(macro, namespace.parseLiteralString(literal), conditions: conditions)
     }
 
     /// Adds a mapping from `macro` to the given literal string list `value`.
     public mutating func push(_ macro: PathListMacroDeclaration, literal: [String], conditions: MacroConditionSet? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
         push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
     }
 
 
     /// Adds a mapping from `macro` to `value`, inserting it ahead of any already existing assignment for the same macro.  Unless the value refers to the lower-precedence expression (using `$(inherited)` notation), any existing assignments are shadowed but not removed.
     package mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, locationRef: InternedMacroValueAssignmentLocation? = nil) {
-        assert(namespace.lookupMacroDeclaration(macro.name) === macro)
-        // Validate the type.
-        assert(macro.type.matchesExpressionType(value))
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
+        // Validate that the type of the expression is compatible with the type of the macro.
+        assert(macro.type.matchesExpressionType(value), "trying to push macro '\(macro)' with an incompatibly-typed expression '\(value)'")
         valueAssignments[macro] = MacroValueAssignment(expression: value, conditions: conditions, next: valueAssignments[macro], locationRef: locationRef)
     }
 
