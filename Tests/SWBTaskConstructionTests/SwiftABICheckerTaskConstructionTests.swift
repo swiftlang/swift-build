@@ -155,8 +155,8 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
                     "SWIFT_ABI_GENERATION_TOOL_OUTPUT_DIR": Path.root.join("tmp").join("baseline").str,
                     "SWIFT_EXEC": swiftCompilerPath.str,
                     "SWIFT_VERSION": swiftVersion,
-                    "HEADER_SEARCH_PATHS": Path.root.join("header_search_path").str,
-                    "OTHER_SWIFT_FLAGS": "-Xcc -fmodule-map-file -Xcc \(Path.root.join("module.modulemap").str)",
+                    "HEADER_SEARCH_PATHS": Path.root.join("header_search_path").strWithPosixSlashes,
+                    "OTHER_SWIFT_FLAGS": "-Xcc -fmodule-map-file -Xcc \(Path.root.join("module.modulemap").strWithPosixSlashes)",
                     "CODE_SIGNING_ALLOWED": "NO",
                     "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES",
                 ])],
@@ -175,7 +175,7 @@ fileprivate struct SwiftABICheckerTaskConstructionTests: CoreBasedTests {
             if try await self.swiftFeatures.has(.apiDigesterXcc) {
                 results.checkTask(.matchRuleType("GenerateSwiftABIBaseline")) { task in
                     task.checkCommandLineContains([
-                        "-Xcc", "-fmodule-map-file", "-Xcc", Path.root.join("module.modulemap").str
+                        "-Xcc", "-fmodule-map-file", "-Xcc", Path.root.join("module.modulemap").strWithPosixSlashes
                     ])
                     task.checkCommandLineContains([
                         "-Xcc", "-I\(Path.root.join("header_search_path").str)"
