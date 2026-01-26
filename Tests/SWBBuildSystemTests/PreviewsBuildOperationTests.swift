@@ -233,7 +233,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-dwarf-version=5",
                                 "-swift-version",
                                 "5",
-                                "-enforce-exclusivity=checked",
                                 "-Onone",
                                 "-serialize-debugging-options",
                                 "-enable-experimental-feature",
@@ -538,7 +537,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
                                 "-dwarf-version=5",
                                 "-swift-version",
                                 "5",
-                                "-enforce-exclusivity=checked",
                                 "-Onone",
                                 "-serialize-debugging-options",
                                 "-enable-experimental-feature",
@@ -1119,7 +1117,6 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
 
         XCTAssertEqualSequences(compileCommandLine, [[
             "\(core.developerPath.path.str)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
-            "-enforce-exclusivity=checked",
             "-enable-experimental-feature", "DebugDescriptionMacro",
             "-sdk", sdkPath.str,
             "-target", "\(arch)-apple-ios\(core.loadSDK(.iOS).defaultDeploymentTarget)",

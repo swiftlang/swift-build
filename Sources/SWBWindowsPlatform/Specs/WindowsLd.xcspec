@@ -81,7 +81,7 @@
             {
                 Name = _LD_MACHINE_ARCH;
                 Type = Boolean;
-                DefaultValue = YES;
+                DefaultValue = NO;
                 Condition = "$(MACH_O_TYPE) == mh_dylib";
                 CommandLineArgs = {
                     YES = ("-Xlinker", "/MACHINE:$(_LD_ARCH)");
@@ -93,7 +93,7 @@
                 // this for the immediate targets for the .dynamic product
                 Name = _LD_WHOLEARCHIVE;
                 Type = Boolean;
-                DefaultValue = YES;
+                DefaultValue = NO;
                 Condition = "$(MACH_O_TYPE) == mh_dylib";
                 CommandLineArgs = {
                     YES = ("-Xlinker", "/WHOLEARCHIVE");

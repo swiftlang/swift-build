@@ -36,6 +36,7 @@
 "[SWIFT_REFLECTION_METADATA_LEVEL]-value-[without-names]" = "Without Names";
 "[SWIFT_REFLECTION_METADATA_LEVEL]-value-[none]" = "None";
 
+"[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[default]" = "Full Enforcement (Run-time Checks in All Builds, default)";
 "[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[on]" = "Full Enforcement (Run-time Checks in All Builds)";
 "[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[full]" = "Full Enforcement (Run-time Checks in Debug Builds Only)";
 "[SWIFT_ENFORCE_EXCLUSIVE_ACCESS]-value-[debug-only]" = "Full Enforcement (Run-time Checks in Debug Builds Only)";

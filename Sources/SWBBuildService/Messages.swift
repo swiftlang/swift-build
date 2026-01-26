@@ -1622,6 +1622,7 @@ package struct ServiceMessageHandlers: ServiceExtension {
         service.registerMessageHandler(DescribeArchivableProductsMsg.self)
         service.registerMessageHandler(ComputeDependencyClosureMsg.self)
         service.registerMessageHandler(ComputeDependencyGraphMsg.self)
+        service.registerMessageHandler(NonBlockingComputeDependencyGraphMsg.self)
         service.registerMessageHandler(DumpBuildDependencyInfoMsg.self)
 
         service.registerMessageHandler(BuildDescriptionConfiguredTargetsMsg.self)

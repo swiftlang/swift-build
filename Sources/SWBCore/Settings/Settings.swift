@@ -4044,7 +4044,7 @@ private class SettingsBuilder: ProjectMatchLookup {
     /// Add the target task overrides.  Most of these are *not* exported to scripts unless the settings have been marked to be exported elsewhere.
     private func addTargetTaskOverrides(_ target: Target, _ specLookupContext: any SpecLookupContext, _ sparseSDKs: [SDK], _ deploymentTarget: Version?, _ sdk: SDK?) {
         // Add the common overrides (which may effect the target specific ones).
-        push(getCommonTargetTaskOverrides(specLookupContext, deploymentTarget, sdk), .exported)
+        push(getCommonTargetTaskOverrides(specLookupContext, deploymentTarget, sdk))
 
         do {
             // Also set each a build setting with the name of each architecture to `YES`.
@@ -4054,11 +4054,11 @@ private class SettingsBuilder: ProjectMatchLookup {
                 let decl = table.namespace.lookupOrDeclareMacro(StringMacroDeclaration.self, arch)
                 table.push(decl, table.namespace.parseForMacro(decl, value: "YES"))
             }
-            push(table, .exported)
+            push(table)
         }
 
         // Add the target-specific overrides.
-        push(getTargetTaskOverrides(target, specLookupContext, sparseSDKs, sdk), .exported)
+        push(getTargetTaskOverrides(target, specLookupContext, sparseSDKs, sdk))
 
         // Add the product specific task overrides.
         push(getProductSpecificTargetTaskOverrides(target, sdk))
@@ -4071,7 +4071,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         //
         // FIXME: We push this separately, because it re-modifies the search paths variables set up above in the overrides.
         if target is StandardTarget, let sdk {
-            push(getSDKSpecificPathOverrides(sdk, sparseSDKs), .exported)
+            push(getSDKSpecificPathOverrides(sdk, sparseSDKs))
         }
     }
 

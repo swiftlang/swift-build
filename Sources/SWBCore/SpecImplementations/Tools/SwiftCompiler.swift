@@ -21,6 +21,11 @@ public import enum SWBProtocol.BuildAction
 import Foundation
 public import SWBMacro
 
+#if canImport(Darwin) && canImport(os.log)
+// For Previews logging
+import os.log
+#endif
+
 /// The minimal data we need to serialize to reconstruct `SwiftSourceFileIndexingInfo` from `generateIndexingInfoForTask`
 public struct SwiftIndexingPayload: Serializable, Sendable {
     // If `USE_SWIFT_RESPONSE_FILE` is enabled, we use `filePaths`, otherwise `range`.
@@ -1209,9 +1214,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         // like OTHER_SWIFT_FLAGS where the user can't possibly add this
         // metadata to the values, but those settings be handled on a
         // case-by-case basis.
-        return task.commandLine.indices.compactMap { index in
-            let arg = task.commandLine[index].asByteString
-            let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
+        let taskCommandLine = task.commandLine
+        return taskCommandLine.indices.compactMap { index in
+            let arg = taskCommandLine[index].asByteString
+            let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
             if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
                 return nil
             }
@@ -1882,10 +1888,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             // Instruct the compiler to serialize diagnostics.
             args.append("-serialize-diagnostics")
-
-            if cbc.producer.swiftModuleShouldCompileForStaticLinking {
-                args.append("-static")
-            }
 
             if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                 // Instruct the compiler to emit dependencies information.
@@ -3553,6 +3555,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     let overlay = try vfs.toVFSOverlay().propertyListItem.asJSONFragment().asString
                     try fs.write(newVFSOverlayPath!, contents: ByteString(encodingAsUTF8: overlay))
                 } catch {
+                    logErrorForPreviews("Failed to generate vfsoverlay for \(inputPath.basename), error: \(error)")
                     return []
                 }
             } else {
@@ -3633,11 +3636,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             // The driver may have emitted an error even if it returned us a command line. In this case, don't return the command line since it likely won't work.
             if commandLine.isEmpty || outputDelegate.engine.hasErrors {
-                #if canImport(os)
+                logErrorForPreviews("Swift driver failed to compute command line for preview info.")
                 for diagnostic in outputDelegate.engine.diagnostics.filter({ $0.behavior == .error }) {
-                    OSLog.log("Swift driver preview info error: \(diagnostic.data.description)")
+                    logErrorForPreviews("Swift driver preview info error: \(diagnostic.data.description)")
                 }
-                #endif
                 return []
             }
         }
@@ -3963,4 +3965,15 @@ extension SwiftDiscoveredCommandLineToolSpecInfo {
         // Get the info from the global cache.
         return try await discoveredSwiftCompilerInfo(producer, delegate, at: toolPath, blocklistsPathOverride: userSpecifiedBlocklists)
     }
+}
+
+#if canImport(Darwin) && canImport(os.log)
+let previewsLogger = Logger(subsystem: "com.apple.dt.Previews", category: "swift-build")
+#endif
+
+private func logErrorForPreviews(_ message: @autoclosure () -> String) {
+#if canImport(Darwin) && canImport(os.log)
+    let resolved = message()
+    previewsLogger.error("\(resolved, privacy: .private)")
+#endif
 }

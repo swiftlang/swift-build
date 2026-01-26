@@ -80,15 +80,11 @@ actor LinkageDependencyResolver {
     /// Sets of targets mapped by product name stem.
     private let targetsByProductNameStem: [String: Set<StandardTarget>]
 
-    /// Sets of targets mapped by module name (computed using parameters from the build request).
-    private let targetsByUnconfiguredModuleName: [String: Set<StandardTarget>]
-
     internal let resolver: DependencyResolver
 
     init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate) {
         var targetsByProductName = [String: Set<StandardTarget>]()
         var targetsByProductNameStem = [String: Set<StandardTarget>]()
-        var targetsByUnconfiguredModuleName = [String: Set<StandardTarget>]()
         for case let target as StandardTarget in workspaceContext.workspace.allTargets {
             // FIXME: We are relying on the product reference name being constant here. This is currently true, given how our path resolver works, but it is possible to construct an Xcode project for which this doesn't work (Xcode doesn't, however, handle that situation very well). We should resolve this: <rdar://problem/29410050> Swift Build doesn't support product references with non-constant basenames
 
@@ -100,17 +96,11 @@ actor LinkageDependencyResolver {
             if let stem = Path(productName).stem, stem != productName {
                 targetsByProductNameStem[stem, default: []].insert(target)
             }
-
-            let moduleName = buildRequestContext.getCachedSettings(buildRequest.parameters, target: target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
-            if !moduleName.isEmpty {
-                targetsByUnconfiguredModuleName[moduleName, default: []].insert(target)
-            }
         }
 
         // Remember the mappings we created.
         self.targetsByProductName = targetsByProductName
         self.targetsByProductNameStem = targetsByProductNameStem
-        self.targetsByUnconfiguredModuleName = targetsByUnconfiguredModuleName
 
         resolver = DependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
     }
@@ -126,9 +116,13 @@ actor LinkageDependencyResolver {
             }
         }
 
-        let allTargets = OrderedSet(topologicalSort(Array(dependenciesPerTarget.keys), successors: { vertex in
-            return dependenciesPerTarget[vertex]?.map { dependency in dependency.target } ?? []
-        }))
+        var allTargets = OrderedSet<ConfiguredTarget>()
+        for (target, dependencies) in dependenciesPerTarget {
+            allTargets.insert(target, at: 0)
+            for dependency in dependencies {
+                allTargets.insert(dependency.target, at: 0)
+            }
+        }
 
         return (allTargets, dependenciesPerTarget)
     }
@@ -371,12 +365,6 @@ actor LinkageDependencyResolver {
             buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
         })
 
-        for moduleDependencyName in (configuredTargetSettings.moduleDependencies.map { $0.name }) {
-            if !moduleNamesOfExplicitDependencies.contains(moduleDependencyName), let implicitDependency = await implicitDependency(forModuleName: moduleDependencyName, from: configuredTarget, imposedParameters: imposedParameters, source: .moduleDependency(name: moduleDependencyName, buildSetting: BuiltinMacros.MODULE_DEPENDENCIES)) {
-                await result.append(ResolvedTargetDependency(target: implicitDependency, reason: .implicitBuildSetting(settingName: BuiltinMacros.MODULE_DEPENDENCIES.name, options: [moduleDependencyName])))
-            }
-        }
-
         return await result.value
     }
 
@@ -459,30 +447,6 @@ actor LinkageDependencyResolver {
 
         // If we passed all the tests, then we can validate the candidate.
         return resolver.lookupConfiguredTarget(candidateDependencyTarget, parameters: candidateParameters, imposedParameters: effectiveImposedParameters)
-    }
-
-    private func implicitDependency(forModuleName moduleName: String, from configuredTarget: ConfiguredTarget, imposedParameters: SpecializationParameters?, source: ImplicitDependencySource) async -> ConfiguredTarget? {
-        var candidateConfiguredTargets: [ConfiguredTarget] = []
-        for candidateTarget in (targetsByUnconfiguredModuleName[moduleName] ?? []) {
-            // Prefer overriding build parameters from the build request, if present.
-            let buildParameters = self.resolver.buildParametersByTarget[candidateTarget] ?? configuredTarget.parameters
-
-            // Validate the module name using concrete parameters.
-            let configuredModuleName = self.resolver.buildRequestContext.getCachedSettings(buildParameters, target: candidateTarget).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
-            if configuredModuleName != moduleName {
-                continue
-            }
-
-            // Get a configured target for this target, and use it as the implicit dependency.
-            if let candidateConfiguredTarget = await self.implicitDependency(candidate: candidateTarget, parameters: buildParameters, isValidFor: configuredTarget, imposedParameters: imposedParameters, resolver: resolver) {
-                candidateConfiguredTargets.append(candidateConfiguredTarget)
-            }
-        }
-        candidateConfiguredTargets.sort()
-
-        emitAmbiguousImplicitDependencyWarningIfNeeded(for: configuredTarget, dependencies: candidateConfiguredTargets, from: source)
-
-        return candidateConfiguredTargets.first
     }
 
     /// Search for an implicit dependency by full product name.

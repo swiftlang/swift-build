@@ -178,6 +178,20 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
     }
 
+    /// Check Swift exclusivity.
+    @Test(.requireSDKs(.host))
+    func swiftExclusivity() async throws {
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "on", "SWIFT_VERSION": "5.0"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.swift") { results, excludedTypes, _, _ in
+            results.consumeTasksMatchingRuleTypes(excludedTypes)
+            results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItemBasename("File.swift"), .matchRuleItem("normal"), .matchCommandLineArgument("-enforce-exclusivity=checked")) { _ in }
+        }
+
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "off", "SWIFT_VERSION": "5.0"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.swift") { results, excludedTypes, _, _ in
+            results.consumeTasksMatchingRuleTypes(excludedTypes)
+            results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItemBasename("File.swift"), .matchRuleItem("normal"), .matchCommandLineArgument("-enforce-exclusivity=unchecked")) { _ in }
+        }
+    }
+
     /// Check preprocessing of a single file.
     @Test(.requireSDKs(.host))
     func preprocessSingleFile() async throws {
