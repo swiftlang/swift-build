@@ -476,8 +476,8 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                     .matchRuleType("CompileAssetCatalogVariant"),
                     .matchRuleItem("thinned")
                 ) { task in
-                    task.checkCommandLineContains(["--include-languages", "en"])
-                    task.checkCommandLineContains(["--include-languages", "de"])
+                    task.checkCommandLineContains(["--include-language", "en"])
+                    task.checkCommandLineContains(["--include-language", "de"])
                     task.checkCommandLineDoesNotContain("Base")
                 }
                 results.checkNoDiagnostics()
@@ -521,8 +521,8 @@ fileprivate struct AssetCatalogTaskConstructionTests: CoreBasedTests {
                     .matchRuleType("CompileAssetCatalogVariant"),
                     .matchRuleItem("thinned")
                 ) { task in
-                    // When knownLocalizations is empty, no --include-languages should appear
-                    task.checkCommandLineDoesNotContain("--include-languages")
+                    // When knownLocalizations is empty, no --include-language should appear
+                    task.checkCommandLineDoesNotContain("--include-language")
                 }
                 results.checkNoDiagnostics()
             }

@@ -211,7 +211,7 @@
                 Name = ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES;
                 Type = StringList;
                 DefaultValue = "";
-                CommandLineFlag = "--include-languages";
+                CommandLineFlag = "--include-language";
             },
 
             {
