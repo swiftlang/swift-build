@@ -270,6 +270,7 @@
                 Name = "LIBRARY_SEARCH_PATHS";
                 Type = PathList;
                 "FlattenRecursiveSearchPathsInValue" = Yes;
+                Condition = "$(MACH_O_TYPE) != mh_object";
                 "CommandLinePrefixFlag" = "-L";
             },
             {

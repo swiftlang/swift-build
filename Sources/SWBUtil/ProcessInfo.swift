@@ -337,6 +337,7 @@ public enum ImageFormat {
     case macho
     case elf
     case pe
+    case wasm
 }
 
 extension ImageFormat {
@@ -346,6 +347,8 @@ extension ImageFormat {
             return ""
         case .pe:
             return "exe"
+        case .wasm:
+            return "wasm"
         }
     }
 
@@ -361,6 +364,8 @@ extension ImageFormat {
             return "so"
         case .pe:
             return "dll"
+        case .wasm:
+            return "wasm"
         }
     }
 
@@ -371,6 +376,8 @@ extension ImageFormat {
         case .elf:
             return true
         case .pe:
+            return false
+        case .wasm:
             return false
         }
     }
@@ -388,7 +395,7 @@ extension ImageFormat {
         switch self {
             case .macho, .elf:
                 return true
-            case .pe:
+            case .pe, .wasm:
                 return false
         }
     }

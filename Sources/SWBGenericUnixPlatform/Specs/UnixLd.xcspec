@@ -167,6 +167,16 @@
                 Condition = "NO";
             },
             {
+                Name = LD_DETERMINISTIC_MODE;
+                Type = Boolean;
+                CommandLineArgs = ();
+            },
+            {
+                Name = "LD_DEPENDENCY_INFO_FILE";
+                Type = Path;
+                DefaultValue = "";
+            },
+            {
                 Name = "__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 DefaultValue = "$(LINK_FILE_LIST_$(variant)_$(arch))";
