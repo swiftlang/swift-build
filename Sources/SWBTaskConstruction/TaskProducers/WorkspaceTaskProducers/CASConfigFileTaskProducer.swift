@@ -27,8 +27,13 @@ final class CASConfigFileTaskProducer: StandardTaskProducer, TaskProducer {
     func generateTasks() async -> [any SWBCore.PlannedTask] {
         var tasks = [any PlannedTask]()
         do {
-            let casConfigFiles = try Dictionary(try await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> (Path, ByteString)? in
+            let casConfigFiles = try Dictionary(grouping: await targetContexts.concurrentMap(maximumParallelism: 100) { (targetContext: TaskProducerContext) async throws -> (Path, ByteString)? in
                 let scope = targetContext.settings.globalScope
+
+                // Aggregated targets doesn't need to build anything.
+                if targetContext.configuredTarget?.target.type == .aggregate {
+                    return nil
+                }
 
                 // If compilation caching is not on, then there is no file to write.
                 // The condition here is more relax than the actual check in the compile task generation
@@ -47,19 +52,28 @@ final class CASConfigFileTaskProducer: StandardTaskProducer, TaskProducer {
                     let CASPath: String
                     let PluginPath: String?
                 }
-                let content = try JSONEncoder().encode(CASConfig(CASPath: casOpts.casPath.str, PluginPath: casOpts.pluginPath?.str))
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+                let content = try encoder.encode(CASConfig(CASPath: casOpts.casPath.str, PluginPath: casOpts.pluginPath?.str))
                 let path = scope.evaluate(BuiltinMacros.TARGET_TEMP_DIR).join(".cas-config")
                 return (path, ByteString(content))
-            }.compactMap { $0 }, uniquingKeysWith: { first, second in
-                guard first == second else {
-                    throw StubError.error("Unexpected difference in CAS config file.\nPath: \(first.asString)\nContent:\(second.asString)")
-                }
-                return first
-            })
+            }.compactMap { $0 }) { $0.0 }
 
-            for (configFilePath, configFileContent) in casConfigFiles {
+            for (configPath, configs) in casConfigFiles {
+                if configs.count > 1 {
+                    // Check that all configs for this path have the same content
+                    let firstContent = configs[0].1
+                    for conf in configs[1...] {
+                        if conf.1 != firstContent {
+                            throw StubError.error("Inconsistent CAS configuration for path '\(configPath.str)': multiple targets produce different configurations for the same path\n'\(firstContent)' vs. '\(conf.1)'")
+                        }
+                    }
+                }
+                guard let config = configs.first else {
+                    continue
+                }
                 await appendGeneratedTasks(&tasks) { delegate in
-                    context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: configFilePath), delegate, contents: configFileContent, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate])
+                    context.writeFileSpec.constructFileTasks(CommandBuildContext(producer: context, scope: context.settings.globalScope, inputs: [], output: config.0), delegate, contents: config.1, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate])
                 }
             }
         } catch {

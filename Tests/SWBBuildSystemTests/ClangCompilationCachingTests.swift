@@ -248,9 +248,11 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             let CASConfigPath = tmpDirPath.join("Test/aProject/build/aProject.build/Debug\(runDestination == .macOS ? "": "-" + runDestination.platform)/Library.build/.cas-config")
 
-            #expect(try tester.fs.read(CASConfigPath).asString.contains("\"CASPath\":"))
             if usePlugin {
-                #expect(try tester.fs.read(CASConfigPath).asString.contains("\"PluginPath\":"))
+                let content = try Regex("\"CASPath\":.*\"PluginPath\"")
+                #expect(try tester.fs.read(CASConfigPath).asString.contains(content))
+            } else {
+                #expect(try tester.fs.read(CASConfigPath).asString.contains("\"CASPath\":"))
             }
 
             // Touch the source file to trigger a new scan.
