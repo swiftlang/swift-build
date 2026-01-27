@@ -22,7 +22,7 @@ package class CapturingTaskParserDelegate: TaskOutputParserDelegate {
 
     package init() {}
     package func skippedSubtask(signature: ByteString) {}
-    package func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate { fatalError() }
+    package func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate { fatalError() }
     package func emitOutput(_ data: ByteString) { output <<< data }
     package func taskCompleted(exitStatus: Processes.ExitStatus) { }
     package func close() {}
@@ -70,7 +70,7 @@ package final class OutputParserMockTask: ExecutableTask {
         let isUnsafeToInterrupt: Bool = false
         let toolBasenameAliases: [String]
         func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? { return nil }
-        func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] { return [] }
+        func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] { return [] }
         func generateIndexingInfo(for task: any ExecutableTask, input: TaskGenerateIndexingInfoInput) -> [TaskGenerateIndexingInfoOutput] { return [] }
         func generatePreviewInfo(for task: any ExecutableTask, input: TaskGeneratePreviewInfoInput, fs: any FSProxy) -> [TaskGeneratePreviewInfoOutput] { return [] }
         func generateDocumentationInfo(for task: any ExecutableTask, input: TaskGenerateDocumentationInfoInput) -> [TaskGenerateDocumentationInfoOutput] { return [] }

@@ -103,6 +103,7 @@ add_library(SWBCore
   Settings/StackedSearchPaths.swift
   ShellScript.swift
   SigningSupport.swift
+  SwiftOutputParsing.swift
   SwiftSDK.swift
   SpecImplementations/CommandLineToolSpec.swift
   SpecImplementations/CompilerSpec.swift
