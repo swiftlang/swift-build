@@ -363,7 +363,7 @@ extension RunDestinationInfo {
                 }
             }
             environment.prependPath(key: .path, value: core.developerPath.path.join("Runtimes").join(toolchain.version.description).join("usr/bin").str)
-        case .macho:
+        case .macho, .wasm:
             // Fall back to the OS provided Swift runtime
             break
         }
