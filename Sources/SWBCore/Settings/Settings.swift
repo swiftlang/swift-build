@@ -1626,6 +1626,18 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
         }
 
+        // Memory-Tagging Address Sanitizer architecture validation
+        if scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) {
+            let unsupportedArchs = Set(["arm64_32", "armv7k", "i386", "x86_64", "x86_64h"])
+            let buildArchs = Set(scope.evaluate(BuiltinMacros.ARCHS))
+            let presentUnsupportedArchs = buildArchs.intersection(unsupportedArchs)
+
+            if !presentUnsupportedArchs.isEmpty {
+                let archList = presentUnsupportedArchs.sorted().joined(separator: ", ")
+                self.errors.append("Memory-Tagging Address Sanitizer is enabled (ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER = YES), but is not supported for architecture(s): \(archList).")
+            }
+        }
+
         if scope.evaluate(BuiltinMacros.ENABLE_PLAYGROUND_RESULTS) {
             addPlaygroundSettings(specLookupContext.platform)
         }
@@ -4542,6 +4554,9 @@ private class SettingsBuilder: ProjectMatchLookup {
                 if scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) {
                     variantObjectFileDir += "-ubsan"
                 }
+                if scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) {
+                    variantObjectFileDir += "-mtasan"
+                }
 
                 // We push the value here with an embedded literal, since this can be referenced in places when the variant condition itself may not be active (e.g., shell scripts).
                 let macro = userNamespace.lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, "OBJECT_FILE_DIR_\(variant)")
@@ -4681,7 +4696,7 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
 
         // If any sanitizer is enabled, and this product type has a runpath to its Frameworks directory defined, then we want to add that path to the runpath search path if it's not already present.
-        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER)
+        if scope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || scope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)
         {
             if let frameworksRunpath = productType?.frameworksRunpathSearchPath(in: scope)?.str {
                 if !scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS).contains(frameworksRunpath) {

@@ -62,6 +62,7 @@ package struct PreviewInfoOutput: Sendable {
         package let enableAddressSanitizer: Bool
         package let enableThreadSanitizer: Bool
         package let enableUndefinedBehaviorSanitizer: Bool
+        package let enableMemoryTaggingAddressSanitizer: Bool
     }
 
     package enum Kind: Sendable {
@@ -276,7 +277,8 @@ extension BuildDescription {
                             enableDebugDylib: settings.globalScope.evaluate(BuiltinMacros.ENABLE_DEBUG_DYLIB),
                             enableAddressSanitizer: settings.globalScope.evaluate(BuiltinMacros.ENABLE_ADDRESS_SANITIZER),
                             enableThreadSanitizer: settings.globalScope.evaluate(BuiltinMacros.ENABLE_THREAD_SANITIZER),
-                            enableUndefinedBehaviorSanitizer: settings.globalScope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER)
+                            enableUndefinedBehaviorSanitizer: settings.globalScope.evaluate(BuiltinMacros.ENABLE_UNDEFINED_BEHAVIOR_SANITIZER),
+                            enableMemoryTaggingAddressSanitizer: settings.globalScope.evaluate(BuiltinMacros.ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)
                         )
                         info = .targetDependencyInfo(targetInfo)
                     }
