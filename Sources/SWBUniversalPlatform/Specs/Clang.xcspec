@@ -3297,7 +3297,9 @@
                         "-fdepscan-prefix-map-sdk=/^sdk",
                         "-fdepscan-prefix-map-toolchain=/^toolchain",
                         "-fdepscan-prefix-map=$(DEVELOPER_DIR)=/^xcode",
-                        // FIXME: add source and build directory mappings by default
+                        "-fdepscan-prefix-map=$(PROJECT_DIR)=/^src",
+                        "-fdepscan-prefix-map=$(PROJECT_TEMP_DIR)=/^derived",
+                        "-fdepscan-prefix-map=$(BUILT_PRODUCTS_DIR)=/^built",
                     );
                     NO = ();
                 };

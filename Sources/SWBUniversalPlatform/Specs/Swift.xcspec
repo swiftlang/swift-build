@@ -1388,7 +1388,9 @@
                         "-scanner-prefix-map-sdk", "/^sdk",
                         "-scanner-prefix-map-toolchain", "/^toolchain",
                         "-scanner-prefix-map", "$(DEVELOPER_DIR)=/^xcode",
-                        // FIXME: add source and build directory mappings by default
+                        "-scanner-prefix-map", "$(PROJECT_DIR)=/^src",
+                        "-scanner-prefix-map", "$(PROJECT_TEMP_DIR)=/^derived",
+                        "-scanner-prefix-map", "$(BUILT_PRODUCTS_DIR)=/^built",
                     );
                     NO = ();
                 };
