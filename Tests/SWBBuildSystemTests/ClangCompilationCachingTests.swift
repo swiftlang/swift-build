@@ -1530,10 +1530,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS), .requireClangFeatures(.depscanPrefixMap), .skipDeveloperDirectoryWithEqualSign)
     func prefixMapping() async throws {
         try await withTemporaryDirectory { tmpDirPath in
-            func buildTestWorkspace(moduleDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
+            func buildTestWorkspace(sourceDir: Path, moduleDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
                 let testWorkspace = TestWorkspace(
                     "Test",
-                    sourceRoot: tmpDirPath.join("Test"),
+                    sourceRoot: sourceDir,
                     projects: [
                         TestProject(
                             "aProject",
@@ -1551,7 +1551,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "HEADER_SEARCH_PATHS": "\(moduleDir.str)",
+                                    "HEADER_SEARCH_PATHS": "\(moduleDir.str) $DERIVED_FILE_DIR",
                                     "CLANG_ENABLE_PREFIX_MAPPING": "YES",
                                     "CLANG_OTHER_PREFIX_MAPPINGS": "\(moduleDir.str)=/^mod",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
@@ -1562,6 +1562,8 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "Library",
                                     type: .staticLibrary,
                                     buildPhases: [
+                                        TestShellScriptBuildPhase(name: "WriteFile", shellPath: "/bin/bash", originalObjectID: "WriteEmptyHeaderFile", contents: #"touch "${SCRIPT_OUTPUT_FILE_0}""#, inputs: [], outputs: ["$DERIVED_FILE_DIR/empty.h"]),
+
                                         TestSourcesBuildPhase(["file.c"]),
                                     ]),
                             ])])
@@ -1572,6 +1574,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     stream <<<
                     """
                     #include "other.h"
+                    #include "empty.h"
                     void foo(void) {}
                     """
                 }
@@ -1613,7 +1616,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 }
             }
 
-            try await buildTestWorkspace(moduleDir: tmpDirPath.join("Mod1")) { results in
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test1"), moduleDir: tmpDirPath.join("Mod1")) { results in
                 let moduleTask: Task = try results.checkTask(.matchRuleType("PrecompileModule")) { $0 }
                 let tuTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                 results.checkCompileCacheMiss(moduleTask)
@@ -1623,7 +1626,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 checkTUCommandLine(task: tuTask, results: results)
             }
 
-            try await buildTestWorkspace(moduleDir: tmpDirPath.join("Mod2")) { results in
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test2"), moduleDir: tmpDirPath.join("Mod2")) { results in
                 let moduleTask: Task = try results.checkTask(.matchRuleType("PrecompileModule")) { $0 }
                 let tuTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                 // Module is in a different directory, but it's canonicalized.
