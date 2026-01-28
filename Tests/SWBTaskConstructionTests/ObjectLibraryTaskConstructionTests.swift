@@ -137,4 +137,86 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.windows))
+    func objectLibraryAsOnlyStaticInput() async throws {
+        let testWorkspace = TestWorkspace(
+            "Test",
+            projects: [
+                TestProject(
+                    "aProject",
+                    groupTree: TestGroup(
+                        "Sources",
+                        children: [
+                            TestFile("a.swift"),
+                        ]),
+                    buildConfigurations: [
+                        TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "CODE_SIGNING_ALLOWED": "NO",
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SWIFT_VERSION": try await swiftVersion,
+                                "SWIFT_EXEC": try await swiftCompilerPath.str
+                            ]),
+                    ],
+                    targets: [
+                        TestStandardTarget(
+                            "StaticLib",
+                            type: .staticLibrary,
+                            buildPhases: [
+                                // NO sources - only links the object library
+                                // This is the key: no source files means no linkerInputNodes,
+                                // so line 974's filter determines whether linking happens
+                                TestFrameworksBuildPhase([
+                                    "Library.objlib"
+                                ]),
+                                TestSourcesBuildPhase([]),
+                            ],
+                            dependencies: [
+                                "Library",
+                            ]
+                        ),
+                        TestStandardTarget(
+                            "Library",
+                            type: .objectLibrary,
+                            buildPhases: [
+                                TestSourcesBuildPhase([
+                                    "a.swift",
+                                ]),
+                            ]
+                        ),
+                    ])
+            ])
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testWorkspace)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host) { results in
+            results.checkNoDiagnostics()
+            // This test verifies that .objectLibrary is included in the
+            // staticallyLinkedItemsInFrameworkPhase filter on line 974.
+            //
+            // Because StaticLib has NO source files:
+            // - perArchTasks.isEmpty = true
+            // - linkerInputNodes.isEmpty = true
+            //
+            // Line 999 checks: if (perArchTasks.isEmpty && staticallyLinkedItemsInFrameworkPhase.isEmpty)
+            // Line 1005 checks: if (!linkerInputNodes.isEmpty || !staticallyLinkedItemsInFrameworkPhase.isEmpty)
+            //
+            // If .objectLibrary is NOT in the filter, staticallyLinkedItemsInFrameworkPhase would be empty,
+            // causing line 999 to skip linking OR line 1005 to not create the linker task.
+
+            // First check that a Libtool task exists - if .objectLibrary is missing from the filter,
+            // no linker task would be created at all for a static lib with no sources
+            results.checkTask(.matchRuleType("Libtool")) { task in
+                // Verify the object library is being linked
+                task.checkCommandLineMatches([.suffix("StaticLib.lib")])
+            }
+            // Also verify the object library file is in the build
+            results.checkTask(.matchRuleType("AssembleObjectLibrary")) { task in
+                task.checkCommandLineMatches([.suffix("Library.objlib")])
+            }
+        }
+    }
 }
