@@ -138,6 +138,7 @@
                 Name = "__SWIFT_OPTIMIZATION_LEVEL_LINKER_ARGS";
                 Type = String;
                 DefaultValue = "$(SWIFT_OPTIMIZATION_LEVEL)";
+                Condition = "$(MACH_O_TYPE) != mh_object";
                 AdditionalLinkerArgs = {
                     "-Onone" = ("-lswiftCore", "-lswiftSwiftOnoneSupport");
                     "<<otherwise>>" = "-lswiftCore";
