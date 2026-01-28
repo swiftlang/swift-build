@@ -537,6 +537,9 @@ final class WorkspaceSettings: Sendable {
         // Add shared output path for Swift explicit modules
         table.push(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(OBJROOT)/SwiftExplicitPrecompiledModules") })
 
+        // Add shared output path for SDK module path.
+        table.push(BuiltinMacros.SWIFT_SDK_MODULE_CACHE_OUTPUT_PATH, Static { BuiltinMacros.namespace.parseString("$(MODULE_CACHE_DIR)/SwiftExplicitPrecompiledModules") })
+
         // Add default values for the compilation caching plugin (off-by-default).
         table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
 
@@ -4026,8 +4029,10 @@ private class SettingsBuilder: ProjectMatchLookup {
                 derivedDataPath = workspaceContext.workspaceSettings.getCacheRoot()
             }
 
-            // If there is no DerivedData then intentionally remove the MODULE_CACHE_DIR setting (which is defined in terms of it).
+            // If there is no DerivedData then intentionally remove the MODULE_CACHE_DIR & SDK_MODULE_CACHE_OUTPUT_PATH setting (which is defined in terms of it).
             table.push(BuiltinMacros.MODULE_CACHE_DIR, literal: "")
+            table.push(BuiltinMacros.SWIFT_SDK_MODULE_CACHE_OUTPUT_PATH, literal: "")
+
         }
 
         table.push(BuiltinMacros.DERIVED_DATA_DIR, BuiltinMacros.namespace.parseString(derivedDataPath!.str))
