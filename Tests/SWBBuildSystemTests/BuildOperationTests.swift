@@ -870,6 +870,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
 
             tester.userInfo = UserInfo(user: "exampleUser", group: "exampleGroup", uid: 1234, gid:12345, home: Path("/Users/exampleUser"), environment: [
                 "ENV_KEY": "ENV_VALUE"])
+            tester.workspaceContext.updateUserInfo(tester.userInfo)
 
             try await tester.checkBuild(runDestination: .host) { results in
                 // We expect one task with one line of output.
