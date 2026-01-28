@@ -1966,6 +1966,8 @@ import SWBMacro
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
         let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
+        let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SRCROOT") as? PathMacroDeclaration)
+        let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -1973,6 +1975,8 @@ import SWBMacro
             table.push(enablePrefixMap, literal: prefixMapping)
             table.push(prefixMaps, literal: extraMaps)
             table.push(devDir, literal: "/Xcode.app/Contents/Developer")
+            table.push(srcDir, literal: "/source")
+            table.push(projectTmpDir, literal: "/build")
             let mockScope = MacroEvaluationScope(table: table)
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -1997,6 +2001,8 @@ import SWBMacro
                 "-fdepscan-prefix-map-sdk=/^sdk",
                 "-fdepscan-prefix-map-toolchain=/^toolchain",
                 "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
+                "-fdepscan-prefix-map=/source=/^src",
+                "-fdepscan-prefix-map=/build=/^derived",
             ])
         })
         try await test(caching: true, prefixMapping: true, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
@@ -2004,6 +2010,8 @@ import SWBMacro
                 "-fdepscan-prefix-map-sdk=/^sdk",
                 "-fdepscan-prefix-map-toolchain=/^toolchain",
                 "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
+                "-fdepscan-prefix-map=/source=/^src",
+                "-fdepscan-prefix-map=/build=/^derived",
                 "-fdepscan-prefix-map=/a=/b",
                 "-fdepscan-prefix-map=/c=/d",
             ])
@@ -2020,6 +2028,8 @@ import SWBMacro
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
         let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
+        let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SRCROOT") as? PathMacroDeclaration)
+        let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
 
         func test(caching: Bool, prefixMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             // Create the mock table.
@@ -2040,6 +2050,8 @@ import SWBMacro
             table.push(enablePrefixMap, literal: prefixMapping)
             table.push(prefixMaps, literal: extraMaps)
             table.push(devDir, literal: "/Xcode.app/Contents/Developer")
+            table.push(srcDir, literal: "/source")
+            table.push(projectTmpDir, literal: "/build")
             let mockScope = MacroEvaluationScope(table: table)
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
@@ -2072,6 +2084,8 @@ import SWBMacro
                 "-scanner-prefix-map-sdk", "/^sdk",
                 "-scanner-prefix-map-toolchain", "/^toolchain",
                 "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
+                "-scanner-prefix-map", "/source=/^src",
+                "-scanner-prefix-map", "/build=/^derived",
             ])
         })
         try await test(caching: true, prefixMapping: true, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
@@ -2079,6 +2093,8 @@ import SWBMacro
                 "-scanner-prefix-map-sdk", "/^sdk",
                 "-scanner-prefix-map-toolchain", "/^toolchain",
                 "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
+                "-scanner-prefix-map", "/source=/^src",
+                "-scanner-prefix-map", "/build=/^derived",
                 "-scanner-prefix-map", "/a=/b",
                 "-scanner-prefix-map", "/c=/d",
             ])
