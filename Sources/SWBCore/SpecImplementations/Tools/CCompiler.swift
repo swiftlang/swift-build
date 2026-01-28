@@ -341,8 +341,8 @@ final class ClangOutputParser: TaskOutputParser {
         // Don't try to read diagnostics if the process crashed or got cancelled as they were almost certainly not written in this case.
         if result.shouldSkipParsingDiagnostics { return }
 
-        for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
-            delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+        for info in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
+            delegate.processSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
         }
 
         // Read optimization remarks if the build succeeded.
@@ -1833,10 +1833,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
     }
 
     /// Get the serialized diagnostics used by a task, if any.
-    override public func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    override public func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         // We expect every clang task to have a payload of the right type.
         let payload = task.payload! as! ClangTaskPayload
-        return payload.serializedDiagnosticsPath.map { [$0] } ?? []
+        return payload.serializedDiagnosticsPath.map { [.init(serializedDiagnosticsPath: $0, sourceFilePath: nil)] } ?? []
     }
 
     /// Examines the task and returns the indexing information for the source file it compiles.

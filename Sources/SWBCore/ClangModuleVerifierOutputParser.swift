@@ -42,7 +42,9 @@ public final class ClangModuleVerifierOutputParser: TaskOutputParser {
         // Don't try to read diagnostics if the process crashed or got cancelled as they were almost certainly not written in this case.
         if result.shouldSkipParsingDiagnostics { return }
 
-        var serializedDiagnostics = task.type.serializedDiagnosticsPaths(task, workspaceContext.fs).flatMap { delegate.readSerializedDiagnostics(at: $0, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext) }
+        var serializedDiagnostics = task.type.serializedDiagnosticsInfo(task, workspaceContext.fs).flatMap { info in
+            delegate.readSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+        }
 
         // Filter unwanted diagnostics.
         serializedDiagnostics.removeAll { diag in

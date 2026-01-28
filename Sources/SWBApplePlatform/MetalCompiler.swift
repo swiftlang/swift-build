@@ -179,9 +179,9 @@ public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType, 
         }
     }
 
-    override public func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    override public func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         let payload = task.payload! as! MetalTaskPayload
-        return [payload.serializedDiagnosticsPath]
+        return [SerializedDiagnosticInfo(serializedDiagnosticsPath: payload.serializedDiagnosticsPath, sourceFilePath: nil)]
     }
 
     /// Examines the task and returns the indexing information for the source file it compiles.

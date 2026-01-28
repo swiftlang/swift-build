@@ -62,9 +62,9 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         }
     }
 
-    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
+    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
         state.state.withLock { state in
-            state.events.append(("startSubtask", id.asString))
+            state.events.append(("startSubtask", ""))
             let delegate = TestSwiftParserDelegate(buildOperationIdentifier: buildOperationIdentifier)
             state.subtasks.append((ruleInfo, delegate, executionDescription, interestingPath, serializedDiagnosticsPaths))
             return delegate
@@ -365,11 +365,11 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
 }
 
 @Suite fileprivate struct SwiftCompilerOutputParserTests: CoreBasedTests {
-    private func makeTestParser() async throws -> (TestSwiftParserDelegate, SwiftCommandOutputParser) {
+    private func makeTestParser() async throws -> (TestSwiftParserDelegate, LegacySwiftCommandOutputParser) {
         let delegate = TestSwiftParserDelegate()
         let core = try await getCore()
         let workspaceContext = try WorkspaceContext(core: core, workspace: TestWorkspace("test", projects: []).load(core), processExecutionCache: .sharedForTesting)
-        let parser = SwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", arch: "ARCH", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil)
+        let parser = LegacySwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", arch: "ARCH", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil)
         return (delegate, parser)
     }
 
@@ -382,7 +382,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         return stream.bytes
     }
 
-    private func makeTestParserWithMessages(_ messages: [[String: any PropertyListItemConvertible]]) async throws -> (TestSwiftParserDelegate, SwiftCommandOutputParser) {
+    private func makeTestParserWithMessages(_ messages: [[String: any PropertyListItemConvertible]]) async throws -> (TestSwiftParserDelegate, LegacySwiftCommandOutputParser) {
         // Convert the messages into the expected stream.
         let stream = OutputByteStream()
         for message in messages {
@@ -528,13 +528,11 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             parser.close(result: nil)
             #expect(delegate.events.count == 4)
             #expect(delegate.events[safe: 0]?.0 == "startSubtask")
-            #expect(delegate.events[safe: 0]?.1 == "1")
             #expect(delegate.events[safe: 1]?.0 == "output")
             XCTAssertMatch(delegate.events[safe: 1]?.1, .contains("unable to execute"))
             #expect(delegate.events[safe: 2]?.0 == "output")
             XCTAssertMatch(delegate.events[safe: 2]?.1, .contains("not a message"))
             #expect(delegate.events[safe: 3]?.0 == "startSubtask")
-            #expect(delegate.events[safe: 3]?.1 == "2")
         }
     }
 

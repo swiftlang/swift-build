@@ -61,9 +61,9 @@ public final class SwiftABICheckerToolSpec : GenericCommandLineToolSpec, SpecIde
         }
     }
 
-    override public func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    override public func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         let payload = task.payload! as! ABICheckerPayload
-        return [payload.serializedDiagnosticsPath]
+        return [SerializedDiagnosticInfo(serializedDiagnosticsPath: payload.serializedDiagnosticsPath, sourceFilePath: nil)]
     }
 
     public override var payloadType: (any TaskPayload.Type)? {
@@ -145,8 +145,8 @@ public final class APIDigesterDowngradingSerializedDiagnosticsOutputParser: Task
         // Don't try to read diagnostics if the process crashed or got cancelled as they were almost certainly not written in this case.
         if result.shouldSkipParsingDiagnostics { return }
 
-        for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
-            let diagnostics = delegate.readSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+        for info in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
+            let diagnostics = delegate.readSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
             for diagnostic in diagnostics {
                 delegate.diagnosticsEngine.emit(diagnostic.with(behavior: diagnostic.behavior == .error ? .warning : diagnostic.behavior))
             }

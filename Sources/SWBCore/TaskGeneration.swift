@@ -935,6 +935,30 @@ extension ConditionallyStartable {
     }
 }
 
+/// Information about serialized diagnostics for a source file.
+public struct SerializedDiagnosticInfo: Sendable, Serializable {
+    public let serializedDiagnosticsPath: Path
+    public let sourceFilePath: Path?
+
+    public init(serializedDiagnosticsPath: Path, sourceFilePath: Path?) {
+        self.serializedDiagnosticsPath = serializedDiagnosticsPath
+        self.sourceFilePath = sourceFilePath
+    }
+
+    public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+        serializer.serializeAggregate(2) {
+            serializer.serialize(serializedDiagnosticsPath)
+            serializer.serialize(sourceFilePath)
+        }
+    }
+
+    public init(from deserializer: any SWBUtil.Deserializer) throws {
+        try deserializer.beginAggregate(2)
+        self.serializedDiagnosticsPath = try deserializer.deserialize()
+        self.sourceFilePath = try deserializer.deserialize()
+    }
+}
+
 /// Provides information and functionality for all occurrences of a particular type of task.  Every task has a reference to its task type description.
 public protocol TaskTypeDescription: AnyObject, ConditionallyStartable, Sendable {
     /// Describes the concrete TaskPayload type for deserialization
@@ -943,8 +967,8 @@ public protocol TaskTypeDescription: AnyObject, ConditionallyStartable, Sendable
     /// The aliases used by a command line tool. For e.g. lex reports itself as flex, and yacc as bison.
     var toolBasenameAliases: [String] { get }
 
-    /// Get the serialized diagnostics used by a task, if any.
-    func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path]
+    /// Get the serialized diagnostics info used by a task, if any.
+    func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo]
 
     /// Returns an indexing-information structure for each of the indexable sources of the task.
     func generateIndexingInfo(for task: any ExecutableTask, input: TaskGenerateIndexingInfoInput) -> [TaskGenerateIndexingInfoOutput]
@@ -1328,6 +1352,10 @@ public protocol TaskOutputParser: AnyObject {
 extension TaskOutputParserDelegate {
     func readSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext) -> [Diagnostic] {
         do {
+            // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
+            guard try localFS.getFileSize(path).count > 0 else {
+                return []
+            }
             // Using the default toolchain's libclang regardless of context should be sufficient, since we assume serialized diagnostics to be a stable format.
             guard let toolchain = workspaceContext.core.toolchainRegistry.defaultToolchain else {
                 throw StubError.error("unable to find libclang (no default toolchain)")
@@ -1395,7 +1423,7 @@ public protocol TaskOutputParserDelegate: AnyObject {
     /// - Parameters:
     ///   - signature: A stable signature for the task (the same signature that would have been provided had the task been skipped).
     /// - Returns: A new delegate to use for reporting status on the subtask.
-    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate
+    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate
 
     /// Emit output log data.
     func emitOutput(_ data: ByteString)

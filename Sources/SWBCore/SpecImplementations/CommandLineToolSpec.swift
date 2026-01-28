@@ -1341,7 +1341,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return EnvironmentBindings(environmentFromSpec(cbc, delegate, lookup: lookup))
     }
 
-    open func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    open func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         return []
     }
 
@@ -1649,8 +1649,8 @@ public final class SerializedDiagnosticsOutputParser: TaskOutputParser {
         // Don't try to read diagnostics if the process crashed or got cancelled as they were almost certainly not written in this case.
         if result.shouldSkipParsingDiagnostics { return }
 
-        for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
-            delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+        for info in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
+            delegate.processSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
         }
     }
 }

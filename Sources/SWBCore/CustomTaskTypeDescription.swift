@@ -35,7 +35,7 @@ public final class CustomTaskTypeDescription: TaskTypeDescription {
         return nil
     }
 
-    public func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    public func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         []
     }
 

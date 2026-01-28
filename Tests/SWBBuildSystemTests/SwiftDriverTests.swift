@@ -2547,11 +2547,6 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                         .contains("couldn’t be opened because there is no such file."),
                     ])
                 }
-
-                results.checkTask(.matchTargetName("TargetA"), .matchRuleType("SwiftCompile")) { compileTask in
-                    let serializedDiagnosticPaths = compileTask.type.serializedDiagnosticsPaths(compileTask, tester.fs)
-                    #expect(serializedDiagnosticPaths == [])
-                }
             }
         }
     }

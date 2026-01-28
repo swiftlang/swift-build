@@ -171,11 +171,11 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
         return SerializedDiagnosticsOutputParser.self
     }
 
-    package func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    package func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         guard let path = (task.payload as? Payload)?.serializedDiagnosticsPath else {
             return []
         }
-        return [path]
+        return [SerializedDiagnosticInfo(serializedDiagnosticsPath: path, sourceFilePath: nil)]
     }
 
     package func shouldStart(_ task: any ExecutableTask, buildCommand: BuildCommand) -> Bool {
