@@ -531,6 +531,8 @@ public final class BuiltinMacros {
     public static let CLANG_INSTRUMENT_FOR_OPTIMIZATION_PROFILING = BuiltinMacros.declareBooleanMacro("CLANG_INSTRUMENT_FOR_OPTIMIZATION_PROFILING")
     public static let CLANG_MODULES_BUILD_SESSION_FILE = BuiltinMacros.declareStringMacro("CLANG_MODULES_BUILD_SESSION_FILE")
     public static let CLANG_MODULE_LSV = BuiltinMacros.declareBooleanMacro("CLANG_MODULE_LSV")
+    public static let CLANG_MODULES_PRUNE_INTERVAL = BuiltinMacros.declareStringMacro("CLANG_MODULES_PRUNE_INTERVAL")
+    public static let CLANG_MODULES_PRUNE_AFTER = BuiltinMacros.declareStringMacro("CLANG_MODULES_PRUNE_AFTER")
     public static let CLANG_OBJC_MODERNIZE_DIR = BuiltinMacros.declareStringMacro("CLANG_OBJC_MODERNIZE_DIR")
     public static let CLANG_OPTIMIZATION_PROFILE_FILE = BuiltinMacros.declarePathMacro("CLANG_OPTIMIZATION_PROFILE_FILE")
     public static let CLANG_STATIC_ANALYZER_MODE = BuiltinMacros.declareStringMacro("CLANG_STATIC_ANALYZER_MODE")
@@ -1540,6 +1542,8 @@ public final class BuiltinMacros {
         CLANG_INSTRUMENT_FOR_OPTIMIZATION_PROFILING,
         CLANG_MODULES_BUILD_SESSION_FILE,
         CLANG_MODULE_LSV,
+        CLANG_MODULES_PRUNE_INTERVAL,
+        CLANG_MODULES_PRUNE_AFTER,
         CLANG_OBJC_MODERNIZE_DIR,
         CLANG_OPTIMIZATION_PROFILE_FILE,
         CLANG_STATIC_ANALYZER_MODE,

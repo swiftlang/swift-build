@@ -1129,6 +1129,7 @@ fileprivate struct PreviewsBuildOperationTests: CoreBasedTests {
             "-j\(ProcessInfo.processInfo.activeProcessorCount)",
             "-no-color-diagnostics",
             "-serialize-diagnostics",
+            "-Xcc", "-fmodules-prune-interval=86400", "-Xcc", "-fmodules-prune-after=345600",
             "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/swift-overrides.hmap",
             "-Xcc", "-iquote", "-Xcc", "\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-generated-files.hmap",
             "-Xcc", "-I\(srcRoot.str)/build/ProjectName.build/Debug-iphoneos/\(targetName).build/\(targetName)-own-target-headers.hmap",

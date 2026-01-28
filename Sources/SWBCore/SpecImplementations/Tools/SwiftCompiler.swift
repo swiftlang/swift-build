@@ -1998,6 +1998,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 args += ["-validate-clang-modules-once", "-clang-build-session-file", buildSessionFile]
             }
 
+            let modulePruneInterval = cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)
+            let modulePruneAfter = cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_AFTER)
+            if !modulePruneInterval.isEmpty && !modulePruneAfter.isEmpty {
+                args.append(contentsOf: ["-Xcc", "-fmodules-prune-interval=\(modulePruneInterval)"])
+                args.append(contentsOf: ["-Xcc", "-fmodules-prune-after=\(modulePruneAfter)"])
+            }
+
             if toolSpecInfo.toolFeatures.has(.libraryLevel),
                let libraryLevel = cbc.scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).nilIfEmpty {
                 args += ["-library-level", libraryLevel]
