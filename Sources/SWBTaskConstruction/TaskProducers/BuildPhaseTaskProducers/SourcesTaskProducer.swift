@@ -971,7 +971,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
-                let staticallyLinkedItemsInFrameworkPhase = librariesToLink.filter{ [.object, .static].contains($0.kind) }
+                let staticallyLinkedItemsInFrameworkPhase = librariesToLink.filter{ [.object, .static, .objectLibrary].contains($0.kind) }
                 // Only add the object files as explicit input nodes here because libraries found via search paths will be tracked using dependency info files.
                 let objectsInFrameworksPhase = librariesToLink.filter{ $0.kind == .object }
                 linkerInputNodes.append(contentsOf: objectsInFrameworksPhase.map{ $0.path }.map(context.createNode))
