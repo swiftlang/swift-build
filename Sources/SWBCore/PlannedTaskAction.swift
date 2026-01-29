@@ -249,11 +249,15 @@ public struct FileCopyTaskActionContext {
             targetTripleOSVersion = llvmTargetTripleOSVersion
         }
 
+        // Compute a proper install name for the stub binary based on the framework path.
+        // Use @rpath-based install name to avoid embedding temporary paths (rdar://154514099).
+        let stubInstallName = "@rpath/\(frameworkPath.basename)/\(frameworkPath.basenameWithoutSuffix)"
+
         return (
             compileAndLink: partialTargetValues.map { partialTargetValue in
                     (
                         compile: stubPartialCompilerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue).o").str],
-                        link: stubPartialLinkerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue)").str, tempDir.join("\(partialTargetValue).o").str]
+                        link: stubPartialLinkerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-install_name", stubInstallName, "-o", tempDir.join("\(partialTargetValue)").str, tempDir.join("\(partialTargetValue).o").str]
                     )
                 },
             lipo: stubPartialLipoCommandLine + ["-output", frameworkPath.join(isDeepBundle ? "Versions/A" : nil).join(frameworkPath.basenameWithoutSuffix).str] + partialTargetValues.map { partialTargetValue in tempDir.join("\(partialTargetValue)").str }
