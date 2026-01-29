@@ -43,7 +43,7 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
         case nil:
             exitStatus = .buildSystemCanceledTask
         }
-        for entry in task.type.serializedDiagnosticsInfo(task, localFS) {
+        for entry in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
             if let sourceFilePath = entry.sourceFilePath {
                 // FIXME: find a better way to get at these
                 let variant = task.ruleInfo[1]
