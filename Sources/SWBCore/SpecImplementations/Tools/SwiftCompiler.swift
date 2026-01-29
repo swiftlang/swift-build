@@ -1571,8 +1571,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
                 cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: protocolListPath),
                                                               delegate, contents: protocolListContents, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
-                args += ["-Xfrontend", "-const-gather-protocols-file",
-                         "-Xfrontend", protocolListPath.str]
+                if LibSwiftDriver.supportsDriverFlag(spelled: "-const-gather-protocols-list") {
+                    // Use the driver option if supported.
+                    args += ["-const-gather-protocols-list", protocolListPath.str]
+                } else {
+                    args += ["-Xfrontend", "-const-gather-protocols-file",
+                             "-Xfrontend", protocolListPath.str]
+                }
                 extraInputPaths.append(protocolListPath)
             }
 
