@@ -463,7 +463,7 @@
             {
                 Name = "CLANG_MODULES_PRUNE_INTERVAL";
                 Type = String;
-                DefaultValue = "86400";
+                DefaultValue = "86400"; // 1 day in seconds.
                 CommandLineArgs = {
                         "" = ();
                         "<<otherwise>>" = (
@@ -476,7 +476,7 @@
             {
                 Name = "CLANG_MODULES_PRUNE_AFTER";
                 Type = String;
-                DefaultValue = "345600";
+                DefaultValue = "345600"; // 4 days in seconds.
                 CommandLineArgs = {
                         "" = ();
                         "<<otherwise>>" = (

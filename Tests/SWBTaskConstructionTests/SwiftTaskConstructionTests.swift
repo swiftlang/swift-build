@@ -1229,6 +1229,10 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-sdk-module-cache-path") {
                         task.checkCommandLineContains(["-sdk-module-cache-path", "/path/to/DerivedData/ModuleCache.noindex"])
                     }
+
+                    // Check module cache pruning options are passed.
+                    task.checkCommandLineContains(["-Xcc","-fmodules-prune-interval=86400"])
+                    task.checkCommandLineContains(["-Xcc","-fmodules-prune-after=345600"])
                 }
             }
             results.checkNoDiagnostics()
