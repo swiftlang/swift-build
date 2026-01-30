@@ -2091,10 +2091,11 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     results.checkNoDiagnostics()
                     if swiftFeatures.has(.emitContValuesSidecar) {
                         task.checkCommandLineContains(["-emit-const-values"])
-                        task.checkCommandLineContains(["-const-gather-protocols-file"])
+                        task.checkCommandLineMatches([.or("-const-gather-protocols-file", "-const-gather-protocols-list")])
                     } else {
                         task.checkCommandLineDoesNotContain("-emit-const-values")
                         task.checkCommandLineDoesNotContain("-const-gather-protocols-file")
+                        task.checkCommandLineDoesNotContain("-const-gather-protocols-list")
                     }
                 }
 
