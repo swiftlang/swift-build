@@ -1709,7 +1709,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
             self.buildOperationIdentifier = buildOperationIdentifier
         }
         func skippedSubtask(signature: ByteString) {}
-        func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate { return self }
+        func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate { return self }
         func emitOutput(_ data: ByteString) {}
         func close() {}
         func taskCompleted(exitStatus: Processes.ExitStatus) {}

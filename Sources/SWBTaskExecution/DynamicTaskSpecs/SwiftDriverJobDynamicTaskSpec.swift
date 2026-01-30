@@ -105,13 +105,13 @@ public struct SwiftDriverExplicitDependencyJobTaskKey: Serializable, CustomDebug
 }
 
 struct SwiftDriverJobDynamicTaskPayload: TaskPayload {
-    let expectedOutputs: [Path]
+    let serializedDiagnosticInfo: [SerializedDiagnosticInfo]
     let isUsingWholeModuleOptimization: Bool
     let compilerLocation: LibSwiftDriver.CompilerLocation
     let casOptions: CASOptions?
 
-    init(expectedOutputs: [Path], isUsingWholeModuleOptimization: Bool, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
-        self.expectedOutputs = expectedOutputs
+    init(serializedDiagnosticInfo: [SerializedDiagnosticInfo], isUsingWholeModuleOptimization: Bool, compilerLocation: LibSwiftDriver.CompilerLocation, casOptions: CASOptions?) {
+        self.serializedDiagnosticInfo = serializedDiagnosticInfo
         self.isUsingWholeModuleOptimization = isUsingWholeModuleOptimization
         self.compilerLocation = compilerLocation
         self.casOptions = casOptions
@@ -119,7 +119,7 @@ struct SwiftDriverJobDynamicTaskPayload: TaskPayload {
 
     init(from deserializer: any Deserializer) throws {
         try deserializer.beginAggregate(4)
-        self.expectedOutputs = try deserializer.deserialize()
+        self.serializedDiagnosticInfo = try deserializer.deserialize()
         self.isUsingWholeModuleOptimization = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.casOptions = try deserializer.deserialize()
@@ -127,7 +127,7 @@ struct SwiftDriverJobDynamicTaskPayload: TaskPayload {
 
     func serialize<T>(to serializer: T) where T : Serializer {
         serializer.serializeAggregate(4) {
-            serializer.serialize(expectedOutputs)
+            serializer.serialize(serializedDiagnosticInfo)
             serializer.serialize(isUsingWholeModuleOptimization)
             serializer.serialize(compilerLocation)
             serializer.serialize(casOptions)
@@ -142,7 +142,7 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
             "--"
         ]
         var commandLine: [ByteString]
-        let expectedOutputs: [Path]
+        let serializedDiagnosticInfo: [SerializedDiagnosticInfo]
         let forTarget: ConfiguredTarget?
         let ruleInfo: [String]
         let descriptionForLifecycle: String
@@ -150,44 +150,63 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
         let compilerLocation: LibSwiftDriver.CompilerLocation
         let casOpts: CASOptions?
         switch dynamicTask.taskKey {
-            case .swiftDriverJob(let key):
-                guard let job = try context.swiftModuleDependencyGraph.queryPlannedBuild(for: key.identifier).plannedTargetJob(for: key.driverJobKey)?.driverJob else {
-                    throw StubError.error("Failed to lookup Swift driver job \(key.driverJobKey) in build plan \(key.identifier)")
+        case .swiftDriverJob(let key):
+            guard let job = try context.swiftModuleDependencyGraph.queryPlannedBuild(for: key.identifier).plannedTargetJob(for: key.driverJobKey)?.driverJob else {
+                throw StubError.error("Failed to lookup Swift driver job \(key.driverJobKey) in build plan \(key.identifier)")
+            }
+            commandLine = commandLinePrefix + job.commandLine
+            var diagnosticInfo: [SerializedDiagnosticInfo] = []
+            let diaOutputs = job.outputs.filter({ $0.fileExtension == "dia" })
+            if job.categorizer.isCompile && !key.isUsingWholeModuleOptimization {
+                // If this is a non-WMO compile job, group serialized diagnostics by their corresponding source file.
+                var sourcePathsByBasename: [String: Path] = [:]
+                for input in job.inputs {
+                    if input.fileExtension == "swift" {
+                        sourcePathsByBasename[input.basenameWithoutSuffix] = input
+                    }
                 }
-                commandLine = commandLinePrefix + job.commandLine
-                expectedOutputs = job.outputs
-                ruleInfo = ["Swift\(job.ruleInfoType)", key.variant, key.arch, job.descriptionForLifecycle] + job.displayInputs.map(\.str)
-                forTarget = dynamicTask.target
-                descriptionForLifecycle = job.descriptionForLifecycle
-                isUsingWholeModuleOptimization = key.isUsingWholeModuleOptimization
-                compilerLocation = key.compilerLocation
-                casOpts = key.casOptions
-            case .swiftDriverExplicitDependencyJob(let key):
-                guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey)?.driverJob else {
-                    throw StubError.error("Failed to lookup explicit modules Swift driver job \(key.driverJobKey)")
+                for diaOutput in diaOutputs {
+                    if let sourceFilePath = sourcePathsByBasename[diaOutput.basenameWithoutSuffix] {
+                        diagnosticInfo.append(.init(serializedDiagnosticsPath: diaOutput, sourceFilePath: sourceFilePath))
+                    } else {
+                        diagnosticInfo.append(.init(serializedDiagnosticsPath: diaOutput, sourceFilePath: nil))
+                    }
                 }
-                commandLine = commandLinePrefix + job.commandLine
-                expectedOutputs = job.outputs
-                assert(expectedOutputs.count > 0, "Explicit modules job was expected to have at least one primary output")
-                ruleInfo = ["SwiftExplicitDependency\(job.ruleInfoType)", key.arch, expectedOutputs.first?.str ?? "<unknown>"]
-                forTarget = nil
-                descriptionForLifecycle = job.descriptionForLifecycle
-                // WMO doesn't apply to explicit module builds
-                isUsingWholeModuleOptimization = false
-                compilerLocation = key.compilerLocation
-                casOpts = key.casOptions
-            default:
-                fatalError("Unexpected dynamic task: \(dynamicTask)")
-        }
+            } else {
+                for diaOutput in diaOutputs {
+                    diagnosticInfo.append(.init(serializedDiagnosticsPath: diaOutput, sourceFilePath: nil))
+                }
+            }
 
-        if !supportsParseableOutput(for: ruleInfo) {
-            commandLine = commandLine.filter({ $0 != "-frontend-parseable-output" })
+            serializedDiagnosticInfo = diagnosticInfo
+            ruleInfo = ["Swift\(job.ruleInfoType)", key.variant, key.arch, job.descriptionForLifecycle] + job.displayInputs.map(\.str)
+            forTarget = dynamicTask.target
+            descriptionForLifecycle = job.descriptionForLifecycle
+            isUsingWholeModuleOptimization = key.isUsingWholeModuleOptimization
+            compilerLocation = key.compilerLocation
+            casOpts = key.casOptions
+        case .swiftDriverExplicitDependencyJob(let key):
+            guard let job = context.swiftModuleDependencyGraph.plannedExplicitDependencyBuildJob(for: key.driverJobKey)?.driverJob else {
+                throw StubError.error("Failed to lookup explicit modules Swift driver job \(key.driverJobKey)")
+            }
+            commandLine = commandLinePrefix + job.commandLine
+            serializedDiagnosticInfo = []
+            assert(job.outputs.count > 0, "Explicit modules job was expected to have at least one primary output")
+            ruleInfo = ["SwiftExplicitDependency\(job.ruleInfoType)", key.arch, job.outputs.first?.str ?? "<unknown>"]
+            forTarget = nil
+            descriptionForLifecycle = job.descriptionForLifecycle
+            // WMO doesn't apply to explicit module builds
+            isUsingWholeModuleOptimization = false
+            compilerLocation = key.compilerLocation
+            casOpts = key.casOptions
+        default:
+            fatalError("Unexpected dynamic task: \(dynamicTask)")
         }
 
         return Task(type: self,
                     payload:
                         SwiftDriverJobDynamicTaskPayload(
-                            expectedOutputs: expectedOutputs,
+                            serializedDiagnosticInfo: serializedDiagnosticInfo,
                             isUsingWholeModuleOptimization: isUsingWholeModuleOptimization,
                             compilerLocation: compilerLocation,
                             casOptions: casOpts
@@ -209,45 +228,16 @@ final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
         SwiftDriverJobDynamicTaskPayload.self
     }
 
-    private func supportsParseableOutput(for ruleInfo: [String]) -> Bool {
-        return !(ruleInfo.first?.hasPrefix("SwiftExplicitDependency") ?? false) && !(ruleInfo.first?.hasPrefix("SwiftVerifyEmittedModuleInterface") ?? false)
-    }
-
     func customOutputParserType(for task: any ExecutableTask) -> (any TaskOutputParser.Type)? {
-        if supportsParseableOutput(for: task.ruleInfo) {
-            return SwiftCommandOutputParser.self
+        if serializedDiagnosticsInfo(task, localFS).isEmpty {
+            GenericOutputParser.self
         } else {
-            return serializedDiagnosticsPaths(task).isEmpty ?
-                        GenericOutputParser.self :
-                        SerializedDiagnosticsOutputParser.self
+            SwiftCompilerOutputParser.self
         }
     }
 
-
-    func serializedDiagnosticsPaths(_ task: any ExecutableTask) -> [Path] {
-        if supportsParseableOutput(for: task.ruleInfo) {
-            return []
-        }
-
-        guard let payload = task.payload as? SwiftDriverJobDynamicTaskPayload else {
-            return []
-        }
-
-        return payload.expectedOutputs.filter({ $0.fileExtension == "dia" })
-    }
-
-    func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
-        let expectedDiagnostics = serializedDiagnosticsPaths(task)
-
-        // rdar://91295617 (Swift produces empty serialized diagnostics if there are none which is not parseable by clang_loadDiagnostics)
-        return expectedDiagnostics.filter { filePath in
-            do {
-                let shouldAdd = try fs.exists(filePath) && (try fs.getFileSize(filePath)) > .zero
-                return shouldAdd
-            } catch {
-                return false
-            }
-        }
+    func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
+        return (task.payload as? SwiftDriverJobDynamicTaskPayload)?.serializedDiagnosticInfo ?? []
     }
 
     func buildTaskAction(dynamicTaskKey: DynamicTaskKey, context: DynamicTaskOperationContext) throws -> TaskAction {

@@ -869,7 +869,7 @@ private final class TaskOutputParserHandler: TaskOutputParserDelegate {
         handler.request.send(BuildOperationTaskUpToDate(signature: .subtaskSignature(signature), targetID: targetID, parentID: handler.taskID))
     }
 
-    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
+    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
         // Create a new subtask.
         let subtaskID = handler.operationDelegate.activeTasks.takeID()
         let outputHandler = TaskOutputParserHandler(buildOperationIdentifier: buildOperationIdentifier, taskID: subtaskID, taskSignature: .subtaskSignature(signature), targetID: targetID, buildRequest: self.buildRequest)
@@ -1241,7 +1241,8 @@ final class OperationDelegate: BuildOperationDelegate {
         let interestingPath = task.type.interestingPath(for: task)
 
         let taskSpec = task.type as? Spec
-        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: task.type.serializedDiagnosticsPaths(task, operation.requestContext.fs))
+        let serializedDiagnosticsPaths = task.type.serializedDiagnosticsInfo(task, operation.requestContext.fs).map(\.serializedDiagnosticsPath)
+        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
 
         request.send(BuildOperationTaskStarted(id: taskID, targetID: targetID, parentID: nil, info: info))
 

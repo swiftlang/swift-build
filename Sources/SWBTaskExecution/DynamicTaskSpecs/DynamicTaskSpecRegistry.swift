@@ -45,7 +45,7 @@ extension DynamicTaskSpec {
 
     var toolBasenameAliases: [String] { [] }
 
-    func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         return []
     }
 
