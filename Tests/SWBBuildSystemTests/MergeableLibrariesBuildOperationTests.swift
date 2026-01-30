@@ -244,6 +244,11 @@ fileprivate struct MergeableLibrariesBuildOperationTests: CoreBasedTests {
                                 task.checkCommandLineContains("-no_merged_libraries_hook")
                             }
                             task.checkCommandLineContains(["-o", "\(SYMROOT)/Debug-iphoneos/\(targetName).framework/\(targetName)"])
+                            if useAppStoreCodelessFrameworksWorkaround {
+                                // Verify stub binary linker command has correct install name (rdar://154514099)
+                                let expectedInstallName = "/\(targetName).framework/\(targetName)"
+                                task.checkCommandLineContains(["-install_name", expectedInstallName])
+                            }
                         }
                         results.checkTasks(.matchTargetName(targetName), .matchRuleType("Copy")) { _ in /* likely Swift-related */ }
                         results.checkTask(.matchTargetName(targetName), .matchRuleType("GenerateTAPI")) { _ in }
