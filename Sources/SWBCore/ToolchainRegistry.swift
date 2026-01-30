@@ -20,6 +20,7 @@ import SWBMacro
 @_spi(Testing) public protocol ToolchainRegistryDelegate: DiagnosticProducingDelegate {
     var pluginManager: any PluginManager { get }
     var platformRegistry: PlatformRegistry? { get }
+    var developerPath: Core.DeveloperPath { get }
 }
 
 /// Some problems are reported as either errors or warnings depending on if we're loading a built-in toolchain or an external toolchain
@@ -474,13 +475,14 @@ public final class ToolchainRegistry: @unchecked Sendable {
 
         struct Context: ToolchainRegistryExtensionAdditionalToolchainsContext {
             var hostOperatingSystem: OperatingSystem
+            var developerPath: Core.DeveloperPath
             var toolchainRegistry: ToolchainRegistry
             var fs: any FSProxy
         }
 
         for toolchainExtension in delegate.pluginManager.extensions(of: ToolchainRegistryExtensionPoint.self) {
             do {
-                for toolchain in try await toolchainExtension.additionalToolchains(context: Context(hostOperatingSystem: hostOperatingSystem, toolchainRegistry: self, fs: fs)) {
+                for toolchain in try await toolchainExtension.additionalToolchains(context: Context(hostOperatingSystem: hostOperatingSystem, developerPath: delegate.developerPath, toolchainRegistry: self, fs: fs)) {
                     try register(toolchain)
                 }
             } catch {
