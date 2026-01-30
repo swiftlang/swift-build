@@ -202,6 +202,7 @@ package final class BuildDescriptionManager: Sendable {
 
             moduleCachePathsPerTarget[target] = [
                 settings.globalScope.evaluate(BuiltinMacros.MODULE_CACHE_DIR),
+                settings.globalScope.evaluate(BuiltinMacros.SWIFT_SDK_MODULE_CACHE_OUTPUT_PATH),
                 settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH),
                 settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
             ]
