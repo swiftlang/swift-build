@@ -122,13 +122,14 @@ public final class Core: Sendable {
 
             struct Context: SDKRegistryExtensionAdditionalSDKsContext {
                 var hostOperatingSystem: OperatingSystem
+                var developerPath: Core.DeveloperPath
                 var platformRegistry: PlatformRegistry
                 var fs: any FSProxy
             }
 
             for `extension` in await pluginManager.extensions(of: SDKRegistryExtensionPoint.self) {
                 do {
-                    try await sdkRegistry.registerSDKs(extension: `extension`, context: Context(hostOperatingSystem: hostOperatingSystem, platformRegistry: core.platformRegistry, fs: localFS))
+                    try await sdkRegistry.registerSDKs(extension: `extension`, context: Context(hostOperatingSystem: hostOperatingSystem, developerPath: resolvedDeveloperPath, platformRegistry: core.platformRegistry, fs: localFS))
                 } catch {
                     delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("\(error)")))
                 }

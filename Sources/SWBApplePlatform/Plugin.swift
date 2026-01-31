@@ -28,6 +28,7 @@ public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(MacCatalystInfoExtension(), type: SDKVariantInfoExtensionPoint.self)
     manager.register(ApplePlatformInfoExtension(), type: PlatformInfoExtensionPoint.self)
     manager.register(AppleSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
+    manager.registerDeveloperCommandLineToolsExtensions()
 }
 
 struct AppleDeveloperDirectoryExtension: DeveloperDirectoryExtension {
