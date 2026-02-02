@@ -27,7 +27,7 @@ import SystemPackage
 #endif
 
 /// Helper class for talking to 'swbuild' the tool
-final class CLIConnection {
+final class CLIConnection: @unchecked Sendable {
     private let task: SWBUtil.Process
     private let monitorHandle: FileHandle
     private let temporaryDirectory: NamedTemporaryDirectory
