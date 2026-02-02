@@ -35,7 +35,7 @@ package final class DynamicTaskSpecRegistry {
 }
 
 package protocol DynamicTaskSpec: TaskTypeDescription {
-    func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) throws -> any ExecutableTask
+    func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) throws -> Task
 
     func buildTaskAction(dynamicTaskKey: DynamicTaskKey, context: DynamicTaskOperationContext) throws -> TaskAction
 }

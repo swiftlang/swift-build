@@ -1452,7 +1452,24 @@ package final class BuildOperationTester {
                 } else {
                     nodesToBuild = nil
                 }
-                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: userInfo.processEnvironment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences)
+
+                let priorBuildDescription: BuildDescription?
+                if operationBuildRequest.recordBuildBacktraces,
+                   case let .viaWorkspace(_, _, buildDescriptionManager) = testVariant {
+                    let buildDescriptionDelegate = MockTestBuildDescriptionConstructionDelegate()
+                    priorBuildDescription = await buildDescriptionManager.attemptLoadingPriorBuildDescription(
+                        currentDescription: results.buildDescription,
+                        buildRequest: operationBuildRequest,
+                        buildRequestContext: buildRequestContext,
+                        workspaceContext: workspaceContext,
+                        clientDelegate: results.clientDelegate,
+                        constructionDelegate: buildDescriptionDelegate
+                    )
+                } else {
+                    priorBuildDescription = nil
+                }
+
+                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: userInfo.processEnvironment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences, priorBuildDescription: priorBuildDescription)
             }
 
             // Perform the build.

@@ -54,7 +54,7 @@ public struct ClangCachingOutputMaterializerTaskKey: Serializable, CustomDebugSt
 }
 
 final class ClangCachingOutputMaterializerDynamicTaskSpec: DynamicTaskSpec {
-    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case let .clangCachingOutputMaterializer(outputMaterializerTaskKey) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task key \(dynamicTask.taskKey)")
         }
