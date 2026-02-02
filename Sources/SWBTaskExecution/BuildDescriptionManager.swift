@@ -337,7 +337,7 @@ package final class BuildDescriptionManager: Sendable {
     }
 
     /// Returns a build description info struct for a particular workspace and request. This method is primarily intended for testing, as the struct contains information about whether a cached instance was used.
-    package func getNewOrCachedBuildDescription(_ request: BuildDescriptionRequest, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate) async throws -> BuildDescriptionRetrievalInfo? {
+    package func getNewOrCachedBuildDescription(_ request: BuildDescriptionRequest, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate, skipRecordingAccess: Bool = false) async throws -> BuildDescriptionRetrievalInfo? {
         BuildDescriptionManager.descriptionsRequested.increment()
 
         // May perform settings construction and take 25-30ms uncached
@@ -390,7 +390,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         // Touch the serialized file to denote its use (if we didn't just create it)
-        if source != .new {
+        if source != .new && !skipRecordingAccess {
             if UserDefaults.useSynchronousBuildDescriptionSerialization || request.workspaceContext.userPreferences.enableBuildDebugging {
                 await onDiskCacheAccessQueue.sync {
                     try? self.fs.touch(buildDescription.packagePath)
@@ -419,6 +419,33 @@ package final class BuildDescriptionManager: Sendable {
         let descRequest = BuildDescriptionRequest.newOrCached(request, bypassActualTasks: bypassActualTasks, useSynchronousBuildDescriptionSerialization: useSynchronousBuildDescriptionSerialization, retain: retained)
         let retrievalInfo = try await getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: constructionDelegate)
         return retrievalInfo?.buildDescription
+    }
+
+    /// Loads the prior build description on a best-effort basis. This is currently used to identify the cause of task signature changes in an incremental build.
+    package func attemptLoadingPriorBuildDescription(
+        currentDescription: BuildDescription,
+        buildRequest: BuildRequest,
+        buildRequestContext: BuildRequestContext,
+        workspaceContext: WorkspaceContext,
+        clientDelegate: any TaskPlanningClientDelegate,
+        constructionDelegate: any BuildDescriptionConstructionDelegate
+    ) async -> BuildDescription? {
+        guard let contents = try? fs.read(currentDescription.priorBuildDescriptionsRecordPath).asString else {
+            return nil
+        }
+        let lines = contents.split(separator: "\n", omittingEmptySubsequences: true)
+        guard let priorID = lines.last else {
+            return nil
+        }
+        let priorBuildDescriptionID = BuildDescriptionID(String(priorID))
+        let descRequest = BuildDescriptionRequest.cachedOnly(
+            priorBuildDescriptionID,
+            request: buildRequest,
+            buildRequestContext: buildRequestContext,
+            workspaceContext: workspaceContext,
+            retain: false
+        )
+        return try? await getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: constructionDelegate, skipRecordingAccess: true)?.buildDescription
     }
 
     package func releaseBuildDescription(id: BuildDescriptionID) {

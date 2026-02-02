@@ -14,7 +14,7 @@ import SWBCore
 import SWBUtil
 
 final class SwiftCachingKeyQueryDynamicTaskSpec: DynamicTaskSpec {
-    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case let .swiftCachingKeyQuery(swiftCachingKeyQueryTaskKey) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task key \(dynamicTask.taskKey)")
         }
@@ -48,7 +48,7 @@ final class SwiftCachingKeyQueryDynamicTaskSpec: DynamicTaskSpec {
 }
 
 final class SwiftCachingMaterializeKeyDynamicTaskSpec: DynamicTaskSpec {
-    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case let .swiftCachingMaterializeKey(swiftCachingTaskKey) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task key \(dynamicTask.taskKey)")
         }
@@ -82,7 +82,7 @@ final class SwiftCachingMaterializeKeyDynamicTaskSpec: DynamicTaskSpec {
 }
 
 final class SwiftCachingOutputMaterializerDynamicTaskSpec: DynamicTaskSpec {
-    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case let .swiftCachingOutputMaterializer(outputMaterializerTaskKey) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task key \(dynamicTask.taskKey)")
         }

@@ -110,7 +110,7 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
         return Payload.self
     }
 
-    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case let .precompileClangModule(PrecompileClangModuleTaskKey) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task key \(dynamicTask.taskKey)")
         }
