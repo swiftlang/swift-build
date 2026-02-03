@@ -107,6 +107,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/SceneKitFileTypes.xcspec
   Specs/SceneKitTools.xcspec
   Specs/SpriteKitFileTypes.xcspec
+  Specs/StripSymbolsDarwin.xcspec
   Specs/TiffUtil.xcspec
   Specs/tvOSDevice.xcspec
   Specs/tvOSShared.xcspec
