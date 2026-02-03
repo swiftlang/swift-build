@@ -33,6 +33,7 @@ extension ToolchainRegistryExtension {
 
 public protocol ToolchainRegistryExtensionAdditionalToolchainsContext: Sendable {
     var hostOperatingSystem: OperatingSystem { get }
+    var developerPath: Core.DeveloperPath { get }
     var toolchainRegistry: ToolchainRegistry { get }
     var fs: any FSProxy { get }
 }

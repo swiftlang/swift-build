@@ -43,6 +43,7 @@ add_library(SWBApplePlatform
   LocalizationInputFileGroupingStrategy.swift
   MacCatalystInfoExtension.swift
   Plugin.swift
+  PluginDCLT.swift
   RealityAssetsTaskProducer.swift
   StringCatalogCompilerOutputParser.swift
   StubBinaryTaskProducer.swift
