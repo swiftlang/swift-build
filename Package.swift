@@ -325,7 +325,7 @@ let package = Package(
             resources: [
                 .copy("TestData")
             ],
-            swiftSettings: swiftSettings(languageMode: .v6)),
+            swiftSettings: swiftSettings(languageMode: .v5)), // Temporarily downgraded from Swift 6 mode due to a source break in 1/31/26 nightly snapshot (rdar://169461269)
         .testTarget(
             name: "SWBProjectModelTests",
             dependencies: ["SWBProjectModel"],
