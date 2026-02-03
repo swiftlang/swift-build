@@ -160,9 +160,14 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-emit-package-module-interface-path",
         "-emit-objc-header-path"
     ]
-    private static let removeFrontendArgs: Set<ByteString> = [
+    private static let removeFrontendFlags: Set<ByteString> = [
         "-experimental-skip-non-inlinable-function-bodies",
-        "-experimental-skip-all-function-bodies"]
+        "-experimental-skip-all-function-bodies"
+    ]
+
+    private static let removeFrontendArgs: Set<ByteString> = [
+        "-const-gather-protocols-file"
+    ]
 
     // SourceKit uses the old driver to determine the frontend args. Remove all
     // new driver flags as a workaround for cases were corresponding no-op
@@ -187,7 +192,8 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-compare-to-baseline-path",
         "-serialize-breaking-changes-path",
         "-digester-breakage-allowlist-path",
-        "-digester-mode"]
+        "-digester-mode",
+        "-const-gather-protocols-list"]
 
     private static func indexingCommandLine(commandLine: [ByteString], payload: SwiftIndexingPayload, enableIndexBuildArena: Bool, integratedDriver: Bool) -> [ByteString] {
         precondition(!commandLine.isEmpty)
@@ -220,8 +226,13 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
 
             if let nextArg = commandLine[safe: index] {
                 // Remove frontend args (including the -Xfrontend)
-                if removeFrontendArgs.contains(nextArg) {
+                if removeFrontendFlags.contains(nextArg) {
                     index += 1
+                    continue
+                }
+
+                if arg == "-Xfrontend", removeFrontendArgs.contains(nextArg), commandLine[safe: index + 1] == "-Xfrontend" {
+                    index += 3
                     continue
                 }
 
@@ -1571,7 +1582,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
                 cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: protocolListPath),
                                                               delegate, contents: protocolListContents, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
-                if LibSwiftDriver.supportsDriverFlag(spelled: "-const-gather-protocols-list") {
+                if integratedDriverEnabled(scope: cbc.scope) && LibSwiftDriver.supportsDriverFlag(spelled: "-const-gather-protocols-list") {
                     // Use the driver option if supported.
                     args += ["-const-gather-protocols-list", protocolListPath.str]
                 } else {
@@ -3010,6 +3021,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             "-emit-package-module-interface-path",
             "-emit-localized-strings-path",
             "-pch-output-dir",
+            "-const-gather-protocols-list"
         ] {
             removeWithParameter(arg)
         }
