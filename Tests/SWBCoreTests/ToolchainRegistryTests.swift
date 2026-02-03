@@ -50,8 +50,9 @@ import SWBServiceCore
             class TestDataDelegate : ToolchainRegistryDelegate {
                 private let _diagnosticsEngine = DiagnosticsEngine()
 
-                init(pluginManager: any PluginManager) {
+                init(pluginManager: any PluginManager, developerPath: Core.DeveloperPath) {
                     self.pluginManager = pluginManager
+                    self.developerPath = developerPath
                 }
 
                 var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
@@ -67,6 +68,7 @@ import SWBServiceCore
                 }
 
                 var pluginManager: any PluginManager
+                var developerPath: Core.DeveloperPath
 
                 var platformRegistry: PlatformRegistry? {
                     nil
@@ -106,7 +108,7 @@ import SWBServiceCore
                 }
                 return
             }
-            let delegate = TestDataDelegate(pluginManager: core.pluginManager)
+            let delegate = TestDataDelegate(pluginManager: core.pluginManager, developerPath: core.developerPath)
             let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [.init(path: tmpDirPath, strict: strict)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
             try perform(registry, delegate.warnings, delegate.errors)
         }
