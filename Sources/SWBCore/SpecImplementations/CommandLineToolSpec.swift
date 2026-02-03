@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -210,7 +210,7 @@ public struct ProjectVersionInfo {
 
     init(string: String) throws {
         guard let match = try #/^(?<project>[A-Za-z0-9_]+)-(?<version>[\d\.]+)$/#.wholeMatch(in: string) else {
-            throw StubError.error("Could not parse project version from string: \(string)")
+            throw StubError.error("Could not parse project version from string '\(string)'")
         }
         self.project = String(match.output.project)
         self.version = try Version(String(match.output.version))
@@ -224,7 +224,7 @@ public struct AppleGenericVersionInfo: Sendable {
 
     init(string: String) throws {
         guard let match = try #/^PROGRAM:(?<program>.+)  PROJECT:(?<project>[A-Za-z0-9_]+)-(?<version>[\d\.]+)$/#.wholeMatch(in: string) else {
-            throw StubError.error("Could not parse Apple Generic Version from string: \(string)")
+            throw StubError.error("Could not parse Apple Generic Version from string '\(string)'")
         }
         self.program = String(match.output.program)
         self.project = String(match.output.project)
@@ -237,7 +237,14 @@ extension DiscoveredCommandLineToolSpecInfo {
     public static func parseProjectNameAndSourceVersionStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, commandLine: [String], construct: @Sendable (ProjectVersionInfo) -> T) async throws -> T {
         try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine) { executionResult in
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-            return try construct(ProjectVersionInfo(string: outputString))
+            let projectVersionInfo: ProjectVersionInfo
+            do {
+                projectVersionInfo = try ProjectVersionInfo(string: outputString)
+            }
+            catch let error {
+                throw StubError.error("\(error), command line '\(commandLine.joined(separator: " "))'")
+            }
+            return construct(projectVersionInfo)
         }
     }
 
@@ -249,7 +256,14 @@ extension DiscoveredCommandLineToolSpecInfo {
         return try await producer.discoveredCommandLineToolSpecInfo(delegate, toolPath.basename, ["/usr/bin/what", "-q", toolPath.str]) { executionResult in
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             let lines = Set(outputString.split(separator: "\n").map(String.init)) // version info is printed once per architecture slice, but we never expect them to differ
-            return try construct(AppleGenericVersionInfo(string: lines.only ?? outputString))
+            let versionInfo: AppleGenericVersionInfo
+            do {
+                versionInfo = try AppleGenericVersionInfo(string: lines.only ?? outputString)
+            }
+            catch let error {
+                throw StubError.error("\(error), tool path '\(toolPath.str)'")
+            }
+            return construct(versionInfo)
         }
     }
 }
