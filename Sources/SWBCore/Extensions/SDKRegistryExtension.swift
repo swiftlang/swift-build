@@ -38,6 +38,7 @@ extension SDKRegistryExtension {
 
 public protocol SDKRegistryExtensionAdditionalSDKsContext: Sendable {
     var hostOperatingSystem: OperatingSystem { get }
+    var developerPath: Core.DeveloperPath { get }
     var platformRegistry: PlatformRegistry { get }
     var fs: any FSProxy { get }
 }
