@@ -9298,6 +9298,59 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.host))
+    func crossPlatformStripSwiftSymbols() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ONLY_ACTIVE_ARCH": "YES",
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_EXEC": swiftCompilerPath.str
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.swift",
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                try results.checkTask(.matchRuleType("Strip")) { task in
+                    switch try ProcessInfo.processInfo.hostOperatingSystem() {
+                    case .macOS:
+                        task.checkCommandLineContains(["-T"])
+                    default:
+                        task.checkCommandLineDoesNotContain("-T")
+                    }
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func boundsSafetyCLanguageExtension() async throws {
         try await withTemporaryDirectory { tmpDir in
