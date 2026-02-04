@@ -851,7 +851,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
         var dsymBundle: Path!
         var dsymutilOutputs = [Path]()
-        var perVariantOutputPaths: [String:Set<Path>] = [:]
         var allLinkedLibraries = [LinkerSpec.LibrarySpecifier]()
         for variant in buildVariants {
             // Enter the per-variant scope.
@@ -992,17 +991,28 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "compiled.mach-o.objfile")!]
                 }
 
-                // If this is an API build, or there are no tasks and object files, don't link, so we don't produce a binary if we're not compiling any code.
-                // Except that we do want to run the linker when creating a merged library, because the binary needs to either reexport or merge its mergeable libraries.
-                //
-                // FIXME: This is a crude approximation of the actual logic, but works for now.
-                if isForAPI || (perArchTasks.isEmpty && staticallyLinkedItemsInFrameworkPhase.isEmpty), !scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
-                    tasks.append(contentsOf: perArchTasks)
-                    continue
+                // Decide if a link task should be constructed. This is unfortunately very complicated.
+                let createLinkerTask: Bool
+                // First check if we are merging libraries because the binary needs to either reexport or merge its mergeable libraries. If so, we may need to link even in the installAPI action.
+                if scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
+                    if components.contains("build") {
+                        createLinkerTask = true
+                    } else {
+                        // This checks only `linkerInputNodes` and ignores `staticallyLinkedItemsInFrameworkPhase` largely for historical compatibility.
+                        createLinkerTask = !linkerInputNodes.isEmpty
+                    }
+                // Otherwise, we should not link in installAPI.
+                } else if isForAPI {
+                    createLinkerTask = false
+                // If we're not merging libraries and this isn't installAPI, link if we have inputs.
+                } else if !linkerInputNodes.isEmpty || !staticallyLinkedItemsInFrameworkPhase.isEmpty {
+                    createLinkerTask = true
+                } else {
+                    createLinkerTask = false
                 }
 
                 // Create the linker task.  If we have no input files but decide to create the task anyway, then this task will rely on gate tasks to be properly ordered (which is what happens for the prelinked object file task above if there are no input files).
-                if !linkerInputNodes.isEmpty || !staticallyLinkedItemsInFrameworkPhase.isEmpty || (components.contains("build") && scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)) {
+                if createLinkerTask {
                     // Compute the output path.
                     let output: Path
                     let commandOrderingOutputs: [any PlannedNode]
@@ -1225,11 +1235,6 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
                 // Add all the collected per-arch tasks.
                 tasks.append(contentsOf: perArchTasks)
-
-                // Add the output paths for all tasks of this variant to the map of output paths, in order to filter out
-                // tasks of other variants which produce the same outputs.
-                let thisVariantOutputPaths = perVariantOutputPaths[variant] ?? []
-                perVariantOutputPaths[variant] = thisVariantOutputPaths.union(perArchTasks.flatMap { task in task.outputs.map({ $0.path }) })
             }
 
             // Generate tasks for the module-only architectures.
