@@ -1455,6 +1455,8 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
         .disabled("Skip test in debug builds for performance reasons") {
             #if DEBUG
             return true
+            #else
+            return false
             #endif
         }
     )
