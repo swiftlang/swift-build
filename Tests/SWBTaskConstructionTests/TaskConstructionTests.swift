@@ -4168,7 +4168,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
     /// Test that we properly generate commands for the compiler sanitizer features.
     @Test(
-        .requireSDKs(.macOS),
+        .requireSDKs(.macOS, .iOS),
         arguments:[
             (linkerDriver: "clang", expectedArgument: "-fsanitize=address"),
             (linkerDriver: "swiftc", expectedArgument: "-sanitize=address"),
@@ -4384,6 +4384,48 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
 
                 // Check there are no diagnostics.
                 results.checkNoDiagnostics()
+            }
+
+            let ios_overrides = [
+                "BUILD_VARIANTS": "normal asan",
+                "ENABLE_ADDRESS_SANITIZER[variant=asan]": "YES",
+                "SDKROOT": "iphoneos",
+                "AD_HOC_CODE_SIGNING_ALLOWED": "YES"
+            ]
+
+            // Check sanitizers iOS-on-macOS and iOS-on-visionOS
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ios_overrides), runDestination: .iOS, fs: fs) { results in
+                results.checkTarget(targetName) { target in
+                    // For iOS run destinations, swift-build should also include OSX and xrOS runtimes
+                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("libclang_rt.asan_ios_dynamic_on_osx.dylib")) { task in
+                        task.checkRuleInfo([.equal("Copy"),
+                                            .equal("\(SRCROOT)/build/Debug-iphoneos/\(targetName).app/Frameworks/libclang_rt.asan_ios_dynamic_on_osx.dylib"),
+                                            .equal(clangLibDarwinPath.join("libclang_rt.asan_osx_dynamic.dylib").str),])
+                        #expect(task.execDescription == "Copy Address Sanitizer library")
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("libclang_rt.asan_ios_dynamic_on_xros.dylib")) { task in
+                        task.checkRuleInfo([.equal("Copy"),
+                                            .equal("\(SRCROOT)/build/Debug-iphoneos/\(targetName).app/Frameworks/libclang_rt.asan_ios_dynamic_on_xros.dylib"),
+                                            .equal(clangLibDarwinPath.join("libclang_rt.asan_xros_dynamic.dylib").str),])
+                        #expect(task.execDescription == "Copy Address Sanitizer library")
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("Copy"), .matchRuleItemBasename("libclang_rt.asan_ios_dynamic.dylib")) { task in
+                        task.checkRuleInfo([.equal("Copy"),
+                                            .equal("\(SRCROOT)/build/Debug-iphoneos/\(targetName).app/Frameworks/libclang_rt.asan_ios_dynamic.dylib"),
+                                            .equal(clangLibDarwinPath.join("libclang_rt.asan_ios_dynamic.dylib").str),])
+                        #expect(task.execDescription == "Copy Address Sanitizer library")
+                    }
+                    // There should be one code signing task for each ASan library.
+                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.asan_ios_dynamic_on_osx.dylib")) { task in
+                        task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug-iphoneos/\(targetName).app/Frameworks/libclang_rt.asan_ios_dynamic_on_osx.dylib")])
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.asan_ios_dynamic_on_xros.dylib")) { task in
+                        task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug-iphoneos/\(targetName).app/Frameworks/libclang_rt.asan_ios_dynamic_on_xros.dylib")])
+                    }
+                    results.checkTask(.matchTarget(target), .matchRuleType("CodeSign"), .matchRuleItemBasename("libclang_rt.asan_ios_dynamic.dylib")) { task in
+                        task.checkRuleInfo([.equal("CodeSign"), .equal("\(SRCROOT)/build/Debug-iphoneos/\(targetName).app/Frameworks/libclang_rt.asan_ios_dynamic.dylib")])
+                    }
+                }
             }
 
             await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug", overrides: overrides), runDestination: .macOS, fs: fs) { results in
