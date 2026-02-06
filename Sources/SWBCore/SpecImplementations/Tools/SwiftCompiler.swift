@@ -2314,7 +2314,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) &&
                 emittingModuleSeparately {
                 let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
-                moduleOutputPaths.append(moduleWrapOutput)
+                // The modulewrap task depends on the module, but its outputs are linking requirements,
+                // not downstream compilation requirements track it as an extra output.
+                extraOutputPaths.append(moduleWrapOutput)
             }
 
             let dependencyValidationPayload: SwiftDependencyValidationPayload?
