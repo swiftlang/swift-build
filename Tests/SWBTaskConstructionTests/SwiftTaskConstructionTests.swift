@@ -3727,14 +3727,14 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
 
                 results.checkTask(.matchRuleType("SwiftAutolinkExtract")) { task in
-                    task.checkCommandLineMatches([.suffix("swift-autolink-extract"), .suffix("File1.o"), .suffix("File2.o"), "-o", .suffix("Tool.autolink")])
+                    task.checkCommandLineMatches([.suffix("swift-autolink-extract"), .suffix("File1.o"), .suffix("File2.o"), "-o", .suffix("Tool-swiftbuild.autolink")])
                     task.checkInputs([.pathPattern(.suffix("File1.o")), .pathPattern(.suffix("File2.o")), .any, .any, .any])
-                    task.checkOutputs([.pathPattern(.suffix("Tool.autolink"))])
+                    task.checkOutputs([.pathPattern(.suffix("Tool-swiftbuild.autolink"))])
                     results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation"))
                 }
                 results.checkTask(.matchRuleType("Ld")) { task in
                     results.checkTaskFollows(task, .matchRuleType("SwiftAutolinkExtract"))
-                    task.checkInputs(contain: [.pathPattern(.suffix("Tool.autolink"))])
+                    task.checkInputs(contain: [.pathPattern(.suffix("Tool-swiftbuild.autolink"))])
                 }
             }
         }
