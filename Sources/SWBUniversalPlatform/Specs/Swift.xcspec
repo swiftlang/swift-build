@@ -1054,7 +1054,7 @@
             {
                 Name = "SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH";
                 Type = Path;
-                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME).autolink";
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-swiftbuild.autolink";
             },
             {
                 Name = "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION";
