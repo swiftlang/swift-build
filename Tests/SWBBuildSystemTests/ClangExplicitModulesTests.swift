@@ -373,8 +373,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .disabled("setting global environment interferes concurrent tests"),
-          .bug("https://github.com/swiftlang/swift-build/issues/835"))
+    @Test(.requireSDKs(.macOS))
     func explicitModulesEnvironment() async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let testWorkspace = TestWorkspace(
@@ -392,8 +391,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                             "Debug",
                             buildSettings: [
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
-                                "CLANG_ENABLE_MODULES": "YES",
-                                "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "CLANG_ENABLE_MODULES": "NO",
                                 "OTHER_CFLAGS": "-Wmain -Werror",
                             ])],
                         targets: [
@@ -414,14 +412,12 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                 """
             }
 
-            // FIXME: These two lines shouldn't be necessary. clang directly recognizes the same of this environment variable (coincidentally the same as our build setting). llbuild's shell tool has an `inherit-env` property which is true by default, and causes the _process_ environment of the build service to be propagated to build tasks like clang. Instead we should set `inherit-env` to false and merge `processEnvironment` from UserInfo into the task's environment, so that it is overridable from tests.
-            try POSIX.setenv("GCC_TREAT_WARNINGS_AS_ERRORS", "NO", 1)
-            defer { try? POSIX.unsetenv("GCC_TREAT_WARNINGS_AS_ERRORS") }
-
+            // Override GCC_TREAT_WARNINGS_AS_ERRORS via processEnvironment
             tester.userInfo = UserInfo(user: "user", group: "group", uid: 1337, gid: 42, home: tmpDirPath.join("home"), processEnvironment: [:], buildSystemEnvironment: [:])
             tester.userInfo = tester.userInfo.withAdditionalEnvironment(environment: ["GCC_TREAT_WARNINGS_AS_ERRORS": "NO"])
+            tester.workspaceContext.updateUserInfo(tester.userInfo)
             try await tester.checkBuild(runDestination: .macOS) { results in
-                // Check that -Werror was overwritten by GCC_TREAT_WARNINGS_AS_ERRORS=NO.
+                // GCC_TREAT_WARNINGS_AS_ERRORS=NO should override -Werror
                 results.checkNoErrors()
                 results.checkWarning(.contains("only one parameter on 'main'"))
             }
