@@ -344,6 +344,73 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS), .skipDeveloperDirectoryWithEqualSign, .disabled("to be enabled in the future after swift compiler fix"))
+    func prefixMapping() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            func buildTestWorkspace(sourceDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: sourceDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("file.swift"),
+                                ]),
+                            buildConfigurations: [TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": try await swiftVersion,
+                                    "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_PREFIX_MAPPING": "YES",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                    "EMIT_FRONTEND_COMMAND_LINES": "YES",
+                                ])],
+                            targets: [
+                                TestStandardTarget(
+                                    "Library",
+                                    type: .staticLibrary,
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["file.swift"]),
+                                    ]),
+                            ])])
+
+                let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
+                    stream <<<
+                    """
+                    public func foo() {}
+                    """
+                }
+
+                try await tester.checkBuild(runDestination: .macOS, persistent: true, body: body)
+
+                // Clean.
+                try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            }
+
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test1")) { results in
+                let compileTask: Task = try results.checkTask(.matchRuleType("SwiftCompile")) { $0 }
+                results.checkKeyQueryCacheMiss(compileTask)
+                results.checkNoDiagnostics()
+            }
+
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test2")) { results in
+                let compileTask: Task = try results.checkTask(.matchRuleType("SwiftCompile")) { $0 }
+                // Module is in a different directory, but it's canonicalized.
+                results.checkKeyQueryCacheHit(compileTask)
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
     @Test(.requireCASValidation, .requireSDKs(.macOS))
     func validateCAS() async throws {
         try await withTemporaryDirectory { tmpDirPath in
