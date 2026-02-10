@@ -248,10 +248,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
             let context = MacroEvaluationContext(scope: self, macro: macro, value: value, lookup: lookup)
             let resultBuilder = MacroEvaluationResultBuilder()
             value.expression.evaluate(context: context, resultBuilder: resultBuilder)
-            let resultList = resultBuilder.buildStringList().map { Path($0).normalize().str }
-            // Remove duplicates
-            let result = Array(OrderedSet(resultList))
-            return result
+            return resultBuilder.buildStringList().map { Path($0).normalize().str }
         }
 
         if lookup == nil {
