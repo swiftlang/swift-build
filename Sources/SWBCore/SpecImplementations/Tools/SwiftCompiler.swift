@@ -757,6 +757,19 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
     }
 
+    override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
+        var env: [(String, String)] = super.environmentFromSpec(cbc, delegate, lookup: lookup)
+
+        // Pass through SWIFT_DRIVER_SWIFT_FRONTEND_EXEC if set
+        // This is consumed by the driver to select which swift-frontend binary to use.
+        let frontendExecValue = cbc.scope.evaluate(cbc.scope.namespace.parseString("$(SWIFT_DRIVER_SWIFT_FRONTEND_EXEC)"))
+        if !frontendExecValue.isEmpty {
+            env.append(("SWIFT_DRIVER_SWIFT_FRONTEND_EXEC", frontendExecValue))
+        }
+
+        return env
+    }
+
     // remove in rdar://53000820
     /// Describes how input files are passed to the compiler invocation
     private enum SwiftCompilerInputMode {
