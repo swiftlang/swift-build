@@ -1369,7 +1369,7 @@ import SWBMacro
                         prefix = nil
                         continue
                     }
-                    result.append(LinkerSpec.LibrarySpecifier(kind: kind, path: filePath, mode: mode, useSearchPaths: useSearchPaths, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:], prefix: prefix))
+                    result.append(LinkerSpec.LibrarySpecifier(kind: kind, path: filePath, mode: mode, useSearchPaths: useSearchPaths, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:], prefix: prefix))
                 }
             }
             return result
@@ -1379,7 +1379,7 @@ import SWBMacro
             libraries.append(contentsOf: generateLibrarySpecifiers(kind: kind))
         }
         // This is a no-op because object files get added in the SourcesTaskProducer, but we want to confirm that this is the case.
-        libraries.append(LinkerSpec.LibrarySpecifier(kind: .object, path: Path.root.join("tmp/Bar.o"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]))
+        libraries.append(LinkerSpec.LibrarySpecifier(kind: .object, path: Path.root.join("tmp/Bar.o"), mode: .normal, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]))
 
         await linkerSpec.constructLinkerTasks(cbc, delegate, libraries: libraries, usedTools: [:])
 
@@ -1596,28 +1596,28 @@ import SWBMacro
         let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path.root.join("tmp/obj/normal/x86_64/file1.o"), fileType: mockFileType)], output: Path.root.join("tmp/obj/normal/x86_64/output"))
         let libraries = [
-            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo1.a"), mode: .normal, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo2.a"), mode: .weak, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo3.a"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo4.a"), mode: .weak, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo1.a"), mode: .normal, useSearchPaths: true, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo2.a"), mode: .weak, useSearchPaths: true, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo3.a"), mode: .normal, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .static, path: Path.root.join("usr/lib/libfoo4.a"), mode: .weak, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
 
-            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar1.dylib"), mode: .normal, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar2.dylib"), mode: .weak, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar3.dylib"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar4.dylib"), mode: .weak, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar1.dylib"), mode: .normal, useSearchPaths: true, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar2.dylib"), mode: .weak, useSearchPaths: true, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar3.dylib"), mode: .normal, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .dynamic, path: Path.root.join("usr/lib/libbar4.dylib"), mode: .weak, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
 
-            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz1.tbd"), mode: .normal, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz2.tbd"), mode: .weak, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz3.tbd"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz4.tbd"), mode: .weak, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz1.tbd"), mode: .normal, useSearchPaths: true, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz2.tbd"), mode: .weak, useSearchPaths: true,knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz3.tbd"), mode: .normal, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .textBased, path: Path.root.join("usr/lib/libbaz4.tbd"), mode: .weak, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
 
-            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo1.framework"), mode: .normal, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo2.framework"), mode: .weak, useSearchPaths: true, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo3.framework"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
-            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo4.framework"), mode: .weak, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo1.framework"), mode: .normal, useSearchPaths: true, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo2.framework"), mode: .weak, useSearchPaths: true, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo3.framework"), mode: .normal, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .framework, path: Path.root.join("tmp/Foo4.framework"), mode: .weak, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
 
             // This is a no-op because object files get added in the SourcesTaskProducer, but we want to confirm that this is the case.
-            LinkerSpec.LibrarySpecifier(kind: .object, path: Path.root.join("tmp/Bar.o"), mode: .normal, useSearchPaths: false, swiftModulePaths: [:], swiftModuleAdditionalLinkerArgResponseFilePaths: [:]),
+            LinkerSpec.LibrarySpecifier(kind: .object, path: Path.root.join("tmp/Bar.o"), mode: .normal, useSearchPaths: false, knownToUseSwift: false, swiftModulePathsToRegisterWithDebugger: [:]),
         ]
         await librarianSpec.constructLinkerTasks(cbc, delegate, libraries: libraries, usedTools: [:])
 

@@ -386,12 +386,10 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let isUsingWholeModuleOptimization: Bool
     public let casOptions: CASOptions?
     public let reportRequiredTargetDependencies: BooleanWarningLevel
-    public let linkerResponseFilePath: Path?
     public let dependencyFilteringRootPath: Path?
     public let verifyScannerDependencies: Bool
-    public let linkerResponseFileFormat: ResponseFileFormat
 
-    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool) {
+    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
         self.moduleName = moduleName
@@ -407,14 +405,12 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.isUsingWholeModuleOptimization = isUsingWholeModuleOptimization
         self.casOptions = casOptions
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
-        self.linkerResponseFilePath = linkerResponseFilePath
-        self.linkerResponseFileFormat = linkerResponseFileFormat
         self.dependencyFilteringRootPath = dependencyFilteringRootPath
         self.verifyScannerDependencies = verifyScannerDependencies
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(19)
+        try deserializer.beginAggregate(17)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.moduleName = try deserializer.deserialize()
@@ -430,14 +426,12 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.isUsingWholeModuleOptimization = try deserializer.deserialize()
         self.casOptions = try deserializer.deserialize()
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
-        self.linkerResponseFilePath = try deserializer.deserialize()
-        self.linkerResponseFileFormat = try deserializer.deserialize()
         self.dependencyFilteringRootPath = try deserializer.deserialize()
         self.verifyScannerDependencies = try deserializer.deserialize()
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(19) {
+        serializer.serializeAggregate(17) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
             serializer.serialize(self.moduleName)
@@ -453,8 +447,6 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.isUsingWholeModuleOptimization)
             serializer.serialize(self.casOptions)
             serializer.serialize(self.reportRequiredTargetDependencies)
-            serializer.serialize(self.linkerResponseFilePath)
-            serializer.serialize(self.linkerResponseFileFormat)
             serializer.serialize(self.dependencyFilteringRootPath)
             serializer.serialize(self.verifyScannerDependencies)
         }
@@ -950,12 +942,12 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         cbc.scope.evaluate(BuiltinMacros.COMPILER_WORKING_DIRECTORY).nilIfEmpty.map { Path($0) } ?? cbc.producer.defaultWorkingDirectory
     }
 
-    private func getExplicitModuleBlocklist(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate) async ->  SwiftBlocklists.ExplicitModulesInfo? {
+    private func getExplicitModuleBlocklist(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async ->  SwiftBlocklists.ExplicitModulesInfo? {
         let specInfo = await (discoveredCommandLineToolSpecInfo(producer, scope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)
         return specInfo?.blocklists.explicitModules
     }
 
-    func swiftExplicitModuleBuildEnabled(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any TaskGenerationDelegate) async -> Bool {
+    public func swiftExplicitModuleBuildEnabled(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> Bool {
         let buildSettingEnabled = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES) == .enabled ||
                                   scope.evaluate(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES) == .enabled
 
@@ -1443,14 +1435,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let moduleFilePath = SwiftCompilerSpec.getSwiftModuleFilePathInternal(cbc.scope, compilationMode)
             args += ["-emit-module", "-emit-module-path", moduleFilePath.str]
             moduleOutputPaths.append(moduleFilePath)
-            let moduleLinkerArgsPath: Path?
-            if cbc.scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
-                let path = Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp")
-                moduleOutputPaths.append(path)
-                moduleLinkerArgsPath = path
-            } else {
-                moduleLinkerArgsPath = nil
-            }
 
             if let baselinePath = getABIBaselinePath(cbc.scope, delegate, compilationMode) {
                 args += ["-digester-mode", "abi", "-compare-to-baseline-path", baselinePath.str]
@@ -1864,9 +1848,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // 1. The platform must require it
             // 2. We must be compiling with debug info
             // 3. We must be emitting a module separately
+            // 4. We must not be using explicit modules
             if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) &&
                 cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) &&
-                emittingModuleSeparately {
+                emittingModuleSeparately && !explicitModuleBuildEnabled {
                 let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
                 // The modulewrap task depends on the module, but its outputs are linking requirements,
                 // not downstream compilation requirements track it as an extra output.
@@ -1914,7 +1899,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 previewPayload: previewPayload,
                 localizationPayload: localizationPayload,
                 numExpectedCompileSubtasks: isUsingWholeModuleOptimization ? 1 : cbc.inputs.count,
-                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, linkerResponseFilePath: moduleLinkerArgsPath),
+                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions),
                 previewStyle: cbc.scope.previewStyle,
                 dependencyValidationPayload: dependencyValidationPayload
             )
@@ -2107,7 +2092,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
         }
 
-        func driverPayload(uniqueID: String, scope: MacroEvaluationScope, delegate: any TaskGenerationDelegate, compilationMode: SwiftCompilationMode, isUsingWholeModuleOptimization: Bool, args: [String], tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, arch: String, commandLine: [String], ruleInfo: [String], casOptions: CASOptions?, linkerResponseFilePath: Path?) async -> SwiftDriverPayload? {
+        func driverPayload(uniqueID: String, scope: MacroEvaluationScope, delegate: any TaskGenerationDelegate, compilationMode: SwiftCompilationMode, isUsingWholeModuleOptimization: Bool, args: [String], tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, arch: String, commandLine: [String], ruleInfo: [String], casOptions: CASOptions?) async -> SwiftDriverPayload? {
             guard integratedDriverEnabled(scope: scope) else {
                 return nil
             }
@@ -2126,7 +2111,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
             let verifyScannerDependencies = explicitModuleBuildEnabled && cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) == .verifySwiftDependencyScanner
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies)
         }
 
         func constructSwiftResponseFileTask(path: Path) {
@@ -2648,20 +2633,18 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             }
 
-            // Add the AST, if debugging.
+            // Add the AST, if debugging and not using explicit modules.
             //
             // We also check if there are any sources in this target because this could
             // be a source-less target which just contains object files in it's framework phase.
             let currentPlatformFilter = PlatformFilter(scope)
             let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
-            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS, lookup: lookup) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, lookup: lookup) {
+            let explicitModulesEnabled = await swiftExplicitModuleBuildEnabled(producer, scope, delegate)
+            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS, lookup: lookup) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, lookup: lookup) && !explicitModulesEnabled {
                 let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME, lookup: lookup)
                 let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, lookup: lookup)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
                 args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
-                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS, lookup: lookup) {
-                    args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]
-                }
             }
         }
 
