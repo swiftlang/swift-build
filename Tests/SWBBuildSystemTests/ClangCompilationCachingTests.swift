@@ -1615,6 +1615,17 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     checkCommandLineCommon(output: output)
                 }
             }
+            func checkCachingConfigFiles(_ results: BuildOperationTester.BuildResults) throws {
+                try results.checkTask(.matchRuleType("WriteCASConfig")) {
+                    let output = try #require($0.outputPaths.first)
+                    #expect(try results.fs.read(output).asString.contains("\"CASPath\":"))
+                }
+                try results.checkTask(.matchRuleType("WriteCompilePrefixMap")) {
+                    let output = try #require($0.outputPaths.first)
+                    let matchRegex = try Regex("\"/\\^built\":.*\"/\\^mod\":.*\"/\\^sdk\":.*")
+                    #expect(try results.fs.read(output).asString.contains(matchRegex))
+                }
+            }
 
             try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test1"), moduleDir: tmpDirPath.join("Mod1")) { results in
                 let moduleTask: Task = try results.checkTask(.matchRuleType("PrecompileModule")) { $0 }
@@ -1624,6 +1635,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 results.checkNoDiagnostics()
                 checkModuleCommandLine(task: moduleTask, results: results, name: "Mod1")
                 checkTUCommandLine(task: tuTask, results: results)
+                try checkCachingConfigFiles(results)
             }
 
             try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test2"), moduleDir: tmpDirPath.join("Mod2")) { results in
@@ -1635,6 +1647,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 results.checkNoDiagnostics()
                 checkModuleCommandLine(task: moduleTask, results: results, name: "Mod2")
                 checkTUCommandLine(task: tuTask, results: results)
+                try checkCachingConfigFiles(results)
             }
         }
     }
