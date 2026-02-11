@@ -76,6 +76,12 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
     }
 
+    /// Adds a mapping from `macro` to the given literal string list `value`.
+    public mutating func push(_ macro: PathOrderedSetMacroDeclaration, literal: [String], conditions: MacroConditionSet? = nil) {
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
+        push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
+    }
+
 
     /// Adds a mapping from `macro` to `value`, inserting it ahead of any already existing assignment for the same macro.  Unless the value refers to the lower-precedence expression (using `$(inherited)` notation), any existing assignments are shadowed but not removed.
     package mutating func push(_ macro: MacroDeclaration, _ value: MacroExpression, conditions: MacroConditionSet? = nil, locationRef: InternedMacroValueAssignmentLocation? = nil) {
@@ -272,6 +278,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             case .userDefined: serializer.serialize(3)
             case .path: serializer.serialize(4)
             case .pathList: serializer.serialize(5)
+            case .pathOrderedSet: serializer.serialize(6)
             }
             serializer.endAggregate()   // MacroDeclaration key
             // Serialize the MacroValueAssignment.
