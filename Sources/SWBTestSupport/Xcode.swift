@@ -31,8 +31,8 @@ package struct InstalledXcode: Sendable {
         return try await Path(xcrun(["-f", tool] + toolchainArgs).trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    package func xcrun(_ args: [String], workingDirectory: Path? = nil, redirectStderr: Bool = true) async throws -> String {
-        return try await runProcessWithDeveloperDirectory(["/usr/bin/xcrun"] + args, workingDirectory: workingDirectory, overrideDeveloperDirectory: self.developerDirPath.str, redirectStderr: redirectStderr)
+    package func xcrun(_ args: [String], workingDirectory: Path? = nil, interruptible: Bool = true, redirectStderr: Bool = true) async throws -> String {
+        return try await runProcessWithDeveloperDirectory(["/usr/bin/xcrun"] + args, workingDirectory: workingDirectory, overrideDeveloperDirectory: self.developerDirPath.str, interruptible: interruptible, redirectStderr: redirectStderr)
     }
 
     package func productBuildVersion() throws -> ProductBuildVersion {
