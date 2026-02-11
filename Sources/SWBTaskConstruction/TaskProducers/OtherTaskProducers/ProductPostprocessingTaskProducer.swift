@@ -221,6 +221,11 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
             return
         }
 
+        // we can't rely on strip.exe being availalbe on Windows
+        guard !scope.evaluate(BuiltinMacros.HOST_PLATFORM).contains("windows") else {
+            return
+        }
+
         // NOTE: These must be captured here; they are mutable and used to define the task order gating.
         let phaseStartNodes = self.phaseStartNodes
         let phaseEndTask = self.phaseEndTask
