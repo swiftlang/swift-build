@@ -1552,7 +1552,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         signatureCtx.add(string: cachePath.str)
         let signature = signatureCtx.signature
 
-        withActivity(ruleInfo: "CleanupCompileCache \(cachePath.str)", executionDescription: "Cleanup compile cache at \(cachePath)", signature: signature, target: nil, parentActivity: nil) { activity in
+        withActivity(ruleInfo: "CleanupCompileCache \(cachePath.str)", executionDescription: "Cleanup compile cache at \(cachePath.str)", signature: signature, target: nil, parentActivity: nil) { activity in
             do {
                 try operation.fs.removeDirectory(cachePath)
             } catch {
