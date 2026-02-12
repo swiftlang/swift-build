@@ -102,6 +102,11 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
         dir.join("build.db")
     }
 
+    /// The path to a file next to the build database which records build descriptions previously used in conjunction with that database.
+    package var priorBuildDescriptionsRecordPath: Path {
+        dir.join("prior-build-descriptions.txt")
+    }
+
     /// The path to the bundle which contains the serialized build description, manifest, etc.
     package var packagePath: Path {
         Self.buildDescriptionPackagePath(inDir: dir, signature: signature)

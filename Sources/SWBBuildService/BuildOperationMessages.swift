@@ -308,8 +308,23 @@ final class ActiveBuild: ActiveBuildOperation {
             return
         }
 
+        let priorBuildDescription: BuildDescription?
+        if self.buildRequest.recordBuildBacktraces, let preparationProgressDelegate = self.preparationProgressDelegate {
+            let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
+            priorBuildDescription = await self.session.buildDescriptionManager.attemptLoadingPriorBuildDescription(
+                currentDescription: description,
+                buildRequest: self.buildRequest,
+                buildRequestContext: self.buildRequestContext,
+                workspaceContext: self.workspaceContext,
+                clientDelegate: clientDelegate,
+                constructionDelegate: preparationProgressDelegate
+            )
+        } else {
+            priorBuildDescription = nil
+        }
+
         // Create the build operation.
-        let result = await createBuild(description)
+        let result = await createBuild(description, priorBuildDescription: priorBuildDescription)
 
         guard let operation = result else {
             self.completeBuild(status: .cancelled, metrics: nil)
@@ -458,7 +473,7 @@ final class ActiveBuild: ActiveBuildOperation {
         }
     }
 
-    private func createBuild(_ description: BuildDescription) async -> BuildOperation? {
+    private func createBuild(_ description: BuildDescription, priorBuildDescription: BuildDescription?) async -> BuildOperation? {
         await operationDelegateQueue.sync {
             if self.state == .cancelled {
                 return nil
@@ -469,7 +484,7 @@ final class ActiveBuild: ActiveBuildOperation {
 
             // Create the build operation.
             let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
-            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate)
+            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate, priorBuildDescription: priorBuildDescription)
             self.buildOperation = operation
             return operation
         }

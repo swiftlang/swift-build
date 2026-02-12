@@ -43,7 +43,7 @@ package actor BuildManager {
     /// Enqueue a build operation.
     ///
     /// The build will not actually be initiated until it has been requested to start.
-    package nonisolated func enqueue(request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, description: BuildDescription, operationDelegate: any BuildOperationDelegate, clientDelegate: any ClientDelegate) -> BuildOperation {
+    package nonisolated func enqueue(request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, description: BuildDescription, operationDelegate: any BuildOperationDelegate, clientDelegate: any ClientDelegate, priorBuildDescription: BuildDescription?) -> BuildOperation {
 
         let buildOnlyThesePaths: [Path]?
         switch request.buildCommand {
@@ -81,7 +81,7 @@ package actor BuildManager {
 
         let nodesToBuild = description.buildNodesToPrepareForIndex(buildRequest: request, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext)
 
-        return BuildOperation(request, buildRequestContext, description, environment: workspaceContext.userInfo?.processEnvironment, operationDelegate, clientDelegate, cachedBuildSystems, persistent: true, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspaceContext.workspace, core: workspaceContext.core, userPreferences: workspaceContext.userPreferences)
+        return BuildOperation(request, buildRequestContext, description, environment: workspaceContext.userInfo?.processEnvironment, operationDelegate, clientDelegate, cachedBuildSystems, persistent: true, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspaceContext.workspace, core: workspaceContext.core, userPreferences: workspaceContext.userPreferences, priorBuildDescription: priorBuildDescription)
     }
 
     package nonisolated func enqueueClean(request buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, style: BuildLocationStyle, operationDelegate: any BuildOperationDelegate, dependencyResolverDelegate: (any TargetDependencyResolverDelegate)?) -> CleanOperation {

@@ -136,7 +136,7 @@ struct SwiftDriverJobDynamicTaskPayload: TaskPayload {
 }
 
 final class SwiftDriverJobDynamicTaskSpec: DynamicTaskSpec {
-    func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) throws -> any ExecutableTask {
+    func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) throws -> Task {
         let commandLinePrefix: [ByteString] = [
             "builtin-swiftTaskExecution",
             "--"
