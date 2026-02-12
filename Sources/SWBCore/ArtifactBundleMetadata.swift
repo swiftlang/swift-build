@@ -37,6 +37,7 @@ package struct ArtifactBundleMetadata: Sendable, Hashable, Decodable {
         case executable
         case staticLibrary
         case swiftSDK
+        case experimentalWindowsDLL
         case crossCompilationDestination
     }
 

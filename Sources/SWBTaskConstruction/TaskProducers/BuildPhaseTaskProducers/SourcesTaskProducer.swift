@@ -685,8 +685,11 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }
                 for (name, artifact) in metadata.artifacts {
                     switch artifact.type {
-                    case .crossCompilationDestination, .executable, .swiftSDK:
+                    case .crossCompilationDestination, .swiftSDK:
                         context.warning("ignoring artifact '\(name)' of type '\(artifact.type)' because it cannot be linked", location: .path(absolutePath))
+                        continue
+                    case .executable, .experimentalWindowsDLL:
+                        // Just ignore, these are used by SwiftPM
                         continue
                     case .staticLibrary:
                         var foundMatch = false
