@@ -1677,7 +1677,7 @@ private class SettingsBuilder: ProjectMatchLookup {
                                 }
                             }
                         }
-                    case .crossCompilationDestination, .swiftSDK, .executable:
+                    case .crossCompilationDestination, .swiftSDK, .executable, .experimentalWindowsDLL:
                         break
                     }
                 }
