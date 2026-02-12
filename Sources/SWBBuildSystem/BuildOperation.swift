@@ -800,7 +800,7 @@ package final class BuildOperation: BuildSystemOperation {
         if UserDefaults.enableCASValidation {
             for info in buildDescription.casValidationInfos {
                 do {
-                    try await validateCAS(info)
+                    _ = try await validateCAS(info, onlyIfNeeded: true)
                 } catch {
                     errors.append("cas validation failed for \(info.options.casPath.str)")
                 }
@@ -810,11 +810,9 @@ package final class BuildOperation: BuildSystemOperation {
         return (warnings.count > 0 || errors.count > 0) ? (warnings, errors) : nil
     }
 
-    func validateCAS(_ info: BuildDescription.CASValidationInfo) async throws {
-        assert(UserDefaults.enableCASValidation)
-
+    func validateCAS(_ info: BuildDescription.CASValidationInfo, onlyIfNeeded: Bool = false, ruleSuffix: String = "") async throws -> BuildOperationTaskEnded.Status {
         let casPath = info.options.casPath
-        let ruleInfo = "ValidateCAS \(casPath.str) \(info.llvmCasExec.str)"
+        let ruleInfo = "ValidateCAS\(ruleSuffix) \(casPath.str) \(info.llvmCasExec.str)"
 
         let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ValidateCAS")
@@ -831,10 +829,19 @@ package final class BuildOperation: BuildSystemOperation {
         var commandLine = [
             info.llvmCasExec.str,
             "-cas", casPath.str,
-            "-validate-if-needed",
             "-check-hash",
-            "-allow-recovery",
         ]
+
+        if onlyIfNeeded {
+            commandLine += [
+                "-validate-if-needed",
+                "-allow-recovery",
+            ]
+        } else {
+            commandLine += ["-validate"]
+        }
+
+
         if let pluginPath = info.options.pluginPath {
             commandLine.append(contentsOf: [
                 "-fcas-plugin-path", pluginPath.str
@@ -842,7 +849,8 @@ package final class BuildOperation: BuildSystemOperation {
         }
         let result: Processes.ExecutionResult = try await clientDelegate.executeExternalTool(commandLine: commandLine)
         // In a task we might use a discovered tool info to detect if the tool supports validation, but without that scaffolding, just check the specific error.
-        if result.exitStatus == .exit(1) && result.stderr.contains(ByteString("Unknown command line argument '-validate-if-needed'")) {
+        if result.exitStatus == .exit(1) && (result.stderr.contains(ByteString("Unknown command line argument '-validate-if-needed'")) ||
+                                             result.stderr.contains(ByteString("plugin cas doesn't support validation"))) {
             delegate.emit(data: ByteString("validation not supported").bytes, for: activityId, signature: signature)
             status = .succeeded
         } else {
@@ -850,6 +858,7 @@ package final class BuildOperation: BuildSystemOperation {
             delegate.emit(data: ByteString(result.stdout).bytes, for: activityId, signature: signature)
             status = result.exitStatus.isSuccess ? .succeeded : result.exitStatus.wasCanceled ? .cancelled : .failed
         }
+        return status
     }
 
     /// Cancel the executing build operation.
@@ -1530,7 +1539,9 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     /// Wait for all status activity to be complete before returning.
     func waitForCompletion(buildSucceeded: Bool) async {
         let completionToken = await dynamicOperationContext.waitForCompletion()
-        cleanupCompilationCache()
+        if await validateCompilationCachePostBuild() == .succeeded {
+            cleanupCompilationCache()
+        }
         cleanupGlobalModuleCache()
 
         await queue.sync {
@@ -1560,6 +1571,21 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         for entry in dynamicOperationContext.clangModuleDependencyGraph.diagnoseInvalidNegativeStatCacheEntries() {
             buildOutputDelegate.warning(Path(entry), "Clang reported an invalid negative stat cache entry for '\(entry)'; this may indicate a missing dependency which caused the file to be modified after being read by a dependent")
         }
+    }
+
+    /// Optionally validate the contents of the compilation cache after building.
+    func validateCompilationCachePostBuild() async -> BuildOperationTaskEnded.Status {
+        for info in operation.buildDescription.casValidationInfos where info.validatePostBuild {
+            do {
+                let status = try await operation.validateCAS(info, onlyIfNeeded: false, ruleSuffix: "PostBuild")
+                if status != .succeeded {
+                    return status
+                }
+            } catch {
+                buildOutputDelegate.error("cas validation failed for \(info.options.casPath.str)")
+            }
+        }
+        return .succeeded
     }
 
     /// Cleanup the compilation cache to reduce resource usage in environments not configured to preserve it.

@@ -154,6 +154,7 @@ package final class BuildDescription: Serializable, Sendable, Encodable, Cacheab
     package struct CASValidationInfo {
         package var options: CASOptions
         package var llvmCasExec: Path
+        package var validatePostBuild: Bool
     }
 
     /// The list of all CAS directories for validation.
@@ -1504,28 +1505,17 @@ package extension PlannedNode {
 
 extension BuildDescription.CASValidationInfo: Serializable {
     package func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(2) {
+        serializer.serializeAggregate(3) {
             serializer.serialize(options)
             serializer.serialize(llvmCasExec)
+            serializer.serialize(validatePostBuild)
         }
     }
 
     package init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(2)
+        try deserializer.beginAggregate(3)
         self.options = try deserializer.deserialize()
         self.llvmCasExec = try deserializer.deserialize()
-    }
-}
-
-// Note: for the purposes of validation we intentionally ignore irrelevant
-// differences in CASOptions. However, we need to keep the llvm-cas executable
-// in case there are multiple cas format versions sharing the path.
-extension BuildDescription.CASValidationInfo: Hashable {
-    package func hash(into hasher: inout Hasher) {
-        hasher.combine(options.casPath)
-        hasher.combine(llvmCasExec)
-    }
-    static package func ==(lhs: Self, rhs: Self) -> Bool {
-        return lhs.options.casPath == rhs.options.casPath && lhs.llvmCasExec == rhs.llvmCasExec
+        self.validatePostBuild = try deserializer.deserialize()
     }
 }
