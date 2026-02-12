@@ -1794,9 +1794,11 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
                     #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_KEEP_CAS_DIRECTORY", "YES") }))
+                    #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_LIMIT_SIZE", "0") }))
                 }
                 results.checkTask(.matchRuleType("RuleScriptExecution")) { task in
                     #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_KEEP_CAS_DIRECTORY", "YES") }))
+                    #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_LIMIT_SIZE", "0") }))
                 }
                 results.checkWarning(.prefix("Run script build phase 'Script' will be run during every build"))
             }
