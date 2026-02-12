@@ -9383,6 +9383,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             try await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
                 try results.checkTask(.matchRuleType("Strip")) { task in
                     switch try ProcessInfo.processInfo.hostOperatingSystem() {
+                    case .windows:
+                        task.checkCommandLineContains(["llvm-strip", "-T"])
                     case .macOS:
                         task.checkCommandLineContains(["-T"])
                     default:
