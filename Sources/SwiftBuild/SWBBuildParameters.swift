@@ -76,7 +76,7 @@ public struct SWBRunDestinationInfo: Codable, Sendable {
             // Handle the message payload from earlier versions that didn't have the buildTarget enumeration
             let platform = try container.decode(String.self, forKey: .platform)
             let sdk: String = try container.decode(String.self, forKey: .sdk)
-            let sdkVariant: String? = try container.decode(String?.self, forKey: .sdkVariant)
+            let sdkVariant: String? = try container.decodeIfPresent(String.self, forKey: .sdkVariant)
             self.buildTarget = .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
         }
 

@@ -31,11 +31,18 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
             self.libraryNameInfix = libraryNameInfix
         }
 
-        func libraryName(for sdkVariant: SDKVariant) -> String? {
+        func libraryNames(for sdkVariant: SDKVariant) -> [(source_name: String, dest_name: String, required: Bool)]? {
             guard let clangRuntimeLibraryPlatformName = sdkVariant.clangRuntimeLibraryPlatformName else {
                 return nil
             }
-            return "libclang_rt.\(libraryNameInfix)_\(clangRuntimeLibraryPlatformName)_dynamic.dylib"
+            let defaultRuntimeName = "libclang_rt.\(libraryNameInfix)_\(clangRuntimeLibraryPlatformName)_dynamic.dylib"
+            var runtimes = [(defaultRuntimeName, defaultRuntimeName, true)]
+            if sdkVariant.name == "iphoneos" {
+                // Include libraries for macOS and visionOS to support "iOS-on-Mac" and "iOS-on-visonOS"
+                runtimes.append(("libclang_rt.\(libraryNameInfix)_osx_dynamic.dylib", "libclang_rt.\(libraryNameInfix)_ios_dynamic_on_osx.dylib", false))
+                runtimes.append(("libclang_rt.\(libraryNameInfix)_xros_dynamic.dylib", "libclang_rt.\(libraryNameInfix)_ios_dynamic_on_xros.dylib", false))
+            }
+            return runtimes
         }
 
         func errorForMissingLibrary(on platform: Platform?) -> Bool {
@@ -97,52 +104,58 @@ final class SanitizerTaskProducer: PhasedTaskProducer, TaskProducer {
         if sanitizerName == "Address" && scope.evaluate(BuiltinMacros.ENABLE_SYSTEM_SANITIZERS) {
             return
         }
-        guard let sdkVariant = context.settings.sdkVariant, let libraryName = sanitizer.libraryName(for: sdkVariant) else {
+        guard let sdkVariant = context.settings.sdkVariant, let libraryNames = sanitizer.libraryNames(for: sdkVariant) else {
             return
         }
 
-        // The sanitizer libraries are bundled with the clang in the toolchain we're using.  Moreover, there is a separate library for each platform, and it lives in a directory based on the version of the clang in that platform.
-        // So, we have to do some path calculations to compute the location of the library.  Fortunately, we can ask the clang specification to be used for the its version.
-        guard let clangInfo = try? await context.clangSpec.discoveredCommandLineToolSpecInfo(context, scope, delegate, forLanguageOfFileType: nil), !clangInfo.toolPath.isEmpty else {
-            context.error("Could not find path to clang binary to locate \(sanitizerName) Sanitizer library")
-            return
-        }
-        // The build description depends on the clang compiler due to the discovered info.
-        access(path: clangInfo.toolPath)
-        guard let clangLibDarwinPath = clangInfo.getLibDarwinPath() else {
-            context.error("Could not get lib darwin path")
-            return
-        }
-
-        let libraryPath = clangLibDarwinPath.join(libraryName)
-        guard clangLibDarwinPath.isAbsolute else {
-            context.error("Unable to copy clang \(sanitizerName) Sanitizer library: Path to it is not an absolute path but is \(libraryPath.str)'")
-            return
-        }
-
-        guard context.fs.exists(libraryPath) else {
-            if sanitizer.errorForMissingLibrary(on: context.settings.platform) {
-                context.error("Unable to copy \(sanitizerName) Sanitizer library: Could not determine where it lives." )
+        for (sourceLibraryName, destLibraryName, isRequired) in libraryNames {
+            // The sanitizer libraries are bundled with the clang in the toolchain we're using.  Moreover, there is a separate library for each platform, and it lives in a directory based on the version of the clang in that platform.
+            // So, we have to do some path calculations to compute the location of the library.  Fortunately, we can ask the clang specification to be used for the its version.
+            guard let clangInfo = try? await context.clangSpec.discoveredCommandLineToolSpecInfo(context, scope, delegate, forLanguageOfFileType: nil), !clangInfo.toolPath.isEmpty else {
+                context.error("Could not find path to clang binary to locate \(sanitizerName) Sanitizer library")
+                continue
             }
-            return
-        }
+            // The build description depends on the clang compiler due to the discovered info.
+            access(path: clangInfo.toolPath)
+            guard let clangLibDarwinPath = clangInfo.getLibDarwinPath() else {
+                context.error("Could not get lib darwin path")
+                continue
+            }
 
-        // The path to copy the library to.
-        let libraryDstPath = Path(scope.evaluate(scope.namespace.parseString("$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/\(libraryName)")))
+            let libraryPath = clangLibDarwinPath.join(sourceLibraryName)
+            guard clangLibDarwinPath.isAbsolute else {
+                context.error("Unable to copy clang \(sanitizerName) Sanitizer library: Path to it is not an absolute path but is \(libraryPath.str)'")
+                continue
+            }
 
-        // Create a virtual node to order the copy and code signing tasks.
-        let copySanitizerLibraryOrderingNode = delegate.createVirtualNode("Copy \(sanitizerName) Sanitizer library \(libraryDstPath.str)")
+            guard context.fs.exists(libraryPath) else {
+                if sanitizer.errorForMissingLibrary(on: context.settings.platform) {
+                    if isRequired {
+                        context.error("Unable to copy \(sourceLibraryName) Sanitizer library: Could not determine where it lives." )
+                    } else {
+                        context.warning("Unable to copy \(sourceLibraryName) Sanitizer library: Could not determine where it lives." )
+                    }
+                }
+                continue
+            }
 
-        // Copy the library.
-        do {
-            let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(absolutePath: libraryPath, inferringTypeUsing: context)], output: libraryDstPath, commandOrderingOutputs: [copySanitizerLibraryOrderingNode])
-            await context.copySpec.constructCopyTasks(cbc, delegate, executionDescription: "Copy \(sanitizerName) Sanitizer library", stripUnsignedBinaries: false, stripBitcode: false)
-        }
+            // The path to copy the library to.
+            let libraryDstPath = Path(scope.evaluate(scope.namespace.parseString("$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/\(destLibraryName)")))
 
-        // Code sign the copied library if appropriate.
-        do {
-            let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(absolutePath: libraryDstPath, inferringTypeUsing: context)], commandOrderingInputs: [copySanitizerLibraryOrderingNode])
-            context.codesignSpec.constructCodesignTasks(cbc, delegate, productToSign: libraryDstPath, isReSignTask: true)
+            // Create a virtual node to order the copy and code signing tasks.
+            let copySanitizerLibraryOrderingNode = delegate.createVirtualNode("Copy \(sanitizerName) Sanitizer library \(libraryDstPath.str)")
+
+            // Copy the library.
+            do {
+                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(absolutePath: libraryPath, inferringTypeUsing: context)], output: libraryDstPath, commandOrderingOutputs: [copySanitizerLibraryOrderingNode])
+                await context.copySpec.constructCopyTasks(cbc, delegate, executionDescription: "Copy \(sanitizerName) Sanitizer library", stripUnsignedBinaries: false, stripBitcode: false)
+            }
+
+            // Code sign the copied library if appropriate.
+            do {
+                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [FileToBuild(absolutePath: libraryDstPath, inferringTypeUsing: context)], commandOrderingInputs: [copySanitizerLibraryOrderingNode])
+                context.codesignSpec.constructCodesignTasks(cbc, delegate, productToSign: libraryDstPath, isReSignTask: true)
+            }
         }
     }
 }

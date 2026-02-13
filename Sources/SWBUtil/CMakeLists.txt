@@ -24,6 +24,7 @@ add_library(SWBUtil
   ByteString.swift
   Cache.swift
   Collection.swift
+  CollectionDifferenceExtensions.swift
   CountedSet.swift
   CSV.swift
   Debugger.swift

@@ -42,7 +42,7 @@ final class SwiftDriverPlanningDynamicTaskSpec: DynamicTaskSpec {
         SwiftTaskPayload.self
     }
 
-    func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case .swiftDriverPlanning(let key) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task: \(dynamicTask)")
         }

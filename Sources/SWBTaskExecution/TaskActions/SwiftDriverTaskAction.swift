@@ -134,18 +134,6 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
                 }
             }
 
-            if let linkerResponseFilePath = driverPayload.linkerResponseFilePath {
-                var responseFileCommandLine: [String] = []
-                if driverPayload.explicitModulesEnabled {
-                    for swiftmodulePath in try dependencyGraph.querySwiftmodulesNeedingRegistrationForDebugging(for: driverPayload.uniqueID) {
-                        responseFileCommandLine.append(contentsOf: ["-Xlinker", "-add_ast_path", "-Xlinker", "\(swiftmodulePath)"])
-                    }
-                }
-                let contents = ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: driverPayload.linkerResponseFileFormat))
-                try executionDelegate.fs.createDirectory(linkerResponseFilePath.dirname, recursive: true)
-                try executionDelegate.fs.write(linkerResponseFilePath, contents: contents, atomically: true)
-            }
-
             return .succeeded
         } catch {
             outputDelegate.error("Unexpected error in querying jobs from dependency graph: \(error)")

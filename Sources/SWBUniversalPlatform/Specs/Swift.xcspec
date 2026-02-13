@@ -1054,7 +1054,7 @@
             {
                 Name = "SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH";
                 Type = Path;
-                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME).autolink";
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-swiftbuild.autolink";
             },
             {
                 Name = "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION";
@@ -1076,16 +1076,6 @@
                 Name = "SWIFT_ENABLE_COMPILE_CACHE";
                 Type = Boolean;
                 DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING)";
-            },
-            {
-                Name = "SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS";
-                Type = Boolean;
-                DefaultValue = "$(_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES:default=$(SWIFT_ENABLE_EXPLICIT_MODULES))";
-            },
-            {
-                Name = "SWIFT_ADDITIONAL_LINKER_ARGS_OUTPUT_PATH";
-                Type = Path;
-                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-linker-args.resp";
             },
             {
                 Name = "SWIFT_SERIALIZE_DEBUGGING_OPTIONS";
@@ -1398,7 +1388,9 @@
                         "-scanner-prefix-map-sdk", "/^sdk",
                         "-scanner-prefix-map-toolchain", "/^toolchain",
                         "-scanner-prefix-map", "$(DEVELOPER_DIR)=/^xcode",
-                        // FIXME: add source and build directory mappings by default
+                        "-scanner-prefix-map", "$(PROJECT_DIR)=/^src",
+                        "-scanner-prefix-map", "$(PROJECT_TEMP_DIR)=/^derived",
+                        "-scanner-prefix-map", "$(BUILT_PRODUCTS_DIR)=/^built",
                     );
                     NO = ();
                 };

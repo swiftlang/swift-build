@@ -14,7 +14,7 @@ import SWBCore
 import SWBUtil
 
 final class ClangCachingKeyQueryDynamicTaskSpec: DynamicTaskSpec {
-    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case let .clangCachingKeyQuery(clangCachingKeyQueryTaskKey) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task key \(dynamicTask.taskKey)")
         }

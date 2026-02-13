@@ -156,6 +156,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
             }
+
+            try await tester.checkNullBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
         }
     }
 

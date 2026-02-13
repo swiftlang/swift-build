@@ -260,12 +260,15 @@ package final class BuildOperation: BuildSystemOperation {
     /// Core
     let core: Core
 
+    /// Optionally present prior build description used to explain signature changes in an incremental build.
+    private let priorBuildDescription: BuildDescription?
+
     /// User preferences from the client
     package let userPreferences: UserPreferences
 
     package let cachedBuildSystems: any BuildSystemCache
 
-    package init(_ request: BuildRequest, _ requestContext: BuildRequestContext, _ buildDescription: BuildDescription, environment: [String: String]? = nil, _ delegate: any BuildOperationDelegate, _ clientDelegate: any ClientDelegate, _ cachedBuildSystems: any BuildSystemCache, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, nodesToBuild: [BuildDescription.BuildNodeToPrepareForIndex]? = nil, workspace: SWBCore.Workspace, core: Core, userPreferences: UserPreferences) {
+    package init(_ request: BuildRequest, _ requestContext: BuildRequestContext, _ buildDescription: BuildDescription, environment: [String: String]? = nil, _ delegate: any BuildOperationDelegate, _ clientDelegate: any ClientDelegate, _ cachedBuildSystems: any BuildSystemCache, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, nodesToBuild: [BuildDescription.BuildNodeToPrepareForIndex]? = nil, workspace: SWBCore.Workspace, core: Core, userPreferences: UserPreferences, priorBuildDescription: BuildDescription?) {
         self.uuid = UUID()
         self.request = request
         self.requestContext = requestContext
@@ -280,14 +283,34 @@ package final class BuildOperation: BuildSystemOperation {
         self.workspace = workspace
         self.core = core
         self.userPreferences = userPreferences
+        self.priorBuildDescription = priorBuildDescription
         self.queue = SWBQueue(label: "SWBBuildSystem.BuildOperation.queue", qos: request.qos, autoreleaseFrequency: .workItem)
         self.cachedBuildSystems = cachedBuildSystems
+    }
+
+    /// Record the use of the current build description in prior-build-descriptions.txt so a future build with a new build description
+    /// can attempt to load it in order to identify the cause of task signature changes.
+    private func recordBuildUsingDescription() throws {
+        let contents = try? fs.read(buildDescription.priorBuildDescriptionsRecordPath).asString
+        let lines = contents?.split(separator: "\n", omittingEmptySubsequences: true)
+        if let lastLine = lines?.last, String(lastLine) == buildDescription.ID.rawValue {
+            // No need to append it again.
+        } else {
+            try fs.append(buildDescription.priorBuildDescriptionsRecordPath, contents: ByteString(encodingAsUTF8: buildDescription.ID.rawValue + "\n"))
+        }
     }
 
     /// Perform the build.
     package func build() async -> BuildOperationEnded.Status {
         // Inform the client the build has started.
         buildOutputDelegate = delegate.buildStarted(self)
+
+        do {
+            try recordBuildUsingDescription()
+        } catch {
+            // This currently warns in a lot of tests which don't write the build description to disk, consider enabling it in the future.
+            //buildOutputDelegate.warning("failed to record build description in prior-build-descriptions.txt: \(error)")
+        }
 
         // Report the copied path map.
         delegate.reportPathMap(self, copiedPathMap: buildDescription.copiedPathMap, generatedFilesPathMap: buildOutputMap ?? [String:String]())
@@ -436,10 +459,10 @@ package final class BuildOperation: BuildSystemOperation {
             // Get the build system to use, keyed by the directory containing the (sole) database.
             let entry = cachedBuildSystems.getOrInsert(buildDescription.buildDatabasePath.dirname, { SystemCacheEntry() })
             return await entry.lock.withLock { [buildEnvironment] _ in
-                await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment)
+                await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
             }
         } else {
-            return await _build(cacheEntry: nil, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment)
+            return await _build(cacheEntry: nil, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
         }
     }
 
@@ -457,7 +480,7 @@ package final class BuildOperation: BuildSystemOperation {
         }
     }
 
-    private func _build(cacheEntry entry: SystemCacheEntry?, dbPath: Path, traceFile: Path?, debuggingDataPath: Path?, buildEnvironment: [String: String]) async -> BuildOperationEnded.Status {
+    private func _build(cacheEntry entry: SystemCacheEntry?, dbPath: Path, traceFile: Path?, debuggingDataPath: Path?, buildEnvironment: [String: String], priorBuildDescription: BuildDescription?) async -> BuildOperationEnded.Status {
         let algorithm: BuildSystem.SchedulerAlgorithm = {
             if let algorithmString = UserDefaults.schedulerAlgorithm {
                 if let algorithm = BuildSystem.SchedulerAlgorithm(rawValue: algorithmString) {
@@ -488,9 +511,9 @@ package final class BuildOperation: BuildSystemOperation {
             // If the entry is valid, reuse it.
             if let cachedAdaptor = entry.adaptor, entry.environment == buildEnvironment, entry.buildDescription! === buildDescription, entry.llbQoS == llbQoS, entry.laneWidth == laneWidth {
                 adaptor = cachedAdaptor
-                await adaptor.reset(operation: self, buildOutputDelegate: buildOutputDelegate)
+                await adaptor.reset(operation: self, buildOutputDelegate: buildOutputDelegate, priorBuildDescription: priorBuildDescription)
             } else {
-                adaptor = OperationSystemAdaptor(operation: self, buildOutputDelegate: buildOutputDelegate, core: core)
+                adaptor = OperationSystemAdaptor(operation: self, buildOutputDelegate: buildOutputDelegate, core: core, priorBuildDescription: priorBuildDescription)
                 entry.environment = buildEnvironment
                 entry.adaptor = adaptor
                 entry.buildDescription = buildDescription
@@ -504,7 +527,7 @@ package final class BuildOperation: BuildSystemOperation {
             // Dispatch the build, using llbuild.
             //
             // FIXME: Eventually, we want this to be structured so that we can share the loaded build engine across multiple in process build invocations. We probably would want the low-level build system to be cached at the BuildManager level, I'm guessing.
-            adaptor = OperationSystemAdaptor(operation: self, buildOutputDelegate: buildOutputDelegate, core: core)
+            adaptor = OperationSystemAdaptor(operation: self, buildOutputDelegate: buildOutputDelegate, core: core, priorBuildDescription: priorBuildDescription)
             await queue.sync {
                 if let system = self.system {
                     assertionFailure("A previous build is still running: \(system)")
@@ -777,7 +800,7 @@ package final class BuildOperation: BuildSystemOperation {
         if UserDefaults.enableCASValidation {
             for info in buildDescription.casValidationInfos {
                 do {
-                    try await validateCAS(info)
+                    _ = try await validateCAS(info, onlyIfNeeded: true)
                 } catch {
                     errors.append("cas validation failed for \(info.options.casPath.str)")
                 }
@@ -787,11 +810,9 @@ package final class BuildOperation: BuildSystemOperation {
         return (warnings.count > 0 || errors.count > 0) ? (warnings, errors) : nil
     }
 
-    func validateCAS(_ info: BuildDescription.CASValidationInfo) async throws {
-        assert(UserDefaults.enableCASValidation)
-
+    func validateCAS(_ info: BuildDescription.CASValidationInfo, onlyIfNeeded: Bool = false, ruleSuffix: String = "") async throws -> BuildOperationTaskEnded.Status {
         let casPath = info.options.casPath
-        let ruleInfo = "ValidateCAS \(casPath.str) \(info.llvmCasExec.str)"
+        let ruleInfo = "ValidateCAS\(ruleSuffix) \(casPath.str) \(info.llvmCasExec.str)"
 
         let signatureCtx = InsecureHashContext()
         signatureCtx.add(string: "ValidateCAS")
@@ -808,10 +829,19 @@ package final class BuildOperation: BuildSystemOperation {
         var commandLine = [
             info.llvmCasExec.str,
             "-cas", casPath.str,
-            "-validate-if-needed",
             "-check-hash",
-            "-allow-recovery",
         ]
+
+        if onlyIfNeeded {
+            commandLine += [
+                "-validate-if-needed",
+                "-allow-recovery",
+            ]
+        } else {
+            commandLine += ["-validate"]
+        }
+
+
         if let pluginPath = info.options.pluginPath {
             commandLine.append(contentsOf: [
                 "-fcas-plugin-path", pluginPath.str
@@ -819,7 +849,8 @@ package final class BuildOperation: BuildSystemOperation {
         }
         let result: Processes.ExecutionResult = try await clientDelegate.executeExternalTool(commandLine: commandLine)
         // In a task we might use a discovered tool info to detect if the tool supports validation, but without that scaffolding, just check the specific error.
-        if result.exitStatus == .exit(1) && result.stderr.contains(ByteString("Unknown command line argument '-validate-if-needed'")) {
+        if result.exitStatus == .exit(1) && (result.stderr.contains(ByteString("Unknown command line argument '-validate-if-needed'")) ||
+                                             result.stderr.contains(ByteString("plugin cas doesn't support validation"))) {
             delegate.emit(data: ByteString("validation not supported").bytes, for: activityId, signature: signature)
             status = .succeeded
         } else {
@@ -827,6 +858,7 @@ package final class BuildOperation: BuildSystemOperation {
             delegate.emit(data: ByteString(result.stdout).bytes, for: activityId, signature: signature)
             status = result.exitStatus.isSuccess ? .succeeded : result.exitStatus.wasCanceled ? .cancelled : .failed
         }
+        return status
     }
 
     /// Cancel the executing build operation.
@@ -1367,6 +1399,8 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         return operation.buildDescription
     }
 
+    private var priorBuildDescription: BuildDescription?
+
     fileprivate var workspace: SWBCore.Workspace {
         return operation.workspace
     }
@@ -1375,7 +1409,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         return operation.userPreferences
     }
 
-    private let dynamicTasks: LockedValue<[TaskIdentifier: any ExecutableTask]> = .init([:])
+    private let dynamicTasks: LockedValue<[TaskIdentifier: SWBTaskExecution.Task]> = .init([:])
 
     /// Serial queue used to order interactions with the operation delegate.
     fileprivate let queue: SWBQueue
@@ -1400,9 +1434,10 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         return await queue.sync { self.operation.delegate.aggregatedTaskCounters }
     }
 
-    init(operation: BuildOperation, buildOutputDelegate: any BuildOutputDelegate, core: Core) {
+    init(operation: BuildOperation, buildOutputDelegate: any BuildOutputDelegate, core: Core, priorBuildDescription: BuildDescription?) {
         self.operation = operation
         self.buildOutputDelegate = buildOutputDelegate
+        self.priorBuildDescription = priorBuildDescription
         self._progressStatistics = BuildOperation.ProgressStatistics(numCommandsLowerBound: operation.buildDescription.targetTaskCounts.values.reduce(0, { $0 + $1 }))
         self.core = core
         let cas: ToolchainCAS?
@@ -1429,9 +1464,10 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     }
 
     /// Reset the operation for a new build.
-    func reset(operation: BuildOperation, buildOutputDelegate: any BuildOutputDelegate) async {
+    func reset(operation: BuildOperation, buildOutputDelegate: any BuildOutputDelegate, priorBuildDescription: BuildDescription?) async {
         self.operation = operation
         self.buildOutputDelegate = buildOutputDelegate
+        self.priorBuildDescription = priorBuildDescription
 
         assert(commandOutputDelegates.isEmpty)
         commandOutputDelegates.removeAll()
@@ -1451,7 +1487,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
     }
 
-    func registerDynamicTask(identifier: TaskIdentifier, task: any ExecutableTask) {
+    func registerDynamicTask(identifier: TaskIdentifier, task: SWBTaskExecution.Task) {
         dynamicTasks.withLock {
             $0[identifier] = task
         }
@@ -1460,7 +1496,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
     }
 
-    func dynamicTask(for identifier: TaskIdentifier) -> (any ExecutableTask)? {
+    func dynamicTask(for identifier: TaskIdentifier) -> SWBTaskExecution.Task? {
         return dynamicTasks.withLock { $0[identifier] }
     }
 
@@ -1503,7 +1539,9 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
     /// Wait for all status activity to be complete before returning.
     func waitForCompletion(buildSucceeded: Bool) async {
         let completionToken = await dynamicOperationContext.waitForCompletion()
-        cleanupCompilationCache()
+        if await validateCompilationCachePostBuild() == .succeeded {
+            cleanupCompilationCache()
+        }
         cleanupGlobalModuleCache()
 
         await queue.sync {
@@ -1535,6 +1573,21 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
     }
 
+    /// Optionally validate the contents of the compilation cache after building.
+    func validateCompilationCachePostBuild() async -> BuildOperationTaskEnded.Status {
+        for info in operation.buildDescription.casValidationInfos where info.validatePostBuild {
+            do {
+                let status = try await operation.validateCAS(info, onlyIfNeeded: false, ruleSuffix: "PostBuild")
+                if status != .succeeded {
+                    return status
+                }
+            } catch {
+                buildOutputDelegate.error("cas validation failed for \(info.options.casPath.str)")
+            }
+        }
+        return .succeeded
+    }
+
     /// Cleanup the compilation cache to reduce resource usage in environments not configured to preserve it.
     func cleanupCompilationCache() {
         let settings = operation.requestContext.getCachedSettings(operation.request.parameters)
@@ -1552,7 +1605,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         signatureCtx.add(string: cachePath.str)
         let signature = signatureCtx.signature
 
-        withActivity(ruleInfo: "CleanupCompileCache \(cachePath.str)", executionDescription: "Cleanup compile cache at \(cachePath)", signature: signature, target: nil, parentActivity: nil) { activity in
+        withActivity(ruleInfo: "CleanupCompileCache \(cachePath.str)", executionDescription: "Cleanup compile cache at \(cachePath.str)", signature: signature, target: nil, parentActivity: nil) { activity in
             do {
                 try operation.fs.removeDirectory(cachePath)
             } catch {
@@ -1694,7 +1747,7 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         return nil
     }
 
-    private func lookupTask(_ identifier: TaskIdentifier) -> (any ExecutableTask)? {
+    private func lookupTask(_ identifier: TaskIdentifier) -> SWBTaskExecution.Task? {
         // Get the task for this command.
         //
         // FIXME: Find a better way to maintain command associations.
@@ -2316,6 +2369,34 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
     }
 
+    private func compareTasks(current: SWBTaskExecution.Task, prior: SWBTaskExecution.Task) -> [String] {
+        var diff: [String] = []
+
+        if current.workingDirectory != prior.workingDirectory {
+            diff.append("working directory changed from '\(prior.workingDirectory.str)' to '\(current.workingDirectory.str)'")
+        }
+
+        let currentCmdLine = Array(current.commandLineAsStrings)
+        let priorCmdLine = Array(prior.commandLineAsStrings)
+        if currentCmdLine != priorCmdLine {
+            let commandLineDiff = currentCmdLine.difference(from: priorCmdLine)
+            diff.append("command line changed [\(commandLineDiff.humanReadableDescription)]")
+        }
+
+        if current.environment != prior.environment {
+            let environmentDiff = current.environment.bindings.difference(from: prior.environment.bindings, by: { $0 == $1 })
+            diff.append("environment changed [\(environmentDiff.humanReadableEnvironmentDiff)]")
+        }
+
+        if let currentAction = current.action, let priorAction = prior.action {
+            if let actionDiffs = try? currentAction.describeDifferences(comparedTo: priorAction, fs: operation.delegate.fs ?? localFS) {
+                diff.append(contentsOf: actionDiffs)
+            }
+        }
+
+        return diff
+    }
+
     func determinedRuleNeedsToRun(_ rule: BuildKey, reason: RuleRunReason, inputRule: BuildKey?) {
         if operation.request.recordBuildBacktraces {
             guard let frameID = backtraceFrameIdentifierForBuildKey(rule) else {
@@ -2332,7 +2413,20 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
                 previousFrameID = nil
             case .signatureChanged:
                 category = .ruleSignatureChanged
-                description = "arguments, environment, or working directory of \(descriptionForBuildKey(rule)) changed"
+
+                var diff: [String] = []
+                if let command = rule as? BuildKey.Command,
+                   let currentTask = lookupTask(TaskIdentifier(rawValue: command.name)),
+                   let priorDescription = priorBuildDescription,
+                   let priorTask = priorDescription.taskStore.task(for: TaskIdentifier(rawValue: command.name)) {
+                    diff = compareTasks(current: currentTask, prior: priorTask)
+                }
+
+                if !diff.isEmpty {
+                    description = "signature of \(descriptionForBuildKey(rule)) changed: \(diff.joined(separator: ", "))"
+                } else {
+                    description = "arguments, environment, working directory, or another component of the signature of \(descriptionForBuildKey(rule)) changed"
+                }
                 previousFrameID = nil
             case .invalidValue:
                 category = .ruleHadInvalidValue

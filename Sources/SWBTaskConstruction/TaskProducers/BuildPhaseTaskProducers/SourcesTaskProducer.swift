@@ -328,7 +328,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
     }
 
     /// Computes and returns a list of libraries to include when linking.
-    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope) -> [LinkerSpec.LibrarySpecifier] {
+    func computeLibraries(_ buildFilesContext: BuildFilesProcessingContext, _ scope: MacroEvaluationScope) async -> [LinkerSpec.LibrarySpecifier] {
         guard let frameworksPhase = frameworksBuildPhase else { return [] }
 
         // Compute the flattened list of build files after expanding package product targets.
@@ -337,7 +337,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         // Add libraries specifiers for each item in the phase.
         //
         // FIXME: Xcode uses the filtered references here, but our implementation isn't yet factored in a way we can do that.
-        return buildFiles.compactMap { buildFile -> LinkerSpec.LibrarySpecifier? in
+        var librarySpecifiers: [LinkerSpec.LibrarySpecifier] = []
+        for buildFile in buildFiles {
             // Resolve the buildable reference.
             let (_, settingsForRef, absolutePath, fileType): (Reference, Settings?, Path, FileTypeSpec)
 
@@ -347,10 +348,10 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     (_, settingsForRef, absolutePath, fileType) = try self.context.resolveBuildFileReference(buildFile)
                 } catch WorkspaceErrors.missingPackageProduct(let packageName) {
                     context.missingPackageProduct(packageName, buildFile, frameworksPhase)
-                    return nil
+                    continue
                 } catch {
                     context.error("Unable to resolve build file: \(buildFile) (\(error))")
-                    return nil
+                    continue
                 }
             case .namedReference(let name, let fileTypeIdentifier):
                 settingsForRef = nil
@@ -359,7 +360,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     fileType = type
                 } else {
                     context.error("Could not lookup file type '\(fileTypeIdentifier)'")
-                    return nil
+                    continue
                 }
             }
 
@@ -387,12 +388,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 producingTargetSettings = settings
             }
 
-            // For each target product reference, find the corresponding target and if it uses Swift, determine the path to the
-            // corresponding .swiftmodule file per arch, needed for debugging. Note that we can only determine these paths for
-            // targets which we are building from source, other kinds of product references will not provide the necessary
-            // information.
-            var swiftModulePaths: [String: Path] = [:]
-            var swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path] = [:]
+            // For each target product reference, find the corresponding target and if:
+            // - it uses Swift
+            // - it is built from source
+            // - it _does not_ build using explicit modules
+            //determine the path to the corresponding .swiftmodule file per arch, needed for debugging.
+            var isKnownToUseSwift = false
+            var swiftModulePathsToRegisterWithDebugger: [String: Path] = [:]
             switch buildFile.buildableItem {
             case .reference:
                 break
@@ -401,6 +403,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     let parameters = self.context.configuredTarget?.parameters ?? BuildParameters(configuration: nil)
                     let settings = self.context.settingsForProductReferenceTarget(referenceTarget, parameters: parameters)
                     if referenceTarget.usesSwift(context: self.context, settings: settings) {
+                        isKnownToUseSwift = true
                         var architectures = scope.evaluate(BuiltinMacros.ARCHS)
                         var processedArchitectures: Set<String> = []
                         while !architectures.isEmpty {
@@ -410,6 +413,12 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             }
                             processedArchitectures.insert(originalArch)
                             let scope = settings.globalScope.subscopeBindingArchAndTriple(arch: originalArch)
+
+                            if await self.context.swiftCompilerSpec.swiftExplicitModuleBuildEnabled(self.context, scope, self.context.globalProductPlan.delegate) {
+                                // When building with explicit modules, the driver/frontend will use -debug-module-path to record the information
+                                // necessary to find swiftmodules when debugging. Skip the redundant linker swiftmodule registration here.
+                                continue
+                            }
                             // Binding the architecture may change how we evaluate $(ARCHS). Ensure we process any new architectures.
                             for potentiallyNewArch in scope.evaluate(BuiltinMacros.ARCHS) {
                                 if !processedArchitectures.contains(potentiallyNewArch) {
@@ -433,27 +442,15 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                             }
                             let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
                             let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
-                            swiftModulePaths[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
-                            if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
-                                swiftModuleAdditionalLinkerArgResponseFilePaths[arch] = moduleFileDir.join("\(moduleName)-linker-args.resp")
-                            }
+                            swiftModulePathsToRegisterWithDebugger[arch] = moduleFileDir.join(moduleName + ".swiftmodule")
                         }
 
                         // Check if we can fill in information for missing architectures using a compatible architecture.
-                        for (arch, moduleFileDir) in swiftModulePaths {
+                        for (arch, moduleFileDir) in swiftModulePathsToRegisterWithDebugger {
                             if let archSpec = context.workspaceContext.core.specRegistry.getSpec(arch, domain: scope.evaluate(BuiltinMacros.PLATFORM_NAME)) as? ArchitectureSpec {
                                 for compatibilityArch in archSpec.compatibilityArchs {
-                                    if swiftModulePaths[compatibilityArch] == nil {
-                                        swiftModulePaths[compatibilityArch] = moduleFileDir
-                                    }
-                                }
-                            }
-                        }
-                        for (arch, moduleFileDir) in swiftModuleAdditionalLinkerArgResponseFilePaths {
-                            if let archSpec = context.workspaceContext.core.specRegistry.getSpec(arch, domain: scope.evaluate(BuiltinMacros.PLATFORM_NAME)) as? ArchitectureSpec {
-                                for compatibilityArch in archSpec.compatibilityArchs {
-                                    if swiftModuleAdditionalLinkerArgResponseFilePaths[compatibilityArch] == nil {
-                                        swiftModuleAdditionalLinkerArgResponseFilePaths[compatibilityArch] = moduleFileDir
+                                    if swiftModulePathsToRegisterWithDebugger[compatibilityArch] == nil {
+                                        swiftModulePathsToRegisterWithDebugger[compatibilityArch] = moduleFileDir
                                     }
                                 }
                             }
@@ -500,16 +497,16 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             }
 
             if fileType.conformsTo(context.lookupFileType(identifier: "archive.ar")!) {
-                return LinkerSpec.LibrarySpecifier(
+                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .static,
                     path: absolutePath,
                     mode: buildFile.shouldLinkWeakly ? .weak : .normal,
                     useSearchPaths: useSearchPaths,
-                    swiftModulePaths: swiftModulePaths,
-                    swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                    knownToUseSwift: isKnownToUseSwift,
+                    swiftModulePathsToRegisterWithDebugger: swiftModulePathsToRegisterWithDebugger,
                     prefix: fileType.prefix,
                     privacyFile: privacyFile
-                )
+                ))
             } else if fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.dylib")!) {
                 let adjustedAbsolutePath: Path
                 // On Windows, ensure import libraries (.lib) are used instead of DLLs.
@@ -518,27 +515,27 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 } else {
                     adjustedAbsolutePath = absolutePath
                 }
-                return LinkerSpec.LibrarySpecifier(
+                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .dynamic,
                     path: adjustedAbsolutePath,
                     mode: linkageModeForDylib(),
                     useSearchPaths: useSearchPaths,
-                    swiftModulePaths: [:],
-                    swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    knownToUseSwift: isKnownToUseSwift,
+                    swiftModulePathsToRegisterWithDebugger: [:],
                     prefix: fileType.prefix,
                     privacyFile: privacyFile
-                )
+                ))
             } else if fileType.conformsTo(context.lookupFileType(identifier: "sourcecode.text-based-dylib-definition")!) {
-                return LinkerSpec.LibrarySpecifier(
+                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .textBased,
                     path: absolutePath,
                     mode: buildFile.shouldLinkWeakly ? .weak : .normal,
                     useSearchPaths: useSearchPaths,
-                    swiftModulePaths: [:],
-                    swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    knownToUseSwift: isKnownToUseSwift,
+                    swiftModulePathsToRegisterWithDebugger: [:],
                     prefix: fileType.prefix,
                     privacyFile: privacyFile
-                )
+                ))
             } else if fileType.conformsTo(context.lookupFileType(identifier: "wrapper.framework")!) {
                 func kindFromSettings(_ settings: Settings) -> (kind: LinkerSpec.LibrarySpecifier.Kind, prefix: String?)? {
                     switch settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) {
@@ -578,50 +575,50 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     prefix = nil
                 }
 
-                return LinkerSpec.LibrarySpecifier(
+                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: kind,
                     path: path,
                     mode: linkageModeForDylib(),
                     useSearchPaths: useSearchPaths,
-                    swiftModulePaths: [:],
-                    swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    knownToUseSwift: isKnownToUseSwift,
+                    swiftModulePathsToRegisterWithDebugger: [:],
                     prefix: prefix,
                     topLevelItemPath: topLevelItemPath,
                     dsymPath: dsymPath,
                     privacyFile: privacyFile
-                )
+                ))
             } else if fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.objfile")!) {
-                return LinkerSpec.LibrarySpecifier(
+                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .object,
                     path: absolutePath,
                     mode: buildFile.shouldLinkWeakly ? .weak : .normal,
                     useSearchPaths: false,
-                    swiftModulePaths: swiftModulePaths,
-                    swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                    knownToUseSwift: isKnownToUseSwift,
+                    swiftModulePathsToRegisterWithDebugger: swiftModulePathsToRegisterWithDebugger,
                     privacyFile: privacyFile
-                )
+                ))
             } else if fileType.conformsTo(context.lookupFileType(identifier: "wrapper.xcframework")!) {
                 // The XCFramework needs to be inspected here to determine what type of linkage is actually going to be done. This is more work than I'd like to do here, but there isn't really an alternative.
 
                 guard let xcframeworkPath = (try? context.resolveBuildFileReference(buildFile))?.absolutePath else {
                     // Even if a suitable library cannot be found for the build flavor being asked for, the actual reference to the xcframework should always be found. This is an internal model error if this occurs.
                     assertionFailure("unable to get the xcframeworkPath")
-                    return nil
+                    continue
                 }
 
                 guard let xcframework = try? context.globalProductPlan.planRequest.buildRequestContext.getCachedXCFramework(at: xcframeworkPath) else {
                     // Let the XCFrameworkTaskProducer log an errors here as this should only occur when an XCFramework is referenced on disk but is not actually present.
-                    return nil
+                    continue
                 }
 
                 guard let library = xcframework.findLibrary(sdk: context.sdk, sdkVariant: context.sdkVariant) else {
                     // Let the XCFrameworkTaskProducer log an error here
-                    return nil
+                    continue
                 }
 
                 guard let target = context.configuredTarget, let outputFilePaths = context.globalProductPlan.xcframeworkContext.outputFiles(xcframeworkPath: xcframeworkPath, target: target) else {
                     // Let the XCFrameworkTaskProducer log an error here
-                    return nil
+                    continue
                 }
 
                 let outputPath = XCFramework.computeOutputDirectory(scope)
@@ -648,7 +645,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 case let .unknown(fileExtension):
                     // An error of type this type should have already been manifested.
                     assertionFailure("unknown xcframework type: \(fileExtension)")
-                    return nil
+                    continue
                 }
 
                 let mode: LinkerSpec.LibrarySpecifier.Mode = {
@@ -664,18 +661,18 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 }()
 
                 // NOTE: XCFrameworks are not currently being searched for the `PrivacyInfo.xcprivacy` files, instead, they searched by the inclusion of the item within the "Copy Phase".
-                return LinkerSpec.LibrarySpecifier(
+                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: libraryKind,
                     path: libraryTargetPath,
                     mode: mode,
                     useSearchPaths: useSearchPaths,
-                    swiftModulePaths: [:],
-                    swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    knownToUseSwift: isKnownToUseSwift,
+                    swiftModulePathsToRegisterWithDebugger: [:],
                     prefix: prefix,
                     explicitDependencies: outputFilePaths,
                     xcframeworkSourcePath: xcframeworkPath,
                     privacyFile: nil
-                )
+                ))
             } else if fileType.conformsTo(identifier: "wrapper.artifactbundle") {
                 let metadata: ArtifactBundleMetadata
                 do {
@@ -684,7 +681,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                    }
                 } catch {
                     context.error("failed to parse artifact bundle metadata for '\(absolutePath)': \(error.localizedDescription)")
-                    return nil
+                   continue
                 }
                 for (name, artifact) in metadata.artifacts {
                     switch artifact.type {
@@ -699,15 +696,15 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                 normalizedTriplesCompareDisregardingOSVersions($0, currentTripleString)
                             }) == true {
                                 foundMatch = true
-                                return LinkerSpec.LibrarySpecifier(
+                                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                                     kind: .static,
                                     path: absolutePath.join(variant.path),
                                     mode: .normal,
                                     useSearchPaths: false,
-                                    swiftModulePaths: [:],
-                                    swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                                    knownToUseSwift: isKnownToUseSwift,
+                                    swiftModulePathsToRegisterWithDebugger: [:],
                                     privacyFile: privacyFile
-                                )
+                                ))
                             }
                         }
                         if !foundMatch {
@@ -715,21 +712,22 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                         }
                     }
                 }
-                return nil
+                continue
             } else if fileType.conformsTo(identifier: "compiled.object-library") {
-                return LinkerSpec.LibrarySpecifier(
+                librarySpecifiers.append(LinkerSpec.LibrarySpecifier(
                     kind: .objectLibrary,
                     path: absolutePath,
                     mode: .normal,
                     useSearchPaths: false,
-                    swiftModulePaths: swiftModulePaths,
-                    swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
-                )
+                    knownToUseSwift: isKnownToUseSwift,
+                    swiftModulePathsToRegisterWithDebugger: swiftModulePathsToRegisterWithDebugger,
+                ))
             } else {
                 // FIXME: Error handling.
-                return nil
+                continue
             }
         }
+        return librarySpecifiers
     }
 
     /// Record the inputs to 'prepare-for-index' target node, that were not already recorded so far.
@@ -966,7 +964,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let previewsDylibInputs = previewsDylibForTestHost()
 
                 // Compute the libraries that should be linked.
-                let librariesToLink = computeLibraries(buildFilesContext, scope) + previewsDylibInputs
+                let librariesToLink = await computeLibraries(buildFilesContext, scope) + previewsDylibInputs
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
@@ -987,7 +985,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                 let additionalLinkerOrderingInputs = librariesToLink.flatMap { $0.explicitDependencies.map(context.createNode) }
 
                 // If there is at least one object file that was built using Swift, ensure the Swift tool is present in the used tools to allow linker spec to add swift specific linker arguments.
-                if objectsInFrameworksPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
+                if objectsInFrameworksPhase.contains(where: { $0.knownToUseSwift }), !usedTools.keys.contains(context.swiftCompilerSpec) {
                     usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "compiled.mach-o.objfile")!]
                 }
 
@@ -1078,8 +1076,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                                 path: outputPreviewDylib,
                                 mode: .normal,
                                 useSearchPaths: false,
-                                swiftModulePaths: [:],
-                                swiftModuleAdditionalLinkerArgResponseFilePaths: [:]
+                                knownToUseSwift: false,
+                                swiftModulePathsToRegisterWithDebugger: [:],
                             )
                             let libraries: [LinkerSpec.LibrarySpecifier]
                             let ldflags: [String]
@@ -2189,8 +2187,8 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
             path: fullPath,
             mode: .normal,
             useSearchPaths: false,
-            swiftModulePaths: [:],
-            swiftModuleAdditionalLinkerArgResponseFilePaths: [:]
+            knownToUseSwift: false,
+            swiftModulePathsToRegisterWithDebugger: [:],
         )]
     }
 

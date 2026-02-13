@@ -1530,10 +1530,10 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS), .requireClangFeatures(.depscanPrefixMap), .skipDeveloperDirectoryWithEqualSign)
     func prefixMapping() async throws {
         try await withTemporaryDirectory { tmpDirPath in
-            func buildTestWorkspace(moduleDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
+            func buildTestWorkspace(sourceDir: Path, moduleDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
                 let testWorkspace = TestWorkspace(
                     "Test",
-                    sourceRoot: tmpDirPath.join("Test"),
+                    sourceRoot: sourceDir,
                     projects: [
                         TestProject(
                             "aProject",
@@ -1551,7 +1551,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
                                     "CLANG_ENABLE_MODULES": "YES",
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
-                                    "HEADER_SEARCH_PATHS": "\(moduleDir.str)",
+                                    "HEADER_SEARCH_PATHS": "\(moduleDir.str) $DERIVED_FILE_DIR",
                                     "CLANG_ENABLE_PREFIX_MAPPING": "YES",
                                     "CLANG_OTHER_PREFIX_MAPPINGS": "\(moduleDir.str)=/^mod",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
@@ -1562,6 +1562,8 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "Library",
                                     type: .staticLibrary,
                                     buildPhases: [
+                                        TestShellScriptBuildPhase(name: "WriteFile", shellPath: "/bin/bash", originalObjectID: "WriteEmptyHeaderFile", contents: #"touch "${SCRIPT_OUTPUT_FILE_0}""#, inputs: [], outputs: ["$DERIVED_FILE_DIR/empty.h"]),
+
                                         TestSourcesBuildPhase(["file.c"]),
                                     ]),
                             ])])
@@ -1572,6 +1574,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                     stream <<<
                     """
                     #include "other.h"
+                    #include "empty.h"
                     void foo(void) {}
                     """
                 }
@@ -1613,7 +1616,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 }
             }
 
-            try await buildTestWorkspace(moduleDir: tmpDirPath.join("Mod1")) { results in
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test1"), moduleDir: tmpDirPath.join("Mod1")) { results in
                 let moduleTask: Task = try results.checkTask(.matchRuleType("PrecompileModule")) { $0 }
                 let tuTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                 results.checkCompileCacheMiss(moduleTask)
@@ -1623,7 +1626,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 checkTUCommandLine(task: tuTask, results: results)
             }
 
-            try await buildTestWorkspace(moduleDir: tmpDirPath.join("Mod2")) { results in
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test2"), moduleDir: tmpDirPath.join("Mod2")) { results in
                 let moduleTask: Task = try results.checkTask(.matchRuleType("PrecompileModule")) { $0 }
                 let tuTask: Task = try results.checkTask(.matchRuleType("CompileC")) { $0 }
                 // Module is in a different directory, but it's canonicalized.
@@ -1791,9 +1794,11 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS) { results in
                 results.checkTask(.matchRuleType("PhaseScriptExecution")) { task in
                     #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_KEEP_CAS_DIRECTORY", "YES") }))
+                    #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_LIMIT_SIZE", "0") }))
                 }
                 results.checkTask(.matchRuleType("RuleScriptExecution")) { task in
                     #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_KEEP_CAS_DIRECTORY", "YES") }))
+                    #expect(task.environment.bindings.contains(where: { $0 == ("COMPILATION_CACHE_LIMIT_SIZE", "0") }))
                 }
                 results.checkWarning(.prefix("Run script build phase 'Script' will be run during every build"))
             }
@@ -1857,8 +1862,15 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireCASValidation, .requireSDKs(.macOS), arguments: [(true, true), (false, true), (false, false)])
-    func validateCAS(usePlugin: Bool, enableCaching: Bool) async throws {
+    @Test(.requireCASValidation, .requireSDKs(.macOS), arguments: [
+        (true, true, false),   // plugin
+        (true, true, true),    // + post build
+        (false, true, false),  // builtin
+        (false, true, true),   // + post build
+        (false, false, false), // disabled
+        (false, false, true),  // + post build
+    ])
+    func validateCAS(usePlugin: Bool, enableCaching: Bool, includePostBuild: Bool) async throws {
         try await withTemporaryDirectory { tmpDirPath in
             let casPath = tmpDirPath.join("CompilationCache")
             var buildSettings: [String: String] = [
@@ -1867,6 +1879,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                 "CLANG_ENABLE_MODULES": "NO",
                 "COMPILATION_CACHE_CAS_PATH": casPath.str,
                 "DSTROOT": tmpDirPath.join("dstroot").str,
+                "COMPILATION_CACHE_VALIDATE_POST_BUILD": includePostBuild ? "YES" : "NO",
             ]
             if usePlugin {
                 buildSettings["COMPILATION_CACHE_ENABLE_PLUGIN"] = "YES"
@@ -1905,8 +1918,9 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             let specificCAS = casPath.join(usePlugin ? "plugin" : "builtin")
             let ruleInfo = "ValidateCAS \(specificCAS.str) \(try await ConditionTraitContext.shared.llvmCasToolPath.str)"
+            let ruleInfoPostBuild = "ValidateCASPostBuild \(specificCAS.str) \(try await ConditionTraitContext.shared.llvmCasToolPath.str)"
 
-            let checkBuild = { (expectedOutput: ByteString?) in
+            let checkBuild = { (expectedOutput: ByteString?, expectedPostBuildOutput: ByteString?) in
                 try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
 
                     if enableCaching {
@@ -1915,20 +1929,32 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                             results.check(contains: .activityEmittedData(ruleInfo: ruleInfo, expectedOutput.bytes))
                         }
                         results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: .succeeded))
+
+                        if includePostBuild {
+                            results.check(contains: .activityStarted(ruleInfo: ruleInfoPostBuild))
+                            if let expectedPostBuildOutput {
+                                results.check(contains: .activityEmittedData(ruleInfo: ruleInfoPostBuild, expectedPostBuildOutput.bytes))
+                            }
+                            results.check(contains: .activityEnded(ruleInfo: ruleInfoPostBuild, status: .succeeded))
+                        } else {
+                            results.check(notContains: .activityStarted(ruleInfo: ruleInfoPostBuild))
+                        }
                     } else {
                         results.check(notContains: .activityStarted(ruleInfo: ruleInfo))
+                        results.check(notContains: .activityStarted(ruleInfo: ruleInfoPostBuild))
                     }
                     results.checkNoDiagnostics()
                 }
             }
 
             // Ignore output for plugin CAS since it may not yet support validation.
-            try await checkBuild(usePlugin ? nil : "validated successfully\n")
+            let validatedSuccessfully = usePlugin ? nil : ByteString("validated successfully\n")
+            try await checkBuild(validatedSuccessfully, validatedSuccessfully)
             // The second build should not require validation.
-            try await checkBuild("validation skipped\n")
+            try await checkBuild("validation skipped\n", validatedSuccessfully)
             // Including clean builds.
             try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
-            try await checkBuild("validation skipped\n")
+            try await checkBuild("validation skipped\n", validatedSuccessfully)
         }
     }
 
@@ -2048,6 +2074,18 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                 buildPhases: [
                                     TestSourcesBuildPhase(["file.c"]),
                                 ]),
+                            TestStandardTarget(
+                                "Library3",
+                                type: .staticLibrary,
+                                buildConfigurations: [TestBuildConfiguration(
+                                    "Debug",
+                                    buildSettings: [
+                                        "VALIDATE_CAS_EXEC": llvmCasExec2.str,
+                                        "COMPILATION_CACHE_VALIDATE_POST_BUILD": "YES",
+                                    ])],
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                ]),
                         ])])
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
@@ -2065,11 +2103,98 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: BuildRequest(parameters: parameters, buildTargets: targets, continueBuildingAfterErrors: false, useParallelTargets: true, useImplicitDependencies: true, useDryRun: false), persistent: true) { results in
                 for ruleInfo in ["ValidateCAS \(specificCAS.str) \(llvmCasExec.str)", "ValidateCAS \(specificCAS.str) \(llvmCasExec2.str)"] {
-                    results.check(contains: .activityStarted(ruleInfo: ruleInfo))
-                    results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: .succeeded))
+                    results.check(contains: .activityStarted(ruleInfo: ruleInfo), count: 1)
+                    results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: .succeeded), count: 1)
                 }
-                results.checkNoDiagnostics()
+                // Only second CAS has post-build validation enabled.
+                let postBuildRuleInfo1 = "ValidateCASPostBuild \(specificCAS.str) \(llvmCasExec.str)"
+                let postBuildRuleInfo2 = "ValidateCASPostBuild \(specificCAS.str) \(llvmCasExec2.str)"
+                results.check(notContains: .activityStarted(ruleInfo: postBuildRuleInfo1))
+                results.check(contains: .activityStarted(ruleInfo: postBuildRuleInfo2), count: 1)
+                results.check(contains: .activityEnded(ruleInfo: postBuildRuleInfo2, status: .succeeded), count: 1)
+
             }
+        }
+    }
+
+    @Test(.requireCASValidation, .requireSDKs(.macOS))
+    func validateCASPostBuildError() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            let casPath = tmpDirPath.join("CompilationCache")
+            let buildSettings: [String: String] = [
+                "PRODUCT_NAME": "$(TARGET_NAME)",
+                "CLANG_ENABLE_COMPILE_CACHE": "YES",
+                "CLANG_ENABLE_MODULES": "NO",
+                "COMPILATION_CACHE_CAS_PATH": casPath.str,
+                "COMPILATION_CACHE_VALIDATE_POST_BUILD": "YES",
+            ]
+            let testWorkspace = TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            children: [
+                                TestFile("file.c"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: buildSettings)],
+                        targets: [
+                            TestStandardTarget(
+                                "Library",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["file.c"]),
+                                    TestShellScriptBuildPhase(name: "Script", originalObjectID: "X", contents: """
+                                                              if [ -f \(tmpDirPath.join("test_file").str) ]; then
+                                                                rm \(casPath.join("builtin").join("v1.1").str)/v*.data
+                                                              else
+                                                                touch \(tmpDirPath.join("test_file").str)
+                                                              fi
+                                                              """,
+                                                              alwaysOutOfDate: true),
+                                ]),
+                        ])])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.c")) { stream in
+                stream <<<
+                """
+                #include <stdio.h>
+                int something = 1;
+                """
+            }
+
+            let specificCAS = casPath.join("builtin")
+            let ruleInfoPre = "ValidateCAS \(specificCAS.str) \(try await ConditionTraitContext.shared.llvmCasToolPath.str)"
+            let ruleInfo = "ValidateCASPostBuild \(specificCAS.str) \(try await ConditionTraitContext.shared.llvmCasToolPath.str)"
+
+            let checkBuild = { (succeeded: Bool, expectedOutput: ByteString?) in
+                try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
+                    // The pre-build check should succeed both times.
+                    results.check(contains: .activityStarted(ruleInfo: ruleInfoPre))
+                    results.check(contains: .activityEnded(ruleInfo: ruleInfoPre, status: .succeeded))
+
+                    results.check(contains: .activityStarted(ruleInfo: ruleInfo))
+                    if let expectedOutput {
+                        #expect(results.events.contains(where: { event in
+                            if case .activityEmittedData(ruleInfo, let data) = event {
+                                return ByteString(data).contains(expectedOutput)
+                            }
+                            return false
+                        }), "missing activity output \(expectedOutput.stringValue!)")
+                    }
+                    results.check(contains: .activityEnded(ruleInfo: ruleInfo, status: succeeded ? .succeeded : .failed))
+                    results.checkNoDiagnostics()
+                }
+            }
+
+            // First build does not corrupt the CAS, the second one does in the script phase.
+            try await checkBuild(true, "validated successfully\n")
+            try await checkBuild(false, "llvm-cas: validate: bad record")
         }
     }
 }

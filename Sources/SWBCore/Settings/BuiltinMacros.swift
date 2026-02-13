@@ -559,6 +559,7 @@ public final class BuiltinMacros {
     public static let COMPILATION_CACHE_ENABLE_PLUGIN = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_PLUGIN")
     public static let COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS")
     public static let COMPILATION_CACHE_KEEP_CAS_DIRECTORY = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_KEEP_CAS_DIRECTORY")
+    public static let COMPILATION_CACHE_VALIDATE_POST_BUILD = BuiltinMacros.declareBooleanMacro("COMPILATION_CACHE_VALIDATE_POST_BUILD")
     public static let KEEP_GLOBAL_MODULE_CACHE_DIRECTORY = BuiltinMacros.declareBooleanMacro("SCANNING_PCM_KEEP_CACHE_DIRECTORY")
     public static let COMPILATION_CACHE_CAS_PATH = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_CAS_PATH")
     public static let COMPILATION_CACHE_LIMIT_PERCENT = BuiltinMacros.declareStringMacro("COMPILATION_CACHE_LIMIT_PERCENT")
@@ -1046,7 +1047,6 @@ public final class BuiltinMacros {
     public static let SWIFT_ENABLE_OPAQUE_TYPE_ERASURE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_OPAQUE_TYPE_ERASURE")
     public static let SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS")
     public static let SWIFT_EMIT_CONST_VALUE_PROTOCOLS = BuiltinMacros.declareStringListMacro("SWIFT_EMIT_CONST_VALUE_PROTOCOLS")
-    public static let SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS = BuiltinMacros.declareBooleanMacro("SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS")
     public static let SWIFT_USE_INTEGRATED_DRIVER = BuiltinMacros.declareBooleanMacro("SWIFT_USE_INTEGRATED_DRIVER")
     public static let SWIFT_EAGER_MODULE_EMISSION_IN_WMO = BuiltinMacros.declareBooleanMacro("SWIFT_EAGER_MODULE_EMISSION_IN_WMO")
     public static let SWIFT_ENABLE_EXPLICIT_MODULES = BuiltinMacros.declareEnumMacro("SWIFT_ENABLE_EXPLICIT_MODULES") as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
@@ -1591,6 +1591,7 @@ public final class BuiltinMacros {
         COMPILATION_CACHE_ENABLE_PLUGIN,
         COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS,
         COMPILATION_CACHE_KEEP_CAS_DIRECTORY,
+        COMPILATION_CACHE_VALIDATE_POST_BUILD,
         KEEP_GLOBAL_MODULE_CACHE_DIRECTORY,
         COMPILATION_CACHE_LIMIT_PERCENT,
         COMPILATION_CACHE_LIMIT_SIZE,
@@ -2283,7 +2284,6 @@ public final class BuiltinMacros {
         SWIFT_ENABLE_OPAQUE_TYPE_ERASURE,
         SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS,
         SWIFT_EMIT_CONST_VALUE_PROTOCOLS,
-        SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS,
         SWIFT_ENABLE_TESTABILITY,
         SWIFT_EXEC,
         SWIFT_FORCE_DYNAMIC_LINK_STDLIB,
