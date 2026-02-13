@@ -3513,7 +3513,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         }
     }
 
-    @Test
+    @Test(.requireSDKs(.host))
     func swiftSDKRunDestination() async throws {
         try await withTemporaryDirectory { tmpDir in
             let clangCompilerPath = try await self.clangCompilerPath
