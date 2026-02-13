@@ -82,7 +82,11 @@ struct DeveloperCommandLineToolsPlatformInfoExtension: PlatformInfoExtension {
                         "DEFAULT_COMPILER": .plString("com.apple.compilers.llvm.clang.1_0"),
                         "DEPLOYMENT_TARGET_SETTING_NAME": .plString("MACOSX_DEPLOYMENT_TARGET"),
                         "GCC_WARN_64_TO_32_BIT_CONVERSION[arch=*64]": .plString("YES"),
-                        "STRIP_PNG_TEXT": .plString("NO")
+                        "STRIP_PNG_TEXT": .plString("NO"),
+
+                        // NOT currently in the platform...
+                        "TEST_FRAMEWORK_SEARCH_PATHS": .plString("$(inherited) $(DEVELOPER_DIR)/Library/Developer/Frameworks"),
+                        "NO_XCTEST": .plString("YES"),
                     ]),
                     "AdditionalInfo": .plDict([
                         "BuildMachineOSBuild": .plString("$(MAC_OS_X_PRODUCT_BUILD_VERSION)"),
