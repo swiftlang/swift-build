@@ -143,7 +143,7 @@ fileprivate struct ObjectLibraryTaskConstructionTests: CoreBasedTests {
         let testWorkspace = TestWorkspace(
             "Test",
             projects: [
-                TestProject(
+                TestPackageProject(
                     "aProject",
                     groupTree: TestGroup(
                         "Sources",
