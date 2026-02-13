@@ -223,8 +223,60 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
     }
 
     @Test(.requireSDKs(.host))
-    func dynamicLibraryWithNoSourcesButStaticLibrariesInFrameworksPhase() async throws {
+    func dynamicLibraryWithNoSourcesButStaticLibrariesInFrameworksPhase_Xcode() async throws {
         let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("source.c"),
+                    TestFile("libStaticLib.a"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "LIBTOOL": libtoolPath.str,
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "DynamicLib",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([]),
+                        TestFrameworksBuildPhase(["libStaticLib.a"]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
+                TestStandardTarget(
+                    "StaticLib",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["source.c"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host) { results in
+            results.checkWarning("Target 'DynamicLib' contains a non-empty linked libraries phase, but it contains no object files, and no sources are being compiled. For compatibility, no binary will be produced. Remove unused entries in the linked libraries phase to suppress this warning. (in target 'DynamicLib' from project 'aProject')")
+            results.checkNoDiagnostics()
+            results.checkTarget("DynamicLib") { target in
+                results.checkNoTask(.matchTarget(target), .matchRuleType("Ld"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func dynamicLibraryWithNoSourcesButStaticLibrariesInFrameworksPhase_Package() async throws {
+        let testProject = try await TestPackageProject(
             "aProject",
             groupTree: TestGroup(
                 "SomeFiles",
@@ -272,5 +324,4 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             }
         }
     }
-
 }

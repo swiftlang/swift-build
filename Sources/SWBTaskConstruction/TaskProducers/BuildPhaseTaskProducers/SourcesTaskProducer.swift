@@ -1007,7 +1007,13 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
                     createLinkerTask = false
                 // If we're not merging libraries and this isn't installAPI, link if we have inputs.
                 } else if !linkerInputNodes.isEmpty || !staticallyLinkedItemsInFrameworkPhase.isEmpty {
-                    createLinkerTask = true
+                    if linkerInputNodes.isEmpty && objectsInFrameworksPhase.isEmpty && context.project?.isPackage != true {
+                        // Compatibility hack for existing Xcode projects
+                        context.warning("Target '\(context.configuredTarget?.target.name ?? "<unknown>")' contains a non-empty linked libraries phase, but it contains no object files, and no sources are being compiled. For compatibility, no binary will be produced. Remove unused entries in the linked libraries phase to suppress this warning.")
+                        createLinkerTask = false
+                    } else {
+                        createLinkerTask = true
+                    }
                 } else {
                     createLinkerTask = false
                 }
