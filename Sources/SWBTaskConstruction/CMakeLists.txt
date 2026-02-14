@@ -51,7 +51,7 @@ add_library(SWBTaskConstruction
   TaskProducers/StandardTaskProducer.swift
   TaskProducers/TaskProducer.swift
   TaskProducers/TaskProducerExtensionPoint.swift
-  TaskProducers/WorkspaceTaskProducers/CASConfigFileTaskProducer.swift
+  TaskProducers/WorkspaceTaskProducers/CompilationCachingConfigFileTaskProducer.swift
   TaskProducers/WorkspaceTaskProducers/BuildDependencyInfoTaskProducer.swift
   TaskProducers/WorkspaceTaskProducers/CreateBuildDirectoryTaskProducer.swift
   TaskProducers/WorkspaceTaskProducers/HeadermapVFSTaskProducer.swift
