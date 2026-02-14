@@ -337,4 +337,49 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
             results.checkTask(.matchRule(["Copy", "/tmp/Test/aProject/build/Debug/ProductDefinition.plist", "/tmp/Test/aProject/prod.plist"])) { _ in }
         }
     }
+
+    @Test(.requireSDKs(.windows))
+    func windowsStripSymbols() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = try await TestProject(
+                "aProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("SourceFile.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ONLY_ACTIVE_ARCH": "YES",
+                        "DEPLOYMENT_POSTPROCESSING": "YES",
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_EXEC": swiftCompilerPath.str
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "Library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                "SourceFile.swift",
+                            ])
+                        ]
+                    )]
+            )
+
+            let fs = PseudoFS()
+
+            let core = try await getCore()
+            let tester = try TaskConstructionTester(core, testProject)
+
+            await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host, fs: fs) { results in
+                results.checkNoTask(.matchRuleType("Strip"))
+            }
+        }
+    }
 }
