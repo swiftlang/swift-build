@@ -32,24 +32,14 @@ fileprivate struct ServiceConsoleTests {
     @Test
     func emptyInput() async throws {
         // Test against a non-pty.
-        let task = SWBUtil.Process()
-        task.executableURL = try CLIConnection.swiftbuildToolURL
-        task.environment = .init(CLIConnection.environment)
+        let result = try await Process.getOutput(url: CLIConnection.swiftbuildToolURL, arguments: [], environment: CLIConnection.environment)
+        let output = String(decoding: result.stdout, as: UTF8.self)
 
-        task.standardInput = FileHandle.nullDevice
-        try await withExtendedLifetime(Pipe()) { outputPipe in
-            let standardOutput = task._makeStream(for: \.standardOutputPipe, using: outputPipe)
-            let promise: Promise<Processes.ExitStatus, any Error> = try task.launch()
+        // Verify there were no errors.
+        #expect(output == "swbuild> \(String.newline)")
 
-            let data = try await standardOutput.reduce(into: [], { $0.append(contentsOf: $1) })
-            let output = String(decoding: data, as: UTF8.self)
-
-            // Verify there were no errors.
-            #expect(output == "swbuild> \(String.newline)")
-
-            // Assert the tool exited successfully.
-            await #expect(try promise.value == .exit(0))
-        }
+        // Assert the tool exited successfully.
+        #expect(try result.exitStatus == .exit(0))
     }
 
     @Test
@@ -80,7 +70,7 @@ fileprivate struct ServiceConsoleTests {
                         servicePID = try #require(pid_t(match.output.pid))
                     }
                 }
-                #expect(servicePID != -1, "unable to find service PID")
+                try #require(servicePID != -1, "unable to find service PID")
                 return servicePID
             }()
             #expect(servicePID != cli.processIdentifier, "service PID (\(servicePID)) must not match the CLI PID (\(cli.processIdentifier)) when running in out-of-process mode")
