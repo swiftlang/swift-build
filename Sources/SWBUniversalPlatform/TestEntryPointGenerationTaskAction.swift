@@ -57,8 +57,10 @@ class TestEntryPointGenerationTaskAction: TaskAction {
 
             \(testObservationFragment)
 
+            #if canImport(XCTest)
             public import XCTest
             \(discoveredTestsFragment(tests: tests, options: options))
+            #endif
 
             @main
             @available(macOS 10.15, iOS 11, watchOS 4, tvOS 11, visionOS 1, *)
@@ -188,6 +190,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
         """
         #if !os(Windows) // Test observation is not supported on Windows
         public import Foundation
+        #if canImport(XCTest)
         public import XCTest
 
         public final class __SwiftPMXCTestObserver: NSObject {
@@ -287,6 +290,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                 write(record: __SwiftPMTestEventRecord(bundleEvent: record))
             }
         }
+        #endif
 
         // FIXME: Copied from `Lock.swift` in TSCBasic, would be nice if we had a better way
 
@@ -572,6 +576,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
 
+        #if canImport(XCTest)
         public import XCTest
 
         #if canImport(Darwin) // XCTAttachment is unavailable in swift-corelibs-xctest.
@@ -585,6 +590,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
         #endif
+        #endif
 
         extension __SwiftPMTestBundle {
             init(_ testBundle: Bundle) {
@@ -595,11 +601,13 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
 
+        #if canImport(XCTest)
         extension __SwiftPMTestCase {
             init(_ testCase: XCTestCase) {
                 self.init(name: testCase.name)
             }
         }
+        #endif
 
         extension __SwiftPMTestErrorInfo {
             init(_ error: any Swift.Error) {
@@ -607,6 +615,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
             }
         }
 
+        #if canImport(XCTest)
         #if canImport(Darwin) // XCTIssue is unavailable in swift-corelibs-xctest.
         extension __SwiftPMTestIssue {
             init(_ issue: XCTIssue) {
@@ -681,6 +690,7 @@ class TestEntryPointGenerationTaskAction: TaskAction {
                 self.init(name: testSuite.name)
             }
         }
+        #endif
         #endif
         """
 }
