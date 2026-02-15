@@ -287,8 +287,6 @@ public final class MacroEvaluationScope: Serializable, Sendable {
                 let normalizedPath = Path(path).normalize().str
                 if seen.insert(normalizedPath).inserted {
                     result.append(normalizedPath)
-                } else {
-                    print("DUPE")
                 }
             }
             return result
