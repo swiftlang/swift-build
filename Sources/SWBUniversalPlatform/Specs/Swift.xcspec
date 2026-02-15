@@ -449,7 +449,7 @@
             },
             {
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathList;
+                Type = PathOrderedSet;
                 "FlattenRecursiveSearchPathsInValue" = Yes;
             },
             {
@@ -1509,7 +1509,7 @@
           },
           {
               Name = FRAMEWORK_SEARCH_PATHS;
-              Type = PathList;
+              Type = PathOrderedSet;
               DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
               FlattenRecursiveSearchPathsInValue = YES;
               CommandLineFlag = "-F";
@@ -1589,7 +1589,7 @@
           },
           {
               Name = FRAMEWORK_SEARCH_PATHS;
-              Type = PathList;
+              Type = PathOrderedSet;
               DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
               FlattenRecursiveSearchPathsInValue = YES;
               CommandLineFlag = "-F";
