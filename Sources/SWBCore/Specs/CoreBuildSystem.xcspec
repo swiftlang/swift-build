@@ -123,7 +123,7 @@
             },
             {
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathList;
+                Type = PathOrderedSet;
                 DefaultValue = "";
                 ConditionFlavors = (
                     arch,
@@ -1152,7 +1152,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleIdenti
             },
             {
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathList;
+                Type = PathOrderedSet;
                 Category = "Search Paths";
                 ConditionFlavors = (
                     arch,

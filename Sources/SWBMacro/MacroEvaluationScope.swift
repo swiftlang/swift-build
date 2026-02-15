@@ -260,6 +260,47 @@ public final class MacroEvaluationScope: Serializable, Sendable {
         return compute()
     }
 
+    /// Evaluate the given string macro and return the result.
+    ///
+    /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
+    /// - Parameter default: If provided, this value is returned if the macro evaluates to an empty string.
+    public func evaluate(_ macro: PathOrderedSetMacroDeclaration, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil, default: String = "") -> [String] {
+        MacroEvaluationScope.evaluations.increment()
+
+        func compute() -> [String] {
+            MacroEvaluationScope.evaluationsComputed.increment()
+
+            // Look up the first value, if any, that's associated with the macro.
+            guard let value = table.lookupMacro(macro, overrideLookup: lookup)?.firstMatchingCondition(conditionParameterValues) else {
+                // No value, so we return an empty array in accordance with historical semantics.
+                return []
+            }
+            // Otherwise we create an evaluation context and return the result of evaluating the expression as its native type (string or string list) in that context.
+            let context = MacroEvaluationContext(scope: self, macro: macro, value: value, lookup: lookup)
+            let resultBuilder = MacroEvaluationResultBuilder()
+            value.expression.evaluate(context: context, resultBuilder: resultBuilder)
+            
+            // Normalize paths and remove duplicates
+            var seen = Set<String>()
+            var result: [String] = []
+            for path in resultBuilder.buildStringList() {
+                let normalizedPath = Path(path).normalize().str
+                if seen.insert(normalizedPath).inserted {
+                    result.append(normalizedPath)
+                }
+            }
+            return result
+        }
+
+        if lookup == nil {
+            // FIXME: It would be nice to have a more efficient cache here that used CAS to be more efficient than the current spinlock embedded in this object.
+            return stringListCache.getOrInsert(macro) {
+                return compute()
+            }
+        }
+        return compute()
+    }
+
     // MARK: Serialization
 
     public func serialize<T: Serializer>(to serializer: T) {

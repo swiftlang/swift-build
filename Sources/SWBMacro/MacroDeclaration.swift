@@ -46,6 +46,11 @@ public class MacroDeclaration: Hashable, CustomStringConvertible, Encodable, @un
     public func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         preconditionFailure("this method is a subclass responsibility")
     }
+
+    /// Evaluates the macro in the given scope.
+    public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        preconditionFailure("this method is a subclass responsibility")
+    }
 }
 
 /// Concrete subclass of `MacroDeclaration` for boolean macro declarations.
@@ -56,6 +61,11 @@ public final class BooleanMacroDeclaration: MacroDeclaration, @unchecked Sendabl
     /// Returns the evaluated value of the macro in the given scope, as a boolean.
     override public func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         return .plBool(scope.evaluate(self))
+    }
+
+    /// Evaluates the boolean macro in the given scope.
+    override public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        return scope.evaluate(self, lookup: lookup)
     }
 }
 
@@ -72,6 +82,11 @@ public final class EnumMacroDeclaration<T: EnumerationMacroType>: AnyEnumMacroDe
     override public func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         return .plString(scope.evaluateAsString(self))
     }
+
+    /// Evaluates the enum macro in the given scope.
+    override public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        return scope.evaluate(self, lookup: lookup)
+    }
 }
 
 /// Concrete subclass of `MacroDeclaration` for string macro declarations.
@@ -83,6 +98,11 @@ public final class StringMacroDeclaration: MacroDeclaration, @unchecked Sendable
     public override func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         return .plString(scope.evaluate(self))
     }
+
+    /// Evaluates the string macro in the given scope.
+    override public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        return scope.evaluate(self, lookup: lookup)
+    }
 }
 
 /// Concrete subclass of `MacroDeclaration` for string list macro declarations.
@@ -93,6 +113,11 @@ public final class StringListMacroDeclaration: MacroDeclaration, @unchecked Send
     /// Returns the evaluated value of the macro in the given scope, as an array of strings.
     override public func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         return .plArray(scope.evaluate(self).map { .plString($0) })
+    }
+
+    /// Evaluates the string list macro in the given scope.
+    override public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        return scope.evaluate(self, lookup: lookup)
     }
 }
 
@@ -115,6 +140,11 @@ public final class PathMacroDeclaration: MacroDeclaration, @unchecked Sendable {
     public override func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         return .plString(scope.evaluate(self).str)
     }
+
+    /// Evaluates the path macro in the given scope.
+    override public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        return scope.evaluate(self, lookup: lookup)
+    }
 }
 
 public final class PathListMacroDeclaration: MacroDeclaration, @unchecked Sendable {
@@ -125,4 +155,25 @@ public final class PathListMacroDeclaration: MacroDeclaration, @unchecked Sendab
     public override func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         return .plArray(scope.evaluate(self).map { .plString($0) })
     }
+
+    /// Evaluates the path list macro in the given scope.
+    override public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        return scope.evaluate(self, lookup: lookup)
+    }
 }
+
+public final class PathOrderedSetMacroDeclaration: MacroDeclaration, @unchecked Sendable {
+    /// Returns the `.pathOrderedSet` type.
+    override public var type: MacroType { return .pathOrderedSet }
+
+    /// Returns the evaluated value of the macro in the given scope, as an array of paths with duplicates removed while preserving order.
+    public override func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
+        return .plArray(scope.evaluate(self).map { .plString($0) })
+    }
+
+    /// Evaluates the path ordered set macro in the given scope.
+    override public func evaluate(_ scope: MacroEvaluationScope, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> Any {
+        return scope.evaluate(self, lookup: lookup)
+    }
+}
+
