@@ -61,17 +61,48 @@ final public class SwiftDriverTaskAction: TaskAction, BuildValueValidatingTaskAc
             }
 
             let commandLine = task.commandLineAsStrings.split(separator: "--", maxSplits: 1, omittingEmptySubsequences: false)[1]
-            let success = dependencyGraph.planBuild(key: driverPayload.uniqueID,
-                                                    outputDelegate: outputDelegate,
-                                                    compilerLocation: driverPayload.compilerLocation,
-                                                    target: target,
-                                                    args: Array(commandLine),
-                                                    workingDirectory: task.workingDirectory,
-                                                    tempDirPath: driverPayload.tempDirPath,
-                                                    explicitModulesTempDirPath: driverPayload.explicitModulesTempDirPath,
-                                                    environment: environment,
-                                                    eagerCompilationEnabled: driverPayload.eagerCompilationEnabled,
-                                                    casOptions: driverPayload.casOptions)
+            let (success, planBuildDiagnostics) = dependencyGraph.planBuild(key: driverPayload.uniqueID,
+                                                                            compilerLocation: driverPayload.compilerLocation,
+                                                                            target: target,
+                                                                            args: Array(commandLine),
+                                                                            workingDirectory: task.workingDirectory,
+                                                                            tempDirPath: driverPayload.tempDirPath,
+                                                                            explicitModulesTempDirPath: driverPayload.explicitModulesTempDirPath,
+                                                                            environment: environment,
+                                                                            eagerCompilationEnabled: driverPayload.eagerCompilationEnabled,
+                                                                            casOptions: driverPayload.casOptions)
+
+            // Read and emit any serialized diagnostics reported by the scanner. Then report any diagnostics from planBuild
+            // which were not present in the serialized diagnostics. We match on the message and location only, because
+            // the diagnostics returned by the API are lower-fidelity compared to those in the serialized diagnostics file.
+            let serializedDiagnostics: [Diagnostic]
+            if let scannerDiagnosticsPath = driverPayload.scannerDiagnosticsOutputPath {
+                serializedDiagnostics = dynamicExecutionDelegate.operationContext.readSerializedDiagnostics(
+                    at: scannerDiagnosticsPath,
+                    workingDirectory: task.workingDirectory,
+                    appendToOutputStream: true,
+                    fs: executionDelegate.fs
+                )
+            } else {
+                serializedDiagnostics = []
+            }
+            struct SeenDiagnostic: Hashable {
+                var message: String
+                var location: Diagnostic.Location
+            }
+            var seenDiagnostics: Set<SeenDiagnostic> = []
+            for serializedDiagnostic in serializedDiagnostics {
+                outputDelegate.emit(serializedDiagnostic)
+                seenDiagnostics.insert(.init(message: serializedDiagnostic.data.description, location: serializedDiagnostic.location))
+            }
+            for diagnostic in planBuildDiagnostics {
+                // Diagnostics returned by planBuild may have rendered fix-its as part of the message, so only compare the first line.
+                if seenDiagnostics.contains(.init(message: diagnostic.data.description.split("\n").0, location: diagnostic.location)) {
+                    continue
+                } else {
+                    outputDelegate.emit(diagnostic)
+                }
+            }
 
             guard success else { return .failed }
         }
