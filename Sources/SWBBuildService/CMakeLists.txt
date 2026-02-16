@@ -21,7 +21,6 @@ add_library(SWBBuildService
   Messages.swift
   PlanningOperation.swift
   PreviewInfo.swift
-  ProjectDescriptor.swift
   Session.swift
   Tools.swift)
 set_target_properties(SWBBuildService PROPERTIES
