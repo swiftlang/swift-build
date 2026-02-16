@@ -1111,7 +1111,7 @@ private extension PreviewInfoOutput {
     }
 }
 
-private final class ProjectDescriptorOperation: InfoOperation, ProjectDescriptorDelegate {
+private final class ProjectDescriptorOperation: InfoOperation {
     let clientDelegate: any ClientDelegate
 
     package init(clientDelegate: any ClientDelegate, workspace: SWBCore.Workspace) {
