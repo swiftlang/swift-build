@@ -425,14 +425,17 @@ class Executor: DriverExecutor {
         try job.verifyInputsNotModified(since: recordedInputModificationDates, fileSystem: fileSystem)
 
         if job.requiresInPlaceExecution {
-            for (envVar, value) in job.extraEnvironment {
-                try ProcessEnv.setVar(envVar, value: value)
+            for (envVar, value) in job.extraEnvironmentBlock {
+                try ProcessEnv.setVar(envVar.value, value: value)
             }
 
             try exec(path: arguments[0], args: arguments)
         } else {
-            var childEnv = env
-            childEnv.merge(job.extraEnvironment, uniquingKeysWith: { (_, new) in new })
+            var childEnv = ProcessEnvironmentBlock()
+            for (key, value) in env {
+                childEnv[ProcessEnvironmentKey(key)] = value
+            }
+            childEnv.merge(job.extraEnvironmentBlock, uniquingKeysWith: { (_, new) in new })
 
             let process = try Process.launchProcess(arguments: arguments, env: childEnv)
             return try process.waitUntilExit()
@@ -571,21 +574,26 @@ public final class LibSwiftDriver {
         self.explicitModulesResolver = try ArgsResolver(fileSystem: fileSystem, temporaryDirectory: VirtualPath(path: explicitModulesTempDirPath.str))
         self.executor = Executor(resolver: resolver, explicitModulesResolver: explicitModulesResolver, explicitDependencyGraph: graph, workingDirectory: workingDirectory, fileSystem: fileSystem, env: environment, eagerCompilationEnabled: eagerCompilationEnabled)
         self.diagnosticsEngine = diagnosticsEngine
-        let env: [String: String]
+        var env = ProcessEnvironmentBlock()
         let compilerExecutableDir: TSCBasic.AbsolutePath?
         switch compilerLocation {
         case .path(let path):
-            env = environment
+            for (key, value) in environment {
+                env[ProcessEnvironmentKey(key)] = value
+            }
             compilerExecutableDir = try TSCBasic.AbsolutePath(validating: path.dirname.str)
         case .library(libSwiftScanPath: let path):
             // Remove lib/swift/host/lib_InternalSwiftScan.dylib and add bin/swift-frontend to get a fake path to the compiler frontend.
             let fakeFrontendPath = path.dirname.dirname.dirname.dirname.join("bin/swift-frontend")
-            env = environment.merging(["SWIFT_DRIVER_SWIFT_FRONTEND_EXEC": fakeFrontendPath.str, "SWIFT_DRIVER_SWIFTSCAN_LIB": path.str], uniquingKeysWith: { first, second in first })
+            for (key, value) in environment {
+                env[ProcessEnvironmentKey(key)] = value
+            }
+            env.merge(["SWIFT_DRIVER_SWIFT_FRONTEND_EXEC": fakeFrontendPath.str, "SWIFT_DRIVER_SWIFTSCAN_LIB": path.str], uniquingKeysWith: { first, second in first })
             compilerExecutableDir = try TSCBasic.AbsolutePath(validating: fakeFrontendPath.dirname.str)
         }
         let key = SwiftModuleDependencyGraph.OracleRegistryKey(compilerLocation: compilerLocation, casOpts: casOptions)
         let oracle = graph?.oracleRegistry.getOrInsert(key, { InterModuleDependencyOracle() })
-        self.driver = try Driver(args: commandLine, env: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
+        self.driver = try Driver(args: commandLine, envBlock: env, diagnosticsOutput: .engine(diagnosticsEngine), executor: executor, compilerIntegratedTooling: false, compilerExecutableDir: compilerExecutableDir, interModuleDependencyOracle: oracle)
         if let scanOracle = oracle, let scanLib = try driver.getSwiftScanLibPath() {
             // Errors instantiating the scanner are potentially recoverable, so suppress them here. Truly fatal errors
             // will be diagnosed later.
