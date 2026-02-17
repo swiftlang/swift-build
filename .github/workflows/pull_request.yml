@@ -68,6 +68,15 @@ jobs:
       windows_pre_build_command: 'Invoke-Program .\.github\scripts\prebuild.ps1 -SkipAndroid -InstallCMake'
       windows_swift_versions: '["nightly-main"]'
       windows_build_command: 'Invoke-Program swift package cmake-smoke-test --disable-sandbox --cmake-path (Get-Command cmake).Path --ninja-path (Get-Command ninja).Path --extra-cmake-arg "-DCMAKE_C_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_CXX_COMPILER=$((Get-Command clang).Path)" --extra-cmake-arg "-DCMAKE_Swift_COMPILER=$((Get-Command swiftc).Path)" --extra-cmake-arg "-DCMAKE_STATIC_LIBRARY_PREFIX_Swift=lib" --extra-cmake-arg "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"'
+  wasm-integration-tests:
+    name: WASM Integration Tests
+    uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.6
+    with:
+      enable_linux_checks: false
+      enable_windows_checks: false
+      enable_macos_checks: false
+      enable_wasm_sdk_build: true
+      wasm_sdk_build_command: swift test --filter WebAssemblyIntegrationTests
 
   soundness:
     name: Soundness
