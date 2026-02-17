@@ -32,17 +32,6 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
     }
 
     public func close(result: TaskResult?) {
-        let exitStatus: Processes.ExitStatus
-        switch result {
-        case .exit(let status, _)?:
-            exitStatus = status
-        case .failedSetup?:
-            exitStatus = .buildSystemCanceledTask
-        case .skipped?:
-            exitStatus = .exit(0)
-        case nil:
-            exitStatus = .buildSystemCanceledTask
-        }
         for entry in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
             if let sourceFilePath = entry.sourceFilePath {
                 // FIXME: find a better way to get at these
@@ -61,7 +50,35 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
                     workingDirectory: task.workingDirectory,
                     serializedDiagnosticsPaths: [entry.serializedDiagnosticsPath]
                 )
-                subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+                let diagnostics = subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+                let exitStatus: Processes.ExitStatus
+                switch result {
+                case .exit(let status, _)?:
+                    switch status {
+                    case .exit(let exitCode):
+                        if exitCode == 0 {
+                            // The batch compile succeeded, mark the individual files as succeeded.
+                            exitStatus = status
+                        } else {
+                            // The batch compile failed. Mark files which reported errors as failed, and files which did not as cancelled.
+                            if diagnostics.contains(where: { $0.behavior == .error }) {
+                                exitStatus = status
+                            } else {
+                                exitStatus = .buildSystemCanceledTask
+                            }
+                        }
+                    case .uncaughtSignal(_):
+                        // If the batch compile failed due to a signal, there is likely not enough information to attribute the failure
+                        // to a particular file.
+                        exitStatus = status
+                    }
+                case .failedSetup?:
+                    exitStatus = .buildSystemCanceledTask
+                case .skipped?:
+                    exitStatus = .exit(0)
+                case nil:
+                    exitStatus = .buildSystemCanceledTask
+                }
                 subtaskDelegate.taskCompleted(exitStatus: exitStatus)
                 subtaskDelegate.close()
             } else {
