@@ -50,6 +50,28 @@ public final class DynamicTaskOperationContext {
             self.compilationCachingDataPruner = CompilationCachingDataPruner()
         }
     }
+
+    func readSerializedDiagnostics(at path: Path, workingDirectory: Path, appendToOutputStream: Bool, fs: any FSProxy) -> [Diagnostic] {
+        do {
+            // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
+            guard try fs.exists(path) && fs.getFileSize(path).count > 0 else {
+                return []
+            }
+            guard let toolchain = core.toolchainRegistry.defaultToolchain else {
+                throw StubError.error("unable to find libclang (no default toolchain)")
+            }
+            let libclangPath = try toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: core.hostOperatingSystem)
+            guard let libClang = core.lookupLibclang(path: libclangPath).libclang else {
+                throw StubError.error("unable to open libclang: '\(libclangPath.str)'")
+            }
+            let serializedDiagnostics = try libClang.loadDiagnostics(filePath: path.str).map {
+                Diagnostic($0, workingDirectory: workingDirectory, appendToOutputStream: appendToOutputStream)
+            }
+            return serializedDiagnostics
+        } catch {
+            return []
+        }
+    }
 }
 
 /// Opaque "token" used to enforce that ``DynamicTaskOperationContext/waitForCompletion()`` is always called immediately prior to invoking ``DynamicTaskOperationContext/reset(completionToken:)``.

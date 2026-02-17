@@ -732,9 +732,9 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                     "-Fsystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
                                                     "-c",
                                                     "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-OutputFileMap.json",
-                                                    "-serialize-diagnostics",
                                                     "-emit-dependencies",
                                                     "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget.swiftmodule",
+                                                    "-serialize-diagnostics",
                                                     "-Xcc", "-isystem", "-Xcc", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
                                                     "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-Swift.h",
                         ]
@@ -800,9 +800,9 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                 "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
                                                 "-c",
                                                 "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-OutputFileMap.json",
-                                                "-serialize-diagnostics",
                                                 "-emit-dependencies",
                                                 "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget.swiftmodule",
+                                                "-serialize-diagnostics",
                                                 "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-Swift.h",
                     ]
                     task.checkCommandLineContains(expectedSwiftOptions)

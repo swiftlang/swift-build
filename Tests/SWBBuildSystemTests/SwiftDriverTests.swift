@@ -3728,27 +3728,28 @@ fileprivate struct SwiftDriverTests: CoreBasedTests {
                 let integratedInfos = try await createInfos(useIntegratedDriver: true)
                 let binaryInfos = try await createInfos(useIntegratedDriver: false)
 
-                // Explicit modules will add a module cache path that we expect for index and preview but remove for comparing
-                func checkAndRemoveModuleCachePath(_ commandLine: [String]) -> [String] {
-                    guard let index = commandLine.firstIndex(of: "-module-cache-path") else {
-                        Issue.record("Command line is missing -module-cache-path argument.")
-                        return []
+                func filterCommandLine(_ commandLine: [String]) -> [String] {
+                    var commandLine = commandLine.filter {
+                        $0 != "-disable-cmo" &&
+                        $0 != "-no-color-diagnostics" &&
+                        $0 != "-experimental-emit-module-separately"
                     }
-                    #expect(commandLine[index + 1].hasSuffix("SwiftExplicitPrecompiledModules"))
-                    var commandLine = commandLine
-                    commandLine.replaceSubrange(index...(index + 1), with: [])
+                    if let scannerIndex = commandLine.firstIndex(of: "-dependency-scan-serialize-diagnostics-path") {
+                        commandLine.replaceSubrange(scannerIndex...(scannerIndex + 1), with: [])
+                    }
+                    if let scannerIndex = commandLine.firstIndex(of: "-module-cache-path") {
+                        commandLine.replaceSubrange(scannerIndex...(scannerIndex + 1), with: [])
+                    }
                     return commandLine
                 }
 
                 XCTAssertEqualSequences(
-                    checkAndRemoveModuleCachePath(integratedInfos.index.commandLine.map(\.asString)),
+                    filterCommandLine(integratedInfos.index.commandLine.map(\.asString)),
                     binaryInfos.index.commandLine.map(\.asString)
                 )
 
                 XCTAssertEqualSequences(
-                    integratedInfos.preview.commandLine.filter { $0 != "-disable-cmo" &&
-                                                                                                $0 != "-no-color-diagnostics" &&
-                                                                                                $0 != "-experimental-emit-module-separately" },
+                    filterCommandLine(integratedInfos.preview.commandLine),
                     binaryInfos.preview.commandLine
                 )
             }
