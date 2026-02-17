@@ -3700,6 +3700,8 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                     children: [
                         TestFile("File1.swift"),
                         TestFile("File2.swift"),
+                        TestFile("File3.swift"),
+                        TestFile("File4.swift"),
                     ]),
                 targets: [
                     TestStandardTarget(
@@ -3717,6 +3719,27 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
                                 TestBuildFile("File1.swift"),
                                 TestBuildFile("File2.swift"),
                             ]),
+                            TestFrameworksBuildPhase([
+                                "Object.o"
+                            ])
+                        ], dependencies: [
+                            "Object"
+                        ]),
+                    TestStandardTarget(
+                        "Object",
+                        type: .objectFile,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "PRODUCT_NAME": "Object",
+                                "SWIFT_EXEC": swiftCompilerPath.str,
+                                "SWIFT_VERSION": swiftVersion,
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase([
+                                TestBuildFile("File3.swift"),
+                                TestBuildFile("File4.swift"),
+                            ]),
                         ]),
                 ])
 
@@ -3724,15 +3747,20 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .host) { results in
                 results.checkNoDiagnostics()
 
-                results.checkTask(.matchRuleType("SwiftAutolinkExtract")) { task in
+                results.checkTask(.matchTargetName("Tool"), .matchRuleType("SwiftAutolinkExtract")) { task in
                     task.checkCommandLineMatches([.suffix("swift-autolink-extract"), .suffix("File1.o"), .suffix("File2.o"), "-o", .suffix("Tool-swiftbuild.autolink")])
                     task.checkInputs([.pathPattern(.suffix("File1.o")), .pathPattern(.suffix("File2.o")), .any, .any, .any])
                     task.checkOutputs([.pathPattern(.suffix("Tool-swiftbuild.autolink"))])
-                    results.checkTaskFollows(task, .matchRuleType("SwiftDriver Compilation"))
+                    results.checkTaskFollows(task, .matchTargetName("Tool"), .matchRuleType("SwiftDriver Compilation"))
                 }
-                results.checkTask(.matchRuleType("Ld")) { task in
+                results.checkTask(.matchTargetName("Tool"), .matchRuleType("Ld")) { task in
                     results.checkTaskFollows(task, .matchRuleType("SwiftAutolinkExtract"))
                     task.checkInputs(contain: [.pathPattern(.suffix("Tool-swiftbuild.autolink"))])
+                }
+
+                results.checkNoTask(.matchTargetName("Object"), .matchRuleType("SwiftAutolinkExtract"))
+                results.checkTask(.matchTargetName("Object"), .matchRuleType("Ld")) { task in
+                    task.checkNoInputs(contain: [.pathPattern(.suffix(".autolink"))])
                 }
             }
         }

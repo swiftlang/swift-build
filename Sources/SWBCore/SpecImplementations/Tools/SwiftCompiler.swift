@@ -1984,7 +1984,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 delegate.createTask(type: self, dependencyData: dependencyInfoPath.map(DependencyDataStyle.makefileIgnoringSubsequentOutputs), payload: payload, ruleInfo: ruleInfo(compilationMode.ruleName), additionalSignatureData: additionalSignatureData, commandLine: args, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: allInputsNodes, outputs: (allNonModuleOutputs + moduleOutputPaths).map { delegate.createNode($0) }, action: nil, execDescription: execDescription, preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilation, .compilationRequirement, .blockedByTargetHeaders, .compilationForIndexableSourceFile], usesExecutionInputs: false)
             }
 
-            if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT) {
+            if SwiftCompilerSpec.shouldPlanAutolinkExtractTask(scope: cbc.scope, producer: cbc.producer) {
                 let toolName = cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swift-autolink-extract")
                 let toolPath = await resolveExecutablePath(cbc, toolSpecInfo.toolPath.dirname.join(toolName), delegate: delegate)
 
@@ -2495,6 +2495,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return (isEnabled, isExplicitlyEnabled)
     }
 
+    public static func shouldPlanAutolinkExtractTask(scope: MacroEvaluationScope, producer: any CommandProducer) -> Bool {
+        let containsSwiftSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(producer, producer, scope, producer.filePathResolver) == true
+        let platformRequiresAutolinkExtract = scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT)
+        let linkerOutputTypeRequiresAutolinkExtract = scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "mh_object"
+        return containsSwiftSources && platformRequiresAutolinkExtract && linkerOutputTypeRequiresAutolinkExtract
+    }
+
     private func staticallyLinkSwiftStdlib(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> Bool {
         // Determine whether we should statically link the Swift stdlib, and determined
         // by the following logic in the following order:
@@ -2652,8 +2659,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             args += [["-L\(swiftToolSpec.hostLibraryDirectory.str)"]]
         }
 
-        let containsSwiftSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(producer, producer, scope, producer.filePathResolver) == true
-        if scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT, lookup: lookup) && containsSwiftSources {
+        if SwiftCompilerSpec.shouldPlanAutolinkExtractTask(scope: scope, producer: producer) {
             let inputPath = scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH, lookup: lookup)
             args += [["@\(inputPath.str)"]]
             inputPaths.append(inputPath)
