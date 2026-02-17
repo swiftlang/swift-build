@@ -333,6 +333,11 @@ extension CommandProducer {
     func expandedSearchPaths(for macro: PathListMacroDeclaration, scope: MacroEvaluationScope) -> [String] {
         return expandedSearchPaths(for: scope.evaluate(macro), scope: scope)
     }
+
+    /// Compute the expanded search path list (i.e. with recursive entries expanded) for the given macro.
+    func expandedSearchPaths(for macro: PathOrderedSetMacroDeclaration, scope: MacroEvaluationScope) -> [String] {
+        return expandedSearchPaths(for: scope.evaluate(macro), scope: scope)
+    }
 }
 
 /// Which build options to include when evaluating the command line of a spec. This primarily exists because the Clang spec wants to specially evaluate a bunch of options as "constant" (see `getStandardFlags`), which we can't guarantee to be the case for extended options.

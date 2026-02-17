@@ -4746,7 +4746,8 @@ private class SettingsBuilder: ProjectMatchLookup {
         //
         // NOTE: We intentionally exclude SYSTEM_HEADER_SEARCH_PATHS and SYSTEM_FRAMEWORK_SEARCH_PATHS from this list, because they are already prefixed with the SDK path if appropriate.
         let scope = createScope(sdkToUse: sdk)
-        for macro in [BuiltinMacros.HEADER_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_HEADER_SEARCH_PATHS, BuiltinMacros.FRAMEWORK_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS, BuiltinMacros.REZ_SEARCH_PATHS, BuiltinMacros.LIBRARY_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_LIBRARY_SEARCH_PATHS] {
+        let searchPathMacroDecls: [MacroDeclaration] = [BuiltinMacros.HEADER_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_HEADER_SEARCH_PATHS, BuiltinMacros.FRAMEWORK_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS, BuiltinMacros.REZ_SEARCH_PATHS, BuiltinMacros.LIBRARY_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_LIBRARY_SEARCH_PATHS]
+        for macro in searchPathMacroDecls {
 
             /// Helper function to remap `path` into the sdk `sdk`.  Remapping will occur if `path` exists inside `sdk`.
             /// - returns: The remapped path, or `nil` if the path does not exist inside the sdk.
@@ -4815,12 +4816,12 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             // Evaluate the macro while checking if CURRENT_VARIANT and CURRENT_ARCH are being used.
             var currentMacroFound = false
-            let originalValues = scope.evaluate(macro) { macro in
+            let originalValues = macro.evaluate(scope) { macro in
                 if [BuiltinMacros.CURRENT_VARIANT, BuiltinMacros.CURRENT_ARCH].contains(macro) {
                     currentMacroFound = true
                 }
                 return nil
-            }
+            } as! [String]
 
             if currentMacroFound {
                 // If a CURRENT_* macro was found, then iterate over variants and archs to create evaluated versions
@@ -4831,7 +4832,7 @@ private class SettingsBuilder: ProjectMatchLookup {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
                     for arch in archs {
                         let scope = scope.subscopeBindingArchAndTriple(arch: arch)
-                        let originalValues = scope.evaluate(macro)
+                        let originalValues = macro.evaluate(scope) as! [String]
                         processRemapping(scope, originalValues.map{ Path($0) }, variant: variant, arch: arch)
                     }
                 }

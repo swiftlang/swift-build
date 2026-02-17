@@ -174,6 +174,15 @@ private final class PathListBuildOptionType : BuildOptionType {
         return try namespace.declarePathListMacro(name)
     }
 }
+private final class PathOrderedSetBuildOptionType : BuildOptionType {
+    let typeName = "PathOrderedSet"
+    let isListType = true
+    let supportsValuesDefinitions = false
+
+    func declareMacro(_ namespace: MacroNamespace, _ name: String) throws -> MacroDeclaration {
+        return try namespace.declarePathOrderedSetMacro(name)
+    }
+}
 private final class ProvisioningProfileBuildOptionType : BuildOptionType {
     let typeName = "ProvisioningProfile"
     let isListType = false
@@ -197,6 +206,7 @@ private let boolBuildOptionBoolType = BoolBuildOptionType()
 private let enumBuildOptionEnumType = EnumBuildOptionType()
 private let pathBuildOptionType = PathBuildOptionType()
 private let pathListBuildOptionType = PathListBuildOptionType()
+private let pathOrderedSetBuildOptionType = PathOrderedSetBuildOptionType()
 private let stringBuildOptionType = StringBuildOptionType()
 private let stringListBuildOptionType = StringListBuildOptionType()
 
@@ -221,6 +231,8 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     "Path": pathBuildOptionType,
     "pathlist": pathListBuildOptionType,
     "PathList": pathListBuildOptionType,
+    "pathOrderedSet": pathOrderedSetBuildOptionType,
+    "PathOrderedSet": pathOrderedSetBuildOptionType,
     "ProvisioningProfile": ProvisioningProfileBuildOptionType(),
     "ProvisioningProfileSpecifier": ProvisioningProfileSpecifierBuildOptionType(),
 ]
@@ -1398,7 +1410,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             }
         }
 
-        let valuesArePaths = type is PathBuildOptionType || type is PathListBuildOptionType
+        let valuesArePaths = type is PathBuildOptionType || type is PathListBuildOptionType || type is PathOrderedSetBuildOptionType
 
         // Handle list typed options.
         guard !type.isListType else {
@@ -1406,6 +1418,8 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             case let macro as StringListMacroDeclaration:
                 scope.evaluate(macro, lookup: lookup)
             case let macro as PathListMacroDeclaration:
+                scope.evaluate(macro, lookup: lookup)
+            case let macro as PathOrderedSetMacroDeclaration:
                 scope.evaluate(macro, lookup: lookup)
             default:
                 fatalError("invalid macro type for List option")
@@ -1605,6 +1619,8 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             case let macro as StringListMacroDeclaration:
                 scope.evaluate(macro, lookup: lookup)
             case let macro as PathListMacroDeclaration:
+                scope.evaluate(macro, lookup: lookup)
+            case let macro as PathOrderedSetMacroDeclaration:
                 scope.evaluate(macro, lookup: lookup)
             default:
                 fatalError("invalid macro type for List option")

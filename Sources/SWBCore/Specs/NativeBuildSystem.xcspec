@@ -253,7 +253,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecut
                 Category = "Search Paths";
             },
             {   Name = FRAMEWORK_SEARCH_PATHS;
-                Type = PathList;
+                Type = PathOrderedSet;
                 DefaultValue = "";
                 ConditionFlavors = ( "arch", "sdk" );
                 Category = "Search Paths";
