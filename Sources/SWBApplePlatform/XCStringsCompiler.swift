@@ -199,7 +199,7 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
                     restrictedLocalizations.remove("Base") // Base locale will never be in a String Catalog
                     let restrictedLocalizations = restrictedLocalizations.sorted()
                     if !restrictedLocalizations.isEmpty {
-                        delegate.note("XCStrings will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))")
+                        delegate.note("XCStrings will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
                     }
 
                     // Only build the languages specified by the project:

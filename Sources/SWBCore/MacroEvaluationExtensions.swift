@@ -139,7 +139,6 @@ extension MacroEvaluationScope {
     ///
     /// - Parameters:
     ///   - project: The project, from which to get known localizations if needed.
-    ///   - isInstallloc: Whether we are in an `installloc` build.
     /// - Returns: A set of locales, or `nil` if unrestricted. Empty means don't allow any locale content at all.
     public func restrictedLocRegionsToBuild(in project: Project?) -> Set<String>? {
         var locales = Set<String>()
