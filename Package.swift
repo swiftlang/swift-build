@@ -385,6 +385,12 @@ let package = Package(
             dependencies: ["SWBTestSupport"],
             swiftSettings: swiftSettings(languageMode: .v6)),
 
+        // Swift SDK integration tests
+        .testTarget(
+            name: "WebAssemblyIntegrationTests",
+            dependencies: ["SWBBuildService", "SWBBuildSystem", "SwiftBuildTestSupport", "SWBTestSupport"],
+            swiftSettings: swiftSettings(languageMode: .v6)),
+
         // Perf tests
         .testTarget(
             name: "SWBBuildSystemPerfTests",

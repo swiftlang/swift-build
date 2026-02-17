@@ -82,6 +82,7 @@ public struct SwiftSDK: Sendable {
     public let version: String
     /// The path to the SDK.
     public let path: Path
+    public let manifestPath: Path
     /// Target-specific properties for this SDK.
     public let targetTriples: [String: TripleProperties]
 
@@ -89,6 +90,7 @@ public struct SwiftSDK: Sendable {
         self.identifier = identifier
         self.version = version
         self.path = path.dirname
+        self.manifestPath = path
 
         guard fs.exists(path) else { return nil }
 
@@ -169,8 +171,14 @@ public struct SwiftSDK: Sendable {
 
         for (identifier, artifact) in info.artifacts {
             for variant in artifact.variants {
-                let sdkPath = artifactBundle.join(variant.path)
-                guard fs.isDirectory(sdkPath) else { continue }
+                var sdkPath = artifactBundle.join(variant.path)
+                let sdkJSONFilename = "swift-sdk.json"
+                if fs.isDirectory(sdkPath) {
+                    sdkPath = sdkPath.join(sdkJSONFilename)
+                }
+                guard fs.exists(sdkPath) else {
+                    continue
+                }
 
                 // FIXME: For now, we only support SDKs that are compatible with any host triple.
                 guard variant.supportedTriples?.isEmpty ?? true else { continue }
