@@ -174,10 +174,23 @@ public extension RegionVariable {
     }
 
     /// This is only relevant for the installloc action for Localization projects.
-    func isValidLocalizedContent(_ scope: MacroEvaluationScope) -> Bool {
-        guard let regionVariantName else { return false }
-        let installLocLanguages = Set(scope.evaluate(BuiltinMacros.INSTALLLOC_LANGUAGE))
-        return installLocLanguages.isEmpty || installLocLanguages.contains(regionVariantName)
+    ///
+    /// `xcstrings` files are not generally allowable according to this method, but each call-site should make its own decision about those.
+    /// For example Copy Files phases usually don't want xcstrings, but Resources phase does.
+    func isValidLocalizedContentForInstallloc(_ scope: MacroEvaluationScope, in project: Project?) -> Bool {
+        guard let regionVariantName else {
+            // This file isn't in an lproj, and only lproj'd content is allowed to build in installloc.
+            return false
+        }
+
+        let allowableLanguages = scope.restrictedLocRegionsToBuild(in: project)
+        if let allowableLanguages {
+            // If allowableLanguages is empty, we really do want to return false for every file.
+            return allowableLanguages.contains(regionVariantName)
+        } else {
+            // No restrictions on locales, so let it build.
+            return true
+        }
     }
 
     /// When the build setting `BUILD_ONLY_KNOWN_LOCALIZATIONS` is active,
@@ -198,37 +211,28 @@ public extension RegionVariable {
         _ delegate: (any DiagnosticProducingDelegate)?
     ) -> Bool {
 
-        guard let project else {
-            // We can't find the project. Allow the file to build:
-            return true
-        }
-
-        // Don't apply the BUILD_ONLY_KNOWN_LOCALIZATIONS setting
-        // for installloc, because installloc's languages have priority:
         let isInstallloc = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
         guard !isInstallloc else {
-            // We're in the installloc build phase, and we're not interested
-            // in changing its behavior. Allow the flow to continue:
-            return true
-        }
-
-        guard scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS) else {
-            // Build setting is off, this should build:
-            return true
-        }
-
-        guard let knownLocalizations = project.knownLocalizations, !knownLocalizations.isEmpty else {
-            // We can't read the supported localizations, allow it to build:
+            // We're in the installloc build phase, and we're not interested in changing its behavior.
+            // Client is responsible for having previously called isValidLocalizedContentForInstallloc(…) if needed.
+            // Allow the flow to continue:
             return true
         }
 
         guard let regionVariantName else {
-            // Unable to get a region name, allow it to built:
+            // This isn't a localized file, so let it through.
+            // If it is an xcstrings then XCStringsCompiler will do its own filtering.
             return true
         }
 
         if regionVariantName == "mul" {
-            // Allow mul.lproj (multi-lingual) which is used when xcstrings are paired with IB files:
+            // Allow mul.lproj (multi-lingual) which is used when xcstrings are paired with IB files.
+            // XCStringsCompiler will do its own filtering.
+            return true
+        }
+
+        guard let knownLocalizations = scope.restrictedLocRegionsToBuild(in: project) else {
+            // No restrictions. Allow it to build:
             return true
         }
 
@@ -238,7 +242,7 @@ public extension RegionVariable {
         }
 
         // This region is not supported, so it shouldn't build.
-        delegate?.note("Skipping .lproj directory '\(regionVariantName).lproj' because '\(regionVariantName)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(inputFileAbsolutePath))
+        delegate?.note("Skipping file in .lproj directory '\(regionVariantName).lproj' because '\(regionVariantName)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(inputFileAbsolutePath))
         return false
     }
 }

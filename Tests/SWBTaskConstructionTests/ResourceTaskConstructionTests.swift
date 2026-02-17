@@ -1742,6 +1742,99 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func copyLocalizedFilesWithKnownLocalizationsFilter() async throws {
+        // This tests BUILD_ONLY_KNOWN_LOCALIZATIONS for Copy Files phases.
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES"
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .resources, onlyForDeployment: false),
+                    ]
+                )
+            ],
+            developmentRegion: "en", knownLocalizations: ["en", "de"])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"))
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func copyLocalizedFilesWithBuildRulesAndKnownLocalizationsFilter() async throws {
+        // This tests BUILD_ONLY_KNOWN_LOCALIZATIONS for Copy Files phases with APPLY_RULES_IN_COPY_FILES.
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                        "APPLY_RULES_IN_COPY_FILES": "YES"
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .resources, onlyForDeployment: false),
+                    ]
+                )
+            ],
+            developmentRegion: "en", knownLocalizations: ["en", "de"])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
     /// Test permutations of the versioning stub file.
     @Test(.requireSDKs(.macOS))
     func versioningStub() async throws {
@@ -2940,8 +3033,8 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             }
 
             // Check for notes about skipped localizations:
-            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
-            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
             results.checkNoDiagnostics()
         }
     }
@@ -3013,8 +3106,8 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             }
 
             // Check for notes about skipped localizations:
-            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
-            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
             results.checkNoDiagnostics()
         }
     }
@@ -3079,8 +3172,8 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             }
 
             // Check for notes about skipped localizations:
-            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
-            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
             results.checkNoDiagnostics()
         }
     }

@@ -189,27 +189,21 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
 
     /// Generates a task for compiling the .xcstrings to .strings/dict files.
     private func constructCatalogCompilationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
-        let isRunningInstallloc = cbc.scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
 
         /// Custom lookup function to overwrite `XCSTRINGS_LANGUAGES_TO_COMPILE`
         /// when `BUILD_ONLY_KNOWN_LOCALIZATIONS` is enabled for a regular build.
         func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
             switch macro {
             case BuiltinMacros.XCSTRINGS_LANGUAGES_TO_COMPILE:
-                guard !isRunningInstallloc else {
-                    // No need to intercept anything for installloc, its
-                    // language specification should always take precedence.
-                    return nil
-                }
-                if cbc.scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS), var knownLocalizations = cbc.producer.project?.knownLocalizations {
-
-                    knownLocalizations.removeAll(where: { $0 == "Base" })
-                    if !knownLocalizations.isEmpty {
-                        delegate.note("XCStrings will compile languages for known regions: \(knownLocalizations.joined(separator: ", "))")
+                if var restrictedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project) {
+                    restrictedLocalizations.remove("Base") // Base locale will never be in a String Catalog
+                    let restrictedLocalizations = restrictedLocalizations.sorted()
+                    if !restrictedLocalizations.isEmpty {
+                        delegate.note("XCStrings will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))")
                     }
 
                     // Only build the languages specified by the project:
-                    return cbc.scope.namespace.parseLiteralStringList(knownLocalizations)
+                    return cbc.scope.namespace.parseLiteralStringList(restrictedLocalizations)
                 }
             default:
                 break

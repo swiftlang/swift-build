@@ -841,7 +841,7 @@ package class FilesBasedBuildPhaseTaskProducerBase: PhasedTaskProducer {
             try context.workspaceContext.fs.traverse(path) { subPath in
                 if let relativePath = subPath.relativeSubpath(from: path),
                    context.workspaceContext.fs.isDirectory(subPath) &&
-                   subPath.join(".").isValidLocalizedContent(scope) {
+                   subPath.join(".").isValidLocalizedContentForInstallloc(scope, in: context.project) {
                     localizedContent.append(Path(relativePath))
                 }
             }

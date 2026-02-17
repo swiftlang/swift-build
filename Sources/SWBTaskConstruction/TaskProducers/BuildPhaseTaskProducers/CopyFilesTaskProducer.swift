@@ -177,7 +177,22 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
             locDST = dstFolder.join(group.regionVariantPathComponent)
         }
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: locDST, unlocalizedResourcesDir: dstFolder)
+        var inputFiles = group.files
+
+        // Check if we should build the input file based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+        inputFiles = inputFiles.filter { file in
+            file.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: file.absolutePath,
+                delegate
+            )
+        }
+        guard !inputFiles.isEmpty else {
+            return
+        }
+
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputFiles, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: locDST, unlocalizedResourcesDir: dstFolder)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -232,12 +247,12 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
                         return
                     }
                 }
-            } else if scope.evaluate(BuiltinMacros.INSTALLLOC_DIRECTORY_CONTENTS), !ftb.isValidLocalizedContent(scope), context.workspaceContext.fs.isDirectory(ftb.absolutePath) {
+            } else if scope.evaluate(BuiltinMacros.INSTALLLOC_DIRECTORY_CONTENTS), !ftb.isValidLocalizedContentForInstallloc(scope, in: context.project), context.workspaceContext.fs.isDirectory(ftb.absolutePath) {
                 // Treat any package or directory the same as a copied bundle and copy over the relevant lproj directories.
                 await addTasksForEmbeddedLocalizedBundle(ftb, buildFilesContext, scope, &tasks)
                 return
             }
-            guard ftb.isValidLocalizedContent(scope) || targetBundleProduct else { return }
+            guard ftb.isValidLocalizedContentForInstallloc(scope, in: context.project) || targetBundleProduct else { return }
         }
 
         // Determine whether we should remove header directories on copy.
@@ -404,6 +419,18 @@ class CopyFilesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBui
         let registry = context.workspaceContext.core.specRegistry
         let fileTypes = registry.headerFileTypes + [registry.modulemapFileType]
         let (taskOrderingOptions, preparesForIndexing) = ftb.fileType.conformsToAny(fileTypes) ? (TaskOrderingOptions.compilationRequirement, true) : (nil, false)
+
+        // Skip for BUILD_ONLY_KNOWN_LOCALIZATIONS
+        let (_, _, shouldSkip) = await appendGeneratedTasks(&tasks, usePhasedOrdering: true, options: taskOrderingOptions) { delegate -> Bool in
+            if ftb.buildSettingAllowsBuildingLocale(scope, in: context.project, inputFileAbsolutePath: ftb.absolutePath, delegate) {
+                return false
+            } else {
+                return true
+            }
+        }
+        if shouldSkip {
+            return
+        }
 
         // Generate the tasks.
         let (_, _, (copyFileOrderingNode, resignFileOrderingNode)) = await appendGeneratedTasks(&tasks, usePhasedOrdering: true, options: taskOrderingOptions) { delegate -> (PlannedVirtualNode, (PlannedVirtualNode)?) in

@@ -153,7 +153,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
     // The same test as installLocBasic, but with knownLocalizations, which
     // should be ignored in favor of installLoc settings.
     @Test(.requireSDKs(.macOS))
-    func installLocLanguageIgnoresKnownLocalizations() async throws {
+    func installLocLanguageRespectsKnownLocalizations() async throws {
         let testProject = try await TestProject(
             "aProject",
             groupTree: TestGroup(
@@ -209,6 +209,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             knownLocalizations: ["en", "de", "Base"])
         let tester = try await TaskConstructionTester(getCore(), testProject)
 
+        // Regular installloc build with no specific requested languages.
+        // Should build en and de only, not ja.
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .macOS) { results in
             // Ignore all Gate tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
@@ -224,10 +226,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["SymLink", "/tmp/Test/aProject/build/Debug/App.app", "../../../../aProject.dst/Applications/App.app"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "/tmp/Test/aProject/Sources/Base.lproj/foo.xib"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Intents.strings", "/tmp/Test/aProject/Sources/de.lproj/Intents.strings"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/ja.lproj/Intents.strings", "/tmp/Test/aProject/Sources/ja.lproj/Intents.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CompileStoryboard", "/tmp/Test/aProject/Sources/Base.lproj/Main.storyboard"])) { _ in }
                 if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
                     results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/App.build/empty.plist"])) { _ in }
@@ -258,8 +258,23 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
         }
 
+        // INSTALLLOC_LANGUAGE set to "ja" should not produce anything.
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS) { results in
+            // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("MkDir")) { _ in }
+            results.checkTasks(.matchRuleType("SymLink")) { _ in }
+            results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+            results.checkNoTask()
+            results.checkNoDiagnostics()
+        }
+
         // INSTALLLOC_LANGUAGE can also be set to a string list of language codes
         // These would generally contain all languages other than English, but could differ.
+        // Here ja should still be excluded because of BUILD_ONLY_KNOWN_LOCALIZATIONS
         await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "de ja"]), runDestination: .macOS) { results in
             // Ignore all Gate, build directory, MkDir, and SymLink tasks.
             results.checkTasks(.matchRuleType("Gate")) { _ in }
@@ -272,11 +287,8 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
             results.checkTarget("App") { target in
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/foo.strings", "/tmp/Test/aProject/Sources/de.lproj/foo.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Main.strings", "/tmp/Test/aProject/Sources/de.lproj/Main.strings"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/ja.lproj/Main.strings", "/tmp/Test/aProject/Sources/ja.lproj/Main.strings"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Intents.strings", "/tmp/Test/aProject/Sources/de.lproj/Intents.strings"])) { _ in }
-                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/ja.lproj/Intents.strings", "/tmp/Test/aProject/Sources/ja.lproj/Intents.strings"])) { _ in }
             }
             results.checkNoTask()
             results.checkNoDiagnostics()

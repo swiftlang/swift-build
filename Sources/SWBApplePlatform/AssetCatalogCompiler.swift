@@ -178,13 +178,13 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                 }))
 
             case BuiltinMacros.ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES:
-                if cbc.scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS), var knownLocalizations = cbc.producer.project?.knownLocalizations {
-
-                    knownLocalizations.removeAll(where: { $0 == "Base" })
-                    if !knownLocalizations.isEmpty {
-                        delegate.note("Asset Catalog will compile languages for known regions: \(knownLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
+                if var restrictedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project) {
+                    restrictedLocalizations.remove("Base") // Base is not a valid Asset Catalog locale
+                    let restrictedLocalizations = restrictedLocalizations.sorted()
+                    if !restrictedLocalizations.isEmpty {
+                        delegate.note("Asset Catalog will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
                     }
-                    return cbc.scope.namespace.parseLiteralStringList(knownLocalizations)
+                    return cbc.scope.namespace.parseLiteralStringList(restrictedLocalizations)
                 }
                 return nil
 
