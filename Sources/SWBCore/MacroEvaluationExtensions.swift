@@ -132,4 +132,38 @@ extension MacroEvaluationScope {
         let swiftTargetTriple = archScope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
         return archScope.subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: swiftTargetTriple)
     }
+
+    /// Returns the set of locale codes that we are supposed to build, if our set of locales to build is restricted.
+    ///
+    /// The resulting list could contain "Base", but would not be expected to contain "mul".
+    ///
+    /// - Parameters:
+    ///   - project: The project, from which to get known localizations if needed.
+    /// - Returns: A set of locales, or `nil` if unrestricted. Empty means don't allow any locale content at all.
+    public func restrictedLocRegionsToBuild(in project: Project?) -> Set<String>? {
+        var locales = Set<String>()
+
+        let isInstallloc = evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
+        if isInstallloc {
+            // INSTALLLOC_LANGUAGE can be a list of language codes these days.
+            let installLocLanguages = Set(evaluate(BuiltinMacros.INSTALLLOC_LANGUAGE))
+            locales = installLocLanguages
+        }
+
+        if evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS), let project, let knownLocalizations = project.knownLocalizations, !knownLocalizations.isEmpty {
+            if locales.isEmpty {
+                locales = Set(knownLocalizations)
+            } else {
+                // Only the intersection of known localizations and INSTALLLOC_LANGUAGE should build.
+                locales.formIntersection(knownLocalizations)
+
+                if locales.isEmpty {
+                    // The intersection was empty, and in this case we really do want to build no locales at all.
+                    return locales
+                }
+            }
+        }
+
+        return locales.nilIfEmpty
+    }
 }
