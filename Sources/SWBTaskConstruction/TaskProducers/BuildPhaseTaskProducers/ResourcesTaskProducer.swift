@@ -96,7 +96,7 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
         // An exception is xcstrings files.
         let isXCStrings = group.files.contains(where: { $0.fileType.conformsTo(identifier: "text.json.xcstrings") })
         if scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
-            guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
+            guard isXCStrings || group.isValidLocalizedContentForInstallloc(scope, in: context.project) else { return }
         }
 
         var inputFiles = group.files
@@ -178,12 +178,12 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
                     await addTasksForEmbeddedLocalizedBundle(ftb, buildFilesContext, scope, &tasks)
                     return
                 }
-            } else if scope.evaluate(BuiltinMacros.INSTALLLOC_DIRECTORY_CONTENTS), !ftb.isValidLocalizedContent(scope), context.workspaceContext.fs.isDirectory(ftb.absolutePath) {
+            } else if scope.evaluate(BuiltinMacros.INSTALLLOC_DIRECTORY_CONTENTS), !ftb.isValidLocalizedContentForInstallloc(scope, in: context.project), context.workspaceContext.fs.isDirectory(ftb.absolutePath) {
                 // Treat any package or directory the same as a copied bundle and copy over the relevant lproj directories.
                 await addTasksForEmbeddedLocalizedBundle(ftb, buildFilesContext, scope, &tasks)
                 return
             }
-            guard ftb.isValidLocalizedContent(scope) || targetBundleProduct else { return }
+            guard ftb.isValidLocalizedContentForInstallloc(scope, in: context.project) || targetBundleProduct else { return }
         }
 
         await appendGeneratedTasks(&tasks) { delegate in

@@ -59,8 +59,7 @@ extension IbtoolCompilerSupport {
         var result = [(Path, String)]()
 
         // Check if we should filter localizations based on the setting BUILD_ONLY_KNOWN_LOCALIZATIONS:
-        let shouldFilter = cbc.scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS)
-        let allowedLocalizations = shouldFilter ? cbc.producer.project?.knownLocalizations : nil
+        let allowedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project)
 
         for ftb in cbc.inputs {
             if let buildFile = ftb.buildFile {
@@ -72,7 +71,7 @@ extension IbtoolCompilerSupport {
                                 // Skip this .strings file.
                                 if region != "mul" {
                                     // Don't leave a note about mul.lproj
-                                    delegate.note("Skipping .lproj directory '\(region).lproj' because '\(region)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(ftb.absolutePath))
+                                    delegate.note("Skipping file in .lproj directory '\(region).lproj' because '\(region)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(ftb.absolutePath))
                                 }
                                 continue
                             }

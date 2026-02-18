@@ -705,10 +705,10 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             }
 
             // Check for note about XCStrings language filtering
-            results.checkNote(.contains("XCStrings will compile languages for known regions: en, de"))
+            results.checkNote(.contains("XCStrings will compile languages for known regions: de, en"))
 
             // Check for note about skipped localization
-            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
 
             results.checkNoDiagnostics()
         }
@@ -1682,7 +1682,7 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
             }
 
             // Check for note about skipped localizations
-            results.checkNote(.contains("Skipping .lproj directory 'de.lproj' because 'de' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'de.lproj' because 'de' is not in project's known localizations"))
 
             results.checkNoDiagnostics()
         }
@@ -2106,8 +2106,8 @@ fileprivate struct XCStringsTaskConstructionTests: CoreBasedTests {
                 results.checkNoTask(.matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/MyFramework.framework/Versions/A/Resources/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
             }
 
-            results.checkNote(.contains("Skipping .lproj directory 'ja.lproj'"))
-            results.checkNote(.contains("Skipping .lproj directory 'fr.lproj'"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj'"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj'"))
             results.checkNoDiagnostics()
         }
     }
