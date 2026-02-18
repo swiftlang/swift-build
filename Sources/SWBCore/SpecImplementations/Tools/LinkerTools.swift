@@ -740,8 +740,11 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // anything but static archives and object files, because dynamic libraries and frameworks do not require this.
         if isLinkUsingSwift && cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
             for library in libraries {
-                if let swiftModulePath = library.swiftModulePathsToRegisterWithDebugger[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
+                if let swiftModulePath = library.swiftModulePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
                     commandLine += ["-Xlinker", "-add_ast_path", "-Xlinker", swiftModulePath.str]
+                }
+                if let additionalArgsPath = library.swiftModuleAdditionalLinkerArgResponseFilePaths[cbc.scope.evaluate(BuiltinMacros.CURRENT_ARCH)] {
+                    commandLine += ["@\(additionalArgsPath.str)"]
                 }
             }
         }

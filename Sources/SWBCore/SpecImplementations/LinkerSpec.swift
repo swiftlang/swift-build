@@ -64,10 +64,11 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
         /// Whether the library should be found via the linker search path.
         public let useSearchPaths: Bool
 
-        public var knownToUseSwift: Bool
-
         /// The per-arch path to the corresponding Swift module file, if available.
-        public let swiftModulePathsToRegisterWithDebugger: [String: Path]
+        public let swiftModulePaths: [String: Path]
+
+        /// The per-arch path to the corresponding Swift module linker args response file, if available..
+        public let swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path]
 
         /// When a linker item is generated from a task within the target, the `explicitDependencies` allows for a direct dependency to be added to ensure proper ordering.
         public let explicitDependencies: [Path]
@@ -90,12 +91,12 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
 
         public let libPrefix: String?
 
-        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, knownToUseSwift: Bool, swiftModulePathsToRegisterWithDebugger: [String: Path], prefix: String? = nil, explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
+        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, swiftModulePaths: [String: Path], swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path], prefix: String? = nil, explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
             self.kind = kind
             self.path = path
             self.mode = mode
-            self.knownToUseSwift = knownToUseSwift
-            self.swiftModulePathsToRegisterWithDebugger = swiftModulePathsToRegisterWithDebugger
+            self.swiftModulePaths = swiftModulePaths
+            self.swiftModuleAdditionalLinkerArgResponseFilePaths = swiftModuleAdditionalLinkerArgResponseFilePaths
             self.explicitDependencies = explicitDependencies
             self.topLevelItemPath = topLevelItemPath
             self.dsymPath = dsymPath

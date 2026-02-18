@@ -1078,6 +1078,16 @@
                 DefaultValue = "$(COMPILATION_CACHE_ENABLE_CACHING)";
             },
             {
+                Name = "SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS";
+                Type = Boolean;
+                DefaultValue = "$(_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES:default=$(SWIFT_ENABLE_EXPLICIT_MODULES))";
+            },
+            {
+                Name = "SWIFT_ADDITIONAL_LINKER_ARGS_OUTPUT_PATH";
+                Type = Path;
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-linker-args.resp";
+            },
+            {
                 Name = "SWIFT_SERIALIZE_DEBUGGING_OPTIONS";
                 Type = Boolean;
                 DefaultValue = YES;
