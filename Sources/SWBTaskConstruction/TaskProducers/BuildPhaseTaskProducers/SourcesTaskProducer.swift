@@ -1648,7 +1648,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
 
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
-            tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
+            tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContentForInstallloc(scope, in: context.project) || $0.path.fileExtension == "xcstrings" }) }
         } else if scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS) {
             // For non-installLoc builds, filter based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
             tasks = tasks.filter { task in
@@ -1752,7 +1752,7 @@ package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, F
         // An exception is xcstrings files, which can be in the Sources phase for symbol generation.
         if scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
             let isXCStrings = group.files.contains(where: { $0.fileType.conformsTo(identifier: "text.json.xcstrings") })
-            guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
+            guard isXCStrings || group.isValidLocalizedContentForInstallloc(scope, in: context.project) else { return }
         }
 
         var inputFiles = group.files
