@@ -1047,6 +1047,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ENABLE_OPAQUE_TYPE_ERASURE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_OPAQUE_TYPE_ERASURE")
     public static let SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS")
     public static let SWIFT_EMIT_CONST_VALUE_PROTOCOLS = BuiltinMacros.declareStringListMacro("SWIFT_EMIT_CONST_VALUE_PROTOCOLS")
+    public static let SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS = BuiltinMacros.declareBooleanMacro("SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS")
     public static let SWIFT_USE_INTEGRATED_DRIVER = BuiltinMacros.declareBooleanMacro("SWIFT_USE_INTEGRATED_DRIVER")
     public static let SWIFT_EAGER_MODULE_EMISSION_IN_WMO = BuiltinMacros.declareBooleanMacro("SWIFT_EAGER_MODULE_EMISSION_IN_WMO")
     public static let SWIFT_ENABLE_EXPLICIT_MODULES = BuiltinMacros.declareEnumMacro("SWIFT_ENABLE_EXPLICIT_MODULES") as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
@@ -2279,6 +2280,7 @@ public final class BuiltinMacros {
         SWIFT_ENABLE_OPAQUE_TYPE_ERASURE,
         SWIFT_ENABLE_LANGUAGE_FEATURE_ENABLEMENT_DIAGNOSTICS,
         SWIFT_EMIT_CONST_VALUE_PROTOCOLS,
+        SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS,
         SWIFT_ENABLE_TESTABILITY,
         SWIFT_EXEC,
         SWIFT_FORCE_DYNAMIC_LINK_STDLIB,
