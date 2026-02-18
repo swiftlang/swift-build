@@ -9459,6 +9459,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
             let boundsSafetyMissingChecksSetting = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS"
             let enableBoundsAttributesSetting = "CLANG_ENABLE_BOUNDS_ATTRIBUTES"
             let boundsSafetyMissingChecksOptOutsSetting = "CLANG_BOUNDS_SAFETY_BRINGUP_MISSING_CHECKS_OPT_OUTS"
+            let boundsSafetySoftTrapsSetting = "CLANG_BOUNDS_SAFETY_SOFT_TRAPS"
 
             for (enableBoundsSafetyBuildSetting, enableBoundsSafetyFlag) in [
                 (enableBoundsSafetySetting,"-fbounds-safety"),
@@ -9478,6 +9479,8 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                     [ enableBoundsSafetyBuildSetting: "YES"]: { (task: any PlannedTask) in
                         task.checkCommandLineDoesNotContain("-fno-bounds-safety-bringup-missing-checks")
                         task.checkCommandLineDoesNotContain("-fbounds-safety-bringup-missing-checks")
+                        // Default is to have soft-traps disabled
+                        task.checkCommandLineNoMatch([.prefix("-fbounds-safety-soft-traps=")])
                     },
 
 
@@ -9504,6 +9507,21 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                         task.checkCommandLineContains([
                             "-fbounds-safety-bringup-missing-checks=batch_0",
                             "-fno-bounds-safety-bringup-missing-checks=access_size,return_size"])
+                    },
+
+                    // Soft traps
+                    [ enableBoundsSafetyBuildSetting: "YES", boundsSafetySoftTrapsSetting: "compiler-default" ]: { (task: any PlannedTask) in
+                        task.checkCommandLineNoMatch([.prefix("-fbounds-safety-soft-traps=")])
+                    },
+                    [ enableBoundsSafetyBuildSetting: "YES", boundsSafetySoftTrapsSetting: "call-minimal" ]: { (task: any PlannedTask) in
+                        task.checkCommandLineContains(["-fbounds-safety-soft-traps=call-minimal"])
+                        // Check no other variant of the flag is passed after that could override the setting
+                        task.checkCommandLineNoMatch(["-fbounds-safety-soft-traps=call-minimal", .anySequence, .prefix("-fbounds-safety-soft-traps=")])
+                    },
+                    [ enableBoundsSafetyBuildSetting: "YES", boundsSafetySoftTrapsSetting: "call-with-str" ]: { (task: any PlannedTask) in
+                        task.checkCommandLineContains(["-fbounds-safety-soft-traps=call-with-str"])
+                        // Check no other variant of the flag is passed after that could override the setting
+                        task.checkCommandLineNoMatch(["-fbounds-safety-soft-traps=call-with-str", .anySequence, .prefix("-fbounds-safety-soft-traps=")])
                     },
                 ]
 

@@ -610,6 +610,25 @@
               // Hidden
             },
             {
+                Name = "CLANG_BOUNDS_SAFETY_SOFT_TRAPS";
+                Type = Enumeration;
+                FileTypes = (
+                    "sourcecode.c.c",
+                );
+                Values = (
+                    "compiler-default",
+                );
+                DefaultValue = "compiler-default";
+                CommandLineArgs = {
+                    // Use the compiler default which is hard traps (no compiler flag needed)
+                    "compiler-default" = ();
+                    // E.g. `call-minimal` or `call-with-str`
+                    "<<otherwise>>" = ( "-fbounds-safety-soft-traps=$(value)" );
+                };
+                Condition = "$(CLANG_ENABLE_BOUNDS_ATTRIBUTES) || $(CLANG_ENABLE_BOUNDS_SAFETY)";
+                // Hidden
+            },
+            {
                 Name = "CLANG_ENABLE_APP_EXTENSION";
                 Type = Boolean;
                 DefaultValue = "$(APPLICATION_EXTENSION_API_ONLY)";
