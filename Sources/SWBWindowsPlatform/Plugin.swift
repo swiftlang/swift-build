@@ -173,6 +173,7 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
         let defaultProperties: [String: PropertyListItem] = [
             "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
             "LD_DEPENDENCY_INFO_FILE": .plString(""),
+            "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
 
             "GENERATE_TEXT_BASED_STUBS": "NO",
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",

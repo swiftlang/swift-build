@@ -86,9 +86,37 @@ public final class PrelinkedObjectLinkSpec: CommandLineToolSpec, SpecImplementat
             commandLine += warningLdFlags
         }
         commandLine += cbc.inputs.map({ $0.absolutePath.str })
-        commandLine += cbc.scope.evaluate(BuiltinMacros.PRELINK_LIBS)
+
+        let prelinkLibs = cbc.scope.evaluate(BuiltinMacros.PRELINK_LIBS)
+
+        let dependencyInfoFile = cbc.scope.evaluate(BuiltinMacros.PRELINK_DEPENDENCY_INFO_FILE)
+        if !dependencyInfoFile.isEmpty {
+            commandLine += prelinkLibs
+        } else {
+            // Library options like -lfoo can't be tracked
+            for lib in prelinkLibs {
+                if !lib.isEmpty {
+                    if lib.hasPrefix("-l") {
+                        commandLine.append(lib)
+                    } else {
+                        let node = delegate.createNode(Path(lib))
+                        commandLine.append(node.path.str)
+                        extraInputs.append(node.path)
+                    }
+                }
+            }
+        }
+
         commandLine += ["-o", outputPath.str]
 
-        delegate.createTask(type: self, ruleInfo: ["PrelinkedObjectLink", outputPath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [outputPath], action: nil, execDescription: "Link \(outputPath.basename)", enableSandboxing: enableSandboxing)
+        var dependencyInfo: DependencyDataStyle?
+        var outputs: [Path] = [outputPath]
+        if !dependencyInfoFile.isEmpty {
+            commandLine += ["-dependency_info", dependencyInfoFile.str]
+            dependencyInfo = .dependencyInfo(dependencyInfoFile)
+            outputs.append(dependencyInfoFile)
+        }
+
+        delegate.createTask(type: self, dependencyData: dependencyInfo, ruleInfo: ["PrelinkedObjectLink", outputPath.str], commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }) + extraInputs, outputs: outputs, action: nil, execDescription: "Link \(outputPath.basename)", enableSandboxing: enableSandboxing)
     }
 }

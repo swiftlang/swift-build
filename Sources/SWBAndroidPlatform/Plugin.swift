@@ -133,6 +133,7 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
 
             // Workaround to avoid `-dependency_info` on Linux.
             "LD_DEPENDENCY_INFO_FILE": .plString(""),
+            "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
 
             // Android uses lld, not the Apple linker
             // FIXME: Make this option conditional on use of the Apple linker (or perhaps when targeting an Apple triple?)

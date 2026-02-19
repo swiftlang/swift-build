@@ -126,6 +126,7 @@ struct GenericUnixSDKRegistryExtension: SDKRegistryExtension {
                 defaultProperties = [
                     // Workaround to avoid `-dependency_info`.
                     "LD_DEPENDENCY_INFO_FILE": .plString(""),
+                    "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
 
                     "GENERATE_TEXT_BASED_STUBS": "NO",
                     "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
