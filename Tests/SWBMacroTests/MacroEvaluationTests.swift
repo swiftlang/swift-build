@@ -1214,7 +1214,7 @@ extension MacroEvaluationScope {
     }
 
     @Test
-    func pathOrderedSetDeduplicationPreservesFirstOccurrence() throws {
+    func pathOrderedSetWithDuplicateAndPreserveFirstOccurrence() throws {
         let namespace = MacroNamespace(debugDescription: "test")
         var table = MacroValueAssignmentTable(namespace: namespace)
 
