@@ -315,7 +315,13 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     ///
     /// In particular, Swift compilation runs during InstallAPI builds even when building static libraries, but only generates TBD files when building dylibs.
     public var supportsInstallAPI: Bool {
-        return ProductTypeIdentifier(identifier).supportsInstallAPI
+        // Static frameworks/libraries need to run installAPI if they contain Swift
+        // source code because we need .swiftmodule to build downstream targets.
+        return conformsTo(identifier: "com.apple.product-type.framework")
+            || conformsTo(identifier: "com.apple.product-type.framework.static")
+            || conformsTo(identifier: "com.apple.product-type.library.dynamic")
+            || conformsTo(identifier: "com.apple.product-type.library.static")
+            || conformsTo(identifier: "com.apple.product-type.objfile") // Swift packages need to run installAPI.
     }
 
     public var supportsEagerLinking: Bool {

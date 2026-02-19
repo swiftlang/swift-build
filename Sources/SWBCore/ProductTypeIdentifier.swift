@@ -20,19 +20,6 @@ public struct ProductTypeIdentifier: Equatable {
 }
 
 public extension ProductTypeIdentifier {
-    var supportsInstallAPI: Bool {
-        // Static frameworks/libraries need to run installAPI if they contain Swift source code because we need .swiftmodule to build downstream targets.
-        return stringValue == "com.apple.product-type.framework"
-            || stringValue == "com.apple.product-type.framework.static"
-            || stringValue == "com.apple.product-type.library.dynamic"
-            || stringValue == "com.apple.product-type.library.static"
-            // Swift packages need to run installAPI.
-            || stringValue == "com.apple.product-type.objfile"
-            // SwiftPM's new PIF builder uses these product types.
-            || stringValue == "org.swift.product-type.common.object"
-            || stringValue == "org.swift.product-type.library.static"
-    }
-
     var supportsEagerLinking: Bool {
         return stringValue == "com.apple.product-type.framework"
             || stringValue == "com.apple.product-type.library.dynamic"
