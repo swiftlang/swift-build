@@ -281,15 +281,8 @@ public final class MacroEvaluationScope: Serializable, Sendable {
             value.expression.evaluate(context: context, resultBuilder: resultBuilder)
             
             // Normalize paths and remove duplicates
-            var seen = Set<String>()
-            var result: [String] = []
-            for path in resultBuilder.buildStringList() {
-                let normalizedPath = Path(path).normalize().str
-                if seen.insert(normalizedPath).inserted {
-                    result.append(normalizedPath)
-                }
-            }
-            return result
+            let normalizedPaths = resultBuilder.buildStringList().map { Path($0).normalize().str }
+            return OrderedSet<String>(normalizedPaths).elements
         }
 
         if lookup == nil {

@@ -1212,4 +1212,35 @@ extension MacroEvaluationScope {
             }
         }
     }
+
+    @Test
+    func pathOrderedSetDeduplicationPreservesFirstOccurrence() throws {
+        let namespace = MacroNamespace(debugDescription: "test")
+        var table = MacroValueAssignmentTable(namespace: namespace)
+
+        // Set up macros that will expand to duplicate values
+        let FOO = try namespace.declarePathMacro("FOO")
+        let BAR = try namespace.declarePathMacro("BAR")
+        table.push(FOO, literal: "/tmp/b")
+        table.push(BAR, literal: "/tmp/b")
+
+        // Create a path ordered set with duplicates introduced via macro expansion
+        // FRAMEWORK_SEARCH_PATHS = /tmp/a $(FOO) /tmp/c $(BAR) /tmp/d
+        // where FOO = /tmp/b and BAR = /tmp/b
+        // Expected result: /tmp/a /tmp/b /tmp/c /tmp/d (first /tmp/b wins, second is deduped)
+        let FRAMEWORK_SEARCH_PATHS = try namespace.declarePathOrderedSetMacro("FRAMEWORK_SEARCH_PATHS")
+        table.push(FRAMEWORK_SEARCH_PATHS, namespace.parseStringList("/tmp/a $(FOO) /tmp/c $(BAR) /tmp/d"))
+
+        let scope = MacroEvaluationScope(table: table)
+        let result = scope.evaluate(FRAMEWORK_SEARCH_PATHS)
+
+        // The first occurrence of /tmp/b (from FOO) should be preserved at index 1
+        // The second occurrence (from BAR) should be removed
+        #expect(result == ["/tmp/a", "/tmp/b", "/tmp/c", "/tmp/d"], 
+                "Deduplication should preserve the first occurrence of /tmp/b, not the last")
+
+        // Verify that /tmp/b appears only once and at the position of its first occurrence
+        let bIndices = result.enumerated().filter { $0.element == "/tmp/b" }.map { $0.offset }
+        #expect(bIndices == [1], "Expected /tmp/b to appear only at index 1 (first occurrence)")
+    }
 }
