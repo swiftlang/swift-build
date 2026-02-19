@@ -342,8 +342,10 @@
         DefaultBuildProperties = {
             WRAPPER_EXTENSION = "xctest";
             ENABLE_TESTING_SEARCH_PATHS = YES;
-            PRODUCT_SPECIFIC_LDFLAGS = "-Xlinker -needed_framework -Xlinker XCTest -framework XCTest -Xlinker -needed-lXCTestSwiftSupport -lXCTestSwiftSupport";
-            PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS = "--scan-executable \"$(PLATFORM_DIR)/Developer/usr/lib/libXCTestSwiftSupport.dylib\"";
+            PRODUCT_SPECIFIC_LDFLAGS = "$(PRODUCT_SPECIFIC_LDFLAGS_NO_XCTEST_$(NO_XCTEST:default=NO))";
+            PRODUCT_SPECIFIC_LDFLAGS_NO_XCTEST_NO = (-Xlinker, -needed_framework, -Xlinker, XCTest, -framework, XCTest, -Xlinker, -needed-lXCTestSwiftSupport, -lXCTestSwiftSupport);
+            PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS = "$(PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS_NO_XCTEST_$(NO_XCTEST:default=NO))";
+            PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS_NO_XCTEST_NO = ("--scan-executable", "$(PLATFORM_DIR)/Developer/usr/lib/libXCTestSwiftSupport.dylib");
             XCTRUNNER_PATH = "$(XCTRUNNER_PATH$(TEST_BUILD_STYLE))";
             LD_RUNPATH_SEARCH_PATHS = "$(inherited) $(LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
             LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_YES = "@loader_path/Frameworks";
