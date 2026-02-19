@@ -260,7 +260,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
         return compute()
     }
 
-    /// Evaluate the given string macro and return the result.
+    /// Evaluate the given path ordered set macro and return the result.
     ///
     /// - Parameter lookup: If provided, this closure will be invoked for each initial macro lookup to potentially supply an alternate expression to evaluate.
     /// - Parameter default: If provided, this value is returned if the macro evaluates to an empty string.
