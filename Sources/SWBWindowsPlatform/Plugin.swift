@@ -171,7 +171,6 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
         }
         let testingLibraryPath = windowsPlatform.path.join("Developer").join("Library")
         let defaultProperties: [String: PropertyListItem] = [
-            "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
             "LD_DEPENDENCY_INFO_FILE": .plString(""),
 
             "GENERATE_TEXT_BASED_STUBS": "NO",

@@ -60,6 +60,31 @@
         Description = "Apple Clang compiler (Windows)";
         IsAbstract = YES;
         ShowInCompilerSelectionPopup = NO;
+        Options = (
+            {
+                Name = "GCC_DEBUG_INFORMATION_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    dwarf,
+                    "dwarf-with-dsym",
+                    "codeview",
+                );
+                CommandLineArgs = {
+                    dwarf = (
+                        "-g",
+                    );
+                    "dwarf-with-dsym" = (
+                        "-g",
+                    );
+                    "codeview" = (
+                        "-g", "-gcodeview",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "$(DEBUG_INFORMATION_FORMAT)";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
+            },
+        );
     },
     {
         Domain = windows;
@@ -104,7 +129,30 @@
                 DefaultValue = YES;
                 Condition = "$(PRODUCT_TYPE) == 'com.apple.product-type.library.static' || $(PRODUCT_TYPE) == 'org.swift.product-type.library.static' || $(PRODUCT_TYPE) == 'org.swift.product-type.common.object'";
                 CommandLineArgs = ("-static");
-            }
+            },
+            {
+                Name = "SWIFT_DEBUG_INFORMATION_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    dwarf,
+                    "dwarf-with-dsym",
+                    "codeview",
+                );
+                CommandLineArgs = {
+                    dwarf = (
+                        "-g",
+                    );
+                    "dwarf-with-dsym" = (
+                        "-g",
+                    );
+                    "codeview" = (
+                        "-g", "-debug-info-format=codeview",
+                    );
+                    "<<otherwise>>" = ();
+                };
+                DefaultValue = "$(DEBUG_INFORMATION_FORMAT)";
+                Condition = "$(GCC_GENERATE_DEBUGGING_SYMBOLS)";
+            },
         );
     },
 )
