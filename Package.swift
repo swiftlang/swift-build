@@ -390,6 +390,10 @@ let package = Package(
             name: "WebAssemblyIntegrationTests",
             dependencies: ["SWBBuildService", "SWBBuildSystem", "SwiftBuildTestSupport", "SWBTestSupport"],
             swiftSettings: swiftSettings(languageMode: .v6)),
+        .testTarget(
+            name: "StaticLinuxSDKIntegrationTests",
+            dependencies: ["SWBBuildService", "SWBBuildSystem", "SwiftBuildTestSupport", "SWBTestSupport"],
+            swiftSettings: swiftSettings(languageMode: .v6)),
 
         // Perf tests
         .testTarget(
