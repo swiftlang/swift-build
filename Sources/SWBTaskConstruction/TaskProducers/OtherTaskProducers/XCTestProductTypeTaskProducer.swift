@@ -322,9 +322,15 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
     /// The path to the copy of `Testing.framework` which should be used by clients.
     static fileprivate func swiftTestingFrameworkPath(_ scope: MacroEvaluationScope, _ platform: Platform?, _ fs: any FSProxy) -> Path {
-         let testingFrameworkPath = Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks/Testing.framework")
-         return fs.exists(testingFrameworkPath) ? testingFrameworkPath : Path("")
-     }
+        let testingFrameworkPaths = [
+            // Swift.org toolchains, Apple Xcode
+            Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks/Testing.framework"),
+
+            // Apple Developer Command Line Tools
+            scope.evaluate(BuiltinMacros.DEVELOPER_DIR).join("Library/Developer/Frameworks/Testing.framework"),
+        ]
+        return testingFrameworkPaths.first(where: fs.exists) ?? Path("")
+    }
 
      /// The paths to libraries and frameworks produced by the XCTest project, including `XCTest.framework` and some
      /// of its dependencies, which should be used by clients.
