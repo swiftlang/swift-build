@@ -954,6 +954,7 @@ public final class BuiltinMacros {
     public static let PLIST_FILE_OUTPUT_FORMAT = BuiltinMacros.declareStringMacro("PLIST_FILE_OUTPUT_FORMAT")
     public static let PLUGINS_FOLDER_PATH = BuiltinMacros.declarePathMacro("PLUGINS_FOLDER_PATH")
     public static let __POPULATE_COMPATIBILITY_ARCH_MAP = BuiltinMacros.declareBooleanMacro("__POPULATE_COMPATIBILITY_ARCH_MAP")
+    public static let PRELINK_DEPENDENCY_INFO_FILE = BuiltinMacros.declarePathMacro("PRELINK_DEPENDENCY_INFO_FILE")
     public static let PRELINK_FLAGS = BuiltinMacros.declareStringListMacro("PRELINK_FLAGS")
     public static let PRELINK_LIBS = BuiltinMacros.declareStringListMacro("PRELINK_LIBS")
     public static let PRIVATE_HEADERS_FOLDER_PATH = BuiltinMacros.declarePathMacro("PRIVATE_HEADERS_FOLDER_PATH")
@@ -2125,6 +2126,7 @@ public final class BuiltinMacros {
         PLIST_FILE_OUTPUT_FORMAT,
         PLUGINS_FOLDER_PATH,
         __POPULATE_COMPATIBILITY_ARCH_MAP,
+        PRELINK_DEPENDENCY_INFO_FILE,
         PRELINK_FLAGS,
         PRELINK_LIBS,
         PRIVATE_HEADERS_FOLDER_PATH,

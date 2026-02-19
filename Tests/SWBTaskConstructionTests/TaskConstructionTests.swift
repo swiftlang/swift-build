@@ -918,7 +918,9 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
                             .namePattern(.prefix("target-"))])
 
                         task.checkOutputs([
-                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-\(results.runDestinationTargetArchitecture)-prelink.o"),])
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/AppTarget-\(results.runDestinationTargetArchitecture)-prelink.o"),
+                            .path("\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget_prelink_dependency_info.dat"),
+                        ])
 
                     }
 
