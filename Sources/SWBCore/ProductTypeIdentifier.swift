@@ -28,6 +28,9 @@ public extension ProductTypeIdentifier {
             || stringValue == "com.apple.product-type.library.static"
             // Swift packages need to run installAPI.
             || stringValue == "com.apple.product-type.objfile"
+            // SwiftPM's new PIF builder uses these product types.
+            || stringValue == "org.swift.product-type.common.object"
+            || stringValue == "org.swift.product-type.library.static"
     }
 
     var supportsEagerLinking: Bool {
