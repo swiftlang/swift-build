@@ -673,17 +673,18 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                         groupTree: TestGroup(
                             "Sources", path: "Sources",
                             children: [
-                                TestFile("CoreFoo.c")
+                                TestFile("CoreFoo.c"),
+                                TestFile("Project.xcconfig"),
                             ]),
                         buildConfigurations: [
                             TestBuildConfiguration(
                                 "Debug",
+                                baseConfig: "Project.xcconfig",
                                 buildSettings: [
                                     "PRODUCT_NAME": "$(TARGET_NAME)",
                                     "CLANG_ENABLE_MODULES": enableModules,
                                     "CLANG_ENABLE_EXPLICIT_MODULES": enableModules,
                                     "GENERATE_INFOPLIST_FILE": "YES",
-                                    "HEADER_DEPENDENCIES": "stdio.h",
                                     "VALIDATE_HEADER_DEPENDENCIES": "YES_ERROR",
                                     "SDKROOT": "$(HOST_PLATFORM)",
                                     "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
@@ -704,9 +705,10 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+            let srcFile = SRCROOT.join("Sources/CoreFoo.c")
 
             // Write the source files.
-            try await tester.fs.writeFileContents(SRCROOT.join("Sources/CoreFoo.c")) { contents in
+            try await tester.fs.writeFileContents(srcFile) { contents in
                 contents <<< """
                     #include <stdio.h>
                     #include <stdlib.h>
@@ -715,9 +717,41 @@ fileprivate struct DependencyValidationTests: CoreBasedTests {
                 """
             }
 
+            let projectXCConfigPath = SRCROOT.join("Sources/Project.xcconfig")
+            try await tester.fs.writeFileContents(projectXCConfigPath) { stream in
+                stream <<<
+            """
+            HEADER_DEPENDENCIES = stdio.h
+            """
+            }
+
             // Expect complaint about undeclared dependency
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .host, persistent: true) { results in
-                results.checkError(.contains("Missing entries in HEADER_DEPENDENCIES: stdlib.h"))
+                results.checkError(.contains("Missing entries in HEADER_DEPENDENCIES: stdlib.h")) {
+                    diag in
+                    let expectedDiag = Diagnostic(
+                        behavior: .error,
+                        location: Diagnostic.Location.path(projectXCConfigPath, line: 1, column: 30),
+                        data: DiagnosticData("Missing entries in HEADER_DEPENDENCIES: stdlib.h"),
+                        fixIts: [
+                            Diagnostic.FixIt(
+                                sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 30, endLine: 1, endColumn: 30),
+                                newText: " \\\n    stdlib.h"),
+                        ],
+                        childDiagnostics: [
+                            Diagnostic(
+                                behavior: .error,
+                                location: Diagnostic.Location.path(srcFile, line: 2, column: 8),
+                                data: DiagnosticData("Missing entry in HEADER_DEPENDENCIES: stdlib.h"),
+                                fixIts: [Diagnostic.FixIt(
+                                    sourceRange: Diagnostic.SourceRange(path: projectXCConfigPath, startLine: 1, startColumn: 30, endLine: 1, endColumn: 30),
+                                    newText: " \\\n    stdlib.h")],
+                            ),
+                        ]
+                    )
+                    #expect(expectedDiag == diag)
+                    return true
+                }
             }
 
             // Declaring dependencies resolves the problem
