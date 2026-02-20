@@ -1236,7 +1236,7 @@ extension MacroEvaluationScope {
 
         // The first occurrence of /tmp/b (from FOO) should be preserved at index 1
         // The second occurrence (from BAR) should be removed
-        #expect(result == ["/tmp/a", "/tmp/b", "/tmp/c", "/tmp/d"], 
+        #expect(result == ["/tmp/a", "/tmp/b", "/tmp/c", "/tmp/d"],
                 "Deduplication should preserve the first occurrence of /tmp/b, not the last")
 
         // Verify that /tmp/b appears only once and at the position of its first occurrence
