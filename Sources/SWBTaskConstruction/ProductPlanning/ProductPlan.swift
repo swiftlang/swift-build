@@ -106,6 +106,24 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         resolvedDependencies(of: target).map { $0.target }
     }
 
+    package func transitiveDependencies(of target: ConfiguredTarget) -> [ConfiguredTarget] {
+        // Use the static target for lookup if necessary.
+        let configuredTarget: ConfiguredTarget
+        if let staticTarget = staticallyBuildingTargetsWithDiamondLinkage[target.target] {
+            configuredTarget = target.replacingTarget(staticTarget)
+        } else {
+            configuredTarget = target
+        }
+
+        return transitiveClosure([configuredTarget], successors: planRequest.buildGraph.dependencies(of:)).0.map { dependency in
+            if let dynamicTarget = dynamicallyBuildingTargetsWithDiamondLinkage[dependency.target] {
+                return dependency.replacingTarget(dynamicTarget)
+            } else {
+                return dependency
+            }
+        }
+    }
+
     package func resolvedDependencies(of target: ConfiguredTarget) -> [ResolvedTargetDependency] {
         // Use the static target for lookup if necessary.
         let configuredTarget: ConfiguredTarget
