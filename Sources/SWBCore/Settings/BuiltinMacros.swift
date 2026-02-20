@@ -1404,12 +1404,11 @@ public final class BuiltinMacros {
         precondition(!initialized)
         return try! builtinNamespace.declarePathListMacro(name)
     }
-    
+
     @_spi(MacroDeclarationRegistration) public static func declarePathOrderedSetMacro(_ name: String) -> PathOrderedSetMacroDeclaration {
         precondition(!initialized)
         return try! builtinNamespace.declarePathOrderedSetMacro(name)
     }
-
 
     private static let namespaceInitializationMutex = SWBMutex(())
 
