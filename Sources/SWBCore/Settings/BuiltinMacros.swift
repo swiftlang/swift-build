@@ -1054,6 +1054,7 @@ public final class BuiltinMacros {
     public static let SWIFT_ENABLE_EXPLICIT_MODULES = BuiltinMacros.declareEnumMacro("SWIFT_ENABLE_EXPLICIT_MODULES") as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
     public static let _SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP = BuiltinMacros.declareBooleanMacro("_SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP")
     public static let _SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5 = BuiltinMacros.declareBooleanMacro("_SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5")
+    public static let SWIFT_ENABLE_VERSION_INDEPENDENT_APINOTES = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_VERSION_INDEPENDENT_APINOTES")
     public static let _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES = BuiltinMacros.declareEnumMacro("_EXPERIMENTAL_SWIFT_EXPLICIT_MODULES") as EnumMacroDeclaration<SwiftEnableExplicitModulesSetting>
     public static let SWIFT_ENABLE_TESTABILITY = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_TESTABILITY")
     public static let SWIFT_EXEC = BuiltinMacros.declarePathMacro("SWIFT_EXEC")
@@ -2275,6 +2276,7 @@ public final class BuiltinMacros {
         SWIFT_ENABLE_EXPLICIT_MODULES,
         _SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP,
         _SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5,
+        SWIFT_ENABLE_VERSION_INDEPENDENT_APINOTES,
         _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES,
         SWIFT_DISABLE_PARSE_AS_LIBRARY,
         SWIFT_ENABLE_BARE_SLASH_REGEX,
