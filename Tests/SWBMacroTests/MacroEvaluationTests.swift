@@ -1223,13 +1223,13 @@ extension MacroEvaluationScope {
         let BAR = try namespace.declarePathMacro("BAR")
         
         #if os(Windows)
-        let pathB = "C:\\tmp\\b"
         let pathA = "C:\\tmp\\a"
+        let pathB = "C:\\tmp\\b"
         let pathC = "C:\\tmp\\c"
         let pathD = "C:\\tmp\\d"
         #else
-        let pathB = "/tmp/b"
         let pathA = "/tmp/a"
+        let pathB = "/tmp/b"
         let pathC = "/tmp/c"
         let pathD = "/tmp/d"
         #endif
