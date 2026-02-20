@@ -34,7 +34,7 @@ extension Trait where Self == Testing.ConditionTrait {
 @Suite
 fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
     @Test(.requireSDKs(.host), .requiresWebAssemblySwiftSDK, .skipXcodeToolchain)
-    func basicExecutable() async throws {
+    func basicSwiftExecutable() async throws {
         try await withTemporaryDirectory { (tmpDir: Path) in
             let testProject = try await TestProject(
                 "TestProject",
@@ -73,6 +73,63 @@ fileprivate struct WebAssemblyIntegrationTests: CoreBasedTests {
                     #if os(WASI)
                     print("Hello from WebAssembly!")
                     #endif
+                """
+            }
+
+            let swiftSDK = try #require(findWebAssemblySwiftSDK())
+            let destination = RunDestinationInfo(buildTarget: .swiftSDK(sdkManifestPath: swiftSDK.manifestPath.str, triple: "wasm32-unknown-wasip1"), targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: false)
+            try await tester.checkBuild(runDestination: destination) { results in
+                results.checkNoErrors()
+                let wasmKitPath = try #require(try core.coreSettings.defaultToolchain?.executableSearchPaths.lookup(subject: .executable(basename: "wasmkit"), operatingSystem: ProcessInfo.processInfo.hostOperatingSystem()))
+                let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: wasmKitPath.str), arguments: ["run", projectDir.join("build").join("Debug-webassembly").join("tool").str])
+                #expect(executionResult.exitStatus == .exit(0))
+                #expect(String(decoding: executionResult.stdout, as: UTF8.self) == "Hello from WebAssembly!\n")
+                #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requiresWebAssemblySwiftSDK, .skipXcodeToolchain)
+    func basicCExecutable() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.c"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "LINKER_DRIVER": "auto",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug")
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.c"])
+                        ],
+                    )
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.c")) { stream in
+                stream <<< """
+                    #include <stdio.h>
+                    void main(void) {
+                        printf("Hello from WebAssembly!");
+                    }
                 """
             }
 

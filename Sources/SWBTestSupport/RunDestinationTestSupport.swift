@@ -288,11 +288,6 @@ extension _RunDestinationInfo {
     package static var qnx: Self {
         return .init(platform: "qnx", sdk: "qnx", sdkVariant: "qnx", targetArchitecture: "undefined_arch", supportedArchitectures: ["aarch64", "x86_64"], disableOnlyActiveArch: true)
     }
-
-    /// A run destination targeting WebAssembly/WASI generic device, using the public SDK.
-    package static var wasm: Self {
-        return .init(platform: "webassembly", sdk: "webassembly", sdkVariant: "webassembly", targetArchitecture: "wasm32", supportedArchitectures: ["wasm32"], disableOnlyActiveArch: true)
-    }
 }
 
 extension RunDestinationInfo {
