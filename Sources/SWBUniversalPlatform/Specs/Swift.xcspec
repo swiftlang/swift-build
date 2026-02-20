@@ -1173,6 +1173,59 @@
                 };
             },
 
+            {
+                Name = "ENABLE_CODESIZE_PROFILE";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "CODESIZE_PROFILE_OUTPUT_DIR";
+                Type = Path;
+                Condition = "$(ENABLE_CODESIZE_PROFILE) == YES";
+            },
+
+            {
+                Name = "SWIFT_EMIT_OPT_RECORDS";
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-save-optimization-record",
+                    );
+                    NO = ();
+                };
+            },
+
+            {
+                Name = "SWIFT_EMIT_SIL_FILES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "SWIFT_EMIT_IR_FILES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "SWIFT_SIL_OUTPUT_DIR";
+                Type = Path;
+                Condition = "$(SWIFT_EMIT_SIL_FILES) == YES";
+            },
+
+            {
+                Name = "SWIFT_IR_OUTPUT_DIR";
+                Type = Path;
+                Condition = "$(SWIFT_EMIT_IR_FILES) == YES";
+            },
+
+            {
+                Name = "SWIFT_OPT_RECORD_OUTPUT_DIR";
+                Type = Path;
+                Condition = "$(SWIFT_EMIT_OPT_RECORDS) == YES";
+            },
+
             // Reflection metadata options
             {
                 Name = "SWIFT_REFLECTION_METADATA_LEVEL";
