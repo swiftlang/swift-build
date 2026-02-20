@@ -213,11 +213,13 @@ package final class ClangModuleDependencyGraph {
         let libclang: Libclang
         let scanner: DependencyScanner
         let casDBs: ClangCASDatabases?
+        let casOptsForInvocations: ClangCASOptions?
 
         init(libclang: Libclang, casDBs: ClangCASDatabases?, casOptsForInvocations: ClangCASOptions?) throws {
             self.libclang = libclang
             self.scanner = try libclang.createScanner(casDBs: casDBs, casOpts: casOptsForInvocations)
             self.casDBs = casDBs
+            self.casOptsForInvocations = casOptsForInvocations
         }
     }
 
@@ -583,7 +585,8 @@ package final class ClangModuleDependencyGraph {
             return nil
         }
         return try clangWithScanner.scanner.generateReproducer(
-            commandLine: dependency.scanningCommandLine, workingDirectory: dependency.workingDirectory.str, location: location)
+            commandLine: dependency.scanningCommandLine, workingDirectory: dependency.workingDirectory.str, location: location,
+            casDBs: clangWithScanner.casDBs, casOpts: clangWithScanner.casOptsForInvocations)
     }
 
     package var isEmpty: Bool {
