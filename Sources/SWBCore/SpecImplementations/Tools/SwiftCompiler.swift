@@ -1229,14 +1229,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             func addTBDEmissionIfRequired() {
-                let typeStr = cbc.scope.evaluate(BuiltinMacros.PRODUCT_TYPE)
-                let productType = ProductTypeIdentifier(typeStr)
-
                 // For some targets, a tbd can be emitted to allow downstream targets to begin linking earlier.
                 let supportsTBDEmissionForEagerLinking = cbc.producer.supportsEagerLinking(scope: cbc.scope)
 
                 // InstallAPI support requires explicit opt-in and a compatible product type.
-                let supportsInstallAPI = productType.supportsInstallAPI && cbc.scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API)
+                let supportsInstallAPI = if let productType = cbc.producer.productType, productType.supportsInstallAPI && cbc.scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) {
+                    true
+                } else {
+                    false
+                }
 
                 guard supportsInstallAPI || supportsTBDEmissionForEagerLinking else {
                     return
