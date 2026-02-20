@@ -100,7 +100,7 @@ final class XCFrameworkTaskProducer: StandardTaskProducer, TaskProducer {
                             return nil
                         }
 
-                        let outputDirectory = XCFramework.computeOutputDirectory(context.settings.globalScope)
+                        let outputDirectory = XCFramework.computeOutputDirectory(context.settings.globalScope, xcframeworkPath: xcframeworkPath)
 
                         return (library, outputDirectory)
                     }
