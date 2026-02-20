@@ -279,7 +279,7 @@ public final class MacroEvaluationScope: Serializable, Sendable {
             let context = MacroEvaluationContext(scope: self, macro: macro, value: value, lookup: lookup)
             let resultBuilder = MacroEvaluationResultBuilder()
             value.expression.evaluate(context: context, resultBuilder: resultBuilder)
-            
+
             // Normalize paths and remove duplicates
             let normalizedPaths = resultBuilder.buildStringList().map { Path($0).normalize().str }
             return OrderedSet<String>(normalizedPaths).elements
