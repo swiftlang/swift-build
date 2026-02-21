@@ -111,7 +111,7 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
         commandLine += ["-o", outputPath.str]
 
         let context = InfoPlistProcessorTaskActionContext(scope: cbc.scope, productType: cbc.producer.productType, platform: cbc.producer.platform, sdk: cbc.producer.sdk, sdkVariant: cbc.producer.sdkVariant, cleanupRequiredArchitectures: cleanupArchs.sorted(), clientLibrariesForCodelessBundle: clientLibrariesForCodelessBundle)
-        let inputs = [inputPath] + effectiveAdditionalContentFilePaths + appPrivacyContentFiles
+        let inputs = [inputPath] + effectiveAdditionalContentFilePaths + appPrivacyContentFiles.sorted()
         let serializer = MsgPackSerializer()
         serializer.serialize(context)
         let contextPath = delegate.recordAttachment(contents: serializer.byteString)
