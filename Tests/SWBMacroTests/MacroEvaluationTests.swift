@@ -1224,19 +1224,19 @@ extension MacroEvaluationScope {
         let PATH_A = try namespace.declarePathMacro("PATH_A")
         let PATH_C = try namespace.declarePathMacro("PATH_C")
         let PATH_D = try namespace.declarePathMacro("PATH_D")
-        
-        #if os(Windows)
+
+#if os(Windows)
         let pathA = "C:\\tmp\\a"
         let pathB = "C:\\tmp\\b"
         let pathC = "C:\\tmp\\c"
         let pathD = "C:\\tmp\\d"
-        #else
+#else
         let pathA = "/tmp/a"
         let pathB = "/tmp/b"
         let pathC = "/tmp/c"
         let pathD = "/tmp/d"
-        #endif
-        
+#endif
+
         table.push(FOO, literal: pathB)
         table.push(BAR, literal: pathB)
         table.push(PATH_A, literal: pathA)
@@ -1257,11 +1257,11 @@ extension MacroEvaluationScope {
         // The second occurrence (from BAR) should be removed
         let expected = [pathA, pathB, pathC, pathD]
         #expect(result.count == expected.count, "Array length mismatch: got \(result.count), expected \(expected.count)")
-        
+
         for (index, (actual, expectedPath)) in zip(result, expected).enumerated() {
             #expect(actual == expectedPath, "Element \(index) differs:\n  actual:   \(actual)\n  expected: \(expectedPath)")
         }
-        
+
         #expect(result == expected,
                 "Deduplication should preserve the first occurrence of \(pathB), not the last")
 
