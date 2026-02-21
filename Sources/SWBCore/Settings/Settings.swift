@@ -1257,9 +1257,14 @@ private class SettingsBuilder: ProjectMatchLookup {
         }
     }
 
+    struct BuiltinPlatformInfo {
+        let platform: Platform
+        let sdkCustomProperties: [String: PropertyListItem]
+    }
+
     enum FindPlatformError: Error { case message(String) }
 
-    func findBuiltinPlatform(for triple: String, core: Core) -> Result<Platform, FindPlatformError> {
+    func findBuiltinPlatformInfo(for triple: String, core: Core) -> Result<BuiltinPlatformInfo, FindPlatformError> {
         let llvmTriple: LLVMTriple
 
         do {
@@ -1268,7 +1273,9 @@ private class SettingsBuilder: ProjectMatchLookup {
             return .failure(.message("\(error)"))
         }
 
-        let platformNames = core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self).compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
+        let platformExtensions = core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self)
+
+        let platformNames = platformExtensions.compactMap({ $0.platformName(triple: llvmTriple) }).sorted()
 
         guard let platformName = platformNames.only else {
             return .failure(.message("unable to find a single platform name for triple '\(triple)'. results: \(platformNames)"))
@@ -1278,7 +1285,18 @@ private class SettingsBuilder: ProjectMatchLookup {
             return .failure(.message("unable to find platform for '\(platformName)'"))
         }
 
-        return .success(platform)
+        let sdkCustomProperties: [String: PropertyListItem]
+        do {
+            struct Context: PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext {
+                let hostOperatingSystem: OperatingSystem
+                let platform: Platform
+            }
+            sdkCustomProperties = try platformExtensions.reduce(into: [:], { try $0.merge($1.swiftSDKAdditionalCustomProperties(context: Context(hostOperatingSystem: core.hostOperatingSystem, platform: platform)), uniquingKeysWith: { _, _ in throw StubError.error("Conflicting settings definitions") }) })
+        } catch {
+            return .failure(.message("\(error)"))
+        }
+
+        return .success(BuiltinPlatformInfo(platform: platform, sdkCustomProperties: sdkCustomProperties))
     }
 
     // Properties the builder was initialized with.
@@ -1837,18 +1855,20 @@ private class SettingsBuilder: ProjectMatchLookup {
                 sdk = try project.map {
                     switch parameters.activeRunDestination?.buildTarget {
                     case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-                        let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+                        let findPlatformResult = findBuiltinPlatformInfo(for: triple, core: core)
                         let platform: Platform
+                        let sdkCustomProperties: [String: PropertyListItem]
 
                         switch findPlatformResult {
                         case let .failure(.message(msg)):
                             errors.append(msg)
                             return nil
-                        case let .success(platform: p):
-                            platform = p
+                        case let .success(res):
+                            platform = res.platform
+                            sdkCustomProperties = res.sdkCustomProperties
                         }
 
-                        return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple)
+                        return try sdkRegistry.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: sdkCustomProperties)
                     default:
                         return try sdkRegistry.lookup(nameOrPath: sdkroot, basePath: $0.sourceRoot, activeRunDestination: parameters.activeRunDestination)
                     }
@@ -3578,17 +3598,19 @@ private class SettingsBuilder: ProjectMatchLookup {
         let destinationSDK: SDK
         switch runDestination.buildTarget {
         case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
-            let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+            let findPlatformResult = findBuiltinPlatformInfo(for: triple, core: core)
+            let sdkCustomProperties: [String: PropertyListItem]
 
             switch findPlatformResult {
             case let .failure(.message(msg)):
                 self.errors.append(msg)
                 return
-            case let .success(platform):
-                destinationPlatform = platform
+            case let .success(res):
+                destinationPlatform = res.platform
+                sdkCustomProperties = res.sdkCustomProperties
             }
 
-            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: destinationPlatform, sdkManifestPath: sdkManifestPath, triple: triple) else {
+            guard let sdk = try? sdkRegistry.synthesizedSDK(platform: destinationPlatform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: sdkCustomProperties) else {
                 self.errors.append("unable to synthesize SDK for Swift SDK build target: '\(runDestination.buildTarget)'")
                 return
             }
@@ -3732,14 +3754,14 @@ private class SettingsBuilder: ProjectMatchLookup {
 
         switch runDestination.buildTarget {
         case let .swiftSDK(_, triple: triple):
-            let findPlatformResult = findBuiltinPlatform(for: triple, core: core)
+            let findPlatformResult = findBuiltinPlatformInfo(for: triple, core: core)
 
             switch findPlatformResult {
             case let .failure(.message(msg)):
                 self.errors.append(msg)
                 return
             case let .success(p):
-                destinationPlatform = p
+                destinationPlatform = p.platform
             }
         case let .toolchainSDK(platform: platformName, sdk: _, sdkVariant: _):
             guard let platform: Platform = self.core.platformRegistry.lookup(name: platformName) else {
