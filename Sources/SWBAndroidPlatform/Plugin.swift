@@ -19,7 +19,7 @@ public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = AndroidPlugin()
     manager.register(AndroidPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(AndroidEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
-    manager.register(AndroidPlatformExtension(), type: PlatformInfoExtensionPoint.self)
+    manager.register(AndroidPlatformExtension(plugin: plugin), type: PlatformInfoExtensionPoint.self)
     manager.register(AndroidSDKRegistryExtension(plugin: plugin), type: SDKRegistryExtensionPoint.self)
     manager.register(AndroidToolchainRegistryExtension(plugin: plugin), type: ToolchainRegistryExtensionPoint.self)
 }
@@ -27,6 +27,9 @@ public let initializePlugin: PluginInitializationFunction = { manager in
 @_spi(Testing) public final class AndroidPlugin: Sendable {
     private let androidSDKInstallations = AsyncCache<OperatingSystem, [AndroidSDK]>()
     private let androidOverrideNDKInstallation = AsyncCache<OperatingSystem, AndroidSDK.NDK?>()
+
+    // HACK: The place where this is used is challenging to convert to async, and effectiveInstallation() will be called before it is.
+    fileprivate let effectiveInstallationCache = Cache<OperatingSystem, (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)?>()
 
     func cachedAndroidSDKInstallations(host: OperatingSystem) async throws -> [AndroidSDK] {
         try await androidSDKInstallations.value(forKey: host) {
@@ -45,20 +48,29 @@ public let initializePlugin: PluginInitializationFunction = { manager in
     }
 
     @_spi(Testing) public func effectiveInstallation(host: OperatingSystem) async throws -> (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)? {
-        guard let androidSdk = try? await cachedAndroidSDKInstallations(host: host).first else {
-            // No SDK, but we might still have a standalone NDK from the env var override
-            if let overrideNDK = try? await cachedAndroidOverrideNDKInstallation(host: host) {
-                return (nil, overrideNDK)
+        func effectiveInstallation() async throws -> (sdk: AndroidSDK?, ndk: AndroidSDK.NDK)? {
+            guard let androidSdk = try? await cachedAndroidSDKInstallations(host: host).first else {
+                // No SDK, but we might still have a standalone NDK from the env var override
+                if let overrideNDK = try? await cachedAndroidOverrideNDKInstallation(host: host) {
+                    return (nil, overrideNDK)
+                }
+
+                return nil
             }
 
-            return nil
+            guard let androidNdk = androidSdk.preferredNDK else {
+                return nil
+            }
+
+            return (androidSdk, androidNdk)
         }
 
-        guard let androidNdk = androidSdk.preferredNDK else {
-            return nil
+        if let (sdk, ndk) = try await effectiveInstallation() {
+            _ = effectiveInstallationCache.getOrInsert(host, { (sdk, ndk) })
+            return (sdk, ndk)
         }
 
-        return (androidSdk, androidNdk)
+        return nil
     }
 }
 
@@ -96,6 +108,8 @@ struct AndroidEnvironmentExtension: EnvironmentExtension {
 }
 
 struct AndroidPlatformExtension: PlatformInfoExtension {
+    let plugin: AndroidPlugin
+
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         [
             (.root, [
@@ -117,6 +131,32 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
 
         return nil
     }
+
+    func swiftSDKAdditionalCustomProperties(context: any PlatformInfoExtensionSwiftSDKAdditionalCustomPropertiesContext) -> [String: PropertyListItem] {
+        guard context.platform.name == "android" else {
+            return [:]
+        }
+
+        return androidSDKAdditionalCustomProperties().merging(
+            [
+                "SWIFT_TARGET_TRIPLE": .plString("$(CURRENT_ARCH)-unknown-$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)"),
+            ], uniquingKeysWith: { _, new in new })
+            .merging((plugin.effectiveInstallationCache[context.hostOperatingSystem]??.ndk.sysroot.path.str).map { path in
+            [
+                "SYSROOT": .plString(path)
+            ]
+             } ?? [:], uniquingKeysWith: { _, new in new })
+    }
+}
+
+// Properties applied to the builtin NDK-only SDK as well as Swift SDKs
+fileprivate func androidSDKAdditionalCustomProperties() -> [String: PropertyListItem] {
+    [
+        // Unlike most platforms, the Android version goes on the environment field rather than the system field
+        // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
+        "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("$(SWIFT_PLATFORM_TARGET_PREFIX)"),
+        "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$($(DEPLOYMENT_TARGET_SETTING_NAME))")
+    ]
 }
 
 @_spi(Testing) public struct AndroidSDKRegistryExtension: SDKRegistryExtension {
@@ -124,81 +164,29 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
 
     public func additionalSDKs(context: any SDKRegistryExtensionAdditionalSDKsContext) async throws -> [(path: Path, platform: SWBCore.Platform?, data: [String: PropertyListItem])] {
         let host = context.hostOperatingSystem
-        guard let androidPlatform = context.platformRegistry.lookup(name: "android") else {
+        guard let androidPlatform = context.platformRegistry.lookup(name: "android"), let (_, androidNdk) = try await plugin.effectiveInstallation(host: host) else {
             return []
         }
 
-        let defaultProperties: [String: PropertyListItem] = [
-            "SDK_STAT_CACHE_ENABLE": "NO",
+        return [
+            // An NDK-only SDK that can be used for C/C++-only code if an NDK is present on the system even if there are no Swift SDKs
+            sdk(androidPlatform: androidPlatform, androidNdk: androidNdk, defaultProperties: [
+                "SDK_STAT_CACHE_ENABLE": "NO",
 
-            // Workaround to avoid `-dependency_info` on Linux.
-            "LD_DEPENDENCY_INFO_FILE": .plString(""),
-            "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
+                // Workaround to avoid `-dependency_info` on Linux.
+                "LD_DEPENDENCY_INFO_FILE": .plString(""),
+                "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
 
-            // Android uses lld, not the Apple linker
-            // FIXME: Make this option conditional on use of the Apple linker (or perhaps when targeting an Apple triple?)
-            "LD_DETERMINISTIC_MODE": "NO",
+                // Android uses lld, not the Apple linker
+                // FIXME: Make this option conditional on use of the Apple linker (or perhaps when targeting an Apple triple?)
+                "LD_DETERMINISTIC_MODE": "NO",
 
-            "GENERATE_TEXT_BASED_STUBS": "NO",
-            "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+                "GENERATE_TEXT_BASED_STUBS": "NO",
+                "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
-            "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
-            "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
-        ]
-
-        guard let (_, androidNdk) = try await plugin.effectiveInstallation(host: host) else {
-            return []
-        }
-
-        let abis = androidNdk.abis
-        let deploymentTargetRange = androidNdk.deploymentTargetRange
-
-        let allPossibleTriples = try abis.values.flatMap { abi in
-            try (max(deploymentTargetRange.min, abi.min_os_version)...deploymentTargetRange.max).map { deploymentTarget in
-                var triple = abi.llvm_triple
-                triple.vendor = "unknown" // Android NDK uses "none", Swift SDKs use "unknown"
-                guard let env = triple.environment else {
-                    throw StubError.error("Android triples must have an environment")
-                }
-                triple.environment = "\(env)\(deploymentTarget)"
-                return triple
-            }
-        }.map(\.description)
-
-        let androidSwiftSDKs = (try? SwiftSDK.findSDKs(
-            targetTriples: allPossibleTriples,
-            fs: context.fs,
-            hostOperatingSystem: context.hostOperatingSystem
-        )) ?? []
-
-        return try androidSwiftSDKs.map { androidSwiftSDK in
-            let perArchSwiftResourceDirs = try Dictionary(grouping: androidSwiftSDK.targetTriples, by: { try LLVMTriple($0.key).arch }).mapValues {
-                let paths = Set($0.compactMap { $0.value.swiftResourcesPath })
-                guard let path = paths.only else {
-                    throw StubError.error("The resource path should be the same for all triples of the same architecture in an Android Swift SDK")
-                }
-                return Path(path)
-            }
-
-            return sdk(
-                canonicalName: androidSwiftSDK.identifier,
-                androidPlatform: androidPlatform,
-                androidNdk: androidNdk,
-                defaultProperties: defaultProperties,
-                customProperties: [
-                    "SWIFT_TARGET_TRIPLE": .plString("$(CURRENT_ARCH)-unknown-$(SWIFT_PLATFORM_TARGET_PREFIX)$(LLVM_TARGET_TRIPLE_SUFFIX)"),
-                    "LIBRARY_SEARCH_PATHS": "$(inherited) $(SWIFT_RESOURCE_DIR)/../$(__ANDROID_TRIPLE_$(CURRENT_ARCH))",
-                ].merging(perArchSwiftResourceDirs.map {
-                    [
-                        ("SWIFT_LIBRARY_PATH[arch=\($0.key)]", .plString($0.value.join("android").str)),
-                        ("SWIFT_RESOURCE_DIR[arch=\($0.key)]", .plString($0.value.str)),
-                    ]
-                }.flatMap { $0 }, uniquingKeysWith: { _, new in new }).merging(abis.map {
-                    ("__ANDROID_TRIPLE_\($0.value.llvm_triple.arch)", .plString($0.value.triple))
-                }, uniquingKeysWith: { _, new in new }))
-        } + [
-            // Fallback SDK for when there are no Swift SDKs (Android SDK is still usable for C/C++-only code)
-            sdk(androidPlatform: androidPlatform, androidNdk: androidNdk, defaultProperties: defaultProperties)
+                "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
+                "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
+            ])
         ]
     }
 
@@ -213,12 +201,7 @@ struct AndroidPlatformExtension: PlatformInfoExtension {
             "DefaultProperties": .plDict([
                 "PLATFORM_NAME": .plString("android"),
             ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
-            "CustomProperties": .plDict([
-                // Unlike most platforms, the Android version goes on the environment field rather than the system field
-                // FIXME: Make this configurable in a better way so we don't need to push build settings at the SDK definition level
-                "LLVM_TARGET_TRIPLE_OS_VERSION": .plString("$(SWIFT_PLATFORM_TARGET_PREFIX)"),
-                "LLVM_TARGET_TRIPLE_SUFFIX": .plString("-android$($(DEPLOYMENT_TARGET_SETTING_NAME))"),
-            ].merging(customProperties, uniquingKeysWith: { _, new in new })),
+            "CustomProperties": .plDict(androidSDKAdditionalCustomProperties().merging(customProperties, uniquingKeysWith: { _, new in new })),
             "SupportedTargets": .plDict([
                 "android": .plDict([
                     "Archs": .plArray(androidNdk.abis.map { .plString($0.value.llvm_triple.arch) }),
