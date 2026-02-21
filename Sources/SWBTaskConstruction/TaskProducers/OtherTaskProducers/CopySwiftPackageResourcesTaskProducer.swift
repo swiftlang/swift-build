@@ -18,7 +18,7 @@ import SWBMacro
 final class CopySwiftPackageResourcesTaskProducer: PhasedTaskProducer, TaskProducer {
     func generateTasks() async -> [any PlannedTask] {
         let scope = context.settings.globalScope
-        let bundlesToEmbed = Set(scope.evaluate(BuiltinMacros.EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES))
+        let bundlesToEmbed = Set(scope.evaluate(BuiltinMacros.EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES)).sorted()
 
         // Return early if we don't have any bundles to embed.
         if bundlesToEmbed.isEmpty {
