@@ -22,7 +22,8 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
         fatalError("unexpected direct invocation")
     }
 
-    public func constructInfoPlistTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, generatedPkgInfoFile: Path? = nil, additionalContentFilePaths: [Path] = [], requiredArch: String? = nil, appPrivacyContentFiles: [Path] = [], clientLibrariesForCodelessBundle: [String] = []) async {
+    public func constructInfoPlistTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, generatedPkgInfoFile: Path? = nil, additionalContentFilePaths: [Path] = [], requiredArch: String? = nil, appPrivacyContentFiles: Set<Path> = [], clientLibrariesForCodelessBundle: [String] = []) async {
+        let sortedAppPrivacyContentFiles = appPrivacyContentFiles.sorted()
         let input = cbc.input
         let inputPath = input.absolutePath
         let outputPath = cbc.output
@@ -82,7 +83,7 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
             commandLine += ["-additionalcontentfile", path.str]
         }
 
-        for path in filteredPrivacyLocations(appPrivacyContentFiles, cbc) {
+        for path in filteredPrivacyLocations(sortedAppPrivacyContentFiles, cbc) {
             commandLine += ["-scanforprivacyfile", path.str]
         }
 
@@ -111,7 +112,7 @@ public final class InfoPlistToolSpec : GenericCommandLineToolSpec, SpecIdentifie
         commandLine += ["-o", outputPath.str]
 
         let context = InfoPlistProcessorTaskActionContext(scope: cbc.scope, productType: cbc.producer.productType, platform: cbc.producer.platform, sdk: cbc.producer.sdk, sdkVariant: cbc.producer.sdkVariant, cleanupRequiredArchitectures: cleanupArchs.sorted(), clientLibrariesForCodelessBundle: clientLibrariesForCodelessBundle)
-        let inputs = [inputPath] + effectiveAdditionalContentFilePaths + appPrivacyContentFiles.sorted()
+        let inputs = [inputPath] + effectiveAdditionalContentFilePaths + sortedAppPrivacyContentFiles
         let serializer = MsgPackSerializer()
         serializer.serialize(context)
         let contextPath = delegate.recordAttachment(contents: serializer.byteString)
