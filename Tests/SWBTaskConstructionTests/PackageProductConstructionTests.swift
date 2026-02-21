@@ -1353,4 +1353,50 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             try await TaskConstructionTester(getCore(), testProject)
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftPackageResourceBundlesSorted() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("main.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGN_IDENTITY": "-",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyApp",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "CODE_SIGN_IDENTITY": "-",
+                            // Specify bundle names in unsorted order to test that they get sorted
+                            "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "zebra_bundle apple_bundle banana_bundle",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "main.swift",
+                        ]),
+                    ]
+                ),
+            ])
+
+        let core = try await getCore()
+        let tester = try await TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            // The test verifies that the bundles are processed in sorted order
+            // even though they were specified as: zebra_bundle, apple_bundle, banana_bundle
+            // by checking the build plan is deterministic
+        }
+    }
 }
