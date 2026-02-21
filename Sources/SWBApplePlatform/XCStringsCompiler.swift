@@ -227,7 +227,7 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
             dryRunCommandLine.insert("--dry-run", at: 2)
 
             outputs = try await generatedFilePaths(cbc, delegate, commandLine: dryRunCommandLine, workingDirectory: cbc.producer.defaultWorkingDirectory, environment: environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute XCStrings \(cbc.input.absolutePath.basename) output paths") { output in
-                return output.unsafeStringValue.split(separator: "\n").map(Path.init)
+                return output.unsafeStringValue.split(separator: "\n").map(Path.init).sorted()
             }
         } catch {
             emitErrorsFromDryRunFailure(error, path: cbc.input.absolutePath, delegate: delegate)
