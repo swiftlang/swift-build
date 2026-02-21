@@ -19,19 +19,20 @@ import SwiftBuild
 
 #if os(Windows)
 import WinSDK
+#endif
+
 #if canImport(System)
 import System
 #else
 import SystemPackage
 #endif
-#endif
 
 /// Helper class for talking to 'swbuild' the tool
 final class CLIConnection {
-    private let task: SWBUtil.Process
-    private let monitorHandle: FileHandle
+    private let task: ProcessController
+    private let monitorHandle: FileDescriptor
+    private let sessionHandle: FileDescriptor
     private let temporaryDirectory: NamedTemporaryDirectory
-    private let exitPromise: Promise<Processes.ExitStatus, any Error>
     private let outputStream: AsyncThrowingStream<SWBDispatchData, any Error>
     private var outputStreamIterator: AsyncCLIConnectionResponseSequence<AsyncFlatteningSequence<AsyncThrowingStream<SWBDispatchData, any Error>>>.AsyncIterator
 
@@ -107,45 +108,59 @@ final class CLIConnection {
         #if os(Windows)
         throw StubError.error("PTY not supported on Windows")
         #else
-        temporaryDirectory = try NamedTemporaryDirectory()
+        let temporaryDirectory = try NamedTemporaryDirectory()
+        self.temporaryDirectory = temporaryDirectory
 
         // Allocate a PTY we can use to talk to the tool.
-        var monitorFD = Int32(0)
-        var sessionFD = Int32(0)
-        if openpty(&monitorFD, &sessionFD, nil, nil, nil) != 0 {
-            throw POSIXError(errno, context: "openpty")
-        }
-        _ = fcntl(monitorFD, F_SETFD, FD_CLOEXEC)
-        _ = fcntl(sessionFD, F_SETFD, FD_CLOEXEC)
+        let (monitorHandle, sessionHandle) = try FileDescriptor.openPTY()
 
-        monitorHandle = FileHandle(fileDescriptor: monitorFD, closeOnDealloc: true)
-        let sessionHandle = FileHandle(fileDescriptor: sessionFD, closeOnDealloc: true)
+        self.monitorHandle = monitorHandle
+        self.sessionHandle = sessionHandle
 
-        // Launch the tool.
-        task = Process()
-        task.executableURL = try CLIConnection.swiftbuildToolURL
-        task.currentDirectoryURL = URL(fileURLWithPath: (currentDirectory ?? temporaryDirectory.path).str)
-        task.standardInput = sessionHandle
-        task.standardOutput = sessionHandle
-        task.standardError = sessionHandle
-        task.environment = .init(Self.environment)
         do {
-            exitPromise = try task.launch()
+            try monitorHandle.setCloseOnExec()
+            try sessionHandle.setCloseOnExec()
+
+            // Launch the tool.
+            self.task = try ProcessController(
+                path: CLIConnection.swiftbuildToolURL.filePath,
+                arguments: [],
+                environment: Self.environment,
+                workingDirectory: currentDirectory ?? temporaryDirectory.path)
         } catch {
-            throw StubError.error("Failed to launch the CLI connection: \(error)")
+            try? monitorHandle.close()
+            try? sessionHandle.close()
+            throw error
         }
 
-        // Close the session handle, so the FD will close once the service stops.
-        try sessionHandle.close()
+        let startCondition = WaitCondition()
+        task.start(
+            input: sessionHandle,
+            output: sessionHandle,
+            error: sessionHandle,
+            highPriority: false,
+            onStarted: { _ in
+                // Close the session handle, so the FD will close once the service stops.
+                try? sessionHandle.close()
+                startCondition.signal()
+            })
 
-        outputStream = monitorHandle._bytes()
+        outputStream = DispatchFD(fileDescriptor: monitorHandle)._dataStream()
         outputStreamIterator = outputStream.flattened.cliResponses.makeAsyncIterator()
+        await startCondition.wait()
         #endif
+    }
+
+    deinit {
+        try? monitorHandle.close()
+        if task.processIdentifier == nil {
+            try? sessionHandle.close()
+        }
     }
 
     func shutdown() async {
         // If the task is still running, ensure orderly shutdown.
-        if task.isRunning {
+        if (try? task.exitStatus) == nil {
             try? send(command: "quit")
             _ = try? await getResponse()
             _ = try? await exitStatus
@@ -162,7 +177,8 @@ final class CLIConnection {
         try Self.terminate(processIdentifier: processIdentifier)
     }
 
-    static func terminate(processIdentifier: Int32) throws {
+    static func terminate(processIdentifier: Int32?) throws {
+        guard let processIdentifier else { return }
         #if os(Windows)
         guard let proc = OpenProcess(DWORD(PROCESS_TERMINATE), false, DWORD(processIdentifier)) else {
             throw Win32Error(GetLastError())
@@ -186,20 +202,24 @@ final class CLIConnection {
         // occasion, prompting test failures <rdar://51241102>.
         usleep(10)
         #endif
-        try monitorHandle.write(contentsOf: Data(command.appending("\n").utf8))
+        try monitorHandle.writeAll(command.appending("\n").utf8)
     }
 
     func getResponse() async throws -> String {
         try await outputStreamIterator.next() ?? ""
     }
 
-    var processIdentifier: Int32 {
+    var processIdentifier: Int32? {
         task.processIdentifier
     }
 
     var exitStatus: Processes.ExitStatus {
         get async throws {
-            try await exitPromise.value
+            await task.waitUntilExit()
+            guard let exitStatus = try task.exitStatus else {
+                throw StubError.error("Task is still running")
+            }
+            return exitStatus
         }
     }
 }
@@ -339,3 +359,22 @@ fileprivate func systemRoot() throws -> Path? {
     return nil
     #endif
 }
+
+#if !os(Windows)
+extension FileDescriptor {
+    fileprivate static func openPTY() throws -> (monitorFD: FileDescriptor, sessionFD: FileDescriptor) {
+        var monitorFD = Int32(-1)
+        var sessionFD = Int32(-1)
+        if openpty(&monitorFD, &sessionFD, nil, nil, nil) != 0 {
+            throw POSIXError(errno, context: "openpty")
+        }
+        return (monitorFD: FileDescriptor(rawValue: monitorFD), sessionFD: FileDescriptor(rawValue: sessionFD))
+    }
+
+    fileprivate func setCloseOnExec() throws {
+        if fcntl(rawValue, F_SETFD, FD_CLOEXEC) == -1 {
+            throw POSIXError(errno, context: "fcntl")
+        }
+    }
+}
+#endif
