@@ -215,7 +215,7 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
             results.checkTarget("Tool") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
                     // Verify the task is created and processes the plist file
-                    task.checkCommandLine(contains: ["-o", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/normal/\(results.runDestinationTargetArchitecture)/Info.plist"])
+                    task.checkCommandLineContains(["-o", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/normal/\(results.runDestinationTargetArchitecture)/Info.plist"])
                     task.checkInputs(contain: [.path("\(SRCROOT)/Tool.plist")])
                 }
             }
