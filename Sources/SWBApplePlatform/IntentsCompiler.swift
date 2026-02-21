@@ -125,7 +125,13 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
         // Compute the output directory.
         let input = cbc.input
         let modelName = input.absolutePath.basenameWithoutSuffix
-        let outputDir = cbc.scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR).join("IntentDefinitionGenerated").join(modelName).normalize()
+        let outputDir: AbsolutePath
+        do {
+            outputDir = try AbsolutePath(validating: cbc.scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR).join("IntentDefinitionGenerated").join(modelName).normalize())
+        } catch {
+            delegate.error(error)
+            return
+        }
 
         guard
             let target = cbc.producer.configuredTarget?.target as? SWBCore.BuildPhaseTarget,
@@ -190,7 +196,7 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
         }
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), specialArgs: specialArgs).map(\.asString)
         commandLine[1] = "generate"
-        commandLine[5] = outputDir.str
+        commandLine[5] = outputDir.path.str
 
         // Ask the client delegate for the list of paths of generated files.
         let generatedFiles: [Path]
@@ -199,7 +205,7 @@ public final class IntentsCompilerSpec : GenericCompilerSpec, SpecIdentifierType
             delegate.access(path: input.absolutePath)
 
             generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: commandLine[0...1] + ["-dryRun"] + commandLine[2...], workingDirectory: cbc.producer.defaultWorkingDirectory, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute Intent Definition \(input.absolutePath.basename) code generation output paths") { output in
-                return output.unsafeStringValue.split(separator: "\n").map(Path.init).map { $0.prependingPrivatePrefixIfNeeded(otherPath: outputDir) }
+                return try output.unsafeStringValue.split(separator: "\n").map { try AbsolutePath(validating: String($0)).prependingPrivatePrefixIfNeeded(otherPath: outputDir) }
             }
             guard !generatedFiles.isEmpty else {
                 // If we were given an empty list of generated files, then there were just no files to be generated, so we return.
