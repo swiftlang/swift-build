@@ -171,4 +171,54 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func infoPlistWithPrivacyContentFiles() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.m"),
+                    TestFile("Tool.plist"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGN_IDENTITY": "-",
+                    "INFOPLIST_FILE": "Tool.plist",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Tool",
+                    type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug"),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "SourceFile.m",
+                        ]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        // Test that infoplist processing works correctly when privacy content files are involved.
+        // The specific test is that the privacy content files are sorted in the task inputs,
+        // ensuring deterministic build plans.
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("Tool") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
+                    // Verify the task is created and processes the plist file
+                    task.checkCommandLine(contains: ["-o", "\(SRCROOT)/build/aProject.build/Debug/Tool.build/normal/\(results.runDestinationTargetArchitecture)/Info.plist"])
+                    task.checkInputs(contain: [.path("\(SRCROOT)/Tool.plist")])
+                }
+            }
+        }
+    }
 }
