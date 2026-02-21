@@ -171,4 +171,61 @@ fileprivate struct InfoPlistTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    /// Verify that appPrivacyContentFiles are sorted in ProcessInfoPlistFile task inputs,
+    /// ensuring deterministic build plans regardless of the order privacy content files are declared.
+    @Test(.requireSDKs(.macOS))
+    func infoPlistPrivacyContentFileInputsSorted() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("SourceFile.m"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "CODE_SIGN_IDENTITY": "-",
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    // Specify bundle names in intentionally unsorted order.
+                    // These flow through CopySwiftPackageResourcesTaskProducer which
+                    // calls declareGeneratedPrivacyPlistContent() for each bundle,
+                    // and the resulting paths become appPrivacyContentFiles inputs
+                    // to the ProcessInfoPlistFile task.
+                    "EMBED_PACKAGE_RESOURCE_BUNDLE_NAMES": "zebra_res cherry_res apple_res",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "MyApp",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug"),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([
+                            "SourceFile.m",
+                        ]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("MyApp") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("ProcessInfoPlistFile")) { task in
+                    // Extract the .bundle input paths from the task inputs
+                    let bundleInputPaths = task.inputs
+                        .map(\.path.str)
+                        .filter { $0.hasSuffix(".bundle") }
+
+                    // Verify the bundle inputs are sorted
+                    #expect(bundleInputPaths == bundleInputPaths.sorted(), "Privacy content file inputs to ProcessInfoPlistFile should be sorted for deterministic build plans, but got: \(bundleInputPaths)")
+                }
+            }
+        }
+    }
 }

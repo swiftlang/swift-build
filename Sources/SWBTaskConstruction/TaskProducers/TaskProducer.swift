@@ -124,7 +124,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         /// The list of generated info plist additions produced in this target.
         fileprivate var _generatedInfoPlistContents: [Path] = []
 
-        fileprivate var _generatedPrivacyContentFilePaths: [Path] = []
+        fileprivate var _generatedPrivacyContentFilePaths: Set<Path> = []
 
         /// The list of generated TBD files produced in this target.
         ///
@@ -469,7 +469,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    var generatedPrivacyContentFilePaths: [Path] {
+    var generatedPrivacyContentFilePaths: Set<Path> {
         return state.withLock { state in
             assert(state._inDeferredMode)
             return state._generatedPrivacyContentFilePaths
@@ -487,7 +487,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     func addPrivacyContentPlistContent(_ path: Path) {
         state.withLock { state in
             assert(!state._inDeferredMode)
-            state._generatedPrivacyContentFilePaths.append(path)
+            state._generatedPrivacyContentFilePaths.insert(path)
         }
     }
 
