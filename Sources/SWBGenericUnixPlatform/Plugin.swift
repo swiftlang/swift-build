@@ -56,6 +56,11 @@ struct GenericUnixDeveloperDirectoryExtension: DeveloperDirectoryExtension {
             return nil
         }
 
+        if let override = ProcessInfo.processInfo.environment["GENERIC_UNIX_DEVELOPER_DIR_TESTING_OVERRIDE"].map({ Path($0) }), override.isAbsolute {
+            print("GENERIC_UNIX_DEVELOPER_DIR_TESTING_OVERRIDE: \(override)")
+            return .swiftToolchain(override, xcodeDeveloperPath: nil)
+        }
+
         return .swiftToolchain(.root, xcodeDeveloperPath: nil)
     }
 }
