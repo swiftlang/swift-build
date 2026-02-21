@@ -1221,6 +1221,9 @@ extension MacroEvaluationScope {
         // Set up macros that will expand to duplicate values
         let FOO = try namespace.declarePathMacro("FOO")
         let BAR = try namespace.declarePathMacro("BAR")
+        let PATH_A = try namespace.declarePathMacro("PATH_A")
+        let PATH_C = try namespace.declarePathMacro("PATH_C")
+        let PATH_D = try namespace.declarePathMacro("PATH_D")
         
         #if os(Windows)
         let pathA = "C:\\tmp\\a"
@@ -1236,13 +1239,16 @@ extension MacroEvaluationScope {
         
         table.push(FOO, literal: pathB)
         table.push(BAR, literal: pathB)
+        table.push(PATH_A, literal: pathA)
+        table.push(PATH_C, literal: pathC)
+        table.push(PATH_D, literal: pathD)
 
         // Create a path ordered set with duplicates introduced via macro expansion
         // FRAMEWORK_SEARCH_PATHS = /tmp/a $(FOO) /tmp/c $(BAR) /tmp/d
         // where FOO = /tmp/b and BAR = /tmp/b
         // Expected result: /tmp/a /tmp/b /tmp/c /tmp/d (first /tmp/b wins, second is deduped)
         let FRAMEWORK_SEARCH_PATHS = try namespace.declarePathOrderedSetMacro("FRAMEWORK_SEARCH_PATHS")
-        table.push(FRAMEWORK_SEARCH_PATHS, namespace.parseStringList("\(pathA) $(FOO) \(pathC) $(BAR) \(pathD)"))
+        table.push(FRAMEWORK_SEARCH_PATHS, namespace.parseStringList("$(PATH_A) $(FOO) $(PATH_C) $(BAR) $(PATH_D)"))
 
         let scope = MacroEvaluationScope(table: table)
         let result = scope.evaluate(FRAMEWORK_SEARCH_PATHS)
