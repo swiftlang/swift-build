@@ -1361,7 +1361,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             groupTree: TestGroup(
                 "SomeFiles",
                 children: [
-                    TestFile("main.swift"),
+                    TestFile("main.c"),
                 ]),
             buildConfigurations: [
                 TestBuildConfiguration("Debug", buildSettings: [
@@ -1371,8 +1371,8 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             ],
             targets: [
                 TestStandardTarget(
-                    "MyApp",
-                    type: .application,
+                    "MyTool",
+                    type: .commandLineTool,
                     buildConfigurations: [
                         TestBuildConfiguration("Debug", buildSettings: [
                             "PRODUCT_NAME": "$(TARGET_NAME)",
@@ -1383,7 +1383,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
-                            "main.swift",
+                            "main.c",
                         ]),
                     ]
                 ),
