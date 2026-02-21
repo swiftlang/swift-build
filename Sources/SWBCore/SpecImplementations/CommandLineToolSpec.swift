@@ -1197,7 +1197,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     public static let fallbackExecutionDescription: String = "Processing…"
 
     /// Resolve the execution description to use for the given context.
-    public func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
+    open func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
         guard let execDescription else {
             // FIXME: We should either require an execution description, or make up a better fallback description.
             return Self.fallbackExecutionDescription

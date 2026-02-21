@@ -147,7 +147,6 @@ add_library(SWBCore
   SpecImplementations/Tools/ProcessSDKImports.swift
   SpecImplementations/Tools/ProcessXCFrameworkLibrary.swift
   SpecImplementations/Tools/ProductPackaging.swift
-  SpecImplementations/Tools/RegisterExecutionPolicyException.swift
   SpecImplementations/Tools/SetAttributes.swift
   SpecImplementations/Tools/ShellScriptTool.swift
   SpecImplementations/Tools/SignatureCollection.swift

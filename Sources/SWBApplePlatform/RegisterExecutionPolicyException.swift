@@ -12,29 +12,34 @@
 
 import SWBProtocol
 import SWBUtil
-public import SWBMacro
+package import SWBMacro
+package import SWBCore
 
-public final class RegisterExecutionPolicyExceptionToolSpec: CommandLineToolSpec, SpecImplementationType, @unchecked Sendable {
-    public static let identifier = "com.apple.build-tasks.register-execution-policy-exception"
+package final class RegisterExecutionPolicyExceptionToolSpec: CommandLineToolSpec, SpecIdentifierType, SpecImplementationType, @unchecked Sendable {
+    package static let identifier = "com.apple.build-tasks.register-execution-policy-exception"
 
-    public static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
+    required convenience init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
+        self.init(parser, basedOnSpec, isGeneric: false)
+    }
+
+    package static func construct(registry: SpecRegistry, proxy: SpecProxy) -> Spec {
         return RegisterExecutionPolicyExceptionToolSpec(registry, proxy, ruleInfoTemplate: ["RegisterExecutionPolicyException", .input], commandLineTemplate: [.execPath, .options, .input])
     }
 
-    public override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {
+    package override func computeExecutablePath(_ cbc: CommandBuildContext) -> String {
         return "builtin-RegisterExecutionPolicyException"
     }
 
-    public override func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
+    package override func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
         return cbc.scope.evaluate(cbc.scope.namespace.parseString("Register execution policy exception for $(InputFileName)"), lookup: { self.lookup($0, cbc, delegate, lookup) })
     }
 
-    public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
+    package override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // FIXME: We should ensure this cannot happen.
         fatalError("unexpected direct invocation")
     }
 
-    public func constructRegisterExecutionPolicyExceptionTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
+    package func constructRegisterExecutionPolicyExceptionTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         let input = cbc.input
         let outputs = [delegate.createVirtualNode("RegisterExecutionPolicyException \(input.absolutePath.str)")]
 
