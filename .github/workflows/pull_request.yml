@@ -79,7 +79,7 @@ jobs:
       wasm_sdk_versions: '["nightly-main"]'
       wasm_sdk_pre_build_command: SKIP_ANDROID=1 ./.github/scripts/prebuild.sh
       # This is a hack - replace the build command with a test command and drop the --swift-sdk arg the workflow appends.
-      wasm_sdk_build_command: "swift test --filter WebAssemblyIntegrationTests #"
+      wasm_sdk_build_command: "env GENERIC_UNIX_DEVELOPER_DIR_TESTING_OVERRIDE=$(dirname $(dirname $(dirname \"$SWIFT_EXECUTABLE_FOR_WASM_SDK\"))) swift test --filter WebAssemblyIntegrationTests #"
 
   soundness:
     name: Soundness
