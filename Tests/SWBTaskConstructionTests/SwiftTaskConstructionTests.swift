@@ -4702,6 +4702,542 @@ fileprivate struct SwiftTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftOptimizationRecords() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("File1.swift"),
+                    TestFile("File2.swift"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_EMIT_OPT_RECORDS": "YES",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                    ]
+                )
+            ]
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("AppTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-save-optimization-record"])
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
+                    guard let plist = try? PropertyList.fromJSONData(contents) else {
+                        Issue.record("could not parse output file map as JSON")
+                        return
+                    }
+                    guard let dict = plist.dictValue else {
+                        Issue.record("output file map is not a dictionary")
+                        return
+                    }
+
+                    for filename in ["File1", "File2"] {
+                        guard let fileDict = dict["\(SRCROOT)/\(filename).swift"]?.dictValue else {
+                            Issue.record("missing entry for \(filename).swift")
+                            continue
+                        }
+                        #expect(fileDict["yaml-opt-record"]?.stringValue?.hasSuffix("\(filename).opt.yaml") == true,
+                               "Expected yaml-opt-record entry for \(filename).swift")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftOptimizationRecordsDisabledByDefault() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("File1.swift"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        // Explicitly not setting SWIFT_EMIT_OPT_RECORDS
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.swift"]),
+                    ]
+                )
+            ]
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("AppTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineDoesNotContain("-save-optimization-record")
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
+                    guard let plist = try? PropertyList.fromJSONData(contents),
+                          let dict = plist.dictValue,
+                          let fileDict = dict["\(SRCROOT)/File1.swift"]?.dictValue else {
+                        Issue.record("could not parse output file map")
+                        return
+                    }
+
+                    #expect(fileDict["yaml-opt-record"] == nil,
+                           "Should not have yaml-opt-record entry when SWIFT_EMIT_OPT_RECORDS is not set")
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftSupplementaryOutputs() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("File1.swift"),
+                    TestFile("File2.swift"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_EMIT_SIL_FILES": "YES",
+                        "SWIFT_EMIT_IR_FILES": "YES",
+                        "SWIFT_EMIT_OPT_RECORDS": "YES",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                    ]
+                )
+            ]
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("AppTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-save-optimization-record"])
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
+                    guard let plist = try? PropertyList.fromJSONData(contents) else {
+                        Issue.record("could not parse output file map as JSON")
+                        return
+                    }
+                    guard let dict = plist.dictValue else {
+                        Issue.record("output file map is not a dictionary")
+                        return
+                    }
+
+                    for filename in ["File1", "File2"] {
+                        guard let fileDict = dict["\(SRCROOT)/\(filename).swift"]?.dictValue else {
+                            Issue.record("missing entry for \(filename).swift")
+                            continue
+                        }
+                        #expect(fileDict["sil"]?.stringValue?.hasSuffix("\(filename).sil") == true,
+                               "Expected sil entry for \(filename).swift")
+                        #expect(fileDict["llvm-ir"]?.stringValue?.hasSuffix("\(filename).ll") == true,
+                               "Expected llvm-ir entry for \(filename).swift")
+                        #expect(fileDict["yaml-opt-record"]?.stringValue?.hasSuffix("\(filename).opt.yaml") == true,
+                               "Expected yaml-opt-record entry for \(filename).swift")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftSupplementaryOutputsWithCustomDirectories() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("File1.swift"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_EMIT_SIL_FILES": "YES",
+                        "SWIFT_EMIT_IR_FILES": "YES",
+                        "SWIFT_EMIT_OPT_RECORDS": "YES",
+                        "SWIFT_SIL_OUTPUT_DIR": "/tmp/Test/sil",
+                        "SWIFT_IR_OUTPUT_DIR": "/tmp/Test/ir",
+                        "SWIFT_OPT_RECORD_OUTPUT_DIR": "/tmp/Test/opt",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.swift"]),
+                    ]
+                )
+            ]
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("AppTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-save-optimization-record"])
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
+                    guard let plist = try? PropertyList.fromJSONData(contents),
+                          let dict = plist.dictValue,
+                          let fileDict = dict["\(SRCROOT)/File1.swift"]?.dictValue else {
+                        Issue.record("could not parse output file map")
+                        return
+                    }
+
+                    #expect(fileDict["sil"]?.stringValue?.hasPrefix("/tmp/Test/sil/") == true,
+                           "Expected sil output in custom directory")
+                    #expect(fileDict["llvm-ir"]?.stringValue?.hasPrefix("/tmp/Test/ir/") == true,
+                           "Expected llvm-ir output in custom directory")
+                    #expect(fileDict["yaml-opt-record"]?.stringValue?.hasPrefix("/tmp/Test/opt/") == true,
+                           "Expected yaml-opt-record output in custom directory")
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftSupplementaryOutputsWMO() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("File1.swift"),
+                    TestFile("File2.swift"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Release",  // WMO is typically used in Release
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                        "SWIFT_COMPILATION_MODE": "wholemodule",
+                        "SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION": "NO",
+                        "SWIFT_EMIT_SIL_FILES": "YES",
+                        "SWIFT_EMIT_IR_FILES": "YES",
+                        "SWIFT_EMIT_OPT_RECORDS": "YES",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                    ]
+                )
+            ]
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("AppTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-save-optimization-record"])
+                    task.checkCommandLineContains(["-whole-module-optimization"])
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
+                    guard let plist = try? PropertyList.fromJSONData(contents) else {
+                        Issue.record("could not parse output file map as JSON")
+                        return
+                    }
+                    guard let dict = plist.dictValue else {
+                        Issue.record("output file map is not a dictionary")
+                        return
+                    }
+
+                    // In single-threaded WMO, module-level entries are in the global "" entry
+                    guard let globalDict = dict[""]?.dictValue else {
+                        Issue.record("missing global entry in output file map")
+                        return
+                    }
+
+                    #expect(globalDict["sil"]?.stringValue?.hasSuffix("AppTarget.sil") == true,
+                           "Expected module-level sil entry in WMO mode")
+                    #expect(globalDict["llvm-ir"]?.stringValue?.hasSuffix("AppTarget.ll") == true,
+                           "Expected module-level llvm-ir entry in WMO mode")
+                    #expect(globalDict["yaml-opt-record"]?.stringValue?.hasSuffix("AppTarget.opt.yaml") == true,
+                           "Expected module-level yaml-opt-record entry in WMO mode")
+
+                    for filename in ["File1", "File2"] {
+                        if let fileDict = dict["\(SRCROOT)/\(filename).swift"]?.dictValue {
+                            #expect(fileDict["sil"] == nil,
+                                   "Should not have per-file sil entry for \(filename).swift in WMO (SIL is always module-level)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftSupplementaryOutputsWMOParallel() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("File1.swift"),
+                    TestFile("File2.swift"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Release",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "SWIFT_OPTIMIZATION_LEVEL": "-O",
+                        "SWIFT_COMPILATION_MODE": "wholemodule",
+                        "SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION": "YES",
+                        "SWIFT_EMIT_SIL_FILES": "YES",
+                        "SWIFT_EMIT_IR_FILES": "YES",
+                        "SWIFT_EMIT_OPT_RECORDS": "YES",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                    ]
+                )
+            ]
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("AppTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-save-optimization-record"])
+                    task.checkCommandLineContains(["-whole-module-optimization"])
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Release/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
+                    guard let plist = try? PropertyList.fromJSONData(contents) else {
+                        Issue.record("could not parse output file map as JSON")
+                        return
+                    }
+                    guard let dict = plist.dictValue else {
+                        Issue.record("output file map is not a dictionary")
+                        return
+                    }
+
+                    guard let globalDict = dict[""]?.dictValue else {
+                        Issue.record("missing global entry in output file map")
+                        return
+                    }
+
+                    // SIL is always module-level in WMO, even with multiple threads
+                    #expect(globalDict["sil"]?.stringValue?.hasSuffix("AppTarget.sil") == true,
+                           "Expected module-level sil entry in multi-threaded WMO (SIL is always module-level)")
+
+                    #expect(globalDict["llvm-ir"] == nil,
+                           "Should not have module-level llvm-ir in multi-threaded WMO")
+                    #expect(globalDict["yaml-opt-record"] == nil,
+                           "Should not have module-level yaml-opt-record in multi-threaded WMO")
+
+                    for filename in ["File1", "File2"] {
+                        guard let fileDict = dict["\(SRCROOT)/\(filename).swift"]?.dictValue else {
+                            Issue.record("missing entry for \(filename).swift in multi-threaded WMO")
+                            continue
+                        }
+
+                        #expect(fileDict["sil"] == nil,
+                               "Should not have per-file sil entry for \(filename).swift in WMO (SIL is module-level)")
+
+                        #expect(fileDict["llvm-ir"]?.stringValue?.hasSuffix("\(filename).ll") == true,
+                               "Expected per-file llvm-ir entry for \(filename).swift in multi-threaded WMO")
+                        #expect(fileDict["yaml-opt-record"]?.stringValue?.hasSuffix("\(filename).opt.yaml") == true,
+                               "Expected per-file yaml-opt-record entry for \(filename).swift in multi-threaded WMO")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func swiftCodesizeProfileBuildSetting() async throws {
+        let swiftCompilerPath = try await self.swiftCompilerPath
+        let swiftVersion = try await self.swiftVersion
+
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("File1.swift"),
+                    TestFile("File2.swift"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SWIFT_EXEC": swiftCompilerPath.str,
+                        "SWIFT_VERSION": swiftVersion,
+                        "ENABLE_CODESIZE_PROFILE": "YES",
+                        "CODESIZE_PROFILE_OUTPUT_DIR": "/tmp/codesize-test",
+                    ]
+                )
+            ],
+            targets: [
+                TestStandardTarget(
+                    "AppTarget",
+                    type: .application,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["File1.swift", "File2.swift"]),
+                    ]
+                )
+            ]
+        )
+
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("AppTarget") { target in
+                results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-save-optimization-record"])
+                }
+
+                results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "\(SRCROOT)/build/aProject.build/Debug/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/AppTarget-OutputFileMap.json"])) { task, contents in
+                    guard let plist = try? PropertyList.fromJSONData(contents) else {
+                        Issue.record("could not parse output file map as JSON")
+                        return
+                    }
+                    guard let dict = plist.dictValue else {
+                        Issue.record("output file map is not a dictionary")
+                        return
+                    }
+
+                    for filename in ["File1", "File2"] {
+                        guard let fileDict = dict["\(SRCROOT)/\(filename).swift"]?.dictValue else {
+                            Issue.record("missing entry for \(filename).swift")
+                            continue
+                        }
+
+                        #expect(fileDict["sil"]?.stringValue?.hasPrefix("/tmp/codesize-test/") == true,
+                               "Expected sil entry in unified output directory for \(filename).swift")
+                        #expect(fileDict["llvm-ir"]?.stringValue?.hasPrefix("/tmp/codesize-test/") == true,
+                               "Expected llvm-ir entry in unified output directory for \(filename).swift")
+                        #expect(fileDict["yaml-opt-record"]?.stringValue?.hasPrefix("/tmp/codesize-test/") == true,
+                               "Expected yaml-opt-record entry in unified output directory for \(filename).swift")
+                    }
+                }
+            }
+        }
+    }
 }
 
 private func XCTAssertEqual(_ lhs: EnvironmentBindings, _ rhs: [String: String], file: StaticString = #filePath, line: UInt = #line) {
