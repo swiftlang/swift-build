@@ -1212,4 +1212,61 @@ extension MacroEvaluationScope {
             }
         }
     }
+
+    @Test
+    func pathOrderedSetWithDuplicateAndPreserveFirstOccurrence() throws {
+        let namespace = MacroNamespace(debugDescription: "test")
+        var table = MacroValueAssignmentTable(namespace: namespace)
+
+        // Set up macros that will expand to duplicate values
+        let FOO = try namespace.declarePathMacro("FOO")
+        let BAR = try namespace.declarePathMacro("BAR")
+        let PATH_A = try namespace.declarePathMacro("PATH_A")
+        let PATH_C = try namespace.declarePathMacro("PATH_C")
+        let PATH_D = try namespace.declarePathMacro("PATH_D")
+
+#if os(Windows)
+        let pathA = "C:\\tmp\\a"
+        let pathB = "C:\\tmp\\b"
+        let pathC = "C:\\tmp\\c"
+        let pathD = "C:\\tmp\\d"
+#else
+        let pathA = "/tmp/a"
+        let pathB = "/tmp/b"
+        let pathC = "/tmp/c"
+        let pathD = "/tmp/d"
+#endif
+
+        table.push(FOO, literal: pathB)
+        table.push(BAR, literal: pathB)
+        table.push(PATH_A, literal: pathA)
+        table.push(PATH_C, literal: pathC)
+        table.push(PATH_D, literal: pathD)
+
+        // Create a path ordered set with duplicates introduced via macro expansion
+        // FRAMEWORK_SEARCH_PATHS = /tmp/a $(FOO) /tmp/c $(BAR) /tmp/d
+        // where FOO = /tmp/b and BAR = /tmp/b
+        // Expected result: /tmp/a /tmp/b /tmp/c /tmp/d (first /tmp/b wins, second is deduped)
+        let FRAMEWORK_SEARCH_PATHS = try namespace.declarePathOrderedSetMacro("FRAMEWORK_SEARCH_PATHS")
+        table.push(FRAMEWORK_SEARCH_PATHS, namespace.parseStringList("$(PATH_A) $(FOO) $(PATH_C) $(BAR) $(PATH_D)"))
+
+        let scope = MacroEvaluationScope(table: table)
+        let result = scope.evaluate(FRAMEWORK_SEARCH_PATHS)
+
+        // The first occurrence of pathB (from FOO) should be preserved at index 1
+        // The second occurrence (from BAR) should be removed
+        let expected = [pathA, pathB, pathC, pathD]
+        #expect(result.count == expected.count, "Array length mismatch: got \(result.count), expected \(expected.count)")
+
+        for (index, (actual, expectedPath)) in zip(result, expected).enumerated() {
+            #expect(actual == expectedPath, "Element \(index) differs:\n  actual:   \(actual)\n  expected: \(expectedPath)")
+        }
+
+        #expect(result == expected,
+                "Deduplication should preserve the first occurrence of \(pathB), not the last")
+
+        // Verify that pathB appears only once and at the position of its first occurrence
+        let bIndices = result.enumerated().filter { $0.element == pathB }.map { $0.offset }
+        #expect(bIndices == [1], "Expected \(pathB) to appear only at index 1 (first occurrence)")
+    }
 }

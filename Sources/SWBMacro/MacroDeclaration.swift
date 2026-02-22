@@ -46,6 +46,7 @@ public class MacroDeclaration: Hashable, CustomStringConvertible, Encodable, @un
     public func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
         preconditionFailure("this method is a subclass responsibility")
     }
+
 }
 
 /// Concrete subclass of `MacroDeclaration` for boolean macro declarations.
@@ -126,3 +127,14 @@ public final class PathListMacroDeclaration: MacroDeclaration, @unchecked Sendab
         return .plArray(scope.evaluate(self).map { .plString($0) })
     }
 }
+
+public final class PathOrderedSetMacroDeclaration: MacroDeclaration, @unchecked Sendable {
+    /// Returns the `.pathOrderedSet` type.
+    override public var type: MacroType { return .pathOrderedSet }
+
+    /// Returns the evaluated value of the macro in the given scope, as an array of paths with duplicates removed while preserving order.
+    public override func propertyListValue(in scope: MacroEvaluationScope) -> PropertyListItem? {
+        return .plArray(scope.evaluate(self).map { .plString($0) })
+    }
+}
+

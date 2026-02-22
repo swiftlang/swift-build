@@ -58,6 +58,13 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
         push(macro, namespace.parseLiteralString(literal), conditions: conditions)
     }
 
+
+    /// Adds a mapping from `macro` to the given literal string list `value`.
+    public mutating func push(_ macro: MacroDeclaration, literal: [String], conditions: MacroConditionSet? = nil) {
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
+        push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
+    }
+
     /// Adds a mapping from `macro` to the given literal string list `value`.
     public mutating func push(_ macro: StringListMacroDeclaration, literal: [String], conditions: MacroConditionSet? = nil) {
         assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
@@ -72,6 +79,12 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
 
     /// Adds a mapping from `macro` to the given literal string list `value`.
     public mutating func push(_ macro: PathListMacroDeclaration, literal: [String], conditions: MacroConditionSet? = nil) {
+        assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
+        push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
+    }
+
+    /// Adds a mapping from `macro` to the given literal string list `value`.
+    public mutating func push(_ macro: PathOrderedSetMacroDeclaration, literal: [String], conditions: MacroConditionSet? = nil) {
         assert(namespace.lookupMacroDeclaration(macro.name) === macro, "trying to push macro '\(macro)' but there is already a differently-typed declaration '\(String(describing: namespace.lookupMacroDeclaration(macro.name)))'")
         push(macro, namespace.parseLiteralStringList(literal), conditions: conditions)
     }
@@ -272,6 +285,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
             case .userDefined: serializer.serialize(3)
             case .path: serializer.serialize(4)
             case .pathList: serializer.serialize(5)
+            case .pathOrderedSet: serializer.serialize(6)
             }
             serializer.endAggregate()   // MacroDeclaration key
             // Serialize the MacroValueAssignment.
@@ -313,6 +327,7 @@ public struct MacroValueAssignmentTable: Serializable, Sendable {
                 case 3: type = .userDefined
                 case 4: type = .path
                 case 5: type = .pathList
+                case 6: type = .pathOrderedSet
                 default: throw DeserializerError.deserializationFailed("Unrecognized code for MacroType for MacroDeclaration \(name): \(typeCode)")
                 }
                 guard aDecl.type == type else { throw DeserializerError.incorrectType("Mismatched type for MacroDeclaration \(name): expected '\(type)', found '\(aDecl.type)' from code '\(typeCode)'.") }

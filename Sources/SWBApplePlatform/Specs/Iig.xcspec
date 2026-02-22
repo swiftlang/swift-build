@@ -141,7 +141,7 @@
             },
             {
                 Name = FRAMEWORK_SEARCH_PATHS;
-                Type = PathList;
+                Type = PathOrderedSet;
                 CommandLinePrefixFlag = "-F";
             },
             {

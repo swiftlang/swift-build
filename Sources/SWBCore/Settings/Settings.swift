@@ -4740,13 +4740,40 @@ private class SettingsBuilder: ProjectMatchLookup {
     func getSDKSpecificPathOverrides(_ sdk: SDK, _ sparseSDKs: [SDK]) -> MacroValueAssignmentTable {
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
 
+        typealias MacroLookupClosure = ((MacroDeclaration) -> MacroExpression?)
+        typealias MacroEvalClosure = (MacroEvaluationScope, MacroLookupClosure?) -> (MacroDeclaration, [String])
+
         // Alter all of the search paths to point into the SDK, if the path exists there.  For each search path, that path will be remapped into the base SDK and any sparse SDKs in which the search path exists.
         //
         // FIXME: This is bogus and causes problems for our users (e.g., because it cannot be directly controlled), but is necessary for now for backwards compatibility.
         //
+
         // NOTE: We intentionally exclude SYSTEM_HEADER_SEARCH_PATHS and SYSTEM_FRAMEWORK_SEARCH_PATHS from this list, because they are already prefixed with the SDK path if appropriate.
         let scope = createScope(sdkToUse: sdk)
-        for macro in [BuiltinMacros.HEADER_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_HEADER_SEARCH_PATHS, BuiltinMacros.FRAMEWORK_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS, BuiltinMacros.REZ_SEARCH_PATHS, BuiltinMacros.LIBRARY_SEARCH_PATHS, BuiltinMacros.PRODUCT_TYPE_LIBRARY_SEARCH_PATHS] {
+        let searchPathMacroDecls: [MacroEvalClosure] = [
+            { (scope:MacroEvaluationScope, lookup:MacroLookupClosure?) -> (MacroDeclaration, [String]) in
+                return (BuiltinMacros.HEADER_SEARCH_PATHS, scope.evaluate(BuiltinMacros.HEADER_SEARCH_PATHS, lookup:lookup))
+            },
+            { (scope:MacroEvaluationScope, lookup:MacroLookupClosure?) -> (MacroDeclaration, [String]) in
+                return (BuiltinMacros.PRODUCT_TYPE_HEADER_SEARCH_PATHS, scope.evaluate(BuiltinMacros.PRODUCT_TYPE_HEADER_SEARCH_PATHS, lookup:lookup))
+            },
+            { (scope:MacroEvaluationScope, lookup:MacroLookupClosure?) -> (MacroDeclaration, [String]) in
+                return (BuiltinMacros.FRAMEWORK_SEARCH_PATHS, scope.evaluate(BuiltinMacros.FRAMEWORK_SEARCH_PATHS, lookup:lookup))
+            },
+            { (scope:MacroEvaluationScope, lookup:MacroLookupClosure?) -> (MacroDeclaration, [String]) in
+                return (BuiltinMacros.PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS, scope.evaluate(BuiltinMacros.PRODUCT_TYPE_FRAMEWORK_SEARCH_PATHS, lookup:lookup))
+            },
+            { (scope:MacroEvaluationScope, lookup:MacroLookupClosure?) -> (MacroDeclaration, [String]) in
+                return (BuiltinMacros.REZ_SEARCH_PATHS, scope.evaluate(BuiltinMacros.REZ_SEARCH_PATHS, lookup:lookup))
+            },
+            { (scope:MacroEvaluationScope, lookup:MacroLookupClosure?) -> (MacroDeclaration, [String]) in
+                return (BuiltinMacros.LIBRARY_SEARCH_PATHS, scope.evaluate(BuiltinMacros.LIBRARY_SEARCH_PATHS, lookup:lookup))
+            },
+            { (scope:MacroEvaluationScope, lookup:MacroLookupClosure?) -> (MacroDeclaration, [String]) in
+                return (BuiltinMacros.PRODUCT_TYPE_LIBRARY_SEARCH_PATHS, scope.evaluate(BuiltinMacros.PRODUCT_TYPE_LIBRARY_SEARCH_PATHS, lookup:lookup))
+            },
+        ]
+        for macroEvalClosure in searchPathMacroDecls {
 
             /// Helper function to remap `path` into the sdk `sdk`.  Remapping will occur if `path` exists inside `sdk`.
             /// - returns: The remapped path, or `nil` if the path does not exist inside the sdk.
@@ -4764,7 +4791,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             }
 
             /// Helper function to process the SDK remapping for a specific `variant` and `arch`.
-            func processRemapping(_ scope: MacroEvaluationScope, _ originalValues: [Path], variant: String? = nil, arch: String? = nil) {
+            func processRemapping(_ macro: MacroDeclaration, _ scope: MacroEvaluationScope, _ originalValues: [Path], variant: String? = nil, arch: String? = nil) {
                 // Get the evaluated paths for this search path build setting, and remap them into the SDKs as appropriate.
                 let values = originalValues.flatMap{ (path: Path) -> [Path] in
                     var results = [Path]()
@@ -4815,7 +4842,7 @@ private class SettingsBuilder: ProjectMatchLookup {
 
             // Evaluate the macro while checking if CURRENT_VARIANT and CURRENT_ARCH are being used.
             var currentMacroFound = false
-            let originalValues = scope.evaluate(macro) { macro in
+            let (macro, originalValues) = macroEvalClosure(scope) { macro in
                 if [BuiltinMacros.CURRENT_VARIANT, BuiltinMacros.CURRENT_ARCH].contains(macro) {
                     currentMacroFound = true
                 }
@@ -4831,14 +4858,14 @@ private class SettingsBuilder: ProjectMatchLookup {
                     let scope = scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
                     for arch in archs {
                         let scope = scope.subscopeBindingArchAndTriple(arch: arch)
-                        let originalValues = scope.evaluate(macro)
-                        processRemapping(scope, originalValues.map{ Path($0) }, variant: variant, arch: arch)
+                        let (macro, originalValues) = macroEvalClosure(scope, nil)
+                        processRemapping(macro, scope, originalValues.map{ Path($0) }, variant: variant, arch: arch)
                     }
                 }
             } else {
                 // If CURRENT_* macros were not found while evaluating the macro, then use the original values already parsed
                 // to process the remapping.
-                processRemapping(scope, originalValues.map{ Path($0) })
+                processRemapping(macro, scope, originalValues.map{ Path($0) })
             }
         }
 

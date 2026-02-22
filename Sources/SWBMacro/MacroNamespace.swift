@@ -120,6 +120,11 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
         return try declareMacro(name)
     }
 
+    @discardableResult
+    public func declarePathOrderedSetMacro(_ name: String) throws -> PathOrderedSetMacroDeclaration {
+        return try declareMacro(name)
+    }
+
     public func lookupOrDeclareMacro<MacroDeclarationType: MacroDeclaration>(_ type: MacroDeclarationType.Type, _ name: String) -> MacroDeclaration {
         return macroRegistry.withLock { macroRegistry in
             // Return the macro, if declared.
@@ -357,7 +362,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
         switch macro.type {
         case .boolean, .string, .path:
             return parseString(value, diagnosticsHandler: diagnosticsHandler)
-        case .stringList, .userDefined, .pathList:
+        case .stringList, .userDefined, .pathList, .pathOrderedSet:
             return parseStringList(value, diagnosticsHandler: diagnosticsHandler)
         }
     }
@@ -368,7 +373,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
         case .boolean, .string, .path:
             // FIXME: It isn't clear what the right behavior is here. We are parsing a string typed macro and were given a list. For now, we just use the quoted string representation.
             return parseString(value.quotedStringListRepresentation, diagnosticsHandler: diagnosticsHandler)
-        case .stringList, .userDefined, .pathList:
+        case .stringList, .userDefined, .pathList, .pathOrderedSet:
             return parseStringList(value, diagnosticsHandler: diagnosticsHandler)
         }
     }
@@ -422,6 +427,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
                         case .userDefined: return lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, macroName)
                         case .path: return lookupOrDeclareMacro(PathMacroDeclaration.self, macroName)
                         case .pathList: return lookupOrDeclareMacro(PathListMacroDeclaration.self, macroName)
+                        case .pathOrderedSet: return lookupOrDeclareMacro(PathOrderedSetMacroDeclaration.self, macroName)
                     }
                 // If this is a user defined table, unknown settings should be treated as user defined.
                 } else if allowUserDefined {
