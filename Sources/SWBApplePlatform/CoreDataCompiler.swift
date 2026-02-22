@@ -53,13 +53,19 @@ public final class CoreDataModelCompilerSpec : GenericCompilerSpec, SpecIdentifi
         // Compute the output directory.
         let input = cbc.input
         let modelName = input.absolutePath.basenameWithoutSuffix
-        let outputDir = cbc.scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR).join("CoreDataGenerated").join(modelName).normalize()
+        let outputDir: AbsolutePath
+        do {
+            outputDir = try AbsolutePath(validating: cbc.scope.evaluate(BuiltinMacros.DERIVED_FILE_DIR).join("CoreDataGenerated").join(modelName).normalize())
+        } catch {
+            delegate.error(error)
+            return
+        }
 
         let inputs = [input.absolutePath]
         let ruleInfo = ["DataModelCodegen", input.absolutePath.str]
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
         commandLine.insert(contentsOf: ["--action", "generate"] + (cbc.scope.evaluate(BuiltinMacros.SWIFT_VERSION).nilIfEmpty.map { ["--swift-version", $0] } ?? []), at: 1)
-        commandLine[commandLine.count - 1] = outputDir.str
+        commandLine[commandLine.count - 1] = outputDir.path.str
 
         // Ask the client delegate for the list of paths of generated files.
         let generatedFiles: [Path]
@@ -68,7 +74,7 @@ public final class CoreDataModelCompilerSpec : GenericCompilerSpec, SpecIdentifi
             delegate.access(path: input.absolutePath)
 
             generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: [commandLine[0]] + ["--dry-run"] + commandLine[1...], workingDirectory: cbc.producer.defaultWorkingDirectory, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute data model \(input.absolutePath.basename) code generation output paths") { output in
-                return output.unsafeStringValue.split(separator: "\n").map(Path.init).map { $0.prependingPrivatePrefixIfNeeded(otherPath: outputDir) }
+                return try output.unsafeStringValue.split(separator: "\n").map { try AbsolutePath(validating: String($0)).prependingPrivatePrefixIfNeeded(otherPath: outputDir) }
             }
             guard !generatedFiles.isEmpty else {
                 // If we were given an empty list of generated files, then there were just no files to be generated, so we return.
