@@ -109,13 +109,53 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
     ///
     /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
     public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: Purpose = .build) async {
-        let (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
-        await MacroNamespace.withExpressionInterningEnabled {
-            await buildRequestContext.keepAliveSettingsCache {
-                let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
-                return await resolver.computeGraph()
+        let signature = TargetBuildGraphCache.computeSignature(
+            workspaceSignature: workspaceContext.workspace.signature,
+            buildRequest: buildRequest,
+            purpose: purpose
+        )
+
+        let allTargets: OrderedSet<ConfiguredTarget>
+        let targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]]
+        let targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]]
+        let dynamicallyBuildingTargets: Set<Target>
+
+        if let cached = TargetBuildGraphCache.lookup(signature: signature) {
+            allTargets = cached.allTargets
+            targetDependencies = cached.targetDependencies
+            targetsToLinkedReferencesToProducingTargets = cached.targetsToLinkedReferencesToProducingTargets
+            dynamicallyBuildingTargets = cached.dynamicallyBuildingTargets
+
+            // Re-emit unapproved target diagnostics on cache hit
+            // (these are important for correctness since they gate
+            // whether the build proceeds). On cache miss,
+            // computeGraph() emits them.
+            for target in allTargets {
+                if !target.target.approvedByUser, purpose != .dependencyGraph {
+                    let behavior = buildRequest.enableIndexBuildArena ? Diagnostic.Behavior.warning : .error
+                    delegate.emit(SWBUtil.Diagnostic(behavior: behavior, location: .path(workspaceContext.workspace.project(for: target.target).xcodeprojPath, fileLocation: .object(identifier: target.target.guid)), data: DiagnosticData("Target '\(target.target.name)' must be enabled before it can be used.", component: .targetMissingUserApproval)))
+                }
             }
+        } else {
+            (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
+            await MacroNamespace.withExpressionInterningEnabled {
+                await buildRequestContext.keepAliveSettingsCache {
+                    let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
+                    return await resolver.computeGraph()
+                }
+            }
+
+            TargetBuildGraphCache.store(
+                signature: signature,
+                topology: .init(
+                    allTargets: allTargets,
+                    targetDependencies: targetDependencies,
+                    targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets,
+                    dynamicallyBuildingTargets: dynamicallyBuildingTargets
+                )
+            )
         }
+
         self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, allTargets: allTargets, targetDependencies: targetDependencies, targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets: dynamicallyBuildingTargets)
     }
 
