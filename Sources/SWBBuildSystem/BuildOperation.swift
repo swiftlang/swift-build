@@ -1703,8 +1703,12 @@ internal final class OperationSystemAdaptor: SWBLLBuild.BuildSystemDelegate, Act
         }
 
         // By the time we've completed the build, we've seen every task for a target by definition. This ensures that the target-completed event is always sent in cases where we may be building slices of a target, as in single file builds or other builds which only build a subset of tasks in the graph. Additionally, if we're building multiple nodes, make sure to mark the target completed regardless, since we don't mark it completed in completedTaskForTarget.
+        let targetsByGuid = Dictionary(
+            operation.buildDescription.allConfiguredTargets.map { ($0.guid, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
         for (targetGuid, count) in completedTaskCounts {
-            if let target = operation.buildDescription.allConfiguredTargets.filter({ $0.guid == targetGuid }).only {
+            if let target = targetsByGuid[targetGuid] {
                 let expectedCount = operation.buildDescription.targetTaskCounts[target] ?? 0
                 if count < expectedCount || operation.mayBuildMultipleNodes {
                     _completedTaskForTarget(target)
