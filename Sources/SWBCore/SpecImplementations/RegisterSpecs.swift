@@ -126,7 +126,6 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             MergeInfoPlistSpec.self,
             ProcessSDKImportsSpec.self,
             ProcessXCFrameworkLibrarySpec.self,
-            RegisterExecutionPolicyExceptionToolSpec.self,
             SwiftHeaderToolSpec.self,
             TAPIMergeToolSpec.self,
             ValidateDependenciesSpec.self,

@@ -124,7 +124,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         /// The list of generated info plist additions produced in this target.
         fileprivate var _generatedInfoPlistContents: [Path] = []
 
-        fileprivate var _generatedPrivacyContentFilePaths: [Path] = []
+        fileprivate var _generatedPrivacyContentFilePaths: Set<Path> = []
 
         /// The list of generated TBD files produced in this target.
         ///
@@ -251,8 +251,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let modulesVerifierSpec: ModulesVerifierToolSpec
     let clangModuleVerifierInputGeneratorSpec: ClangModuleVerifierInputGeneratorSpec
     let productPackagingSpec: ProductPackagingToolSpec
-    public let _registerExecutionPolicyExceptionSpec: Result<RegisterExecutionPolicyExceptionToolSpec, any Error>
-    var registerExecutionPolicyExceptionSpec: RegisterExecutionPolicyExceptionToolSpec? { return specForResult(_registerExecutionPolicyExceptionSpec) }
     let setAttributesSpec: SetAttributesSpec
     let shellScriptSpec: ShellScriptToolSpec
     let signatureCollectionSpec: SignatureCollectionSpec
@@ -374,7 +372,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.modulesVerifierSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.modules-verifier", domain: domain, ofType: ModulesVerifierToolSpec.self)
         self.clangModuleVerifierInputGeneratorSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.module-verifier-input-generator", domain: domain, ofType: ClangModuleVerifierInputGeneratorSpec.self)
         self.productPackagingSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ProductPackagingToolSpec.self)
-        self._registerExecutionPolicyExceptionSpec = .init(workspaceContext, settings)
         self.setAttributesSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.set-attributes", domain: domain, ofType: SetAttributesSpec.self)
         self.shellScriptSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.commands.shell-script", domain: domain, ofType: ShellScriptToolSpec.self)
         self.signatureCollectionSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.signature-collection", domain: domain, ofType: SignatureCollectionSpec.self)
@@ -469,7 +466,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    var generatedPrivacyContentFilePaths: [Path] {
+    var generatedPrivacyContentFilePaths: Set<Path> {
         return state.withLock { state in
             assert(state._inDeferredMode)
             return state._generatedPrivacyContentFilePaths
@@ -487,7 +484,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     func addPrivacyContentPlistContent(_ path: Path) {
         state.withLock { state in
             assert(!state._inDeferredMode)
-            state._generatedPrivacyContentFilePaths.append(path)
+            state._generatedPrivacyContentFilePaths.insert(path)
         }
     }
 

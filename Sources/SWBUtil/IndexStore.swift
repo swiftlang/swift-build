@@ -379,11 +379,6 @@ private final class IndexStoreAPIImpl {
 
 extension indexstore_string_ref_t {
     fileprivate var str: String {
-        return String(
-            bytesNoCopy: UnsafeMutableRawPointer(mutating: data),
-            length: length,
-            encoding: .utf8,
-            freeWhenDone: false
-        )!
+        return String(decoding: UnsafeRawBufferPointer(start: data, count: length), as: UTF8.self)
     }
 }

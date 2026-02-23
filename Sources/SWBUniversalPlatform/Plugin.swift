@@ -80,6 +80,10 @@ struct UniversalPlatformTaskProducerExtension: TaskProducerExtension {
 
     func generateAdditionalTasks(_ tasks: inout [any SWBCore.PlannedTask], _ producer: any SWBTaskConstruction.TaskProducer) {
     }
+
+    func productPostprocessingSteps() -> [any ProductPostprocessingStep.Type] {
+        []
+    }
 }
 
 struct UniversalPlatformTaskActionExtension: TaskActionExtension {

@@ -361,10 +361,6 @@ actor LinkageDependencyResolver {
             }
         }
 
-        let moduleNamesOfExplicitDependencies = Set<String>(immediateDependencies.compactMap{
-            buildRequestContext.getCachedSettings($0.parameters, target: $0.target).globalScope.evaluate(BuiltinMacros.PRODUCT_MODULE_NAME)
-        })
-
         return await result.value
     }
 

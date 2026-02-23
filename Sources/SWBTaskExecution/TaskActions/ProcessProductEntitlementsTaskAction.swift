@@ -16,7 +16,7 @@ import class Foundation.NSError
 public import SWBCore
 import SWBLibc
 public import SWBUtil
-public import SWBMacro
+import SWBMacro
 
 /// Concrete implementation of task for processing product entitlements.
 public final class ProcessProductEntitlementsTaskAction: TaskAction

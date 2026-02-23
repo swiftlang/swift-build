@@ -45,6 +45,7 @@ add_library(SWBApplePlatform
   Plugin.swift
   PluginDCLT.swift
   RealityAssetsTaskProducer.swift
+  RegisterExecutionPolicyException.swift
   StringCatalogCompilerOutputParser.swift
   StubBinaryTaskProducer.swift
   XCStringsInputFileGroupingStrategy.swift)

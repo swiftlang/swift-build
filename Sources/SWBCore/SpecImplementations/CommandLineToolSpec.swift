@@ -1197,7 +1197,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     public static let fallbackExecutionDescription: String = "Processing…"
 
     /// Resolve the execution description to use for the given context.
-    public func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
+    open func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
         guard let execDescription else {
             // FIXME: We should either require an execution description, or make up a better fallback description.
             return Self.fallbackExecutionDescription
@@ -1437,8 +1437,8 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return try parse(ByteString(executionResult.stdout))
     }
 
-    public func generatedFilePaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: Path?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> [Path]) async throws -> [Path] {
-        return try await executeExternalTool(cbc, delegate, commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription, parse).sorted()
+    public func generatedFilePaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: Path?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> [AbsolutePath]) async throws -> [Path] {
+        return try await executeExternalTool(cbc, delegate, commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription, { try parse($0).map { $0.path } }).sorted()
     }
 }
 

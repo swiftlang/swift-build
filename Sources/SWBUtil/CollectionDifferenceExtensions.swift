@@ -19,14 +19,14 @@ extension CollectionDifference<String> {
                 continue
             }
             switch change {
-            case .insert(offset: let offset, element: let element, associatedWith: let associatedWith):
+            case .insert(offset: _, element: let element, associatedWith: let associatedWith):
                 if let associatedWith {
                     reportedMoves.insert(associatedWith)
                     changeDescriptions.append("moved '\(element)'")
                 } else {
                     changeDescriptions.append("inserted '\(element)'")
                 }
-            case .remove(offset: let offset, element: let element, associatedWith: let associatedWith):
+            case .remove(offset: _, element: let element, associatedWith: let associatedWith):
                 if let associatedWith {
                     reportedMoves.insert(associatedWith)
                     changeDescriptions.append("moved '\(element)'")
@@ -45,7 +45,7 @@ extension CollectionDifference<Character> {
 
         for change in self.inferringMoves() {
             switch change {
-            case .insert(offset: let offset, element: let element, associatedWith: let associatedWith):
+            case .insert(offset: let offset, element: let element, associatedWith: _):
                 if let lastIndex = processedChanges.indices.last, processedChanges[lastIndex].verb == "inserted", processedChanges[lastIndex].lastOffset == offset - 1 {
                     processedChanges[lastIndex].string.append(element)
                     processedChanges[lastIndex].lastOffset = offset

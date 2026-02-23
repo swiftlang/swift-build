@@ -59,4 +59,27 @@ import SWBProjectModel
         #expect(firstPlatformFilter["platform"] as? String == "linux")
     }
 
+    @Test func deterministicPlatformFilterSerialization() throws {
+        let project = PIF.Project(
+            id: "project-id",
+            path: "some/path/to/project",
+            projectDir: "ProjectDir",
+            name: "ProjectName"
+        )
+        let standardTarget = project.addTarget(productType: .executable, name: "Exe", productName: "exe")
+        let aggregateTarget = project.addAggregateTarget(name: "Agg")
+        aggregateTarget.addDependency(on: standardTarget.id, platformFilters: [PIF.PlatformFilter(platform: "linux"), PIF.PlatformFilter(platform: "macosx")])
+        class TestSerializer: IDEPIFSerializer {
+            func objectSignature(_ object: any IDEPIFObject) -> String {
+                return "SomeSignature"
+            }
+        }
+        let targetDict = aggregateTarget.serialize(to: TestSerializer())
+        let dependencies = try #require(targetDict["dependencies"] as? Array<Dictionary<String,Any>>)
+        let firstDependency = try #require(dependencies.first)
+        let platformFilters = try #require(firstDependency["platformFilters"] as? Array<Dictionary<String,Any>>)
+        #expect(platformFilters.count == 2)
+        #expect(platformFilters[0]["platform"] as? String == "linux")
+        #expect(platformFilters[1]["platform"] as? String == "macosx")
+    }
 }

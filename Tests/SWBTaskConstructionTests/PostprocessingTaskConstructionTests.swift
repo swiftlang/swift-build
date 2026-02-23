@@ -12,6 +12,8 @@
 
 import Testing
 
+import Foundation
+
 import SWBCore
 import SWBTestSupport
 import SWBUtil
@@ -292,6 +294,45 @@ fileprivate struct PostprocessingTaskConstructionTests: CoreBasedTests {
                 results.checkTarget(targetName) { target in
                     results.checkNoTask(.matchTarget(target), .matchRuleType("RegisterExecutionPolicyException"))
                 }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func registerExecutionPolicyExceptionSkippedOnNonDarwinPlatforms() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("SourceFile.m"),
+                ]
+            ),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "GENERATE_INFOPLIST_FILE": "YES",
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "LIBTOOL": libtoolPath.str,
+                ])],
+            targets: [
+                TestStandardTarget(
+                    "Executable",
+                    type: .commandLineTool,
+                    buildConfigurations: [TestBuildConfiguration("Debug")],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["SourceFile.m"]),
+                    ]
+                ),
+            ]
+        )
+
+        try await TaskConstructionTester(getCore(), testProject).checkBuild(runDestination: .host) { results in
+            results.checkNoDiagnostics()
+
+            if try ProcessInfo.processInfo.hostOperatingSystem() == .macOS {
+                results.checkTaskExists(.matchRuleType("RegisterExecutionPolicyException"))
+            } else {
+                results.checkNoTask(.matchRuleType("RegisterExecutionPolicyException"))
             }
         }
     }

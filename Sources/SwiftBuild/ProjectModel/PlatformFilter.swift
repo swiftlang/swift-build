@@ -14,13 +14,17 @@ import Foundation
 import SWBProtocol
 
 extension ProjectModel {
-    public struct PlatformFilter: Hashable, Sendable {
+    public struct PlatformFilter: Hashable, Sendable, Comparable {
         public var platform: String
         public var environment: String
 
         public init(platform: String, environment: String = "") {
             self.platform = platform
             self.environment = environment
+        }
+
+        public static func < (lhs: ProjectModel.PlatformFilter, rhs: ProjectModel.PlatformFilter) -> Bool {
+            return (lhs.platform, lhs.environment) < (rhs.platform, rhs.environment)
         }
     }
 }

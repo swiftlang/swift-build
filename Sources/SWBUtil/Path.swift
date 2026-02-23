@@ -943,7 +943,7 @@ extension Path {
     }
 }
 
-extension Path {
+extension AbsolutePath {
     /// Prepends `/private` to the path if it begins with one of the known symlinks of `/etc`, `/tmp`, or `/var`, _and_ the path specified by `otherPath` begins with `/private`.
     ///
     /// On macOS, `/{etc,tmp,var}` is a symlink to `/private/{etc,tmp,var}`. Some Apple build tools distributed with Xcode aggressively strip /private from the beginning of file paths, effectively de-canonicalizing them back to including a symlink component. Paths in the dependency graph are expected to be pre-normalized and not contain symlinks.
@@ -951,17 +951,19 @@ extension Path {
     /// The "if needed" part of the name of this function reflects its usage intent: this function should be called on paths retrieved from the output of build tools like `momc` and `intentbuilderc`, passing the in output directory which the build task originally passed to the tool as `otherPath`. This will result in the behavior where if the build task passes `/private/tmp` and receives paths beginning with `/tmp`, they'll be canonicalized back to beginning with `/private/tmp` by this function. However if the build task merely passed `/tmp`, this function would _not_ add `/private` to the returned paths. Thus, this function is intended to ensure that tools produce paths with the same prefix as the build task requested for the output directory.
     ///
     /// Note that this is mostly only relevant in unit tests, as most real builds don't have a build output directory under `/etc`, `/tmp`, or `/var`.
-    public func prependingPrivatePrefixIfNeeded(otherPath: Path) -> Path {
+    public func prependingPrivatePrefixIfNeeded(otherPath: AbsolutePath) -> AbsolutePath {
         struct Static {
-            static let `private` = Path("/private")
-            static let prefixes = [Path("/etc"), Path("/tmp"), Path("/var")]
+            static let `private` = AbsolutePath("/private")!
+            static let prefixes = [AbsolutePath("/etc")!, AbsolutePath("/tmp")!, AbsolutePath("/var")!]
         }
         if Static.private.isAncestor(of: otherPath) && Static.prefixes.contains(where: { $0.isAncestor(of: self) }) {
-            return Static.private.join(self, preserveRoot: true)
+            return AbsolutePath(Static.private.path.join(self.path, preserveRoot: true))!
         }
         return self
     }
+}
 
+extension Path {
     /// Returns a string representation of the path which uses POSIX slashes even on Windows.
     ///
     /// This is necessary for some cases where tools may treat the `\` character as part of an escape sequence rather than a path separator even on Windows. Use sparingly.

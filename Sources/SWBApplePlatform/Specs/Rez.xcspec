@@ -127,7 +127,7 @@
 
             {
                 Name = FRAMEWORK_SEARCH_PATHS;
-                Type = PathList;
+                Type = PathOrderedSet;
                 Condition = "$(REZ_NO_AUTOMATIC_SEARCH_PATHS) != YES";
                 CommandLineArgs = (
                     "-i", "$(value)",

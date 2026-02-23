@@ -263,7 +263,7 @@ public enum PIF {
                 PIFKey_name: name,
                 PIFKey_Target_dependencies: dependencies.map { [
                     PIFKey_guid: $0.targetId,
-                    PIFKey_platformFilters: $0.platformFilters.map{ $0.serialize(to: serializer) }
+                    PIFKey_platformFilters: $0.platformFilters.serialize(to: serializer)
                 ] },
                 PIFKey_Target_buildRules: buildRules.map{ $0.serialize(to: serializer) },
                 PIFKey_Target_buildPhases: buildPhases.map{ ($0 as! (any PIFRepresentable)).serialize(to: serializer) },
@@ -492,7 +492,7 @@ public enum PIF {
                     PIFKey_Target_customTasks: customTasks.map { $0.serialize(to: serializer) },
                     PIFKey_Target_dependencies: dependencies.map{ [
                         PIFKey_guid: $0.targetId,
-                        PIFKey_platformFilters: $0.platformFilters.map{ $0.serialize(to: serializer) }
+                        PIFKey_platformFilters: $0.platformFilters.serialize(to: serializer)
                     ] },
                     PIFKey_buildConfigurations: buildConfigs.map{ $0.serialize(to: serializer) },
                 ]
@@ -700,13 +700,17 @@ public enum PIF {
         }
     }
 
-    public struct PlatformFilter: Hashable, Sendable {
+    public struct PlatformFilter: Hashable, Sendable, Comparable {
         public var platform: String
         public var environment: String
 
         public init(platform: String, environment: String = "") {
             self.platform = platform
             self.environment = environment
+        }
+
+        public static func < (lhs: PIF.PlatformFilter, rhs: PIF.PlatformFilter) -> Bool {
+            return (lhs.platform, lhs.environment) < (rhs.platform, rhs.environment)
         }
     }
 

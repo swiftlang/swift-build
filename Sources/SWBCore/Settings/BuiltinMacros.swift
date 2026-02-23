@@ -704,7 +704,7 @@ public final class BuiltinMacros {
     public static let EXPORTED_SYMBOLS_FILE = BuiltinMacros.declarePathMacro("EXPORTED_SYMBOLS_FILE")
     public static let EXTENSIONS_FOLDER_PATH = BuiltinMacros.declarePathMacro("EXTENSIONS_FOLDER_PATH")
     public static let FRAMEWORKS_FOLDER_PATH = BuiltinMacros.declarePathMacro("FRAMEWORKS_FOLDER_PATH")
-    public static let FRAMEWORK_SEARCH_PATHS = BuiltinMacros.declarePathListMacro("FRAMEWORK_SEARCH_PATHS")
+    public static let FRAMEWORK_SEARCH_PATHS = BuiltinMacros.declarePathOrderedSetMacro("FRAMEWORK_SEARCH_PATHS")
     public static let FRAMEWORK_VERSION = BuiltinMacros.declareStringMacro("FRAMEWORK_VERSION")
     public static let FULL_PRODUCT_NAME = BuiltinMacros.declarePathMacro("FULL_PRODUCT_NAME")
     public static let FUSE_BUILD_PHASES = BuiltinMacros.declareBooleanMacro("FUSE_BUILD_PHASES")
@@ -1407,6 +1407,10 @@ public final class BuiltinMacros {
         return try! builtinNamespace.declarePathListMacro(name)
     }
 
+    @_spi(MacroDeclarationRegistration) public static func declarePathOrderedSetMacro(_ name: String) -> PathOrderedSetMacroDeclaration {
+        precondition(!initialized)
+        return try! builtinNamespace.declarePathOrderedSetMacro(name)
+    }
 
     private static let namespaceInitializationMutex = SWBMutex(())
 

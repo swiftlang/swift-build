@@ -64,6 +64,12 @@ struct TaskProducersExtension: TaskProducerExtension {
 
     func generateAdditionalTasks(_ tasks: inout [any SWBCore.PlannedTask], _ producer: any SWBTaskConstruction.TaskProducer) {
     }
+
+    func productPostprocessingSteps() -> [any ProductPostprocessingStep.Type] {
+        return [
+            RegisterExecutionPolicyExceptionStep.self
+        ]
+    }
 }
 
 struct ExtensionPointExtractorTaskProducerFactory: TaskProducerFactory {
@@ -169,6 +175,12 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
         }
         return mappings
     }
+
+    func specificationImplementations() -> [any SpecImplementationType.Type] {
+        [
+            RegisterExecutionPolicyExceptionToolSpec.self,
+        ]
+    }
 }
 
 struct ActoolInputFileGroupingStrategyExtension: InputFileGroupingStrategyExtension {
@@ -264,3 +276,44 @@ struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
         return ["SWIFT_EMIT_CONST_VALUE_PROTOCOLS" : constValueProtocols]
     }
 }
+
+enum RegisterExecutionPolicyExceptionStep: ProductPostprocessingStep {
+    static let name = "RegisterExecutionPolicyException"
+
+    static func shouldRunPerVariant(producer: ProductPostprocessingTaskProducer) -> Bool {
+        // Use per-variant for unbundled products
+        return !(producer.context.settings.productType is BundleProductTypeSpec)
+    }
+
+    static func generateTasks(scope: MacroEvaluationScope, tasks: inout [any PlannedTask], producer: ProductPostprocessingTaskProducer) async {
+        let context = producer.context
+
+        guard context.isApplePlatform else {
+            return
+        }
+
+        guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else {
+            return
+        }
+
+        // Pointless for static libraries/frameworks
+        if context.productType is StaticLibraryProductTypeSpec || context.productType is StaticFrameworkProductTypeSpec {
+            return
+        }
+
+        let domain = context.settings.platform?.name ?? ""
+        do {
+            let spec = try context.specRegistry.getSpec(RegisterExecutionPolicyExceptionToolSpec.identifier, domain: domain, ofType: RegisterExecutionPolicyExceptionToolSpec.self)
+
+            await producer.appendGeneratedTasks(&tasks) { delegate in
+                let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+                let input = FileToBuild(absolutePath: path.normalize(), inferringTypeUsing: context)
+                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [input])
+                await spec.constructRegisterExecutionPolicyExceptionTask(cbc, delegate)
+            }
+        } catch {
+            context.error("error generating \(name) postprocessing tasks: \(error)")
+        }
+    }
+}
+

@@ -13,60 +13,30 @@
 public struct LLVMTriple: Decodable, Equatable, Sendable, CustomStringConvertible {
     public var arch: String
     public var vendor: String
-    public var system: String
-    public var systemVersion: Version?
-
-    public var environment: String? {
-        get { _environment?.environment }
-        set {
-            if let newValue {
-                var env = _environment ?? Environment(environment: newValue, environmentVersion: nil)
-                env.environment = newValue
-                _environment = env
-            } else {
-                _environment = nil
+    public var systemComponent: String
+    public var environmentComponent: String? {
+        didSet {
+            if environmentComponent == "" {
+                environmentComponent = nil
             }
         }
     }
-
-    public var environmentVersion: Version? {
-        get { _environment?.environmentVersion }
-        set {
-            switch (_environment, newValue) {
-            case (nil, nil):
-                return
-            case (nil, let newValue):
-                fatalError("Can't set environmentVersion when environment is not set")
-            case (var env?, let newValue):
-                env.environmentVersion = newValue
-                _environment = env
-            }
-        }
-    }
-
-    private struct Environment: Equatable, Sendable {
-        var environment: String
-        var environmentVersion: Version?
-    }
-    private var _environment: Environment?
 
     public var description: String {
-        if let environment {
-            return "\(arch)-\(vendor)-\(system)\(systemVersion?.description ?? "")-\(environment)\(environmentVersion?.description ?? "")"
+        if let environmentComponent {
+            return "\(arch)-\(vendor)-\(systemComponent)-\(environmentComponent)"
         }
-        return "\(arch)-\(vendor)-\(system)\(systemVersion?.description ?? "")"
+        return "\(arch)-\(vendor)-\(systemComponent)"
     }
 
     public init(_ string: String) throws {
-        guard let match = try #/(?<arch>[^-]+)-(?<vendor>[^-]+)-(?<system>[a-zA-Z_]+)(?<systemVersion>[0-9]+(?:.[0-9]+){0,})?(-(?<environment>[a-zA-Z_]+)(?<environmentVersion>[0-9]+(?:.[0-9]+){0,})?)?/#.wholeMatch(in: string) else {
+        guard let match = try #/(?<arch>[^-]+)-(?<vendor>[^-]+)-(?<system>[^-]+)(-(?<environment>[^-]+))?/#.wholeMatch(in: string) else {
             throw LLVMTripleError.invalidTripleStringFormat(string)
         }
         self.arch = String(match.output.arch)
         self.vendor = String(match.output.vendor)
-        self.system = String(match.output.system)
-        self.systemVersion = try match.output.systemVersion.map { try Version(String($0)) }
-        self.environment = match.output.environment.map { String($0) }
-        self.environmentVersion = try match.output.environmentVersion.map { try Version(String($0)) }
+        self.systemComponent = String(match.output.system)
+        self.environmentComponent = match.output.environment.map { String($0) } ?? nil
     }
 
     public init(from decoder: any Swift.Decoder) throws {
@@ -74,10 +44,54 @@ public struct LLVMTriple: Decodable, Equatable, Sendable, CustomStringConvertibl
     }
 }
 
+// The "names" of many platforms and environments end with numbers (ps4, ps5, wasip1, ...), so version extraction cannot be fully generalized.
+// This roughly matches the behavior of LLVM's triple parsing, although this implementation is not as complete.
 extension LLVMTriple {
+    public var system: String {
+        get {
+            switch (vendor, systemComponent) {
+            case
+                (_, let sys) where sys.hasPrefix("freebsd"),
+                (_, let sys) where sys.hasPrefix("openbsd"),
+                (_, let sys) where sys.hasPrefix("netbsd"):
+                fallthrough
+            case ("apple", _):
+                return systemComponent.prefixUpToFirstDigit
+            default:
+                return systemComponent
+            }
+        }
+        set {
+            systemComponent = newValue
+        }
+    }
+
+    public var environment: String? {
+        get {
+            guard let environmentComponent else { return nil }
+            switch system {
+            case "linux" where environmentComponent.hasPrefix("android"),
+                "nto" where environmentComponent.hasPrefix("qnx"):
+                return environmentComponent.prefixUpToFirstDigit
+            default:
+                return environmentComponent
+            }
+        }
+        set {
+            environmentComponent = newValue
+        }
+    }
+
+    public var unversioned: LLVMTriple {
+        var triple = self
+        triple.systemComponent = system
+        triple.environmentComponent = environment
+        return triple
+    }
+
     public var version: Version? {
         get throws {
-            switch (systemVersion, environmentVersion) {
+            switch try (systemComponent.withoutPrefix(system).nilIfEmpty.map { try Version($0) }, environmentComponent?.withoutPrefix(environment ?? "").nilIfEmpty.map { try Version($0) }) {
             case (let systemVersion?, nil):
                 return systemVersion
             case (nil, let environmentVersion?):
@@ -89,6 +103,8 @@ extension LLVMTriple {
             }
         }
     }
+
+    public var systemVersion: Version? { try? version } // compatibility
 }
 
 enum LLVMTripleError: Error, CustomStringConvertible {
@@ -102,5 +118,11 @@ enum LLVMTripleError: Error, CustomStringConvertible {
         case .multipleVersions:
             "Triple has versions in both the system and environment fields"
         }
+    }
+}
+
+fileprivate extension String {
+    var prefixUpToFirstDigit: String {
+        self.firstIndex(where: { $0.isNumber }).map { String(self.prefix(upTo: $0)) } ?? self
     }
 }

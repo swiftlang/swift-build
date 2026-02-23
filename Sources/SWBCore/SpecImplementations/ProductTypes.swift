@@ -340,7 +340,7 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 
     /// Returns whether the product type supports embedding Swift standard libraries inside it.
-    public func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public func supportsEmbeddingSwiftStandardLibraries(producer: any CommandProducer) -> Bool {
         // Most product types don't support having the Swift libraries embedded in them.
         return false
     }
@@ -400,7 +400,7 @@ public final class ApplicationProductTypeSpec : BundleProductTypeSpec, @unchecke
         return "PBXApplicationProductType"
     }
 
-    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public override func supportsEmbeddingSwiftStandardLibraries(producer: any CommandProducer) -> Bool {
         return true
     }
 
@@ -626,7 +626,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         super.init(parser, basedOnSpec)
     }
 
-    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public override func supportsEmbeddingSwiftStandardLibraries(producer: any CommandProducer) -> Bool {
         return producer.isApplePlatform
     }
 

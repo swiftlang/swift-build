@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBCore
+package import SWBCore
 import SWBUtil
 import SWBMacro
 import SWBProtocol
@@ -40,7 +40,7 @@ enum InstallAPIDestination {
     }
 }
 
-final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer {
+package final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer {
 
     /// Set of auxiliary files we've created tasks for which only need to be created once per variant.
     fileprivate var uniqueAuxiliaryFilePaths = Set<Path>()
@@ -62,7 +62,7 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
 
     // MARK: Task generation
 
-    func generateTasks() async -> [any PlannedTask] {
+    package func generateTasks() async -> [any PlannedTask] {
         let scope = context.settings.globalScope
         var tasks: [any PlannedTask] = []
 
@@ -118,7 +118,11 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
         // CodeSign is actually per-variant, but it enumerates variants itself because it might need to coalesce tasks (see `testPerVariantSigning()`)
         addPostprocessingFunction("CodeSign", addCodeSignTasks, perVariant: false, .productPostprocessor)
         if isProducingProduct {
-            addPostprocessingFunction("RegisterExecutionPolicyException", addExecutionPolicyExceptionTasks, perVariant: usePerVariantForUnbundled, .productPostprocessor)
+            for ext in await taskProducerExtensions(context.workspaceContext) {
+                for step in ext.productPostprocessingSteps() {
+                    addPostprocessingFunction(step.name, { scope, tasks in await step.generateTasks(scope: scope, tasks: &tasks, producer: self) }, perVariant: step.shouldRunPerVariant(producer: self), .productPostprocessor)
+                }
+            }
             addPostprocessingFunction("Validate", addProductValidationTasks, perVariant: false, .productPostprocessor)
         }
         addPostprocessingFunction("RegisterProduct", addProductRegistrationTasks, perVariant: false, .productPostprocessor)
@@ -508,24 +512,6 @@ final class ProductPostprocessingTaskProducer: PhasedTaskProducer, TaskProducer 
             if isSigningBinary {
                 nestedSigningTaskOrderingNodes.append(signingOrderingNode)
             }
-        }
-    }
-
-    private func addExecutionPolicyExceptionTasks(_ scope: MacroEvaluationScope, _ tasks: inout [any PlannedTask]) async {
-        guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else {
-            return
-        }
-
-        // Pointless for static libraries/frameworks
-        if context.productType is StaticLibraryProductTypeSpec || context.productType is StaticFrameworkProductTypeSpec {
-            return
-        }
-
-        await appendGeneratedTasks(&tasks) { delegate in
-            let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
-            let input = FileToBuild(context: context, absolutePath: path.normalize())
-            let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [input])
-            await context.registerExecutionPolicyExceptionSpec?.constructRegisterExecutionPolicyExceptionTask(cbc, delegate)
         }
     }
 
