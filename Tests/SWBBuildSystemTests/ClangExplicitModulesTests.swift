@@ -1174,6 +1174,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                 "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "$OBJROOT/ExplicitModules/$TARGET_NAME",
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -1303,6 +1304,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "PRODUCT_NAME": "$(TARGET_NAME)",
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -1402,6 +1404,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                 "CLANG_ENABLE_MODULES": "YES",
                                 "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                 "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").str)",
+                                "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                             ])],
                         targets: [
                             TestStandardTarget(
@@ -1426,6 +1429,7 @@ fileprivate struct ClangExplicitModulesTests: CoreBasedTests {
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                     "HEADER_SEARCH_PATHS": "$(inherited) \(tmpDir.join("Test").join("aProject").strWithPosixSlashes)",
                                     "CLANG_EXPLICIT_MODULES_OUTPUT_PATH": "\(tmpDir.join("clangmodules").strWithPosixSlashes)",
+                                    "GCC_GENERATE_DEBUGGING_SYMBOLS": "NO",
                                 ])],
                             targets: [
                                 TestStandardTarget(
