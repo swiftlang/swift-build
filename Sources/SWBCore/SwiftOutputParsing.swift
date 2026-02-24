@@ -33,57 +33,57 @@ public final class SwiftCompilerOutputParser: TaskOutputParser {
 
     public func close(result: TaskResult?) {
         for entry in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
-            if let sourceFilePath = entry.sourceFilePath {
-                // FIXME: find a better way to get at these
-                let variant = task.ruleInfo[1]
-                let arch = task.ruleInfo[2]
-                let (ruleInfo, signature) = SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: variant, arch: arch, path: sourceFilePath)
-                let subtaskDelegate = delegate.startSubtask(
-                    buildOperationIdentifier: self.delegate.buildOperationIdentifier,
-                    taskName: "Swift Compiler",
-                    signature: signature,
-                    ruleInfo: ruleInfo.joined(separator: " "),
-                    executionDescription: "Compile \(sourceFilePath.basename)",
-                    commandLine: ["builtin-SwiftPerFileCompile", ByteString(encodingAsUTF8: sourceFilePath.basename)],
-                    additionalOutput: [],
-                    interestingPath: sourceFilePath,
-                    workingDirectory: task.workingDirectory,
-                    serializedDiagnosticsPaths: [entry.serializedDiagnosticsPath]
-                )
-                let diagnostics = subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
-                let exitStatus: Processes.ExitStatus
-                switch result {
-                case .exit(let status, _)?:
-                    switch status {
-                    case .exit(let exitCode):
-                        if exitCode == 0 {
-                            // The batch compile succeeded, mark the individual files as succeeded.
+            // Use a subtask even if there's not source file, otherwise the diagnostic will get the signature
+            // of the compiler task which can be very large, causing slowdown when needing to serialize and send
+            // a lot of diagnostics for a compilation.
+            let sourceFilePath = entry.sourceFilePath
+            // FIXME: find a better way to get at these
+            let variant = task.ruleInfo[1]
+            let arch = task.ruleInfo[2]
+            let (ruleInfo, signature) = SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: variant, arch: arch, path: sourceFilePath, extraName: entry.sourceFilePath == nil ? task.ruleInfo[0] : nil)
+            let subtaskDelegate = delegate.startSubtask(
+                buildOperationIdentifier: self.delegate.buildOperationIdentifier,
+                taskName: "Swift Compiler",
+                signature: signature,
+                ruleInfo: ruleInfo.joined(separator: " "),
+                executionDescription: "Compile\(sourceFilePath.map{" \($0.basename)"} ?? "")",
+                commandLine: sourceFilePath.map{["builtin-SwiftPerFileCompile", ByteString(encodingAsUTF8: $0.basename)]} ?? [],
+                additionalOutput: [],
+                interestingPath: sourceFilePath,
+                workingDirectory: task.workingDirectory,
+                serializedDiagnosticsPaths: [entry.serializedDiagnosticsPath]
+            )
+            let diagnostics = subtaskDelegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+            let exitStatus: Processes.ExitStatus
+            switch result {
+            case .exit(let status, _)?:
+                switch status {
+                case .exit(let exitCode):
+                    if exitCode == 0 {
+                        // The batch compile succeeded, mark the individual files as succeeded.
+                        exitStatus = status
+                    } else {
+                        // The batch compile failed. Mark files which reported errors as failed, and files which did not as cancelled.
+                        if diagnostics.contains(where: { $0.behavior == .error }) {
                             exitStatus = status
                         } else {
-                            // The batch compile failed. Mark files which reported errors as failed, and files which did not as cancelled.
-                            if diagnostics.contains(where: { $0.behavior == .error }) {
-                                exitStatus = status
-                            } else {
-                                exitStatus = .buildSystemCanceledTask
-                            }
+                            exitStatus = .buildSystemCanceledTask
                         }
-                    case .uncaughtSignal(_):
-                        // If the batch compile failed due to a signal, there is likely not enough information to attribute the failure
-                        // to a particular file.
-                        exitStatus = status
                     }
-                case .failedSetup?:
-                    exitStatus = .buildSystemCanceledTask
-                case .skipped?:
-                    exitStatus = .exit(0)
-                case nil:
-                    exitStatus = .buildSystemCanceledTask
+                case .uncaughtSignal(_):
+                    // If the batch compile failed due to a signal, there is likely not enough information to attribute the failure
+                    // to a particular file.
+                    exitStatus = status
                 }
-                subtaskDelegate.taskCompleted(exitStatus: exitStatus)
-                subtaskDelegate.close()
-            } else {
-                delegate.processSerializedDiagnostics(at: entry.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+            case .failedSetup?:
+                exitStatus = .buildSystemCanceledTask
+            case .skipped?:
+                exitStatus = .exit(0)
+            case nil:
+                exitStatus = .buildSystemCanceledTask
             }
+            subtaskDelegate.taskCompleted(exitStatus: exitStatus)
+            subtaskDelegate.close()
         }
         delegate.close()
     }
