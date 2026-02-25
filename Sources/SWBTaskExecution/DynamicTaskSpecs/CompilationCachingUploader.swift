@@ -89,20 +89,18 @@ package final class CompilationCachingUploader {
             }
         }
 
-        // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
-        // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
-        // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
-        clangCompilation.makeGlobalAsync { error in
+        _Concurrency.Task.detached {
             let status: BuildOperationTaskEnded.Status
-            if let error {
+            do {
+                try await clangCompilation.makeGlobal()
+                status = .succeeded
+            } catch {
                 activityReporter.emit(
                     diagnostic: Diagnostic(behavior: enableStrictCASErrors ? .error : .warning, location: .unknown, data: DiagnosticData(error.localizedDescription)),
                     for: activityID,
                     signature: signature
                 )
                 status = enableStrictCASErrors ? .failed : .succeeded
-            } else {
-                status = .succeeded
             }
             activityReporter.endActivity(
                 id: activityID,
@@ -161,20 +159,18 @@ package final class CompilationCachingUploader {
             )
         }
 
-        // Avoiding the swift concurrency variant because it may lead to starvation when `waitForCompletion()`
-        // blocks on such tasks. Before using a swift concurrency task here make sure there's no deadlock
-        // when setting `LIBDISPATCH_COOPERATIVE_POOL_STRICT`.
-        swiftCompilation.makeGlobal { error in
+        _Concurrency.Task.detached {
             let status: BuildOperationTaskEnded.Status
-            if let error {
+            do {
+                try await swiftCompilation.makeGlobal()
+                status = .succeeded
+            } catch {
                 activityReporter.emit(
                     diagnostic: Diagnostic(behavior: enableStrictCASErrors ? .error : .warning, location: .unknown, data: DiagnosticData(error.localizedDescription)),
                     for: activityID,
                     signature: signature
                 )
                 status = enableStrictCASErrors ? .failed : .succeeded
-            } else {
-                status = .succeeded
             }
             activityReporter.endActivity(
                 id: activityID,
