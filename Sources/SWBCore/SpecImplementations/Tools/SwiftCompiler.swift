@@ -3354,19 +3354,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 }
 
 extension SwiftCompilerSpec {
-    static public func computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(
-        variant: String,
-        arch: String,
-        path: Path?,
-        extraName: String? = nil,
-    ) -> ([String], ByteString) {
-        let ruleInfo = ["SwiftCompile", variant, arch] + (path.map{[$0.str.quotedDescription]} ?? [])
+    static public func computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: String, arch: String, path: Path) -> ([String], ByteString) {
+        let ruleInfo = ["SwiftCompile", variant, arch, path.str.quotedDescription]
         let signature: ByteString = {
             let md5 = InsecureHashContext()
             md5.add(string: ruleInfo.joined(separator: " "))
-            if let extraName {
-                md5.add(string: extraName)
-            }
             return md5.signature
         }()
         return (ruleInfo, signature)
