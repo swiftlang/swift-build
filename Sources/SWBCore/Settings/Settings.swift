@@ -540,9 +540,6 @@ final class WorkspaceSettings: Sendable {
         // Add default values for the compilation caching plugin (off-by-default).
         table.push(BuiltinMacros.COMPILATION_CACHE_PLUGIN_PATH, Static { BuiltinMacros.namespace.parseString("$(DEVELOPER_USR_DIR)/lib/libToolchainCASPlugin.dylib") })
 
-        // Add default value for using integrated compilation cache queries.
-        table.push(BuiltinMacros.COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES, literal: true)
-
         // Enable the integrated driver
         table.push(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER, literal: true)
 

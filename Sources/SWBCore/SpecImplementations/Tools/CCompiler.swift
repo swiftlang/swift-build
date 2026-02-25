@@ -1006,14 +1006,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 let casOptions: CASOptions? = {
                     guard cachedBuild else { return nil }
                     do {
-                        var casOpts = try CASOptions.create(cbc.scope, .compiler(language))
-                        if casOpts.enableIntegratedCacheQueries, let clangInfo {
-                            if !clangInfo.toolFeatures.has(.libclangCacheQueries) {
-                                delegate.warning("COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES ignored because it's not supported by the toolchain")
-                                casOpts.enableIntegratedCacheQueries = false
-                            }
-                        }
-                        return casOpts
+                        return try CASOptions.create(cbc.scope, .compiler(language))
                     } catch {
                         delegate.error(error.localizedDescription)
                         return nil

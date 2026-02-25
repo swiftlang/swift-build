@@ -1423,11 +1423,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     if let pluginPath = casOpts.pluginPath {
                         args += ["-cas-plugin-path", pluginPath.str]
                     }
-                    // If the integrated cache queries is enabled, the remote service is handled by build system and no need to pass to compiler
-                    if !casOpts.enableIntegratedCacheQueries && casOpts.hasRemoteCache,
-                       let remoteService = casOpts.remoteServicePath {
-                        args += ["-cas-plugin-option", "remote-service-path=" + remoteService.str]
-                    }
                 }
             } catch {
                 delegate.error(error.localizedDescription)

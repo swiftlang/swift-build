@@ -110,7 +110,6 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
     public var casPath: Path
     public var pluginPath: Path?
     public var remoteServicePath: Path?
-    public var enableIntegratedCacheQueries: Bool
     public var enableDiagnosticRemarks: Bool
     public var enableStrictCASErrors: Bool
     /// If true, key queries avoid blocking or being restricted by the execution lanes.
@@ -125,7 +124,6 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         casPath: Path,
         pluginPath: Path?,
         remoteServicePath: Path?,
-        enableIntegratedCacheQueries: Bool,
         enableDiagnosticRemarks: Bool,
         enableStrictCASErrors: Bool,
         enableDetachedKeyQueries: Bool,
@@ -134,7 +132,6 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         self.casPath = casPath
         self.pluginPath = pluginPath
         self.remoteServicePath = remoteServicePath
-        self.enableIntegratedCacheQueries = enableIntegratedCacheQueries
         self.enableDiagnosticRemarks = enableDiagnosticRemarks
         self.enableStrictCASErrors = enableStrictCASErrors
         self.enableDetachedKeyQueries = enableDetachedKeyQueries
@@ -142,11 +139,10 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(8) {
+        serializer.serializeAggregate(7) {
             serializer.serialize(casPath)
             serializer.serialize(pluginPath)
             serializer.serialize(remoteServicePath)
-            serializer.serialize(enableIntegratedCacheQueries)
             serializer.serialize(enableDiagnosticRemarks)
             serializer.serialize(enableStrictCASErrors)
             serializer.serialize(enableDetachedKeyQueries)
@@ -155,11 +151,10 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(8)
+        try deserializer.beginAggregate(7)
         self.casPath = try deserializer.deserialize()
         self.pluginPath = try deserializer.deserialize()
         self.remoteServicePath = try deserializer.deserialize()
-        self.enableIntegratedCacheQueries = try deserializer.deserialize()
         self.enableDiagnosticRemarks = try deserializer.deserialize()
         self.enableStrictCASErrors = try deserializer.deserialize()
         self.enableDetachedKeyQueries = try deserializer.deserialize()
@@ -191,7 +186,6 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
         let casPath: Path
         let pluginPath: Path?
         let remoteServicePath: Path?
-        let enableIntegratedCacheQueries = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES)
         let enableDiagnosticRemarks = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS)
         let enableStrictCASErrors = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_STRICT_CAS_ERRORS)
         let enableDetachedKeyQueries = scope.evaluate(BuiltinMacros.COMPILATION_CACHE_ENABLE_DETACHED_KEY_QUERIES)
@@ -251,7 +245,6 @@ public struct CASOptions: Hashable, Serializable, Encodable, Sendable {
             casPath: casPath,
             pluginPath: pluginPath,
             remoteServicePath: remoteServicePath,
-            enableIntegratedCacheQueries: enableIntegratedCacheQueries,
             enableDiagnosticRemarks: enableDiagnosticRemarks,
             enableStrictCASErrors: enableStrictCASErrors,
             enableDetachedKeyQueries: enableDetachedKeyQueries,

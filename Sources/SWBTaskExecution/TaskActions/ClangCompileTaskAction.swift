@@ -229,7 +229,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
 
         do {
             let casDBs: ClangCASDatabases?
-            if let casOptions = explicitModulesPayload.casOptions, casOptions.enableIntegratedCacheQueries {
+            if let casOptions = explicitModulesPayload.casOptions {
                 casDBs = try clangModuleDependencyGraph.getCASDatabases(
                     libclangPath: explicitModulesPayload.libclangPath,
                     casOptions: casOptions
@@ -359,8 +359,8 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
     }
 
     /// Intended to be called during task dependency setup.
-    /// If remote caching is enabled along with integrated cache queries, it will request
-    /// a `ClangCachingMaterializeKeyTaskAction` as task dependency.
+    /// If remote caching is enabled it will request a `ClangCachingMaterializeKeyTaskAction`
+    /// as task dependency.
     static func maybeRequestCachingKeyMaterialization(
         dependencyInfo: ClangModuleDependencyGraph.DependencyInfo,
         dynamicExecutionDelegate: any DynamicTaskExecutionDelegate,
@@ -368,9 +368,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
         casOptions: CASOptions?,
         taskID: inout UInt
     ) throws {
-        guard let casOptions,
-              casOptions.enableIntegratedCacheQueries,
-              casOptions.hasRemoteCache else {
+        guard let casOptions, casOptions.hasRemoteCache else {
             return
         }
 

@@ -176,7 +176,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
 
         do {
             let casDBs: ClangCASDatabases?
-            if let casOptions = key.casOptions, casOptions.enableIntegratedCacheQueries {
+            if let casOptions = key.casOptions {
                 casDBs = try clangModuleDependencyGraph.getCASDatabases(
                     libclangPath: key.libclangPath,
                     casOptions: casOptions

@@ -253,7 +253,7 @@ package final class ClangModuleDependencyGraph {
 
                             let casOpts = try createCASOptions(ignoreRemote: false)
                             let casOptsForInvocations: ClangCASOptions?
-                            if casOptions.enableIntegratedCacheQueries && casOptions.hasRemoteCache {
+                            if casOptions.hasRemoteCache {
                                 casOptsForInvocations = try createCASOptions(ignoreRemote: true)
                             } else {
                                 casOptsForInvocations = nil
