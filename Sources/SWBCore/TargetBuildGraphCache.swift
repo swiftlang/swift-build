@@ -14,10 +14,9 @@ import SWBUtil
 
 /// Process-level cache for computed target dependency graphs.
 ///
-/// Xcode issues multiple `TargetBuildGraph` requests per build action
-/// with different parameters (e.g. dependency graph vs actual build,
-/// index preparation vs normal build). A multi-entry cache ensures
-/// these don't evict each other.
+/// Clients issue multiple `TargetBuildGraph` requests per build action
+/// with different parameters (e.g. dependency graph analysis vs actual
+/// build). A multi-entry cache ensures these don't evict each other.
 ///
 /// The cache is static (process-level) because `WorkspaceContext` is
 /// recreated on every PIF transfer, even when nothing has changed.
