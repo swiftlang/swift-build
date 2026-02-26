@@ -3112,7 +3112,7 @@ private class SettingsBuilder: ProjectMatchLookup {
             table.push(BuiltinMacros.CONFIGURATION_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(BUILD_DIR)") })
             table.push(BuiltinMacros.CONFIGURATION_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(PROJECT_TEMP_DIR)") })
         }
-        table.push(BuiltinMacros.TARGET_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME).build") })
+        table.push(BuiltinMacros.TARGET_TEMP_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_TEMP_DIR)/$(TARGET_NAME)$(TARGET_TEMP_DIR_SUFFIX).build") })
         table.push(BuiltinMacros.TARGET_BUILD_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_BUILD_DIR)$(TARGET_BUILD_SUBPATH)") })
         table.push(BuiltinMacros.BUILT_PRODUCTS_DIR, Static { BuiltinMacros.namespace.parseString("$(CONFIGURATION_BUILD_DIR)") })
         table.push(BuiltinMacros.DEVELOPMENT_LANGUAGE, literal: project.developmentRegion ?? "en")
