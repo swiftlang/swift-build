@@ -1369,7 +1369,7 @@ package final class BuildOperationTester {
             }
 
             // Create the build description.
-            let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext ?? self.workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+            let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext ?? self.workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
 
             // Construct a dictionary of provisioning inputs for targets which are to be signed.  If inputs for a target were not provided to us, then we default to simple ad-hoc signing.
             var provisioningInputs = [ConfiguredTarget: ProvisioningTaskInputs]()

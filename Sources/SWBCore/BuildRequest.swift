@@ -168,7 +168,7 @@ extension SchemeCommandMessagePayload {
     }
 }
 
-public enum DependencyScope: Sendable {
+public enum DependencyScope: Hashable, Sendable {
     /// Consider all dependencies visible in the workspace.
     case workspace
     /// Consider only dependencies between targets specified in the build request.

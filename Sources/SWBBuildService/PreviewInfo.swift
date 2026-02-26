@@ -103,7 +103,7 @@ extension BuildDescriptionManager {
         input: TaskGeneratePreviewInfoInput
     ) async throws -> [PreviewInfoOutput] {
         // FIXME: We have temporarily disabled going through the planning operation, since it was causing significant churn: <rdar://problem/31772753> ProvisioningInputs are changing substantially for the same request
-        let buildGraph = await TargetBuildGraph(
+        let buildGraph = await TargetBuildGraph.cached(
             workspaceContext: workspaceContext,
             buildRequest: buildRequest,
             buildRequestContext: buildRequestContext,

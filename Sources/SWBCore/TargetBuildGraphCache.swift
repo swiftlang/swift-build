@@ -11,9 +11,8 @@
 //===----------------------------------------------------------------------===//
 
 import SWBUtil
-import Foundation
 
-/// Process-level cache for computed target build graphs.
+/// Process-level cache for computed target dependency graphs.
 ///
 /// Xcode issues multiple `TargetBuildGraph` requests per build action
 /// with different parameters (e.g. dependency graph vs actual build,
@@ -26,7 +25,7 @@ public enum TargetBuildGraphCache {
     /// The data we cache — everything needed by the
     /// `TargetBuildGraph` memberwise init except the live context
     /// objects (workspaceContext, buildRequest, buildRequestContext).
-    struct CachedTopology: @unchecked Sendable {
+    struct CachedDependencyGraph: @unchecked Sendable {
         let allTargets: OrderedSet<ConfiguredTarget>
         let targetDependencies:
             [ConfiguredTarget: [ResolvedTargetDependency]]
@@ -34,33 +33,61 @@ public enum TargetBuildGraphCache {
             [ConfiguredTarget:
                 [BuildFile.BuildableItem: ResolvedTargetDependency]]
         let dynamicallyBuildingTargets: Set<Target>
+        /// All non-error diagnostics emitted during resolution,
+        /// re-emitted on cache hit.
+        let diagnostics: [Diagnostic]
+        /// Last access time for LRU eviction.
+        var lastAccess: UInt64
     }
 
     /// Maximum number of cached entries. Xcode typically issues 2-4
     /// distinct graph requests per build action; 8 gives headroom.
     private static let maxEntries = 8
 
-    private static let _entries =
-        SWBMutex<[Int: CachedTopology]>([:])
+    private static let entries =
+        SWBMutex<[Int: CachedDependencyGraph]>([:])
+    private static let accessCounter = SWBMutex<UInt64>(0)
 
-    /// Look up a cached topology by signature.
-    static func lookup(signature: Int) -> CachedTopology? {
-        _entries.withLock { entries in
-            entries[signature]
+    /// Bump and return the next access timestamp for LRU tracking.
+    private static func nextAccessTime() -> UInt64 {
+        accessCounter.withLock { counter in
+            counter += 1
+            return counter
         }
     }
 
-    /// Store a computed topology for the given signature.
-    static func store(signature: Int, topology: CachedTopology) {
-        _entries.withLock { entries in
-            // Evict all entries if we exceed the limit (simple reset
-            // policy). This only happens when the PIF changes or the
-            // user switches between different build configurations.
-            if entries.count >= maxEntries {
-                entries.removeAll()
-            }
-            entries[signature] = topology
+    /// Look up a cached dependency graph by signature.
+    static func lookup(signature: Int) -> CachedDependencyGraph? {
+        entries.withLock { entries in
+            guard var entry = entries[signature] else { return nil }
+            entry.lastAccess = nextAccessTime()
+            entries[signature] = entry
+            return entry
         }
+    }
+
+    /// Store a computed dependency graph for the given signature.
+    static func store(signature: Int, graph: CachedDependencyGraph) {
+        entries.withLock { entries in
+            if entries.count >= maxEntries {
+                // LRU eviction — remove the least recently accessed
+                // entry instead of clearing the entire cache.
+                if let lruKey = entries.min(
+                    by: { $0.value.lastAccess < $1.value.lastAccess }
+                )?.key {
+                    entries.removeValue(forKey: lruKey)
+                }
+            }
+            entries[signature] = graph
+        }
+    }
+
+    /// Whether the given build command should bypass the cache.
+    /// Index preparation (prepareForIndexing) uses low QoS and
+    /// produces large dependency graphs that are rarely reused —
+    /// the memory overhead of caching them is not worth it.
+    static func shouldSkipCache(buildCommand: BuildCommand) -> Bool {
+        buildCommand.isPrepareForIndexing
     }
 
     /// Compute a cache signature from the inputs that determine the
@@ -77,24 +104,23 @@ public enum TargetBuildGraphCache {
     ) -> Int {
         var hasher = Hasher()
 
-        // Normalized PIF signature (strip volatile subobject GUIDs)
-        if let range = workspaceSignature.range(
-            of: "_subobjects="
-        ) {
-            hasher.combine(
-                workspaceSignature[..<range.lowerBound])
-        } else {
-            hasher.combine(workspaceSignature)
-        }
+        // Use the full workspace signature as-is.
+        // This in-memory cache stores live Target object references
+        // that use reference identity (===). If the PIF is
+        // re-transferred, new Target objects are created and the old
+        // cached references become stale — so we MUST miss on any
+        // PIF change, including subobject GUID changes.
+        hasher.combine(workspaceSignature)
 
         // Global build parameters
         hasher.combine(buildRequest.parameters)
 
         // Top-level build targets and their per-target parameters.
-        // Sort by target GUID for order independence.
-        for targetInfo in buildRequest.buildTargets.sorted(
-            by: { $0.target.guid < $1.target.guid }
-        ) {
+        // Preserve input order — it affects the output target
+        // ordering in the resolved dependency graph (manual build
+        // ordering), so different orderings must produce different
+        // cache signatures.
+        for targetInfo in buildRequest.buildTargets {
             hasher.combine(targetInfo.target.guid)
             hasher.combine(targetInfo.parameters)
         }
@@ -105,15 +131,12 @@ public enum TargetBuildGraphCache {
         hasher.combine(buildRequest.skipDependencies)
 
         // Dependency scope affects pruning
-        switch buildRequest.dependencyScope {
-        case .workspace:
-            hasher.combine(0)
-        case .buildRequest:
-            hasher.combine(1)
-        }
+        hasher.combine(buildRequest.dependencyScope)
 
         // Build command affects the early-return for
-        // assembly/preprocessor
+        // assembly/preprocessor. BuildCommand has associated values
+        // that prevent auto-Hashable, so we hash only the
+        // discriminator which is what affects graph topology.
         switch buildRequest.buildCommand {
         case .build:
             hasher.combine("build")
@@ -132,12 +155,7 @@ public enum TargetBuildGraphCache {
         }
 
         // Purpose affects diagnostic behavior
-        switch purpose {
-        case .build:
-            hasher.combine("build")
-        case .dependencyGraph:
-            hasher.combine("depgraph")
-        }
+        hasher.combine(purpose)
 
         return hasher.finalize()
     }

@@ -58,7 +58,7 @@ private func constructTargetBuildGraph(for targetGUIDs: [TargetGUID], in workspa
     case .buildRequest:
         scope = .buildRequest
     }
-    let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext,
+    let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext,
                                       buildRequest: BuildRequest(parameters: parameters,
                                                                  buildTargets: targets.map { BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }, dependencyScope: scope,
                                                                  continueBuildingAfterErrors: false,

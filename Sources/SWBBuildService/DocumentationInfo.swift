@@ -42,7 +42,7 @@ extension BuildDescriptionManager {
     /// This part of the feature gets the build description for the build request and calls `generateDocumentationInfo` on it (see below).
     func generateDocumentationInfo(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any DocumentationInfoDelegate, input: TaskGenerateDocumentationInfoInput) async throws -> [DocumentationInfoOutput] {
         // FIXME: We have temporarily disabled going through the planning operation, since it was causing significant churn: <rdar://problem/31772753> ProvisioningInputs are changing substantially for the same request
-        let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+        let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
         if delegate.hadErrors {
             throw DocumentationInfoErrors.noTargetBuildGraph
         }

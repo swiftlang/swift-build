@@ -70,7 +70,7 @@ package final class PlanningOperation: Sendable {
         }
 
         let graph = await delegate.withActivity(ruleInfo: "ComputeTargetDependencyGraph", executionDescription: "Compute target dependency graph", signature: "compute_target_graph", target: nil, parentActivity: nil) { activity in
-            let graph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: ActivityReportingForwardingDelegate(operation: self, activity: activity, signature: "compute_target_graph"))
+            let graph = await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: ActivityReportingForwardingDelegate(operation: self, activity: activity, signature: "compute_target_graph"))
 
             delegate.emit(diagnostic: graph.targetBuildOrderDiagnostic, for: activity, signature: "compute_target_graph")
 

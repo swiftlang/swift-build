@@ -42,7 +42,7 @@ extension CoreBasedTests {
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, dependencyScope: dependencyScope, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: useImplicitDependencies, useDryRun: false)
 
         // Create the build graph.
-        return await (TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext), buildRequest)
+        return await (TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext), buildRequest)
     }
 
     package func planRequest(for workspace: Workspace, configuration: String = "Debug", activeRunDestination: RunDestinationInfo?, overrides: [String: String] = [:], fs: any FSProxy = PseudoFS(), includingTargets predicate: (Target) -> Bool) async throws -> BuildPlanRequest {

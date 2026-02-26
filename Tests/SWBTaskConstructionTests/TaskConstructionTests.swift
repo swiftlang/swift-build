@@ -4641,7 +4641,7 @@ fileprivate struct TaskConstructionTests: CoreBasedTests {
         let buildTargets = project.targets.map{ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }
         let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
         let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)
-        let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+        let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
         let buildPlanRequest = BuildPlanRequest(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, buildGraph: buildGraph, provisioningInputs: [:])
 
         let clientDelegate = MockTestTaskPlanningClientDelegate()

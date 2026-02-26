@@ -717,7 +717,7 @@ extension MessageHandler {
 
                 } else {
                     // FIXME: We have temporarily disabled going through the planning operation, since it was causing significant churn: <rdar://problem/31772753> ProvisioningInputs are changing substantially for the same request
-                    let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: operation)
+                    let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: operation)
                     if operation.hadErrors {
                         return .failed(ErrorResponse("unable to get target build graph"))
                     }

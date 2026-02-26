@@ -856,7 +856,7 @@ package final class TaskConstructionTester {
 
         // Get a build plan for this request.
         let delegate = TestTaskPlanningDelegate(clientDelegate: clientDelegate ?? MockTestTaskPlanningClientDelegate(), workspace: workspace, fs: fs)
-        let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
+        let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext)
         var provisioningInputs = [ConfiguredTarget: ProvisioningTaskInputs]()
         for target in buildGraph.allTargets {
             provisioningInputs[target] = TaskConstructionTester.computeProvisioningInputs(for: target, workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, provisioningOverrides: provisioningOverrides)
