@@ -139,6 +139,7 @@ public final class ClangCompileTaskAction: TaskAction, BuildValueValidatingTaskA
                 casOptions: explicitModulesPayload.casOptions,
                 verifyingModule: explicitModulesPayload.verifyingModule,
                 fileNameMapPath: payload.fileNameMapPath,
+                shouldGenerateReproducerForErrors: explicitModulesPayload.shouldGenerateReproducerForErrors,
                 reproducerOutputPath: explicitModulesPayload.reproducerOutputPath
             )
 
