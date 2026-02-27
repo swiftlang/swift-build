@@ -119,6 +119,7 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
         let skipCache = TargetBuildGraphCache.shouldSkipCache(buildCommand: buildRequest.buildCommand)
         let signature = TargetBuildGraphCache.computeSignature(
             workspaceSignature: workspaceContext.workspace.signature,
+            workspaceIdentity: ObjectIdentifier(workspaceContext.workspace),
             buildRequest: buildRequest,
             purpose: purpose
         )

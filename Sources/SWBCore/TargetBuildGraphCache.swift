@@ -98,18 +98,23 @@ public enum TargetBuildGraphCache {
     /// on each other — only the PIF does.
     static func computeSignature(
         workspaceSignature: String,
+        workspaceIdentity: ObjectIdentifier,
         buildRequest: BuildRequest,
         purpose: TargetBuildGraph.Purpose
     ) -> Int {
         var hasher = Hasher()
 
-        // Use the full workspace signature as-is.
-        // This in-memory cache stores live Target object references
-        // that use reference identity (===). If the PIF is
-        // re-transferred, new Target objects are created and the old
-        // cached references become stale — so we MUST miss on any
-        // PIF change, including subobject GUID changes.
+        // Use the full workspace signature AND the workspace object
+        // identity. The cached graph stores live ConfiguredTarget
+        // objects whose Target references use reference identity
+        // (ObjectIdentifier) for hash/equality. If the PIF is
+        // re-transferred, the IncrementalPIFLoader may create new
+        // Target objects even when the content is unchanged — the
+        // workspace signature stays the same but the references are
+        // different. Including the object identity ensures we miss
+        // whenever the Workspace (and its Target objects) is recreated.
         hasher.combine(workspaceSignature)
+        hasher.combine(workspaceIdentity)
 
         // Global build parameters
         hasher.combine(buildRequest.parameters)
