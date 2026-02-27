@@ -123,6 +123,11 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
             buildRequest: buildRequest,
             purpose: purpose
         )
+        let contentSignature = TargetBuildGraphCache.computeContentSignature(
+            workspaceSignature: workspaceContext.workspace.signature,
+            buildRequest: buildRequest,
+            purpose: purpose
+        )
 
         let allTargets: OrderedSet<ConfiguredTarget>
         let targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]]
@@ -138,6 +143,23 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
             // Re-emit all cached diagnostics on cache hit so callers observe
             // the same diagnostic behavior regardless of cache state.
             for diagnostic in cached.diagnostics {
+                delegate.emit(diagnostic)
+            }
+        } else if !skipCache,
+                  let contentMatch = TargetBuildGraphCache.lookupByContentSignature(contentSignature),
+                  let remapped = TargetBuildGraphCache.remapGraph(contentMatch, to: workspaceContext.workspace) {
+            // Content-identical PIF re-transfer — remap Target references
+            // instead of recomputing the full dependency graph.
+            allTargets = remapped.allTargets
+            targetDependencies = remapped.targetDependencies
+            targetsToLinkedReferencesToProducingTargets = remapped.targetsToLinkedReferencesToProducingTargets
+            dynamicallyBuildingTargets = remapped.dynamicallyBuildingTargets
+
+            // Store under the new full signature for future exact hits.
+            TargetBuildGraphCache.store(signature: signature, graph: remapped)
+
+            // Re-emit diagnostics.
+            for diagnostic in remapped.diagnostics {
                 delegate.emit(diagnostic)
             }
         } else {
@@ -156,6 +178,7 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
                 TargetBuildGraphCache.store(
                     signature: signature,
                     graph: .init(
+                        contentSignature: contentSignature,
                         allTargets: allTargets,
                         targetDependencies: targetDependencies,
                         targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets,
