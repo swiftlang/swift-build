@@ -204,7 +204,7 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = SWIFTC_RESOURCE_DIR;
+                Name = SWIFT_RESOURCE_DIR;
                 Type = Path;
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineArgs = {
