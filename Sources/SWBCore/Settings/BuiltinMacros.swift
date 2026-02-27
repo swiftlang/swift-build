@@ -527,6 +527,7 @@ public final class BuiltinMacros {
     public static let CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION = BuiltinMacros.declareEnumMacro("CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION") as EnumMacroDeclaration<FineGrainedCachingVerificationSetting>
     public static let CLANG_DISABLE_DEPENDENCY_INFO_FILE = BuiltinMacros.declareBooleanMacro("CLANG_DISABLE_DEPENDENCY_INFO_FILE")
     public static let CLANG_ENABLE_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("CLANG_ENABLE_PREFIX_MAPPING")
+    public static let CLANG_ENABLE_PROJECT_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("CLANG_ENABLE_PROJECT_PREFIX_MAPPING")
     public static let CLANG_OTHER_PREFIX_MAPPINGS = BuiltinMacros.declareStringListMacro("CLANG_OTHER_PREFIX_MAPPINGS")
     public static let CLANG_GENERATE_OPTIMIZATION_REMARKS = BuiltinMacros.declareBooleanMacro("CLANG_GENERATE_OPTIMIZATION_REMARKS")
     public static let CLANG_GENERATE_OPTIMIZATION_REMARKS_FILTER = BuiltinMacros.declareStringMacro("CLANG_GENERATE_OPTIMIZATION_REMARKS_FILTER")
@@ -1122,6 +1123,7 @@ public final class BuiltinMacros {
     public static let SWIFT_WHOLE_MODULE_OPTIMIZATION = BuiltinMacros.declareBooleanMacro("SWIFT_WHOLE_MODULE_OPTIMIZATION")
     public static let SWIFT_ENABLE_COMPILE_CACHE = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_COMPILE_CACHE")
     public static let SWIFT_ENABLE_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_PREFIX_MAPPING")
+    public static let SWIFT_ENABLE_PROJECT_PREFIX_MAPPING = BuiltinMacros.declareBooleanMacro("SWIFT_ENABLE_PROJECT_PREFIX_MAPPING")
     public static let SWIFT_OTHER_PREFIX_MAPPINGS = BuiltinMacros.declareStringListMacro("SWIFT_OTHER_PREFIX_MAPPINGS")
     public static let SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR = BuiltinMacros.declareStringMacro("SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR")
     public static let SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME = BuiltinMacros.declareStringMacro("SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME")
@@ -1539,6 +1541,7 @@ public final class BuiltinMacros {
         CLANG_CACHE_FINE_GRAINED_OUTPUTS_VERIFICATION,
         CLANG_DISABLE_DEPENDENCY_INFO_FILE,
         CLANG_ENABLE_PREFIX_MAPPING,
+        CLANG_ENABLE_PROJECT_PREFIX_MAPPING,
         CLANG_OTHER_PREFIX_MAPPINGS,
         CLANG_DISABLE_SERIALIZED_DIAGNOSTICS,
         CLANG_ENABLE_MODULES,
@@ -2373,6 +2376,7 @@ public final class BuiltinMacros {
         SWIFT_WHOLE_MODULE_OPTIMIZATION,
         SWIFT_ENABLE_COMPILE_CACHE,
         SWIFT_ENABLE_PREFIX_MAPPING,
+        SWIFT_ENABLE_PROJECT_PREFIX_MAPPING,
         SWIFT_OTHER_PREFIX_MAPPINGS,
         SYMBOL_GRAPH_EXTRACTOR_MODULE_NAME,
         SYMBOL_GRAPH_EXTRACTOR_OUTPUT_DIR,

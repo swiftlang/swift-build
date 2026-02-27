@@ -3316,13 +3316,26 @@
                         "-fdepscan-prefix-map-sdk=/^sdk",
                         "-fdepscan-prefix-map-toolchain=/^toolchain",
                         "-fdepscan-prefix-map=$(DEVELOPER_DIR)=/^xcode",
+                    );
+                    NO = ();
+                };
+                Condition = "$(CLANG_ENABLE_COMPILE_CACHE)";
+                FeatureFlags = "depscan-prefix-map";
+                // Category is hidden.
+            },
+            {
+                Name = "CLANG_ENABLE_PROJECT_PREFIX_MAPPING";
+                Type = Boolean;
+                // `DefaultValue` is not set to allow configuring the setting via an environment variable.
+                CommandLineArgs = {
+                    YES = (
                         "-fdepscan-prefix-map=$(PROJECT_DIR)=/^src",
                         "-fdepscan-prefix-map=$(PROJECT_TEMP_DIR)=/^derived",
                         "-fdepscan-prefix-map=$(BUILT_PRODUCTS_DIR)=/^built",
                     );
                     NO = ();
                 };
-                Condition = "$(CLANG_ENABLE_COMPILE_CACHE)";
+                Condition = "$(CLANG_ENABLE_COMPILE_CACHE) && $(CLANG_ENABLE_PREFIX_MAPPING)";
                 FeatureFlags = "depscan-prefix-map";
                 // Category is hidden.
             },
