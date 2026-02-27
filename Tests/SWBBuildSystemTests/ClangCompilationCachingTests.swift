@@ -1553,6 +1553,7 @@ fileprivate struct ClangCompilationCachingTests: CoreBasedTests {
                                     "_EXPERIMENTAL_CLANG_EXPLICIT_MODULES": "YES",
                                     "HEADER_SEARCH_PATHS": "\(moduleDir.str) $DERIVED_FILE_DIR",
                                     "CLANG_ENABLE_PREFIX_MAPPING": "YES",
+                                    "CLANG_ENABLE_PROJECT_PREFIX_MAPPING": "YES",
                                     "CLANG_OTHER_PREFIX_MAPPINGS": "\(moduleDir.str)=/^mod",
                                     "DSTROOT": tmpDirPath.join("dstroot").str,
                                     "EMIT_FRONTEND_COMMAND_LINES": "YES",

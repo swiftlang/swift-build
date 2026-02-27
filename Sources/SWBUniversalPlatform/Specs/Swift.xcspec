@@ -1442,13 +1442,24 @@
                         "-scanner-prefix-map-sdk", "/^sdk",
                         "-scanner-prefix-map-toolchain", "/^toolchain",
                         "-scanner-prefix-map", "$(DEVELOPER_DIR)=/^xcode",
+                    );
+                    NO = ();
+                };
+                Condition = "$(SWIFT_ENABLE_COMPILE_CACHE)";
+            },
+            {
+                Name = "SWIFT_ENABLE_PROJECT_PREFIX_MAPPING";
+                Type = Boolean;
+                // `DefaultValue` is not set to allow configuring the setting via an environment variable.
+                CommandLineArgs = {
+                    YES = (
                         "-scanner-prefix-map", "$(PROJECT_DIR)=/^src",
                         "-scanner-prefix-map", "$(PROJECT_TEMP_DIR)=/^derived",
                         "-scanner-prefix-map", "$(BUILT_PRODUCTS_DIR)=/^built",
                     );
                     NO = ();
                 };
-                Condition = "$(SWIFT_ENABLE_COMPILE_CACHE)";
+                Condition = "$(SWIFT_ENABLE_COMPILE_CACHE) && $(SWIFT_ENABLE_PREFIX_MAPPING)";
             },
             {
                 Name = "SWIFT_OTHER_PREFIX_MAPPINGS";

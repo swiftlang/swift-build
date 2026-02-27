@@ -1964,16 +1964,18 @@ import SWBMacro
         let mockFileType = try core.specRegistry.getSpec("sourcecode.cpp.cpp", ofType: FileTypeSpec.self)
         let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_COMPILE_CACHE") as? BooleanMacroDeclaration)
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
+        let enableProjectPrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_ENABLE_PROJECT_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("CLANG_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
         let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
         let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_DIR") as? PathMacroDeclaration)
         let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
         let builtDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("BUILT_PRODUCTS_DIR") as? PathMacroDeclaration)
 
-        func test(caching: Bool, prefixMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
+        func test(caching: Bool, prefixMapping: Bool, completeMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
             table.push(enableCompileCache, literal: caching)
             table.push(enablePrefixMap, literal: prefixMapping)
+            table.push(enableProjectPrefixMap, literal: completeMapping)
             table.push(prefixMaps, literal: extraMaps)
             table.push(devDir, literal: "/Xcode.app/Contents/Developer")
             table.push(srcDir, literal: "/source")
@@ -1992,13 +1994,20 @@ import SWBMacro
             try completion(prefixMaps)
         }
 
-        try await test(caching: false, prefixMapping: true, extraMaps: ["/a=/b"], completion: { args in
+        try await test(caching: false, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b"], completion: { args in
             #expect(args == [])
         })
-        try await test(caching: true, prefixMapping: false, extraMaps: ["/a=/b"], completion: { args in
+        try await test(caching: true, prefixMapping: false, completeMapping: true, extraMaps: ["/a=/b"], completion: { args in
             #expect(args == [])
         })
-        try await test(caching: true, prefixMapping: true, extraMaps: [], completion: { args in
+        try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: [], completion: { args in
+            #expect(args == [
+                "-fdepscan-prefix-map-sdk=/^sdk",
+                "-fdepscan-prefix-map-toolchain=/^toolchain",
+                "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
+            ])
+        })
+        try await test(caching: true, prefixMapping: true, completeMapping: true, extraMaps: [], completion: { args in
             #expect(args == [
                 "-fdepscan-prefix-map-sdk=/^sdk",
                 "-fdepscan-prefix-map-toolchain=/^toolchain",
@@ -2008,14 +2017,11 @@ import SWBMacro
                 "-fdepscan-prefix-map=/products=/^built",
             ])
         })
-        try await test(caching: true, prefixMapping: true, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
+        try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
             #expect(args == [
                 "-fdepscan-prefix-map-sdk=/^sdk",
                 "-fdepscan-prefix-map-toolchain=/^toolchain",
                 "-fdepscan-prefix-map=/Xcode.app/Contents/Developer=/^xcode",
-                "-fdepscan-prefix-map=/source=/^src",
-                "-fdepscan-prefix-map=/build=/^derived",
-                "-fdepscan-prefix-map=/products=/^built",
                 "-fdepscan-prefix-map=/a=/b",
                 "-fdepscan-prefix-map=/c=/d",
             ])
@@ -2030,13 +2036,14 @@ import SWBMacro
         let mockFileType = try core.specRegistry.getSpec("sourcecode.swift", ofType: FileTypeSpec.self)
         let enableCompileCache = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_COMPILE_CACHE") as? BooleanMacroDeclaration)
         let enablePrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_PREFIX_MAPPING") as? BooleanMacroDeclaration)
+        let enableProjectPrefixMap = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_ENABLE_PROJECT_PREFIX_MAPPING") as? BooleanMacroDeclaration)
         let prefixMaps = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("SWIFT_OTHER_PREFIX_MAPPINGS") as? StringListMacroDeclaration)
         let devDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("DEVELOPER_DIR") as? PathMacroDeclaration)
         let srcDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_DIR") as? PathMacroDeclaration)
         let projectTmpDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("PROJECT_TEMP_DIR") as? PathMacroDeclaration)
         let builtDir = try #require(core.specRegistry.internalMacroNamespace.lookupMacroDeclaration("BUILT_PRODUCTS_DIR") as? PathMacroDeclaration)
 
-        func test(caching: Bool, prefixMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
+        func test(caching: Bool, prefixMapping: Bool, completeMapping: Bool, extraMaps: [String], completion: ([String]) throws -> Void) async throws {
             // Create the mock table.
             var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
             try await table.push(BuiltinMacros.SWIFT_EXEC, literal: self.swiftCompilerPath.str)
@@ -2053,6 +2060,7 @@ import SWBMacro
             table.push(BuiltinMacros.USE_SWIFT_RESPONSE_FILE, literal: true)
             table.push(enableCompileCache, literal: caching)
             table.push(enablePrefixMap, literal: prefixMapping)
+            table.push(enableProjectPrefixMap, literal: completeMapping)
             table.push(prefixMaps, literal: extraMaps)
             table.push(devDir, literal: "/Xcode.app/Contents/Developer")
             table.push(srcDir, literal: "/source")
@@ -2079,13 +2087,20 @@ import SWBMacro
             try completion(prefixMaps)
         }
 
-        try await test(caching: false, prefixMapping: true, extraMaps: ["/a=/b"], completion: { args in
+        try await test(caching: false, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b"], completion: { args in
             #expect(args == [])
         })
-        try await test(caching: true, prefixMapping: false, extraMaps: ["/a=/b"], completion: { args in
+        try await test(caching: true, prefixMapping: false, completeMapping: true, extraMaps: ["/a=/b"], completion: { args in
             #expect(args == [])
         })
-        try await test(caching: true, prefixMapping: true, extraMaps: [], completion: { args in
+        try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: [], completion: { args in
+            #expect(args == [
+                "-scanner-prefix-map-sdk", "/^sdk",
+                "-scanner-prefix-map-toolchain", "/^toolchain",
+                "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
+            ])
+        })
+        try await test(caching: true, prefixMapping: true, completeMapping: true, extraMaps: [], completion: { args in
             #expect(args == [
                 "-scanner-prefix-map-sdk", "/^sdk",
                 "-scanner-prefix-map-toolchain", "/^toolchain",
@@ -2095,14 +2110,11 @@ import SWBMacro
                 "-scanner-prefix-map", "/products=/^built",
             ])
         })
-        try await test(caching: true, prefixMapping: true, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
+        try await test(caching: true, prefixMapping: true, completeMapping: false, extraMaps: ["/a=/b", "/c=/d"], completion: { args in
             #expect(args == [
                 "-scanner-prefix-map-sdk", "/^sdk",
                 "-scanner-prefix-map-toolchain", "/^toolchain",
                 "-scanner-prefix-map", "/Xcode.app/Contents/Developer=/^xcode",
-                "-scanner-prefix-map", "/source=/^src",
-                "-scanner-prefix-map", "/build=/^derived",
-                "-scanner-prefix-map", "/products=/^built",
                 "-scanner-prefix-map", "/a=/b",
                 "-scanner-prefix-map", "/c=/d",
             ])
