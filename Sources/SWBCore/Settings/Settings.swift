@@ -2877,6 +2877,19 @@ private class SettingsBuilder: ProjectMatchLookup {
                             BuiltinMacros.OTHER_LDFLAGS,
                             table.namespace.parseStringList(["$(inherited)", "$(OTHER_LDFLAGS_FROM_TOOLSET_LINKER_DRIVER_$(LINKER_DRIVER))"])
                         )
+
+                        for option in extraCLIOptions {
+                            switch option {
+                            case "-static-stdlib", "-static-executable":
+                                // Swift SDKs which only support static linking (like the static Linux SDK) may
+                                // include it in the compiler's extra CLI options. We want to ensure the build
+                                // system is aware of this selection so it can pick the right resource directory
+                                // if it's provided by the Swift SDK.
+                                table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
+                            default:
+                                break
+                            }
+                        }
                     }
                     if let path = toolset.cCompiler?.path {
                         table.push(BuiltinMacros.CC, literal: toolset.resolveToolPath(path, toolsetPath: toolsetPath).str)

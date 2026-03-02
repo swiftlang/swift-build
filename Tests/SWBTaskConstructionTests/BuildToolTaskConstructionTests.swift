@@ -393,7 +393,7 @@ fileprivate struct BuildToolTaskConstructionTests: CoreBasedTests {
             results.checkTarget(targetName) { _ in }
 
             // Check diagnostics.
-            results.checkError(.prefix("Could not determine generated file paths for Core Data code generation: Unit test should implement its own instance of TaskPlanningClientDelegate."))
+            results.checkError(.prefix("Could not determine generated file paths for Core Data code generation: Unit test should implement its own instance of TaskPlanningClientDelegate"))
             results.checkNoDiagnostics()
         }
     }
