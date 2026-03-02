@@ -212,6 +212,8 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
             return .deferred
         case "ld" where args == ["-version_details"]:
             return .deferred
+        case "ld.lld" where args == ["-v"] || args == ["-version_details"]:
+            return .deferred
         case "libtool" where args == ["-V"] || args == ["--version"]:
             return .deferred
         case "mig" where args == ["-version"]:
@@ -225,7 +227,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
         default:
             break
         }
-        throw StubError.error("Unit test should implement its own instance of TaskPlanningClientDelegate.")
+        throw StubError.error("Unit test should implement its own instance of TaskPlanningClientDelegate for external tool execution handling (\(commandLine).")
     }
 }
 

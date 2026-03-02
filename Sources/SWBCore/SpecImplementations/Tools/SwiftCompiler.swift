@@ -1320,6 +1320,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let useParallelWholeModuleOptimization = cbc.scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION)
             if isUsingWholeModuleOptimization && useParallelWholeModuleOptimization {
                 args.append(contentsOf: ["-num-threads", "\(SwiftCompilerSpec.parallelismLevel)"])
+            } else if isUsingWholeModuleOptimization {
+                // Use -num-threads 1 to ensure the driver produces per-file object outputs
+                args.append(contentsOf: ["-num-threads", "1"])
             } else {
                 args.append(contentsOf: ["-j\(SwiftCompilerSpec.parallelismLevel)"])
             }

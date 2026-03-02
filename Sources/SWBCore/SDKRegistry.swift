@@ -1118,9 +1118,10 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
             let sdkroot = swiftSDK.path.join(tripleProperties.sdkRootPath)
 
-            // TODO support dynamic resources path
-            let swiftResourceDir = swiftSDK.path.join(tripleProperties.swiftStaticResourcesPath)
-            let clangResourceDir = swiftSDK.path.join(tripleProperties.clangStaticResourcesPath)
+            let swiftResourceDir = swiftSDK.path.join(tripleProperties.swiftResourcesPath)
+            let swiftStaticResourceDir = swiftSDK.path.join(tripleProperties.swiftStaticResourcesPath)
+            let clangResourceDir = swiftSDK.path.join(tripleProperties.clangResourcesPath)
+            let clangStaticResourceDir = swiftSDK.path.join(tripleProperties.clangStaticResourcesPath)
 
             let unversionedTriple = versionedTriple.unversioned
 
@@ -1157,12 +1158,21 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                     "SWIFT_SDK_TOOLSETS": .plArray(toolsetAbsolutePaths),
                 ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
                 "CustomProperties": .plDict([
+                    "SDKROOT": .plString(sdkroot.str),
+
+                    // Default search paths
                     "LIBRARY_SEARCH_PATHS": .plArray(librarySearchPaths),
                     "HEADER_SEARCH_PATHS": .plArray(headerSearchPaths),
-                    "SWIFTC_RESOURCE_DIR": .plString(swiftResourceDir.str), // Resource dir for linking Swift
-                    "SWIFT_RESOURCE_DIR": .plString(swiftResourceDir.str), // Resource dir for compiling Swift
-                    "CLANG_RESOURCE_DIR": .plString(clangResourceDir.str), // Resource dir for linking C/C++/Obj-C
-                    "SDKROOT": .plString(sdkroot.str),
+
+                    // Resource directory settings
+                    "SWIFT_RESOURCE_DIR_STATIC_STDLIB_NO": .plString(swiftResourceDir.str),
+                    "SWIFT_RESOURCE_DIR_STATIC_STDLIB_YES": .plString(swiftStaticResourceDir.str),
+                    "SWIFT_RESOURCE_DIR": .plString("$(SWIFT_RESOURCE_DIR_STATIC_STDLIB_$(SWIFT_FORCE_STATIC_LINK_STDLIB:default=NO))"),
+                    // The clang resource dir is also conditioned on SWIFT_FORCE_STATIC_LINK_STDLIB/-resource-dir
+                    // because it's ultimately determined by how the Swift SDK is being used.
+                    "CLANG_RESOURCE_DIR_STATIC_STDLIB_NO": .plString(clangResourceDir.str),
+                    "CLANG_RESOURCE_DIR_STATIC_STDLIB_YES": .plString(clangStaticResourceDir.str),
+                    "CLANG_RESOURCE_DIR": .plString("$(CLANG_RESOURCE_DIR_STATIC_STDLIB_$(SWIFT_FORCE_STATIC_LINK_STDLIB:default=NO))"),
                 ].merging(customProperties, uniquingKeysWith: { _, new in new})),
                 "SupportedTargets": .plDict([
                     platform.name: .plDict(targetProperties)
