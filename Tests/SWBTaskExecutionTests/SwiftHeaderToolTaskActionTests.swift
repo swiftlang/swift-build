@@ -18,13 +18,12 @@ import SWBTaskExecution
 struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
 
     /// Utility function to create and run a `SwiftHeaderToolTaskAction` and call a block to check the results.
-    private func testSwiftHeaderToolTaskAction(archs: [String], validate: (ByteString) -> Void) async throws {
+    @discardableResult
+    private func runSwiftHeaderToolTaskAction(fs: PseudoFS, archs: [String]) async throws -> Path {
         guard !archs.isEmpty else {
             Issue.record("Must pass at least one architecture.")
-            return
+            return Path("/")
         }
-
-        let fs = PseudoFS()
 
         let inputDir = Path.root.join("Volumes/Inputs")
         let outputDir = Path.root.join("Volumes/Outputs")
@@ -58,16 +57,21 @@ struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
         let task = Task(forTarget: nil, ruleInfo: [], commandLine: commandLine, workingDirectory: .root, outputs: [], action: action, execDescription: "")
         guard let result = await task.action?.performTaskAction(task, dynamicExecutionDelegate: MockDynamicTaskExecutionDelegate(), executionDelegate: executionDelegate, clientDelegate: MockTaskExecutionClientDelegate(), outputDelegate: outputDelegate) else {
             Issue.record("No result was returned.")
-            return
+            return outputPath
         }
 
         // Check the command succeeded with no errors.
         #expect(result == .succeeded)
         #expect(outputDelegate.messages == [])
 
-        // Read the output file and pass it to the validation block.
-        let outputFileContents = try fs.read(outputPath)
-        validate(outputFileContents)
+        return outputPath
+    }
+
+    /// Convenience wrapper that creates its own filesystem and validates the output contents.
+    private func testSwiftHeaderToolTaskAction(archs: [String], validate: (ByteString) -> Void) async throws {
+        let fs = PseudoFS()
+        let outputPath = try await runSwiftHeaderToolTaskAction(fs: fs, archs: archs)
+        validate(try fs.read(outputPath))
     }
 
     /// Test that running the tool for a single arch just copies the file and doesn't add any `#if` blocks.
@@ -133,6 +137,36 @@ struct SwiftHeaderToolTaskActionTests: CoreBasedTests {
                 "#endif\n"
             #expect(outputFileContents == expectedFileContents)
         }
+    }
+
+    // MARK: - writeIfChanged tests
+
+    /// Test that running the single-arch tool twice with identical input does not rewrite the output.
+    @Test
+    func testSingleArchDoesNotRewriteIdenticalOutput() async throws {
+        let fs = PseudoFS()
+
+        let outputPath = try await runSwiftHeaderToolTaskAction(fs: fs, archs: ["arm64"])
+        let timestampAfterFirstRun = try fs.getFileTimestamp(outputPath)
+
+        try await runSwiftHeaderToolTaskAction(fs: fs, archs: ["arm64"])
+        let timestampAfterSecondRun = try fs.getFileTimestamp(outputPath)
+
+        #expect(timestampAfterFirstRun == timestampAfterSecondRun, "Output header was rewritten despite identical content; expected writeIfChanged to skip the write")
+    }
+
+    /// Test that running the multi-arch tool twice with identical inputs does not rewrite the output.
+    @Test
+    func testMultiArchDoesNotRewriteIdenticalOutput() async throws {
+        let fs = PseudoFS()
+
+        let outputPath = try await runSwiftHeaderToolTaskAction(fs: fs, archs: ["arm64", "x86_64"])
+        let timestampAfterFirstRun = try fs.getFileTimestamp(outputPath)
+
+        try await runSwiftHeaderToolTaskAction(fs: fs, archs: ["arm64", "x86_64"])
+        let timestampAfterSecondRun = try fs.getFileTimestamp(outputPath)
+
+        #expect(timestampAfterFirstRun == timestampAfterSecondRun, "Output header was rewritten despite identical content; expected writeIfChanged to skip the write")
     }
 
 }
