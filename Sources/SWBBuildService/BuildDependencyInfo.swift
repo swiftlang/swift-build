@@ -24,7 +24,7 @@ extension BuildDependencyInfo {
 
     package init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, operation: BuildDependencyInfoOperation) async throws {
         /// We need to create a `GlobalProductPlan` and its associated data to be able to evaluate many things involving product references.
-        let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: operation)
+        let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: operation)
         if operation.hadErrors {
             throw StubError.error("Unable to get target build graph")
         }

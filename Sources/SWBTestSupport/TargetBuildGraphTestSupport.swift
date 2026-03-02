@@ -57,9 +57,9 @@ extension EmptyTargetDependencyResolverDelegate {
 
 
 extension TargetBuildGraph {
-    /// Convenience initializer which uses an empty delegate implementation for testing.
-    package init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext) async {
-        await self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace))
+    /// Convenience factory which uses an empty delegate implementation for testing.
+    package static func cached(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext) async -> TargetBuildGraph {
+        await cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: EmptyTargetDependencyResolverDelegate(workspace: workspaceContext.workspace))
     }
 }
 
@@ -84,7 +84,7 @@ package struct TargetGraphFactory: Sendable {
     package func graph(type: GraphType) async -> any TargetGraph {
         switch type {
         case .dependency:
-            return await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
+            return await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
         case .linkage:
             return await TargetLinkageGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate)
         }

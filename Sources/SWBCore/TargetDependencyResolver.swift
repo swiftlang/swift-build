@@ -73,7 +73,7 @@ extension ResolvedTargetDependency {
 /// A completely resolved graph of configured targets for use in a build.
 public struct TargetBuildGraph: TargetGraph, Sendable {
     /// The reason for constructing a build graph. Relevant for whether to stop early or continue.
-    public enum Purpose: Sendable {
+    public enum Purpose: Hashable, Sendable {
         case build
         case dependencyGraph
     }
@@ -104,19 +104,93 @@ public struct TargetBuildGraph: TargetGraph, Sendable {
 
     // FIXME: Report cycles via the delegate.
     //
-    /// Construct a new graph for the given build request.
+    /// Construct a new dependency graph with caching.
     ///
+    /// Checks the process-level `TargetBuildGraphCache` before computing the
+    /// full graph. On a cache hit, all cached diagnostics are re-emitted
+    /// through the delegate. On a cache miss, the graph is computed and stored
+    /// (unless the build command is low-QoS index preparation, or resolution
+    /// emitted errors).
     ///
-    /// The result closure guarantees that all targets a target depends on appear in the returned array before that target.  Any detected dependency cycles will be broken.
-    public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: Purpose = .build) async {
-        let (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
-        await MacroNamespace.withExpressionInterningEnabled {
-            await buildRequestContext.keepAliveSettingsCache {
-                let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: delegate, purpose: purpose)
-                return await resolver.computeGraph()
+    /// The result closure guarantees that all targets a target depends on appear
+    /// in the returned array before that target. Any detected dependency cycles
+    /// will be broken.
+    public static func cached(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, delegate: any TargetDependencyResolverDelegate, purpose: Purpose = .build) async -> TargetBuildGraph {
+        let skipCache = TargetBuildGraphCache.shouldSkipCache(buildCommand: buildRequest.buildCommand)
+        let signature = TargetBuildGraphCache.computeSignature(
+            workspaceSignature: workspaceContext.workspace.signature,
+            workspaceIdentity: ObjectIdentifier(workspaceContext.workspace),
+            buildRequest: buildRequest,
+            purpose: purpose
+        )
+        let contentSignature = TargetBuildGraphCache.computeContentSignature(
+            workspaceSignature: workspaceContext.workspace.signature,
+            buildRequest: buildRequest,
+            purpose: purpose
+        )
+
+        let allTargets: OrderedSet<ConfiguredTarget>
+        let targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]]
+        let targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]]
+        let dynamicallyBuildingTargets: Set<Target>
+
+        if !skipCache, let cached = TargetBuildGraphCache.lookup(signature: signature) {
+            allTargets = cached.allTargets
+            targetDependencies = cached.targetDependencies
+            targetsToLinkedReferencesToProducingTargets = cached.targetsToLinkedReferencesToProducingTargets
+            dynamicallyBuildingTargets = cached.dynamicallyBuildingTargets
+
+            // Re-emit all cached diagnostics on cache hit so callers observe
+            // the same diagnostic behavior regardless of cache state.
+            for diagnostic in cached.diagnostics {
+                delegate.emit(diagnostic)
+            }
+        } else if !skipCache,
+                  let contentMatch = TargetBuildGraphCache.lookupByContentSignature(contentSignature),
+                  let remapped = TargetBuildGraphCache.remapGraph(contentMatch, to: workspaceContext.workspace) {
+            // Content-identical PIF re-transfer — remap Target references
+            // instead of recomputing the full dependency graph.
+            allTargets = remapped.allTargets
+            targetDependencies = remapped.targetDependencies
+            targetsToLinkedReferencesToProducingTargets = remapped.targetsToLinkedReferencesToProducingTargets
+            dynamicallyBuildingTargets = remapped.dynamicallyBuildingTargets
+
+            // Store under the new full signature for future exact hits.
+            TargetBuildGraphCache.store(signature: signature, graph: remapped)
+
+            // Re-emit diagnostics.
+            for diagnostic in remapped.diagnostics {
+                delegate.emit(diagnostic)
+            }
+        } else {
+            let collectingDelegate = DiagnosticCollectingDelegate(inner: delegate)
+            (allTargets, targetDependencies, targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets) =
+            await MacroNamespace.withExpressionInterningEnabled {
+                await buildRequestContext.keepAliveSettingsCache {
+                    let resolver = TargetDependencyResolver(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: collectingDelegate, purpose: purpose)
+                    return await resolver.computeGraph()
+                }
+            }
+
+            // Only cache graphs that completed without errors. Caching error
+            // states could mask nondeterministic failures that succeed on retry.
+            if !skipCache && !collectingDelegate.hadErrors {
+                TargetBuildGraphCache.store(
+                    signature: signature,
+                    graph: .init(
+                        contentSignature: contentSignature,
+                        allTargets: allTargets,
+                        targetDependencies: targetDependencies,
+                        targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets,
+                        dynamicallyBuildingTargets: dynamicallyBuildingTargets,
+                        diagnostics: collectingDelegate.collectedDiagnostics,
+                        lastAccess: 0
+                    )
+                )
             }
         }
-        self.init(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, allTargets: allTargets, targetDependencies: targetDependencies, targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets: dynamicallyBuildingTargets)
+
+        return TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, allTargets: allTargets, targetDependencies: targetDependencies, targetsToLinkedReferencesToProducingTargets: targetsToLinkedReferencesToProducingTargets, dynamicallyBuildingTargets: dynamicallyBuildingTargets)
     }
 
     public init(workspaceContext: WorkspaceContext, buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, allTargets: OrderedSet<ConfiguredTarget>, targetDependencies: [ConfiguredTarget: [ResolvedTargetDependency]], targetsToLinkedReferencesToProducingTargets: [ConfiguredTarget: [BuildFile.BuildableItem: ResolvedTargetDependency]], dynamicallyBuildingTargets: Set<Target>) {

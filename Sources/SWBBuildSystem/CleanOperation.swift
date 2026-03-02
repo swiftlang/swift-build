@@ -81,7 +81,7 @@ package final class CleanOperation: BuildSystemOperation, TargetDependencyResolv
         // Make sure potentially cached build systems are cleared, so that their database is closed.
         cachedBuildSystems.clearCachedBuildSystem(for: buildDataDirectory)
 
-        let buildGraph = await TargetBuildGraph(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: self)
+        let buildGraph = await TargetBuildGraph.cached(workspaceContext: workspaceContext, buildRequest: buildRequest, buildRequestContext: buildRequestContext, delegate: self)
 
         // If there were any errors while constructing the build graph, we will stop cleaning.
         if hadErrors {
