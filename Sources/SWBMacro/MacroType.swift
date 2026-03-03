@@ -18,13 +18,12 @@ public enum MacroType: Sendable {
     case userDefined
     case path
     case pathList
-    case pathOrderedSet
 
     func matchesExpressionType(_ expression: MacroExpression) -> Bool {
         switch self {
         case .boolean, .string, .path:
             return expression is MacroStringExpression
-        case .stringList, .userDefined, .pathList, .pathOrderedSet:
+        case .stringList, .userDefined, .pathList:
             return expression is MacroStringListExpression
         }
     }

@@ -121,7 +121,7 @@
             {
                 // Frameworks are Mac specific
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathOrderedSet;
+                Type = PathList;
                 Condition = "NO";
             },
             {

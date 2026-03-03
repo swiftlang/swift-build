@@ -275,7 +275,7 @@
             },
             {
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathOrderedSet;
+                Type = PathList;
                 "FlattenRecursiveSearchPathsInValue" = Yes;
                 "CommandLinePrefixFlag" = "-F";
             },
