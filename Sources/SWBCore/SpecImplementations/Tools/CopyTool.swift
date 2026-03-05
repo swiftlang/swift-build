@@ -153,7 +153,7 @@ public final class CopyToolSpec : CompilerSpec, SpecIdentifierType, @unchecked S
         assert(inputPath.str == ruleInfo[payload.inputIndexInRuleInfo])
 
         // Note that the order of rule info here is against the usual conventions.
-        let action = delegate.taskActionCreationDelegate.createFileCopyTaskAction(FileCopyTaskActionContext(cbc))
+        let action = await delegate.taskActionCreationDelegate.createFileCopyTaskAction(FileCopyTaskActionContext(cbc, delegate: delegate))
         let inputs: [any PlannedNode] = cbc.inputs.map{ delegate.createDirectoryTreeNode($0.absolutePath) } + cbc.commandOrderingInputs
         let outputs: [any PlannedNode] = [delegate.createNode(outputPath)] + additionalPresumedOutputs + cbc.commandOrderingOutputs
         delegate.createTask(
