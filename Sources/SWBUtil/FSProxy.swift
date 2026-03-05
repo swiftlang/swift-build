@@ -67,11 +67,11 @@ public struct FileInfo: Equatable, Sendable {
     }
 
     public var isDirectory: Bool {
-        return fileAttrs[.type] as! FileAttributeType == .typeDirectory 
+        return fileAttrs[.type] as! FileAttributeType == .typeDirectory
     }
 
     public var isSymlink: Bool {
-        return fileAttrs[.type] as! FileAttributeType == .typeSymbolicLink 
+        return fileAttrs[.type] as! FileAttributeType == .typeSymbolicLink
     }
 
     public var size: Int64 {
@@ -160,7 +160,11 @@ public protocol FSProxy: AnyObject, Sendable {
     // FIXME: Need to document behavior w.r.t. error handling.
     func isDirectory(_ path: Path) -> Bool
 
-    /// Checks whether the given path has the execute bit (which on Windows is determined by the file extension).
+    /// Checks whether the given path is executable.
+    ///
+    /// On Windows, this is determined by the file extension (based on `SHGetFileInfo`), while on Unix it's determined by `access`, which means a file may be deemed executable even if no execute bit is set in the POSIX permissions.
+    ///
+    /// - seealso: [_stat, _stat32, _stat64, _stati64, _stat32i64, _stat64i32, _wstat, _wstat32, _wstat64, _wstati64, _wstat32i64, _wstat64i32](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/stat-functions)
     func isExecutable(_ path: Path) throws -> Bool
 
     /// Checks whether the given path is a symlink, also returning whether the linked file exists.
@@ -308,6 +312,10 @@ public extension FSProxy {
 
     func getFileSize(_ path: Path) throws -> ByteCount {
         try ByteCount(Int64(getFileInfo(path).size))
+    }
+
+    func getFilePermissions(_ path: Path) throws -> FilePermissions {
+        try FilePermissions(rawValue: CModeT(getFilePermissions(path)))
     }
 }
 
@@ -749,16 +757,15 @@ class LocalFS: FSProxy, @unchecked Sendable {
     }
 
     func realpath(_ path: Path) throws -> Path {
-        #if os(Windows)
-        guard exists(path) else {
+        if path.isAbsolute && !exists(path) {
             throw POSIXError(ENOENT, context: "realpath", path.str)
         }
-        return Path(path.str.standardizingPath)
-        #else
-        guard let result = SWBLibc.realpath(path.str, nil) else { throw POSIXError(errno, context: "realpath", path.str) }
-        defer { free(result) }
-        return Path(String(cString: result))
-        #endif
+        let url = URL(fileURLWithPath: path.str)
+        let values = try url.resolvingSymlinksInPath().resourceValues(forKeys: Set([URLResourceKey.canonicalPathKey]))
+        guard let canonicalPath = values.canonicalPath else {
+            throw POSIXError(ENOENT, context: "realpath", path.str)
+        }
+        return try Path(canonicalPath.canonicalPathRepresentation)
     }
 
     func isOnPotentiallyRemoteFileSystem(_ path: Path) -> Bool {
@@ -853,7 +860,7 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
         }
 
         // Write the symlink.
-        directory.contents[path.basename] = Node(.symlink(target), permissions: 0o644, timestamp: getTimestamp(), inode: nextInode())
+        directory.contents[path.basename] = Node(.symlink(target), permissions: 0o755, timestamp: getTimestamp(), inode: nextInode())
         parent.timestamp = getTimestamp()
     }
 
@@ -871,9 +878,13 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
 
     public func realpath(_ path: Path) throws -> Path {
         // TODO: Update this to actually return the link target when we support
-        // symlinks; for now it just returns the input, which seems reasonably
-        // correct.
-        return path
+        // symlinks; for now it just returns the input (or the link target if it's a symlink),
+        // which seems reasonably correct for simple cases.
+        do {
+            return try readlink(path)
+        } catch {
+            return path
+        }
     }
 
     public func readlink(_ path: Path) throws -> Path {
@@ -1237,35 +1248,29 @@ public class PseudoFS: FSProxy, @unchecked Sendable {
     public func getFileInfo(_ path: Path) throws -> FileInfo {
         return try queue.blocking_sync {
             guard let node = getNode(path) else { throw POSIXError(ENOENT) }
+
+            let type: FileAttributeType
+            let size: Int
             switch node.contents {
             case .file(let contents):
-                let info: [FileAttributeKey: any Sendable] = [
-                    .modificationDate : Date(timeIntervalSince1970: TimeInterval(node.timestamp)),
-                    .type: FileAttributeType.typeRegular,
-                    .size: contents.bytes.count,
-                    .posixPermissions: 0,
-                    .systemNumber: node.device,
-                    .systemFileNumber: node.inode]
-                return createFileInfo(info)
+                type = .typeRegular
+                size = contents.bytes.count
             case .directory(let dir):
-                let info: [FileAttributeKey: any Sendable] = [
-                    .modificationDate: Date(timeIntervalSince1970: TimeInterval(node.timestamp)),
-                    .type: FileAttributeType.typeDirectory,
-                    .size: dir.contents.count,
-                    .posixPermissions: 0,
-                    .systemNumber: node.device,
-                    .systemFileNumber: node.inode]
-                return createFileInfo(info)
-            case .symlink(_):
-                let info: [FileAttributeKey: any Sendable] = [
-                    .modificationDate: Date(timeIntervalSince1970: TimeInterval(node.timestamp)),
-                    .type: FileAttributeType.typeSymbolicLink,
-                    .size: 0,
-                    .posixPermissions: 0,
-                    .systemNumber: node.device,
-                    .systemFileNumber: node.inode]
-                return createFileInfo(info)
+                type = .typeDirectory
+                size = dir.contents.count
+            case .symlink(let destination):
+                type = .typeSymbolicLink
+                size = destination.str.utf8.count
             }
+
+            let info: [FileAttributeKey: any Sendable] = [
+                .modificationDate : Date(timeIntervalSince1970: TimeInterval(node.timestamp)),
+                .type: type,
+                .size: size,
+                .posixPermissions: node.permissions,
+                .systemNumber: node.device,
+                .systemFileNumber: node.inode]
+            return createFileInfo(info)
         }
     }
 
@@ -1438,5 +1443,12 @@ extension FileDescriptor {
         }
         try self.close()
         return result
+    }
+}
+
+extension FileManager {
+    fileprivate func attributesOfItem(atPath path: String) throws -> [FileAttributeKey: any Sendable] {
+        let attributes: [FileAttributeKey: Any] = try attributesOfItem(atPath: path)
+        return (attributes as NSDictionary) as! [FileAttributeKey: any Sendable]
     }
 }

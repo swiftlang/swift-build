@@ -42,8 +42,7 @@ final class TouchToolSpec : CommandLineToolSpec, SpecIdentifierType, @unchecked 
                 delegate.error("Can't determine path to cmd.exe because the ComSpec environment variable is not set")
                 return
             }
-            // FIXME: Need to properly quote the path here, or generally handle this better
-            commandLine = [commandShellPath, "/c", "copy /b \"\(input.absolutePath.str)\" +,,"]
+            commandLine = [commandShellPath, "/c", "copy", "/b", input.absolutePath.str, "+,,"]
         } else {
             commandLine = ["/usr/bin/touch", "-c", input.absolutePath.str]
         }

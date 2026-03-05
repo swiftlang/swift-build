@@ -1414,12 +1414,16 @@ package final class BuildOperationTester {
     }
 
     /// Construct the tasks for the given build parameters, and test the result.
-    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T) async throws -> T {
-        try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body, performBuild: { try await $0.buildWithTimeout() })
+    ///
+    /// This variant of `checkBuild()` differs from the main versiion in these ways:
+    /// - Does not have a `operationBuildRequest` parameter.
+    /// - Has a default value of the `performBuild` parameter which performs a nortmal build.
+    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], attachBuildArifacts: Bool = true, clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T) async throws -> T {
+        try await checkBuild(name, parameters: parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, attachBuildArifacts: attachBuildArifacts, clientDelegate: clientDelegate, sourceLocation: sourceLocation, body: body, performBuild: { try await $0.buildWithTimeout() })
     }
 
     /// Construct the tasks for the given build parameters, and test the result.
-    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, operationBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T, performBuild: @escaping (any BuildSystemOperation) async throws -> Void) async throws -> T {
+    @discardableResult package func checkBuild<T>(_ name: String? = nil, parameters: BuildParameters? = nil, runDestination: SWBProtocol.RunDestinationInfo?, buildRequest inputBuildRequest: BuildRequest? = nil, operationBuildRequest: BuildRequest? = nil, buildCommand: BuildCommand? = nil, schemeCommand: SchemeCommand? = .launch, persistent: Bool = false, serial: Bool = false, buildOutputMap: [String:String]? = nil, signableTargets: Set<String> = [], signableTargetInputs: [String: ProvisioningTaskInputs] = [:], attachBuildArifacts: Bool = true, clientDelegate: (any ClientDelegate)? = nil, sourceLocation: SourceLocation = #_sourceLocation, body: (BuildResults) async throws -> T, performBuild: @escaping (any BuildSystemOperation) async throws -> Void) async throws -> T {
         try await checkBuildDescription(parameters, runDestination: runDestination, buildRequest: inputBuildRequest, buildCommand: buildCommand, schemeCommand: schemeCommand, persistent: persistent, serial: serial, signableTargets: signableTargets, signableTargetInputs: signableTargetInputs, clientDelegate: clientDelegate) { results throws in
             // Check that there are no duplicate task identifiers - it is a fatal error if there are, unless `continueBuildingAfterErrors` is set.
             var tasksByTaskIdentifier: [TaskIdentifier: Task] = [:]
@@ -1448,7 +1452,24 @@ package final class BuildOperationTester {
                 } else {
                     nodesToBuild = nil
                 }
-                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: userInfo.processEnvironment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences)
+
+                let priorBuildDescription: BuildDescription?
+                if operationBuildRequest.recordBuildBacktraces,
+                   case let .viaWorkspace(_, _, buildDescriptionManager) = testVariant {
+                    let buildDescriptionDelegate = MockTestBuildDescriptionConstructionDelegate()
+                    priorBuildDescription = await buildDescriptionManager.attemptLoadingPriorBuildDescription(
+                        currentDescription: results.buildDescription,
+                        buildRequest: operationBuildRequest,
+                        buildRequestContext: buildRequestContext,
+                        workspaceContext: workspaceContext,
+                        clientDelegate: results.clientDelegate,
+                        constructionDelegate: buildDescriptionDelegate
+                    )
+                } else {
+                    priorBuildDescription = nil
+                }
+
+                operation = BuildOperation(operationBuildRequest, buildRequestContext, results.buildDescription, environment: userInfo.processEnvironment, delegate, results.clientDelegate, cachedBuildSystems, persistent: persistent, serial: serial, buildOutputMap: buildOutputMap, nodesToBuild: nodesToBuild, workspace: workspace, core: core, userPreferences: userPreferences, priorBuildDescription: priorBuildDescription)
             }
 
             // Perform the build.
@@ -1476,18 +1497,13 @@ package final class BuildOperationTester {
             // Check the results.
             let results = try BuildResults(core: core, workspace: workspace, buildDescriptionResults: results, tasksByTaskIdentifier: delegate.tasksByTaskIdentifier.merging(delegate.dynamicTasksByTaskIdentifier, uniquingKeysWith: { a, b in a }), fs: fs, events: events, dynamicTaskDependencies: dynamicDependencies, buildDatabasePath: persistent ? results.buildDescription.buildDatabasePath : nil)
 
-            /*@MainActor func addAttachments() {
-                // TODO: This `runActivity` call should be wider in scope, but this would significantly complicate the code flow due to threading requirements without having async/await.
-                XCTContext.runActivity(named: "Execute Build Operation" + (name.map({ " \"\($0)\"" }) ?? "")) { activity in
-                    // TODO: <rdar://59432231> Longer term, we should find a way to share code with CoreQualificationTester, which has a number of APIs for emitting build operation debug info.
-                    activity.attach(name: "Build Transcript", string: results.buildTranscript)
-                    if localFS.exists(results.buildDescription.packagePath) {
-                        activity.attach(name: "Build Description", from: results.buildDescription.packagePath)
-                    }
+            // TODO: <rdar://59432231> Longer term, we should find a way to share code with CoreQualificationTester, which has a number of APIs for emitting build operation debug info.
+            if attachBuildArifacts {
+                Attachment.record(results.buildTranscript, named: "Build Transcript" + (name.map({ " for Build Operation \"\($0)\"" }) ?? ""))
+                if localFS.exists(results.buildDescription.packagePath) {
+                    Attachment.record(results.buildDescription.packagePath.str, named: "Build Description" + (name.map({ " for Build Operation \"\($0)\"" }) ?? ""))
                 }
             }
-
-            await addAttachments()*/
 
             defer {
                 let validationResults = results.validate(sourceLocation: sourceLocation)
@@ -1553,6 +1569,7 @@ package final class BuildOperationTester {
     /// Construct 'prepare' index build operation, and test the result.
     package func checkIndexBuild<T>(
         prepareTargets: [String],
+        buildTargets: [any TestTarget]? = nil,
         workspaceOperation: Bool = true,
         runDestination: RunDestinationInfo? = nil,
         persistent: Bool = false,
@@ -1561,6 +1578,7 @@ package final class BuildOperationTester {
     ) async throws -> T {
         let buildRequest = try Self.buildRequestForIndexOperation(
             workspace: workspace,
+            buildTargets: buildTargets,
             prepareTargets: prepareTargets,
             workspaceOperation: workspaceOperation,
             runDestination: runDestination,
@@ -1708,7 +1726,7 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
             self.buildOperationIdentifier = buildOperationIdentifier
         }
         func skippedSubtask(signature: ByteString) {}
-        func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate { return self }
+        func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate { return self }
         func emitOutput(_ data: ByteString) {}
         func close() {}
         func taskCompleted(exitStatus: Processes.ExitStatus) {}
@@ -1781,24 +1799,12 @@ private final class BuildOperationTesterDelegate: BuildOperationDelegate {
     }
 
     private class TesterTaskOutputDelegate: TaskOutputDelegate {
-        func incrementClangCacheHit() {
-            self.counters[.clangCacheHits, default: 0] += 1
+        func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
+            self.counters[counter, default: 0] += amount
         }
 
-        func incrementClangCacheMiss() {
-            self.counters[.clangCacheMisses, default: 0] += 1
-        }
-
-        func incrementSwiftCacheHit() {
-            self.counters[.swiftCacheHits, default: 0] += 1
-        }
-
-        func incrementSwiftCacheMiss() {
-            self.counters[.swiftCacheMisses, default: 0] += 1
-        }
-
-        func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
-            self.taskCounters[counter, default: 0] += 1
+        func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
+            self.taskCounters[counter, default: 0] += amount
         }
 
         var counters: [BuildOperationMetrics.Counter : Int] = [.clangCacheHits: 0, .clangCacheMisses: 0, .swiftCacheHits: 0, .swiftCacheMisses: 0]

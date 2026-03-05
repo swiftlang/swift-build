@@ -93,7 +93,7 @@ public struct ClangPrefixInfo: Serializable, Hashable, Encodable, Sendable {
 }
 
 /// The minimal data we need to serialize to reconstruct `ClangSourceFileIndexingInfo` from `generateIndexingInfo`
-fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
+public struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     let sourceFileIndex: Int
     let outputFileIndex: Int
     let sourceLanguageIndex: Int
@@ -101,8 +101,9 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
     let assetSymbolIndexPath: Path
     let workingDir: Path
     let prefixInfo: ClangPrefixInfo?
-    let toolchains: [String]
+    public let toolchains: [String]
     let responseFileAttachmentPaths: [Path: Path]
+    let responseFileFormat: ResponseFileFormat
 
     init(sourceFileIndex: Int,
          outputFileIndex: Int,
@@ -112,7 +113,8 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
          workingDir: Path,
          prefixInfo: ClangPrefixInfo?,
          toolchains: [String],
-         responseFileAttachmentPaths: [Path: Path]) {
+         responseFileAttachmentPaths: [Path: Path],
+         responseFileFormat: ResponseFileFormat) {
         self.sourceFileIndex = sourceFileIndex
         self.outputFileIndex = outputFileIndex
         self.sourceLanguageIndex = sourceLanguageIndex
@@ -122,14 +124,15 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
         self.prefixInfo = prefixInfo
         self.toolchains = toolchains
         self.responseFileAttachmentPaths = responseFileAttachmentPaths
+        self.responseFileFormat = responseFileFormat
     }
 
     func sourceFile(for task: any ExecutableTask) -> Path {
         return Path(task.commandLine[self.sourceFileIndex].asString)
     }
 
-    func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(9) {
+    public func serialize<T: Serializer>(to serializer: T) {
+        serializer.serializeAggregate(10) {
             serializer.serialize(sourceFileIndex)
             serializer.serialize(outputFileIndex)
             serializer.serialize(sourceLanguageIndex)
@@ -139,11 +142,12 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
             serializer.serializeUniquely(prefixInfo)
             serializer.serialize(toolchains)
             serializer.serialize(responseFileAttachmentPaths)
+            serializer.serialize(responseFileFormat)
         }
     }
 
-    init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(9)
+    public init(from deserializer: any Deserializer) throws {
+        try deserializer.beginAggregate(10)
         self.sourceFileIndex = try deserializer.deserialize()
         self.outputFileIndex = try deserializer.deserialize()
         self.sourceLanguageIndex = try deserializer.deserialize()
@@ -153,6 +157,7 @@ fileprivate struct ClangIndexingPayload: Serializable, Encodable, Sendable {
         self.prefixInfo = try deserializer.deserializeUniquely()
         self.toolchains = try deserializer.deserialize()
         self.responseFileAttachmentPaths = try deserializer.deserialize()
+        self.responseFileFormat = try deserializer.deserialize()
     }
 }
 
@@ -165,6 +170,19 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
     let assetSymbolIndexPath: Path
     let prefixInfo: ClangPrefixInfo?
     let toolchains: [String]
+    public var compilerArguments: [String]? {
+        var result = commandLine.map { $0.asString }
+        // commandLine does not contain the `-index-unit-output-path` but we want to return it from the
+        // `IndexBuildSettingsRequest`, so add it.
+        if !result.contains(where: { $0 == "-o" || $0 == "-index-unit-output-path" }), let indexOutputFile {
+            result += ["-index-unit-output-path", indexOutputFile]
+        }
+        return result
+    }
+    public var indexOutputFile: String? { outputFile.str }
+    public var language: IndexingInfoLanguage? {
+        return IndexingInfoLanguage(compilerArgumentLanguage: sourceLanguage)
+    }
 
     init(outputFile: Path, sourceLanguage: ByteString, commandLine: [ByteString], builtProductsDir: Path, assetSymbolIndexPath: Path, prefixInfo: ClangPrefixInfo?, toolchains: [String]) {
         self.outputFile = outputFile
@@ -179,7 +197,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
     fileprivate init(task: any ExecutableTask, payload: ClangIndexingPayload, enableIndexBuildArena: Bool) {
         self.outputFile = Path(task.commandLine[payload.outputFileIndex].asString)
         self.sourceLanguage = task.commandLine[payload.sourceLanguageIndex].asByteString
-        self.commandLine = Self.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, prefixInfo: payload.prefixInfo, addSupplementary: !enableIndexBuildArena, responseFileMapping: payload.responseFileAttachmentPaths)
+        self.commandLine = Self.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, prefixInfo: payload.prefixInfo, addSupplementary: !enableIndexBuildArena, responseFileMapping: payload.responseFileAttachmentPaths, responseFileFormat: payload.responseFileFormat)
         self.builtProductsDir = payload.builtProductsDir
         self.assetSymbolIndexPath = payload.assetSymbolIndexPath
         self.prefixInfo = payload.prefixInfo
@@ -189,7 +207,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
     static let skippedArgsWithoutValues = Set<ByteString>(["-M", "-MD", "-MMD", "-MG", "-MJ", "-MM", "-MP", "-MV", "-fmodules-validate-once-per-build-session"])
     static let skippedArgsWithValues = Set<ByteString>(["-MT", "-MF", "-MQ", "--serialize-diagnostics"])
 
-    public static func indexingCommandLine(from commandLine: [ByteString], workingDir: Path, prefixInfo: ClangPrefixInfo? = nil, addSupplementary: Bool = true, replaceCompile: Bool = true, responseFileMapping: [Path: Path]) -> [ByteString] {
+    public static func indexingCommandLine(from commandLine: [ByteString], workingDir: Path, prefixInfo: ClangPrefixInfo? = nil, addSupplementary: Bool = true, replaceCompile: Bool = true, responseFileMapping: [Path: Path], responseFileFormat: ResponseFileFormat?) -> [ByteString] {
         var result = [ByteString]()
         var iterator = commandLine.makeIterator()
         let _ = iterator.next() // Skip compiler path
@@ -222,7 +240,8 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
                 // Skip
             } else if arg.starts(with: ByteString(unicodeScalarLiteral: "@")),
                       let attachmentPath = responseFileMapping[Path(arg.asString.dropFirst())],
-                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir) {
+                      let responseFileFormat,
+                      let responseFileArgs = try? ResponseFiles.expandResponseFiles(["@\(attachmentPath.str)"], fileSystem: localFS, relativeTo: workingDir, format: responseFileFormat) {
                 result.append(contentsOf: responseFileArgs.map { ByteString(encodingAsUTF8: $0) })
             } else {
                 result.append(arg)
@@ -280,6 +299,7 @@ public struct ClangSourceFileIndexingInfo: SourceFileIndexingInfo {
 extension OutputPathIndexingInfo {
     fileprivate init(task: any ExecutableTask, payload: ClangIndexingPayload) {
         self.outputFile = Path(task.commandLine[payload.outputFileIndex].asString)
+        self.language = IndexingInfoLanguage(compilerArgumentLanguage: task.commandLine[payload.sourceLanguageIndex].asByteString)
     }
 }
 
@@ -321,8 +341,8 @@ final class ClangOutputParser: TaskOutputParser {
         // Don't try to read diagnostics if the process crashed or got cancelled as they were almost certainly not written in this case.
         if result.shouldSkipParsingDiagnostics { return }
 
-        for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
-            delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+        for info in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
+            delegate.processSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
         }
 
         // Read optimization remarks if the build succeeded.
@@ -347,8 +367,10 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
     public let dependencyFilteringRootPath: Path?
     public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let verifyingModule: String?
+    public let shouldGenerateReproducerForErrors: Bool
+    public let reproducerOutputPath: Path?
 
-    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?) {
+    fileprivate init(uniqueID: String, sourcePath: Path, libclangPath: Path, usesCompilerLauncher: Bool, outputPath: Path, scanningOutputPath: Path, casOptions: CASOptions?, cacheFallbackIfNotAvailable: Bool, dependencyFilteringRootPath: Path?, reportRequiredTargetDependencies: BooleanWarningLevel, verifyingModule: String?, shouldGenerateReproducerForErrors: Bool, reproducerOutputPath: Path?) {
         self.uniqueID = uniqueID
         self.sourcePath = sourcePath
         self.libclangPath = libclangPath
@@ -360,10 +382,12 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.dependencyFilteringRootPath = dependencyFilteringRootPath
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
         self.verifyingModule = verifyingModule
+        self.shouldGenerateReproducerForErrors = shouldGenerateReproducerForErrors
+        self.reproducerOutputPath = reproducerOutputPath
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(11) {
+        serializer.serializeAggregate(13) {
             serializer.serialize(uniqueID)
             serializer.serialize(sourcePath)
             serializer.serialize(libclangPath)
@@ -375,11 +399,13 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
             serializer.serialize(dependencyFilteringRootPath)
             serializer.serialize(reportRequiredTargetDependencies)
             serializer.serialize(verifyingModule)
+            serializer.serialize(shouldGenerateReproducerForErrors)
+            serializer.serialize(reproducerOutputPath)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(11)
+        try deserializer.beginAggregate(13)
         self.uniqueID = try deserializer.deserialize()
         self.sourcePath = try deserializer.deserialize()
         self.libclangPath = try deserializer.deserialize()
@@ -391,6 +417,8 @@ public struct ClangExplicitModulesPayload: Serializable, Encodable, Sendable {
         self.dependencyFilteringRootPath = try deserializer.deserialize()
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
         self.verifyingModule = try deserializer.deserialize()
+        self.shouldGenerateReproducerForErrors = try deserializer.deserialize()
+        self.reproducerOutputPath = try deserializer.deserialize()
     }
 
 }
@@ -422,7 +450,7 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
     public let serializedDiagnosticsPath: Path?
 
     /// Additional information used to answer indexing queries.  Not all clang tasks will need to provide indexing info (for example, precompilation tasks don't).
-    fileprivate let indexingPayload: ClangIndexingPayload?
+    public let indexingPayload: ClangIndexingPayload?
 
     /// Additional information used by explicit modules support.
     public let explicitModulesPayload: ClangExplicitModulesPayload?
@@ -432,10 +460,10 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
 
     public let fileNameMapPath: Path?
 
-    public let moduleDependenciesContext: ModuleDependenciesContext?
     public let traceFilePath: Path?
+    public let dependencyValidationOutputPath: Path?
 
-    fileprivate init(serializedDiagnosticsPath: Path?, indexingPayload: ClangIndexingPayload?, explicitModulesPayload: ClangExplicitModulesPayload? = nil, outputObjectFilePath: Path? = nil, fileNameMapPath: Path? = nil, developerPathString: String? = nil, moduleDependenciesContext: ModuleDependenciesContext? = nil, traceFilePath: Path? = nil) {
+    fileprivate init(serializedDiagnosticsPath: Path?, indexingPayload: ClangIndexingPayload?, explicitModulesPayload: ClangExplicitModulesPayload? = nil, outputObjectFilePath: Path? = nil, fileNameMapPath: Path? = nil, developerPathString: String? = nil, traceFilePath: Path? = nil, dependencyValidationOutputPath: Path? = nil) {
         if let developerPathString, explicitModulesPayload == nil {
             self.dependencyInfoEditPayload = .init(removablePaths: [], removableBasenames: [], developerPath: Path(developerPathString))
         } else {
@@ -446,8 +474,8 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
         self.explicitModulesPayload = explicitModulesPayload
         self.outputObjectFilePath = outputObjectFilePath
         self.fileNameMapPath = fileNameMapPath
-        self.moduleDependenciesContext = moduleDependenciesContext
         self.traceFilePath = traceFilePath
+        self.dependencyValidationOutputPath = dependencyValidationOutputPath
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
@@ -458,8 +486,8 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
             serializer.serialize(outputObjectFilePath)
             serializer.serialize(fileNameMapPath)
             serializer.serialize(dependencyInfoEditPayload)
-            serializer.serialize(moduleDependenciesContext)
             serializer.serialize(traceFilePath)
+            serializer.serialize(dependencyValidationOutputPath)
         }
     }
 
@@ -471,8 +499,8 @@ public struct ClangTaskPayload: ClangModuleVerifierPayloadType, DependencyInfoEd
         self.outputObjectFilePath = try deserializer.deserialize()
         self.fileNameMapPath = try deserializer.deserialize()
         self.dependencyInfoEditPayload = try deserializer.deserialize()
-        self.moduleDependenciesContext = try deserializer.deserialize()
         self.traceFilePath = try deserializer.deserialize()
+        self.dependencyValidationOutputPath = try deserializer.deserialize()
     }
 }
 
@@ -622,7 +650,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         var commandLine = Array<String>()
 
         // Add the arguments from the specification.
-        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext,lookup: { declaration in
+        commandLine += self.commandLineFromOptions(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, buildOptionsFilter: .specOnly, lookup: { declaration in
             if declaration.name == "CLANG_INDEX_STORE_ENABLE" && optionContext is DiscoveredClangToolSpecInfo {
                 let clangToolInfo = optionContext as! DiscoveredClangToolSpecInfo
                 if !clangToolInfo.isAppleClang {
@@ -671,15 +699,32 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let sparseSDKSearchPaths = GCCCompatibleCompilerSpecSupport.sparseSDKSearchPathArguments(producer.sparseSDKs, headerSearchPaths.headerSearchPaths, frameworkSearchPaths.frameworkSearchPaths)
         commandLine += sparseSDKSearchPaths.searchPathArguments(for: self, scope: scope)
 
+        // Extract arguments to write to the response file, if enabled.
         if scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE) && (optionContext?.toolPath.basenameWithoutSuffix == "clang" || optionContext?.toolPath.basenameWithoutSuffix == "clang++") {
             var responseFileCommandLine: [String] = []
             var regularCommandLine: [String] = []
 
+            // Filter out select arguments from the response file.
             var iterator = commandLine.makeIterator()
             var previousArg: ByteString? = nil
             while let arg = iterator.next() {
                 let argAsByteString = ByteString(encodingAsUTF8: arg)
-                if ClangSourceFileIndexingInfo.skippedArgsWithValues.contains(argAsByteString) || arg == "-include" {
+                if arg == "-target" {
+                    // Exclude -target from the response file to make reading the build log easier.
+                    regularCommandLine.append(arg)
+                    if let nextArg = iterator.next() {
+                        regularCommandLine.append(nextArg)
+                    }
+                }
+                else if arg == "-isysroot" || arg == "--sysroot" {
+                    // Exclude the options to pass the path to the base SDK from the response file to make reading the build log easier.
+                    // Sparse SDK options do not get similar treatment since they are passed as normal search paths.
+                    regularCommandLine.append(arg)
+                    if let nextArg = iterator.next() {
+                        regularCommandLine.append(nextArg)
+                    }
+                }
+                else if ClangSourceFileIndexingInfo.skippedArgsWithValues.contains(argAsByteString) || arg == "-include" {
                     // Relevant to indexing, so exclude arg and value from response file.
                     regularCommandLine.append(arg)
                     if let nextArg = iterator.next() {
@@ -695,6 +740,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     // Exclude from response file.
                     regularCommandLine.append(arg)
                 } else {
+                    // All other args get added to the response file.
                     responseFileCommandLine.append(arg)
                 }
                 previousArg = argAsByteString
@@ -705,7 +751,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             ctx.add(string: self.identifier)
 
             let responseFilePath = scope.evaluate(BuiltinMacros.PER_ARCH_OBJECT_FILE_DIR).join("\(ctx.signature.asString)-common-args.resp")
-            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            let responseFileFormat = Self.responseFileFormat(hostOS: producer.hostOperatingSystem)
+            let attachmentPath = producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: producer, scope: scope, inputs: [], output: responseFilePath), delegate, contents: ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: responseFileCommandLine, format: responseFileFormat)), permissions: nil, logContents: true, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
 
             return ConstantFlags(flags: regularCommandLine + ["@\(responseFilePath.str)"], headerSearchPaths: headerSearchPaths, inputs: [responseFilePath], responseFileMapping: [responseFilePath: attachmentPath])
         } else {
@@ -788,6 +835,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         "-fmessage-length=",
         "-fmacro-backtrace-limit=",
         "-fbuild-session-timestamp=",
+        "-fdiagnostics-add-output="
     ])
 
     static let outputAgnosticCompilerArgumentsWithValues = Set<ByteString>([
@@ -818,9 +866,10 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         // line. In some cases we will have to postprocess, because of settings
         // like OTHER_CFLAGS where the user can't possibly add this metadata to
         // the values, but those settings be handled on a case-by-case basis.
-        return task.commandLine.indices.compactMap { index in
-            let arg = task.commandLine[index].asByteString
-            let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
+        let taskCommandLine = task.commandLine
+        return taskCommandLine.indices.compactMap { index in
+            let arg = taskCommandLine[index].asByteString
+            let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
             if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
                 return nil
             }
@@ -856,16 +905,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         let buildSettingEnabled = cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE)
 
-        // If a blocklist is provided in the toolchain, use it to determine the default for the current project
-        guard let blocklist = clangInfo?.clangCachingBlocklist else {
-            return buildSettingEnabled
-        }
-
-        // If this project is on the blocklist, override the blocklist default enable for it
-        if blocklist.isProjectListed(cbc.scope) {
-            return false
-        }
-        return buildSettingEnabled
+        // If this project is on the blocklist, override the blocklist default enable for it.
+        return clangInfo?.isCachingBlocked(cbc.producer, cbc.scope) == true ? false : buildSettingEnabled
     }
 
     private func createExplicitModulesActionAndPayload(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, _ compilerLauncher: Path?, _ input: FileToBuild, _ language: GCCCompatibleLanguageDialect?, commandLine: [String], scanningOutputPath: Path, isForPCHTask: Bool, clangInfo: DiscoveredClangToolSpecInfo?) -> (action: (any PlannedTaskAction)?, usesExecutionInputs: Bool, payload: ClangExplicitModulesPayload?, signatureData: String?) {
@@ -932,12 +973,13 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
                 // If not defined, try to find one from the toolchain.
                 var candidatesSkipped: [Path] = []
-                for (toolchainPath, toolchainLibrarySearchPath) in cbc.producer.toolchains.map({ ($0.path, $0.librarySearchPaths) }) {
-                    if let path = toolchainLibrarySearchPath.findLibrary(operatingSystem: cbc.producer.hostOperatingSystem, basename: "clang") {
+                for toolchain in cbc.producer.toolchains {
+                    if let path = try? toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: cbc.producer.hostOperatingSystem) {
                         // Check that this is the same toolchain and version as the compiler. Mismatched clang/libclang is not supported with explicit modules.
-                        let compilerAndLibraryAreInSameToolchain = toolchainPath.isAncestor(of: compiler)
+                        let compilerAndLibraryAreInSameToolchain = toolchain.path.isAncestor(of: compiler)
                         let libclangVersion = cbc.producer.lookupLibclang(path: path).version
-                        let compilerAndLibraryVersionsMatch = libclangVersion != nil && libclangVersion == clangInfo?.clangVersion
+                        // On macOS we enforce a matching clang and libclang version, the versioning schemes on other host platforms currently make this difficult.
+                        let compilerAndLibraryVersionsMatch = libclangVersion != nil && libclangVersion == clangInfo?.clangVersion || cbc.producer.hostOperatingSystem != .macOS
                         if compilerAndLibraryAreInSameToolchain && (compilerAndLibraryVersionsMatch || cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_IGNORE_LIBCLANG_VERSION_MISMATCH)) {
                             return path
                         }
@@ -964,14 +1006,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 let casOptions: CASOptions? = {
                     guard cachedBuild else { return nil }
                     do {
-                        var casOpts = try CASOptions.create(cbc.scope, .compiler(language))
-                        if casOpts.enableIntegratedCacheQueries, let clangInfo {
-                            if !clangInfo.toolFeatures.has(.libclangCacheQueries) {
-                                delegate.warning("COMPILATION_CACHE_ENABLE_INTEGRATED_QUERIES ignored because it's not supported by the toolchain")
-                                casOpts.enableIntegratedCacheQueries = false
-                            }
-                        }
-                        return casOpts
+                        return try CASOptions.create(cbc.scope, .compiler(language))
                     } catch {
                         delegate.error(error.localizedDescription)
                         return nil
@@ -984,14 +1019,16 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                     usesCompilerLauncher: usesCompilerLauncher,
                     // This path is scoped to the project, so ideally different targets that use the same modules would
                     // share precompiled modules.
-                    outputPath: Path(cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH)),
+                    outputPath: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
                     scanningOutputPath: scanningOutputPath,
                     casOptions: casOptions,
                     cacheFallbackIfNotAvailable: cbc.scope.evaluate(BuiltinMacros.CLANG_CACHE_FALLBACK_IF_UNAVAILABLE),
                     // To match the behavior of -MMD, our scan task should filter out headers in the SDK when discovering dependencies. In the long run, libclang should do this for us.
                     dependencyFilteringRootPath: isForPCHTask ? nil : cbc.producer.sdk?.path,
                     reportRequiredTargetDependencies: cbc.scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES),
-                    verifyingModule: verifyingModule(cbc)
+                    verifyingModule: verifyingModule(cbc),
+                    shouldGenerateReproducerForErrors: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_ENABLE_REPRODUCER_FOR_ERRORS),
+                    reproducerOutputPath: cbc.scope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_REPRODUCER_OUTPUT_PATH).nilIfEmpty
                 )
                 let explicitModulesSignatureData = cachedBuild ? "cached" : nil
 
@@ -1065,7 +1102,7 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
 
         // Start with the executable.
         let compilerExecPath = resolveExecutablePath(cbc, forLanguageOfFileType: resolvedInputFileType)
-        let launcher = await resolveCompilerLauncher(cbc, compilerPath: compilerExecPath, delegate: delegate)
+        let launcher = resolveCompilerLauncher(cbc, compilerPath: compilerExecPath, delegate: delegate)
         if let launcher {
             commandLine += [launcher.str]
         }
@@ -1114,6 +1151,18 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         // Mark as depending on search paths which should be treated as inputs.
         inputDeps.append(contentsOf: constantFlags.headerSearchPaths.inputPaths)
 #endif
+
+        let cbcWithOutput = cbc.outputs.isEmpty ? cbc.appendingOutputs([outputNode.path]) : cbc
+        commandLine += self.commandLineFromOptions(cbc.producer, scope: cbc.scope, inputFileType: resolvedInputFileType, optionContext: clangInfo, buildOptionsFilter: .extendedOnly, lookup: {
+            self.lookup($0, cbcWithOutput, delegate)
+        }).map(\.asString)
+
+        let additionalOutputs = await self.additionalEvaluatedOutputs(cbcWithOutput, delegate)
+        for output in additionalOutputs.outputs {
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+        }
 
         // Add custom per-file flags.
         var perFileFlags = [String]()
@@ -1165,10 +1214,16 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             dependencyData = nil
         }
 
+        var extraOutputs: [any PlannedNode]
         let moduleDependenciesContext = cbc.producer.moduleDependenciesContext
+        let headerDependenciesContext = cbc.producer.headerDependenciesContext
+        let dependencyValidationOutputPath: Path?
         let traceFilePath: Path?
         if clangInfo?.hasFeature("print-headers-direct-per-file") ?? false,
-            (moduleDependenciesContext?.validate ?? .defaultValue) != .no {
+            ((moduleDependenciesContext?.validate ?? .defaultValue) != .no ||
+             (headerDependenciesContext?.validate ?? .defaultValue) != .no) {
+
+            dependencyValidationOutputPath = Path(outputNode.path.str + ".dependencies")
             let file = Path(outputNode.path.str + ".trace.json")
             commandLine += [
                 "-Xclang", "-header-include-file",
@@ -1177,8 +1232,12 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 "-Xclang", "-header-include-format=json"
             ]
             traceFilePath = file
+
+            extraOutputs = [MakePlannedPathNode(dependencyValidationOutputPath!), MakePlannedPathNode(traceFilePath!)]
         } else {
+            dependencyValidationOutputPath = nil
             traceFilePath = nil
+            extraOutputs = []
         }
 
         // Add the diagnostics serialization flag.  We currently place the diagnostics file right next to the output object file.
@@ -1256,7 +1315,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 workingDir: cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR),
                 prefixInfo: prefixInfo,
                 toolchains: cbc.producer.toolchains.map{ $0.identifier },
-                responseFileAttachmentPaths: constantFlags.responseFileMapping
+                responseFileAttachmentPaths: constantFlags.responseFileMapping,
+                responseFileFormat: Self.responseFileFormat(hostOS: cbc.producer.hostOperatingSystem)
             )
         } else {
             indexingPayload  = nil
@@ -1270,6 +1330,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
                 inputDeps.append(privateModuleMapPath)
             }
         }
+
+        commandLine += addCompilerSarifFlags(cbc, outputFileDir.join(outputNode.path.str + ".compiled.sarif"),  delegate, &extraOutputs)
 
         // Handle explicit modules build.
         let scanningOutput = delegate.createNode(outputNode.path.dirname.join(outputNode.path.basename + ".scan"))
@@ -1292,8 +1354,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             outputObjectFilePath: shouldGenerateRemarks ? outputNode.path : nil,
             fileNameMapPath: verifierPayload?.fileNameMapPath,
             developerPathString: recordSystemHeaderDepsOutsideSysroot ? cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str : nil,
-            moduleDependenciesContext: moduleDependenciesContext,
-            traceFilePath: traceFilePath
+            traceFilePath: traceFilePath,
+            dependencyValidationOutputPath: dependencyValidationOutputPath
         )
 
         var inputNodes: [any PlannedNode] = inputDeps.map { delegate.createNode($0) }
@@ -1343,21 +1405,8 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
             extraInputs = []
         }
 
-        if let moduleDependenciesContext {
-            do {
-                let jsonData = try JSONEncoder(outputFormatting: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]).encode(moduleDependenciesContext)
-                guard let signature = String(data: jsonData, encoding: .utf8) else {
-                    throw StubError.error("non-UTF-8 data")
-                }
-                additionalSignatureData += "|\(signature)"
-            } catch {
-                delegate.error("failed to serialize 'MODULE_DEPENDENCIES' context information: \(error)")
-                return
-            }
-        }
-
         // Finally, create the task.
-        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputNodes + extraInputs, outputs: [outputNode], action: action ?? delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs, showEnvironment: true, priority: .preferred)
+        delegate.createTask(type: self, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: inputNodes + extraInputs, outputs: [outputNode] + extraOutputs + additionalOutputs.outputs.map { delegate.createNode($0.path) }, action: action ?? delegate.taskActionCreationDelegate.createClangNonModularCompileTaskAction(), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilationForIndexableSourceFile], usesExecutionInputs: usesExecutionInputs, showEnvironment: true, priority: .preferred)
 
         // If the object file verifier is enabled and we are building with explicit modules, also create a job to produce adjacent objects using implicit modules, then compare the results.
         if cbc.scope.evaluate(BuiltinMacros.CLANG_ENABLE_EXPLICIT_MODULES_OBJECT_FILE_VERIFIER) && action != nil {
@@ -1596,6 +1645,22 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         }
     }
 
+    func addCompilerSarifFlags(_ cbc: CommandBuildContext, _ outputPath: Path, _ delegate: any TaskGenerationDelegate, _ taskOutputs: inout [any PlannedNode]) -> [String] {
+        guard cbc.scope.evaluate(BuiltinMacros.EMIT_SARIF_DIAGNOSTICS_FILE) else  {
+            return []
+        }
+
+        guard let metadatatype = cbc.producer.lookupFileType(identifier: "text.json.sarif") else {
+            return []
+        }
+
+        let securityMetadataNode = delegate.createNode(outputPath)
+        let ftb = FileToBuild(absolutePath: securityMetadataNode.path, fileType: metadatatype)
+        taskOutputs.append(securityMetadataNode)
+        delegate.declareOutput(ftb)
+        return ["-fdiagnostics-add-output=sarif:file=" + securityMetadataNode.path.str]
+    }
+
     /// Specialized function that creates a task for precompiling a particular header.
     private func precompile(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, headerPath: Path, language: GCCCompatibleLanguageDialect, inputFileType: FileTypeSpec, extraArgs: [String], precompPath: Path, clangInfo: DiscoveredClangToolSpecInfo?) -> ClangPrefixInfo.PCHInfo {
 
@@ -1756,15 +1821,15 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         return ClangPrefixInfo.PCHInfo(
             output: precompPath,
             hashCriteria: nil, // rdar://problem/24469921
-            commandLine: ClangSourceFileIndexingInfo.indexingCommandLine(from: byteStringCommandLine, workingDir: cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR), addSupplementary: !hasEnabledIndexBuildArena, replaceCompile: false, responseFileMapping: constantFlags.responseFileMapping)
+            commandLine: ClangSourceFileIndexingInfo.indexingCommandLine(from: byteStringCommandLine, workingDir: cbc.scope.evaluate(BuiltinMacros.PROJECT_DIR), addSupplementary: !hasEnabledIndexBuildArena, replaceCompile: false, responseFileMapping: constantFlags.responseFileMapping, responseFileFormat: Self.responseFileFormat(hostOS: cbc.producer.hostOperatingSystem))
         )
     }
 
     /// Get the serialized diagnostics used by a task, if any.
-    override public func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    override public func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         // We expect every clang task to have a payload of the right type.
         let payload = task.payload! as! ClangTaskPayload
-        return payload.serializedDiagnosticsPath.map { [$0] } ?? []
+        return payload.serializedDiagnosticsPath.map { [.init(serializedDiagnosticsPath: $0, sourceFilePath: nil)] } ?? []
     }
 
     /// Examines the task and returns the indexing information for the source file it compiles.
@@ -1806,6 +1871,16 @@ public class ClangCompilerSpec : CompilerSpec, SpecIdentifierType, GCCCompatible
         let userSpecifiedBlocklists = scope.evaluate(BuiltinMacros.BLOCKLISTS_PATH).nilIfEmpty.map { Path($0) }
 
         return try await discoveredClangToolInfo(producer, delegate, toolPath: toolPath, arch: arch, sysroot: sdk?.path, language: fileType?.languageDialect?.dialectNameForCompilerCommandLineArgument ?? "c", blocklistsPathOverride: userSpecifiedBlocklists)
+    }
+
+    package static func responseFileFormat(hostOS: OperatingSystem) -> ResponseFileFormat {
+        switch hostOS {
+        case .macOS:
+            // Maintained for compatibility with projects which do manual shell escaping of their own in build settings.
+            .unixShellQuotedSpaceSeparated
+        default:
+            .llvmStyleEscaping
+        }
     }
 
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
@@ -2110,4 +2185,16 @@ public final class ClangModuleVerifierSpec: ClangCompilerSpec, SpecImplementatio
 
 private func ==(lhs: ClangCompilerSpec.DataCache.ConstantFlagsKey, rhs: ClangCompilerSpec.DataCache.ConstantFlagsKey) -> Bool {
     return ObjectIdentifier(lhs.scope) == ObjectIdentifier(rhs.scope) && lhs.inputFileType == rhs.inputFileType
+}
+
+private extension IndexingInfoLanguage {
+    init?(compilerArgumentLanguage: ByteString) {
+        switch compilerArgumentLanguage {
+        case "c": self = .c
+        case "c++": self = .cpp
+        case "objective-c": self = .objectiveC
+        case "objective-c++": self = .objectiveCpp
+        default: return nil
+        }
+    }
 }

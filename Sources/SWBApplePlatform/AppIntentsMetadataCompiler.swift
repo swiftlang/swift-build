@@ -122,7 +122,7 @@ final public class AppIntentsMetadataCompilerSpec: GenericCommandLineToolSpec, S
         for variant in buildVariants {
             let scope = cbc.scope.subscope(binding: BuiltinMacros.variantCondition, to: variant)
             for arch in archs {
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                 let dependencyInfoFile = scope.evaluate(BuiltinMacros.LD_DEPENDENCY_INFO_FILE)
                 let libtoolDependencyInfo = scope.evaluate(BuiltinMacros.LIBTOOL_DEPENDENCY_INFO_FILE)
                 if !isStaticLibrary && !dependencyInfoFile.isEmpty {

@@ -27,6 +27,7 @@
         ProgressDescription = Linking;
         InputFileTypes = (
             "compiled.mach-o.objfile",
+            "compiled.object-library",
             "compiled.mach-o.dylib",
             "sourcecode.text-based-dylib-definition",
             "wrapper.framework",
@@ -173,6 +174,49 @@
                 IsInputDependency = Yes;
             },
             {
+                Name = CLANG_RESOURCE_DIR_CLANG;
+                DefaultValue = "$(CLANG_RESOURCE_DIR)";
+                Type = Path;
+                Condition = "$(LINKER_DRIVER) == clang";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-resource-dir",
+                        "$(value)"
+                    );
+                };
+                IsInputDependency = Yes;
+            },
+            {
+                Name = CLANG_RESOURCE_DIR_SWIFTC;
+                DefaultValue = "$(CLANG_RESOURCE_DIR)";
+                Type = Path;
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-Xclang-linker",
+                        "-resource-dir",
+                        "-Xclang-linker",
+                        "$(value)"
+                    );
+                };
+                IsInputDependency = Yes;
+            },
+            {
+                Name = SWIFT_RESOURCE_DIR;
+                Type = Path;
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-resource-dir",
+                        "$(value)"
+                    );
+                };
+                IsInputDependency = Yes;
+            },
+            {
                 Name = "LD_OPTIMIZATION_LEVEL";
                 Type = String;
                 Condition = "$(LINKER_DRIVER) == clang || $(LINKER_DRIVER) == qcc";
@@ -226,11 +270,12 @@
                 Name = "LIBRARY_SEARCH_PATHS";
                 Type = PathList;
                 "FlattenRecursiveSearchPathsInValue" = Yes;
+                Condition = "$(MACH_O_TYPE) != mh_object";
                 "CommandLinePrefixFlag" = "-L";
             },
             {
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathList;
+                Type = PathOrderedSet;
                 "FlattenRecursiveSearchPathsInValue" = Yes;
                 "CommandLinePrefixFlag" = "-F";
             },
@@ -443,9 +488,24 @@
                 Name = "LINK_WITH_STANDARD_LIBRARIES";
                 Type = Boolean;
                 DefaultValue = YES;
+            },
+            {
+                Name = "CLANG_LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = "$(LINK_WITH_STANDARD_LIBRARIES)";
                 CommandLineArgs = {
                     NO = ("-nostdlib");
                 };
+                Condition = "$(LINKER_DRIVER) == clang";
+            },
+            {
+                Name = "SWIFTC_LINK_WITH_STANDARD_LIBRARIES";
+                Type = Boolean;
+                DefaultValue = "$(LINK_WITH_STANDARD_LIBRARIES)";
+                CommandLineArgs = {
+                    NO = ("-Xclang-linker", "-nostdlib");
+                };
+                Condition = "$(LINKER_DRIVER) == swiftc";
             },
             {
                 Name = "KEEP_PRIVATE_EXTERNS";
@@ -460,7 +520,7 @@
                 DefaultValue = NO;
                 Condition = "$(MACH_O_TYPE) != mh_object";
                 CommandLineArgs = {
-                    YES = ("-dead_strip");
+                    YES = ("-Xlinker", "-dead_strip");
                     NO = ();
                 };
             },
@@ -566,20 +626,61 @@
                 DefaultValue = YES;
             },
 
+            // Address Sanitizer options
+            {
+                Name = LD_ADDRESS_SANITIZER;
+                DefaultValue = "$(LD_ADDRESS_SANITIZER_$(LINKER_DRIVER))";
+            },
+            {
+                Name = LD_ADDRESS_SANITIZER_clang;
+                DefaultValue = "-fsanitize=address";
+            },
+            {
+                Name = LD_ADDRESS_SANITIZER_swiftc;
+                DefaultValue = "-sanitize=address";
+            },
+
             // Thread Sanitizer options
             {
                 Name = "LD_THREAD_SANITIZER";
                 Type = Boolean;
                 DefaultValue = "$(ENABLE_THREAD_SANITIZER)";
+            },
+            {
+                Name = "CLANG_LD_THREAD_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_THREAD_SANITIZER)";
                 Architectures = (
                     x86_64,
                     x86_64h,
+                    aarch64,
                     arm64,
                     arm64e,
                 );
+                Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineArgs = {
                     YES = (
                         "-fsanitize=thread",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+            {
+                Name = "SWIFTC_LD_THREAD_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(LD_THREAD_SANITIZER)";
+                Architectures = (
+                    x86_64,
+                    x86_64h,
+                    aarch64,
+                    arm64,
+                    arm64e,
+                );
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=thread",
                     );
                     NO = ();
                 };
@@ -590,7 +691,7 @@
                 Name = "LD_DEBUG_VARIANT";
                 Type = Boolean;
                 DefaultValue = YES;
-                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
+                Condition = "$(ENABLE_ADDRESS_SANITIZER) || $(ENABLE_THREAD_SANITIZER) || $(ENABLE_SANITIZER_COVERAGE) || $(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER) || $(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER) || $(CLANG_COVERAGE_MAPPING)";
                 CommandLineArgs = {
                     YES = (
                         "-Xlinker",
@@ -626,7 +727,7 @@
                 CommandLineArgs = {
                     "" = ();
                     "<<otherwise>>" = (
-                        "-Xlinker", 
+                        "-Xlinker",
                         "-dependency_info",
                         "-Xlinker",
                         "$(value)",
@@ -679,6 +780,18 @@
                     NO = ();
                 };
                 SupportedVersionRanges = ( "1217" );
+            },
+
+            {   Name = LD_SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = (
+                        "-Xlinker",
+                        "-no_merged_libraries_hook",
+                    );
+                    NO = ();
+                };
             },
 
             {
@@ -739,7 +852,6 @@
                     );
                 };
             },
-
             {
                 Name = "__CREATE_INFOPLIST_SECTION_IN_BINARY";
                 Type = Boolean;
@@ -806,6 +918,78 @@
                         "-use-ld=$(value)"
                     );
                 };
+            },
+            {
+                Name = "ALTERNATE_LINKER_PATH";
+                Type = Path;
+            },
+            {
+                Name = "CLANG_ALTERNATE_LINKER_PATH";
+                Type = String;
+                DefaultValue = "$(ALTERNATE_LINKER_PATH)";
+                Condition = "$(LINKER_DRIVER) == clang";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "--ld-path=$(value)"
+                    );
+                };
+            },
+            {
+                Name = "SWIFTC_ALTERNATE_LINKER_PATH";
+                Type = String;
+                DefaultValue = "$(ALTERNATE_LINKER_PATH)";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                CommandLineArgs = {
+                    "" = ();
+                    "<<otherwise>>" = (
+                        "-ld-path=$(value)"
+                    );
+                };
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = "$(LINKER_FILE_LIST_FORMAT_$(LINKER_DRIVER))";
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT_clang";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unescapedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT_swiftc";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedSpaceSeparated;
+            },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedSpaceSeparated;
             },
         );
     }

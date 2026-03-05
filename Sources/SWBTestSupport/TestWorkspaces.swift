@@ -301,6 +301,8 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
             return "text.plist.xcappextensionpoints"
         case ".xcframework":
             return "wrapper.xcframework"
+        case ".artifactbundle":
+            return "wrapper.artifactbundle"
         case ".xcspec":
             return "text.plist.xcspec"
         case ".xib":
@@ -315,6 +317,10 @@ package final class TestFile: TestInternalStructureItem, CustomStringConvertible
             return "folder.documentationcatalog"
         case ".tightbeam":
             return "sourcecode.tightbeam"
+        case ".myPackage":
+            return "com.apple.package"
+        case "":
+            return "public.directory"
         case let ext where ext.hasPrefix(".fake-"):
             // If this is a fake extension, just return "file".
             return "file"
@@ -919,6 +925,7 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
         case staticFramework
         case staticLibrary
         case objectFile
+        case objectLibrary
         case dynamicLibrary
         case bundle
         case xpcService
@@ -961,6 +968,8 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                 return "com.apple.product-type.library.static"
             case .objectFile:
                 return "com.apple.product-type.objfile"
+            case .objectLibrary:
+                return "org.swift.product-type.library.object"
             case .dynamicLibrary:
                 return "com.apple.product-type.library.dynamic"
             case .bundle:
@@ -1030,6 +1039,8 @@ package final class TestStandardTarget: TestInternalTarget, Sendable {
                 return "lib\(name).a"
             case .objectFile:
                 return "\(name).o"
+            case .objectLibrary:
+                return "\(name).objlib"
             case .dynamicLibrary:
                 // FIXME: This should be based on the target platform, not the host. See also: <rdar://problem/29410050> Swift Build doesn't support product references with non-constant basenames
                 guard let suffix = try? ProcessInfo.processInfo.hostOperatingSystem().imageFormat.dynamicLibraryExtension else {
@@ -1277,6 +1288,7 @@ package class TestProject: TestInternalObjectItem, @unchecked Sendable {
     package let sourceRoot: Path?
     private let defaultConfigurationName: String
     private let developmentRegion: String
+    private let knownLocalizations: [String]?
     private let buildConfigurations: [TestBuildConfiguration]
     package let targets: [any TestTarget]
     fileprivate var _targets: [any TestInternalTarget] {
@@ -1293,12 +1305,13 @@ package class TestProject: TestInternalObjectItem, @unchecked Sendable {
         return overriddenGuid ?? "\(type(of: self).guidCode)\(guidIdentifier)"
     }
 
-    package init(_ name: String, guid: String? = nil, sourceRoot: Path? = nil, defaultConfigurationName: String? = nil, groupTree: TestGroup, buildConfigurations: [TestBuildConfiguration]? = nil, targets: [any TestTarget] = [], developmentRegion: String? = nil, classPrefix: String = "", appPreferencesBuildSettings: [String: String] = [:]) {
+    package init(_ name: String, guid: String? = nil, sourceRoot: Path? = nil, defaultConfigurationName: String? = nil, groupTree: TestGroup, buildConfigurations: [TestBuildConfiguration]? = nil, targets: [any TestTarget] = [], developmentRegion: String? = nil, knownLocalizations: [String]? = nil, classPrefix: String = "", appPreferencesBuildSettings: [String: String] = [:]) {
         self.name = name
         self.overriddenGuid = guid
         self.sourceRoot = sourceRoot
         self.defaultConfigurationName = defaultConfigurationName ?? buildConfigurations?.first?.name ?? "Release"
         self.developmentRegion = developmentRegion ?? "English"
+        self.knownLocalizations = knownLocalizations
         self.buildConfigurations = buildConfigurations ?? [TestBuildConfiguration("Debug")]
         self.targets = targets
         self.groupTree = groupTree
@@ -1323,7 +1336,7 @@ package class TestProject: TestInternalObjectItem, @unchecked Sendable {
 
     fileprivate func toProtocol(_ resolver: any Resolver) throws -> SWBProtocol.Project {
         let path = getPath(resolver)
-        return try SWBProtocol.Project(guid: guid, isPackage: isPackage, xcodeprojPath: path, sourceRoot: sourceRoot ?? path.dirname, targetSignatures: _targets.map{ $0.signature }, groupTree: groupTree.toProtocol(resolver, isRoot: true), buildConfigurations: buildConfigurations.map{ try $0.toProtocol(resolver) }, defaultConfigurationName: defaultConfigurationName, developmentRegion: developmentRegion, classPrefix: classPrefix, appPreferencesBuildSettings: appPreferencesBuildSettings.map{ .init(key: $0.0, value: .string($0.1)) })
+        return try SWBProtocol.Project(guid: guid, isPackage: isPackage, xcodeprojPath: path, sourceRoot: sourceRoot ?? path.dirname, targetSignatures: _targets.map{ $0.signature }, groupTree: groupTree.toProtocol(resolver, isRoot: true), buildConfigurations: buildConfigurations.map{ try $0.toProtocol(resolver) }, defaultConfigurationName: defaultConfigurationName, developmentRegion: developmentRegion, knownLocalizations: knownLocalizations, classPrefix: classPrefix, appPreferencesBuildSettings: appPreferencesBuildSettings.map{ .init(key: $0.0, value: .string($0.1)) })
     }
 }
 

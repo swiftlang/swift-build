@@ -25,21 +25,21 @@ fileprivate struct DependencyVerificationTaskConstructionTests: CoreBasedTests {
     let sourceBaseName = "TestSource"
     let source = "TestSource.m"
 
-    func outputFile(_ srcroot: Path, _ filename: String) -> String {
-        return "\(srcroot.str)/build/\(project).build/Debug/\(target).build/Objects-normal/x86_64/\(filename)"
+    func outputFile(_ srcroot: Path, _ filename: String, _ arch: String) -> String {
+        return "\(srcroot.str)/build/\(project).build/Debug/\(target).build/Objects-normal/\(arch)/\(filename)"
     }
 
-    @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile))
-    func addsTraceArgsWhenValidationEnabled() async throws {
+    @Test(.requireSDKs(.macOS), .requireClangFeatures(.printHeadersDirectPerFile), arguments: ["MODULE", "HEADER"])
+    func addsTraceArgsWhenValidationEnabled(depKind: String) async throws {
         try await testWith([
-            "MODULE_DEPENDENCIES": "Foo",
-            "VALIDATE_MODULE_DEPENDENCIES": "YES_ERROR"
+            "\(depKind)_DEPENDENCIES": "Foo",
+            "VALIDATE_\(depKind)_DEPENDENCIES": "YES_ERROR"
         ]) { tester, srcroot in
             await tester.checkBuild(runDestination: .macOS, fs: localFS) { results in
                 results.checkTask(.compileC(target, fileName: source)) { task in
                     task.checkCommandLineContains([
                         "-Xclang", "-header-include-file",
-                        "-Xclang", outputFile(srcroot, "\(sourceBaseName).o.trace.json"),
+                        "-Xclang", outputFile(srcroot, "\(sourceBaseName).o.trace.json", results.runDestinationTargetArchitecture),
                         "-Xclang", "-header-include-filtering=direct-per-file",
                         "-Xclang", "-header-include-format=json",
                     ])

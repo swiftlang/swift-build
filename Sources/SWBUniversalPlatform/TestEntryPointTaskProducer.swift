@@ -32,16 +32,21 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                 var indexUnitBasePaths: OrderedSet<Path> = []
                 var binaryPaths: OrderedSet<Path> = []
                 for directDependency in context.globalProductPlan.dependencies(of: configuredTarget) {
-                    let settings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(directDependency.parameters, target: directDependency.target)
+                    let settings = context.globalProductPlan.getTargetSettings(directDependency)
                     guard settings.productType?.conformsTo(identifier: "com.apple.product-type.bundle.unit-test") == true else {
                         continue
                     }
+                    guard settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_TESTABILITY) || settings.globalScope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-enable-testing") else {
+                        context.warning("Skipping XCTest discovery for '\(directDependency.target.name)' because it was not built for testing")
+                        continue
+                    }
                     guard settings.globalScope.evaluate(BuiltinMacros.SWIFT_INDEX_STORE_ENABLE) else {
-                        context.error("Cannot perform test discovery for '\(directDependency.target.name)' because index while building is disabled")
+                        context.warning("Skipping XCTest discovery for '\(directDependency.target.name)' because indexing was disabled")
                         continue
                     }
                     let path = settings.globalScope.evaluate(BuiltinMacros.SWIFT_INDEX_STORE_PATH)
                     guard !path.isEmpty else {
+                        context.warning("Skipping XCTest discovery for '\(directDependency.target.name)' because the index store path could not be determined")
                         continue
                     }
                     indexStoreDirectories.append(path)
@@ -49,7 +54,7 @@ class TestEntryPointTaskProducer: PhasedTaskProducer, TaskProducer {
                     for arch in settings.globalScope.evaluate(BuiltinMacros.ARCHS) {
                         for variant in settings.globalScope.evaluate(BuiltinMacros.BUILD_VARIANTS) {
                             let innerScope = settings.globalScope
-                                .subscope(binding: BuiltinMacros.archCondition, to: arch)
+                                .subscopeBindingArchAndTriple(arch: arch)
                                 .subscope(binding: BuiltinMacros.variantCondition, to: variant)
                             let linkerFileListPath = innerScope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
                             if !linkerFileListPath.isEmpty {

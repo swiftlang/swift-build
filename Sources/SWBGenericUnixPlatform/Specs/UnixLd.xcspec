@@ -53,7 +53,7 @@
             {
                 Name = CLANG_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
                 Condition = "$(LINKER_DRIVER) == clang";
                 CommandLineFlag = "--sysroot";
                 IsInputDependency = Yes;
@@ -61,7 +61,7 @@
             {
                 Name = SWIFTC_SDKROOT_LINKER_INPUT;
                 Type = Path;
-                DefaultValue = "$(SDKROOT)";
+                DefaultValue = "$(SYSROOT:default=$(SDKROOT))";
                 Condition = "$(LINKER_DRIVER) == swiftc";
                 CommandLineFlag = "-sysroot";
                 IsInputDependency = Yes;
@@ -121,7 +121,7 @@
             {
                 // Frameworks are Mac specific
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathList;
+                Type = PathOrderedSet;
                 Condition = "NO";
             },
             {
@@ -155,11 +155,26 @@
                 Condition = "NO";
             },
             {
+                Name = "LD_DEBUG_VARIANT";
+                Type = Boolean;
+                Condition = "NO";
+            },
+            {
                 // Don't deduplicate is broken in gold
                 Name = "LD_DONT_RUN_DEDUPLICATION";
                 Type = Boolean;
                 DefaultValue = YES;
                 Condition = "NO";
+            },
+            {
+                Name = LD_DETERMINISTIC_MODE;
+                Type = Boolean;
+                CommandLineArgs = ();
+            },
+            {
+                Name = "LD_DEPENDENCY_INFO_FILE";
+                Type = Path;
+                DefaultValue = "";
             },
             {
                 Name = "__INPUT_FILE_LIST_PATH__";
@@ -180,6 +195,28 @@
                 Name = "SWIFTC__INPUT_FILE_LIST_PATH__";
                 Type = Path;
                 Condition = "NO";
+            },
+            {
+                Name = "LINKER_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unixShellQuotedSpaceSeparated;
             }
         );
     },

@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Tool;
         Identifier = "com.apple.tools.generate-app-playground-asset-catalog";
         Name = "App Playground Asset Catalog Generator";

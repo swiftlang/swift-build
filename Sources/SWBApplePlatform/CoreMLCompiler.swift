@@ -48,6 +48,10 @@ fileprivate struct CoreMLTaskPayload: TaskPayload, Encodable {
 
 /// The indexing info for a CoreML file.  This will be sent to the client in a property list format described below.
 fileprivate enum CoreMLIndexingInfo: Serializable, SourceFileIndexingInfo, Encodable {
+    public var compilerArguments: [String]? { nil }
+    public var indexOutputFile: String? { nil }
+    public var language: IndexingInfoLanguage? { nil }
+
     /// Setting up the code generation task did not generate an error.  It might have been disabled, which is treated as success.
     case success(generatedFilePaths: [Path]?, languageToGenerate: String, notice: String?)
     /// Setting up the code generation task failed, and we use the index to propagate an error back to Xcode.
@@ -242,7 +246,7 @@ public final class CoreMLCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
             delegate.access(path: input.absolutePath)
 
             generatedFiles = try await generatedFilePaths(cbc, delegate, commandLine: commandLine[0...3] + ["--dry-run", "yes"] + commandLine[4...], workingDirectory: cbc.producer.defaultWorkingDirectory, environment: self.environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute CoreML model \(input.absolutePath.basename) code generation output paths") { output in
-                return output.unsafeStringValue.split(separator: "\n").map(Path.init)
+                return try output.unsafeStringValue.split(separator: "\n").map { try AbsolutePath(validating: String($0)) }
             }
             guard !generatedFiles.isEmpty else {
                 // If we were given an empty list of generated files, then there were just no files to be generated, so we return.

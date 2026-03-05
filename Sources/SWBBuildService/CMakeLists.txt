@@ -10,6 +10,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 add_library(SWBBuildService
   BuildDependencyInfo.swift
+  BuildDescriptionMessages.swift
   BuildOperationMessages.swift
   BuildService.swift
   BuildServiceEntryPoint.swift
@@ -20,7 +21,6 @@ add_library(SWBBuildService
   Messages.swift
   PlanningOperation.swift
   PreviewInfo.swift
-  ProjectDescriptor.swift
   Session.swift
   Tools.swift)
 set_target_properties(SWBBuildService PROPERTIES

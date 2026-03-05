@@ -10,6 +10,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
 add_library(SWBAndroidPlatform
   AndroidSDK.swift
+  JavaProperties.swift
   Plugin.swift)
 SwiftBuild_Bundle(MODULE SWBAndroidPlatform FILES
   Specs/Android.xcspec)

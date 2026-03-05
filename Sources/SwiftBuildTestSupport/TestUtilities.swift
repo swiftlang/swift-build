@@ -37,11 +37,11 @@ package actor TestSWBSession {
     package nonisolated let sessionDiagnostics: [SwiftBuildMessage.DiagnosticInfo]
     private var closed = false
 
-    package init(connectionMode: SWBBuildServiceConnectionMode = .default, variant: SWBBuildServiceVariant = .default, temporaryDirectory: NamedTemporaryDirectory?) async throws {
+    package init(connectionMode: SWBBuildServiceConnectionMode = .default, variant: SWBBuildServiceVariant = .default, temporaryDirectory: NamedTemporaryDirectory?, environment: [String: String] = [:]) async throws {
         self.tmpDir = try temporaryDirectory ?? NamedTemporaryDirectory()
         // Construct the test session.
         self.service = try await SWBBuildService(connectionMode: connectionMode, variant: variant)
-        let (result, sessionDiagnostics) = await service.createSession(name: #function, cachePath: tmpDir.path.str)
+        let (result, sessionDiagnostics) = await service.createSession(name: #function, cachePath: tmpDir.path.str, environment: environment)
         self.sessionDiagnostics = sessionDiagnostics
         do {
             self.session = try result.get()
@@ -203,8 +203,8 @@ extension SWBRunDestinationInfo: _RunDestinationInfo {
 
 extension SWBBuildService {
     /// Overload of `createSession` which supplies an inferior products path.
-    package func createSession(name: String, developerPath: String? = nil, cachePath: String?) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
-        return await createSession(name: name, developerPath: developerPath, cachePath: cachePath, inferiorProductsPath: Core.inferiorProductsPath()?.str, environment: [:])
+    package func createSession(name: String, developerPath: String? = nil, cachePath: String?, environment: [String:String] = [:]) async -> (Result<SWBBuildServiceSession, any Error>, [SwiftBuildMessage.DiagnosticInfo]) {
+        return await createSession(name: name, developerPath: developerPath, cachePath: cachePath, inferiorProductsPath: Core.inferiorProductsPath()?.str, environment: environment)
     }
 }
 

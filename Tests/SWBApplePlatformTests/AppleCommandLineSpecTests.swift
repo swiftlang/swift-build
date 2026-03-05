@@ -148,7 +148,7 @@ fileprivate struct AppleCommandLineSpecTests: CoreBasedTests {
     @Test
     func resMergerLinkerTaskConstruction() async throws {
         let core = try await getCore()
-        let resMergerSpec: GenericLinkerSpec = try core.specRegistry.getSpec() as ResMergerLinkerSpec
+        let resMergerSpec: GenericLinkerSpec = try core.specRegistry.getSpec(domain: "macosx", ofType: ResMergerLinkerSpec.self)
 
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         table.push(BuiltinMacros.REZ_COLLECTOR_DIR, literal: Path.root.join("rezCollectorDir").str)

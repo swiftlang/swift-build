@@ -12,6 +12,8 @@ add_library(SWBCore
   ActivityReporting.swift
   Apple/DeviceFamily.swift
   Apple/InterfaceBuilderShared.swift
+  ArtifactBundleMetadata.swift
+  BuildDependencyInfo.swift
   BuildFileFilteringContext.swift
   BuildFileResolution.swift
   BuildParameters.swift
@@ -20,7 +22,6 @@ add_library(SWBCore
   BuildRuleAction.swift
   BuildRuleCondition.swift
   BuildRuleSet.swift
-  CapturedBuildInfo.swift
   ClangModuleVerifier/ModuleVerifierFilenameMap.swift
   ClangModuleVerifier/ModuleVerifierFramework.swift
   ClangModuleVerifier/ModuleVerifierHeader.swift
@@ -91,7 +92,6 @@ add_library(SWBCore
   ProjectModel/Target.swift
   ProjectModel/Workspace.swift
   ProjectModel/WorkspaceHeaderIndex.swift
-  ProvisionalTask.swift
   Provisioning.swift
   ProvisioningTaskInputs.swift
   SDKRegistry.swift
@@ -103,6 +103,7 @@ add_library(SWBCore
   Settings/StackedSearchPaths.swift
   ShellScript.swift
   SigningSupport.swift
+  SwiftOutputParsing.swift
   SwiftSDK.swift
   SpecImplementations/CommandLineToolSpec.swift
   SpecImplementations/CompilerSpec.swift
@@ -118,6 +119,7 @@ add_library(SWBCore
   SpecImplementations/SpecRegistry.swift
   SpecImplementations/Specs.swift
   SpecImplementations/Tools/AppShortcutStringsMetadataCompiler.swift
+  SpecImplementations/Tools/BuildDependencyInfoSpec.swift
   SpecImplementations/Tools/CCompiler.swift
   SpecImplementations/Tools/ClangModuleVerifierInputGenerator.swift
   SpecImplementations/Tools/ClangStatCache.swift
@@ -139,12 +141,12 @@ add_library(SWBCore
   SpecImplementations/Tools/MergeInfoPlist.swift
   SpecImplementations/Tools/MkdirTool.swift
   SpecImplementations/Tools/ModulesVerifierTool.swift
+  SpecImplementations/Tools/ObjectLibraryAssembler.swift
   SpecImplementations/Tools/PLUtilTool.swift
   SpecImplementations/Tools/PrelinkedObjectLink.swift
   SpecImplementations/Tools/ProcessSDKImports.swift
   SpecImplementations/Tools/ProcessXCFrameworkLibrary.swift
   SpecImplementations/Tools/ProductPackaging.swift
-  SpecImplementations/Tools/RegisterExecutionPolicyException.swift
   SpecImplementations/Tools/SetAttributes.swift
   SpecImplementations/Tools/ShellScriptTool.swift
   SpecImplementations/Tools/SignatureCollection.swift
@@ -161,6 +163,7 @@ add_library(SWBCore
   SpecImplementations/Tools/TiffUtilTool.swift
   SpecImplementations/Tools/TouchTool.swift
   SpecImplementations/Tools/UnifdefTool.swift
+  SpecImplementations/Tools/ValidateDependencies.swift
   SpecImplementations/Tools/ValidateDevelopmentAssets.swift
   SpecImplementations/Tools/ValidateEmbeddedBinaryTool.swift
   SpecImplementations/Tools/ValidateProductTool.swift
@@ -170,6 +173,7 @@ add_library(SWBCore
   TargetPlatformDiagnostics.swift
   TaskGeneration.swift
   TaskResult.swift
+  TaskValidityCriteria.swift
   ToolchainRegistry.swift
   ToolInfo/ClangToolInfo.swift
   Tuning.swift

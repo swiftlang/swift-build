@@ -23,7 +23,7 @@ package struct BuildOperationExtensionPoint: ExtensionPoint {
 
     // MARK: - actual extension point
 
-    package static func additionalEnvironmentVariables(pluginManager: PluginManager, fromEnvironment: @autoclosure () -> [String: String], parameters: @autoclosure () -> BuildParameters) throws -> [String: String] {
+    package static func additionalEnvironmentVariables(pluginManager: any PluginManager, fromEnvironment: @autoclosure () -> [String: String], parameters: @autoclosure () -> BuildParameters) throws -> [String: String] {
         let (fromEnvironment, parameters) = (fromEnvironment(), parameters())
         return try pluginManager.extensions(of: Self.self).reduce([:], { environment, ext in
             try environment.addingContents(of: ext.additionalEnvironmentVariables(fromEnvironment: fromEnvironment, parameters: parameters))

@@ -20,6 +20,9 @@ struct MetalSourceFileIndexingInfo: SourceFileIndexingInfo {
     let commandLine: [ByteString]
     let builtProductsDir: Path
     let toolchains: [String]
+    var compilerArguments: [String]? { commandLine.map { $0.asString } }
+    var indexOutputFile: String? { outputFile.str }
+    public var language: IndexingInfoLanguage? { .metal }
 
     init(outputFile: Path, commandLine: [ByteString], builtProductsDir: Path, toolchains: [String]) {
         self.outputFile = outputFile
@@ -30,7 +33,7 @@ struct MetalSourceFileIndexingInfo: SourceFileIndexingInfo {
 
     fileprivate init(task: any ExecutableTask, payload: MetalIndexingPayload) {
         self.outputFile = Path(task.commandLine[payload.outputFileIndex].asString)
-        self.commandLine = ClangSourceFileIndexingInfo.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, responseFileMapping: [:])
+        self.commandLine = ClangSourceFileIndexingInfo.indexingCommandLine(from: task.commandLine.map(\.asByteString), workingDir: payload.workingDir, responseFileMapping: [:], responseFileFormat: nil)
         self.builtProductsDir = payload.builtProductsDir
         self.toolchains = payload.toolchains
     }
@@ -49,7 +52,7 @@ struct MetalSourceFileIndexingInfo: SourceFileIndexingInfo {
 
 extension OutputPathIndexingInfo {
     fileprivate init(task: any ExecutableTask, payload: MetalIndexingPayload) {
-        self.init(outputFile: Path(task.commandLine[payload.outputFileIndex].asString))
+        self.init(outputFile: Path(task.commandLine[payload.outputFileIndex].asString), language: .metal)
     }
 }
 
@@ -176,9 +179,9 @@ public final class MetalCompilerSpec : GenericCompilerSpec, SpecIdentifierType, 
         }
     }
 
-    override public func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    override public func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         let payload = task.payload! as! MetalTaskPayload
-        return [payload.serializedDiagnosticsPath]
+        return [SerializedDiagnosticInfo(serializedDiagnosticsPath: payload.serializedDiagnosticsPath, sourceFilePath: nil)]
     }
 
     /// Examines the task and returns the indexing information for the source file it compiles.

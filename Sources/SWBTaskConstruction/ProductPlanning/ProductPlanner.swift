@@ -14,7 +14,7 @@ import SWBCore
 import SWBUtil
 import SWBMacro
 
-@PluginExtensionSystemActor private func taskProducerExtensions(_ workspaceContext: WorkspaceContext) -> [any TaskProducerExtension] {
+@PluginExtensionSystemActor internal func taskProducerExtensions(_ workspaceContext: WorkspaceContext) -> [any TaskProducerExtension] {
     let extensions = workspaceContext.core.pluginManager.extensions(of: TaskProducerExtensionPoint.self)
 
     // Sort the extensions using their type name so we always go through them in a stable order.
@@ -45,7 +45,7 @@ package struct ProductPlanner
         return await planRequest.buildRequestContext.keepAliveSettingsCache {
             // Construct the global product plan.
             let globalProductPlan = await GlobalProductPlan(planRequest: planRequest, delegate: delegate, nodeCreationDelegate: delegate)
-            let targetTaskInfos = globalProductPlan.targetTaskInfos
+            let targetTaskInfos = globalProductPlan.targetGateNodes
 
             // Create the plans themselves in parallel.
             var productPlans = await globalProductPlan.allTargets.asyncMap { configuredTarget in
@@ -81,6 +81,8 @@ private struct WorkspaceProductPlanBuilder {
             SDKStatCacheTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             HeadermapVFSTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
             PCHModuleMapTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+            BuildDependencyInfoTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
+            CompilationCachingConfigFileTaskProducer(context: globalTaskProducerContext, targetContexts: targetContexts),
         ] + (globalProductPlan.planRequest.buildRequest.enableIndexBuildArena ? [IndexBuildVFSDirectoryRemapTaskProducer(context: globalTaskProducerContext)] : [])
 
         for taskProducerExtension in await taskProducerExtensions(globalTaskProducerContext.workspaceContext) {
@@ -113,7 +115,7 @@ private struct ProductPlanBuilder
 
 
     /// Create the product plan.
-    func createProductPlan(_ targetTaskInfo: TargetTaskInfo, _ globalProductPlan: GlobalProductPlan) async -> ProductPlan
+    func createProductPlan(_ targetTaskInfo: TargetGateNodes, _ globalProductPlan: GlobalProductPlan) async -> ProductPlan
     {
         // Create the context object for the task producers.
         // FIXME: Either each task producer should get its own file path resolver, or the path resolver's caching logic needs to be thread-safe.
@@ -144,34 +146,11 @@ private struct ProductPlanBuilder
 
 protocol ProductPlanBuilding
 {
-    func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
     func taskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
 }
 
 extension Target: ProductPlanBuilding
 {
-    func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        switch self
-        {
-        case let target as StandardTarget:
-            return target.self.standardTargetProvisionalTasks(settings)
-
-        case let target as AggregateTarget:
-            return target.self.aggregateTargetProvisionalTasks(settings)
-
-        case let target as ExternalTarget:
-            return target.self.externalTargetProvisionalTasks(settings)
-
-        case is PackageProductTarget:
-            // Package product targets have no provisional tasks.
-            return [:]
-
-        default:
-            preconditionFailure("\(Swift.type(of: self)) does not know how to create TaskProducers")
-        }
-    }
-
     func taskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
     {
         switch self
@@ -196,13 +175,6 @@ extension Target: ProductPlanBuilding
 
 extension BuildPhaseTarget
 {
-    func buildPhaseTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        let provisionalTasks = [String: ProvisionalTask]()
-        // TODO: Create provisional tasks for other task producers.
-        return provisionalTasks
-    }
-
     /// The base name used by phase start and end nodes set up for task producers for this target.
     func phaseNodeRoot(_ configuredTarget: ConfiguredTarget?) -> String {
         return configuredTarget?.guid.stringValue ?? "target-\(self.name)-\(self.guid)"
@@ -345,17 +317,6 @@ extension BuildPhaseTarget
 
 extension StandardTarget
 {
-    func standardTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        var provisionalTasks = super.buildPhaseTargetProvisionalTasks(settings)
-
-        provisionalTasks.addContents(of: ProductStructureTaskProducer.self.provisionalTasks(settings))
-        // TODO: Create provisional tasks for other task producers.
-        provisionalTasks.addContents(of: ProductPostprocessingTaskProducer.self.provisionalTasks(settings))
-
-        return provisionalTasks
-    }
-
     func standardTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) async -> [any TaskProducer]
     {
         let taskProducerExtensions = await taskProducerExtensions(taskProducerContext.workspaceContext)
@@ -493,12 +454,6 @@ extension StandardTarget
 
 extension AggregateTarget
 {
-    func aggregateTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        // TODO: We should probably check that only build phases useful in an aggregate target are present here.
-        return super.buildPhaseTargetProvisionalTasks(settings)
-    }
-
     func aggregateTargetTaskProducers(_ taskProducerContext: TargetTaskProducerContext) -> [any TaskProducer]
     {
         // TODO: We should probably check that only build phases useful in an aggregate target are present here.
@@ -508,12 +463,6 @@ extension AggregateTarget
 
 extension ExternalTarget
 {
-    func externalTargetProvisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-    {
-        // External targets have no provisional tasks.
-        return [:]
-    }
-
     func externalTargetTaskProducers(_ taskProducerContext: TaskProducerContext) -> [any TaskProducer]
     {
         if !customTasks.isEmpty {

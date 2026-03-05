@@ -70,7 +70,6 @@ fileprivate struct DocumentationBuildTests: CoreBasedTests {
                 A top-level article in a documentation catalog without any symbols
 
                 @Metadata {
-                  @TechnologyRoot
                 }
                 """
             )

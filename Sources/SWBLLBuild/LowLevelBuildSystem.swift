@@ -27,7 +27,7 @@ extension SWBUtil.FileInfo: SWBLLBuild.FileInfo {
         // This should be remove from llbuild FileInfo protocol as it just not needed, would also be nice to remove the stat requirement too.
         preconditionFailure()
     }
-    
+
     public var statBuf: stat {
         var statBuf: stat = stat()
 

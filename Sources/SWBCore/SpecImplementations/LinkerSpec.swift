@@ -24,14 +24,16 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
             case textBased
             case framework
             case object
+            case objectLibrary
 
             public var description: String {
                 switch self {
-                case .static:       return "static library"
-                case .dynamic:      return "dynamic library"
-                case .textBased:    return "text-based stub"
-                case .framework:    return "framework"
-                case .object:       return "object file"
+                case .static:        return "static library"
+                case .dynamic:       return "dynamic library"
+                case .textBased:     return "text-based stub"
+                case .framework:     return "framework"
+                case .object:        return "object file"
+                case .objectLibrary: return "object library"
                 }
             }
         }
@@ -87,11 +89,12 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
         /// The path to the privacy file, if one exists.
         public let privacyFile: Path?
 
-        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, swiftModulePaths: [String: Path], swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path], explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
+        public let libPrefix: String?
+
+        public init(kind: Kind, path: Path, mode: Mode, useSearchPaths: Bool, swiftModulePaths: [String: Path], swiftModuleAdditionalLinkerArgResponseFilePaths: [String: Path], prefix: String? = nil, explicitDependencies: [Path] = [], topLevelItemPath: Path? = nil, dsymPath: Path? = nil, xcframeworkSourcePath: Path? = nil, privacyFile: Path? = nil) {
             self.kind = kind
             self.path = path
             self.mode = mode
-            self.useSearchPaths = useSearchPaths
             self.swiftModulePaths = swiftModulePaths
             self.swiftModuleAdditionalLinkerArgResponseFilePaths = swiftModuleAdditionalLinkerArgResponseFilePaths
             self.explicitDependencies = explicitDependencies
@@ -99,6 +102,10 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
             self.dsymPath = dsymPath
             self.xcframeworkSourcePath = xcframeworkSourcePath
             self.privacyFile = privacyFile
+            self.libPrefix = prefix
+            // Only use search paths when no prefix is required or when the prefix matches
+            let hasValidPrefix = libPrefix.map { path.basename.hasPrefix($0) } ?? true
+            self.useSearchPaths = hasValidPrefix && useSearchPaths
         }
     }
 
@@ -136,6 +143,11 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
         return ruleInfo
     }
 
+    public func inputFileListContents(_ cbc: CommandBuildContext, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> ByteString {
+        let format = cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT, lookup: lookup)
+        return ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: cbc.inputs.map { $0.absolutePath.strWithPosixSlashes }, format: format))
+    }
+
     open override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // FIXME: We should ensure this cannot happen.
         fatalError("unexpected direct invocation")
@@ -144,7 +156,7 @@ open class LinkerSpec : CommandLineToolSpec, @unchecked Sendable {
     /// Custom entry point for constructing linker tasks.
     public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         /// Delegate to the generic machinery.
-        await delegate.createTask(type: self, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString), environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [cbc.output], action: nil, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        await delegate.createTask(type: self, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString), environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: cbc.inputs.map({ $0.absolutePath }), outputs: [cbc.output], action: createTaskAction(cbc, delegate), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 }
 

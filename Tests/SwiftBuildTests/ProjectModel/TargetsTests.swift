@@ -21,6 +21,85 @@ fileprivate struct TargetsTests {
         try testCodable(obj) { $0.signature = nil }
     }
 
+    @Test func deterministicPlatformFilterEncoding() throws {
+        let obj = ProjectModel.Target.example(.dynamicLibrary)
+        try testCodable(obj, { $0.signature = nil }, """
+        {
+          "approvedByUser" : "true",
+          "buildConfigurations" : [
+
+          ],
+          "buildPhases" : [
+            {
+              "buildFiles" : [
+
+              ],
+              "destinationSubfolder" : "<absolute>",
+              "destinationSubpath" : "",
+              "guid" : "foo",
+              "runOnlyForDeploymentPostprocessing" : "false",
+              "type" : "com.apple.buildphase.copy-files"
+            }
+          ],
+          "buildRules" : [
+
+          ],
+          "customTasks" : [
+            {
+              "commandLine" : [
+                "foo",
+                "bar"
+              ],
+              "enableSandboxing" : "true",
+              "environment" : [
+                [
+                  "a",
+                  "b"
+                ],
+                [
+                  "c",
+                  "d"
+                ]
+              ],
+              "executionDescription" : "execution description",
+              "inputFilePaths" : [
+                "input1",
+                "input2"
+              ],
+              "outputFilePaths" : [
+                "output1",
+                "output2"
+              ],
+              "preparesForIndexing" : "true",
+              "workingDirectory" : "tmp"
+            }
+          ],
+          "dependencies" : [
+            {
+              "guid" : "FAKE",
+              "platformFilters" : [
+                {
+                  "platform" : "linux"
+                },
+                {
+                  "platform" : "macosx"
+                }
+              ]
+            }
+          ],
+          "guid" : "MyTarget",
+          "name" : "TargetName",
+          "productReference" : {
+            "guid" : "PRODUCTREF-MyTarget",
+            "name" : "Product Name",
+            "type" : "file"
+          },
+          "productTypeIdentifier" : "com.apple.product-type.library.dynamic",
+          "type" : "standard"
+        }
+        """)
+    }
+
     @Test func basicAggregateTargetEncoding() throws {
         try testCodable(ProjectModel.AggregateTarget.example)
     }
@@ -36,6 +115,7 @@ extension ProjectModel.Target {
             target.common.addCopyFilesBuildPhase { _ in .example }
             target.common.signature = "signature"
             target.common.customTasks = [.example]
+            target.common.addDependency(on: ProjectModel.GUID("FAKE"), platformFilters: [.init(platform: "linux"), .init(platform: "macosx")])
             return target
         }
     }

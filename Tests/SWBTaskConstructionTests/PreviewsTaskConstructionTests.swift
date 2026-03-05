@@ -1003,7 +1003,7 @@ fileprivate struct PreviewsTaskConstructionTests: CoreBasedTests {
                 results.consumeTasksMatchingRuleTypes(["Copy", "CopySwiftLibs", "ExtractAppIntentsMetadata", "Gate", "GenerateDSYMFile", "MkDir", "CreateBuildDirectory", "WriteAuxiliaryFile", "ClangStatCache", "RegisterExecutionPolicyException", "AppIntentsSSUTraining", "ProcessInfoPlistFile", "Touch", "Validate", "LinkAssetCatalogSignature", "CodeSign", "ProcessProductPackaging", "ProcessProductPackagingDER", "ConstructStubExecutorLinkFileList"])
 
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/Tool", "normal"])) { task in
-                    task.checkCommandLineContainsUninterrupted(["-sectcreate", "__TEXT", "__info_plist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/Tool.build/Objects-normal/x86_64/Processed-Info.plist"])
+                    task.checkCommandLineContainsUninterrupted(["-sectcreate", "__TEXT", "__info_plist", "\(srcRoot.str)/build/ProjectName.build/Debug-iphonesimulator/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Processed-Info.plist"])
                 }
 
                 results.checkTask(.matchRule(["Ld", "\(srcRoot.str)/build/Debug-iphonesimulator/Tool.debug.dylib", "normal"])) { task in

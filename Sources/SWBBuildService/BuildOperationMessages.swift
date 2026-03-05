@@ -165,6 +165,9 @@ final class ActiveBuild: ActiveBuildOperation {
     /// Whether this operation is intended only for creating and reporting the build description.
     let onlyCreatesBuildDescription: Bool
 
+    /// Whether this operation should retain the build description it uses.
+    let retainBuildDescription: Bool
+
     /// The current state of the build.
     var state: State
 
@@ -194,6 +197,7 @@ final class ActiveBuild: ActiveBuildOperation {
         self.id = request.buildService.nextBuildOperationID()
 
         self.onlyCreatesBuildDescription = message.onlyCreateBuildDescription
+        self.retainBuildDescription = message.retainBuildDescription == true
 
         self.session = try request.session(for: message)
         guard let workspaceContext = session.workspaceContext else {
@@ -304,8 +308,23 @@ final class ActiveBuild: ActiveBuildOperation {
             return
         }
 
+        let priorBuildDescription: BuildDescription?
+        if self.buildRequest.recordBuildBacktraces, let preparationProgressDelegate = self.preparationProgressDelegate {
+            let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
+            priorBuildDescription = await self.session.buildDescriptionManager.attemptLoadingPriorBuildDescription(
+                currentDescription: description,
+                buildRequest: self.buildRequest,
+                buildRequestContext: self.buildRequestContext,
+                workspaceContext: self.workspaceContext,
+                clientDelegate: clientDelegate,
+                constructionDelegate: preparationProgressDelegate
+            )
+        } else {
+            priorBuildDescription = nil
+        }
+
         // Create the build operation.
-        let result = await createBuild(description)
+        let result = await createBuild(description, priorBuildDescription: priorBuildDescription)
 
         guard let operation = result else {
             self.completeBuild(status: .cancelled, metrics: nil)
@@ -420,7 +439,7 @@ final class ActiveBuild: ActiveBuildOperation {
             let preparationDelegate = self.preparationProgressDelegate!
             let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
             // FIXME: We should have a channel for reporting errors here which don't make it look like there was an internal service error. E.g., if we fail to create or write the build description or manifest because of some error outside of our control, we should simply report that and not make it look like we might have a bug.
-            let description = try await MacroNamespace.withExpressionInterningEnabled { try await self.session.buildDescriptionManager.getBuildDescription(planRequest, clientDelegate: clientDelegate, constructionDelegate: preparationDelegate) }
+            let description = try await MacroNamespace.withExpressionInterningEnabled { try await self.session.buildDescriptionManager.getBuildDescription(planRequest, retained: retainBuildDescription, clientDelegate: clientDelegate, constructionDelegate: preparationDelegate) }
             return description
         } catch {
             self.abortBuild(error)
@@ -445,7 +464,7 @@ final class ActiveBuild: ActiveBuildOperation {
 
         do {
             let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
-            let descRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(buildDescriptionID, request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext)
+            let descRequest = BuildDescriptionManager.BuildDescriptionRequest.cachedOnly(buildDescriptionID, request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, retain: self.retainBuildDescription)
             let retrievedBuildDescription = try await self.session.buildDescriptionManager.getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: self.preparationProgressDelegate!)
             return retrievedBuildDescription?.buildDescription
         } catch {
@@ -454,7 +473,7 @@ final class ActiveBuild: ActiveBuildOperation {
         }
     }
 
-    private func createBuild(_ description: BuildDescription) async -> BuildOperation? {
+    private func createBuild(_ description: BuildDescription, priorBuildDescription: BuildDescription?) async -> BuildOperation? {
         await operationDelegateQueue.sync {
             if self.state == .cancelled {
                 return nil
@@ -465,7 +484,7 @@ final class ActiveBuild: ActiveBuildOperation {
 
             // Create the build operation.
             let clientDelegate = ClientExchangeDelegate(request: self.request, session: self.session)
-            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate)
+            let operation = self.request.buildService.buildManager.enqueue(request: self.buildRequest, buildRequestContext: self.buildRequestContext, workspaceContext: self.workspaceContext, description: description, operationDelegate: OperationDelegate(activeBuild: self), clientDelegate: clientDelegate, priorBuildDescription: priorBuildDescription)
             self.buildOperation = operation
             return operation
         }
@@ -705,24 +724,12 @@ private final class TaskOutputHandler: TaskOutputDelegate {
         }
     }
 
-    func incrementClangCacheHit() {
-        self.counters[.clangCacheHits, default: 0] += 1
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
+        self.counters[counter, default: 0] += amount
     }
 
-    func incrementClangCacheMiss() {
-        self.counters[.clangCacheMisses, default: 0] += 1
-    }
-
-    func incrementSwiftCacheHit() {
-        self.counters[.swiftCacheHits, default: 0] += 1
-    }
-
-    func incrementSwiftCacheMiss() {
-        self.counters[.swiftCacheMisses, default: 0] += 1
-    }
-
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
-        self.taskCounters[counter, default: 0] += 1
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
+        self.taskCounters[counter, default: 0] += amount
     }
 
     var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
@@ -877,7 +884,7 @@ private final class TaskOutputParserHandler: TaskOutputParserDelegate {
         handler.request.send(BuildOperationTaskUpToDate(signature: .subtaskSignature(signature), targetID: targetID, parentID: handler.taskID))
     }
 
-    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
+    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
         // Create a new subtask.
         let subtaskID = handler.operationDelegate.activeTasks.takeID()
         let outputHandler = TaskOutputParserHandler(buildOperationIdentifier: buildOperationIdentifier, taskID: subtaskID, taskSignature: .subtaskSignature(signature), targetID: targetID, buildRequest: self.buildRequest)
@@ -944,11 +951,8 @@ private final class DiscardingTaskOutputHandler: TaskOutputDelegate {
     func subtaskUpToDate(_ subtask: any ExecutableTask) {}
     func previouslyBatchedSubtaskUpToDate(signature: ByteString, target: ConfiguredTarget) {}
     func updateResult(_ result: TaskResult) {}
-    func incrementClangCacheHit() {}
-    func incrementClangCacheMiss() {}
-    func incrementSwiftCacheHit() {}
-    func incrementSwiftCacheMiss() {}
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {}
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {}
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {}
 }
 
 /// The build output delegate, which sends data back immediately.
@@ -1252,7 +1256,8 @@ final class OperationDelegate: BuildOperationDelegate {
         let interestingPath = task.type.interestingPath(for: task)
 
         let taskSpec = task.type as? Spec
-        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: task.type.serializedDiagnosticsPaths(task, operation.requestContext.fs))
+        let serializedDiagnosticsPaths = task.type.serializedDiagnosticsInfo(task, operation.requestContext.fs).map(\.serializedDiagnosticsPath)
+        let info = BuildOperationTaskInfo(taskName: taskSpec?.name ?? "", signature: .taskIdentifier(ByteString(encodingAsUTF8: task.identifier.rawValue)), ruleInfo: task.ruleInfo.quotedDescription, executionDescription: (task.execDescription ?? task.ruleInfo.quotedDescription), commandLineDisplayString: task.showCommandLineInLog ? commandLineDisplayString(task.commandLine.map(\.asByteString), additionalOutput: task.additionalOutput, workingDirectory: task.workingDirectory, environment: environmentToShow, dependencyInfo: dependencyInfo) : nil, interestingPath: interestingPath, serializedDiagnosticsPaths: serializedDiagnosticsPaths)
 
         request.send(BuildOperationTaskStarted(id: taskID, targetID: targetID, parentID: nil, info: info))
 

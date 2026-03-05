@@ -81,27 +81,6 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
         return tasks
     }
 
-    private func archsForXCTRunner(_ scope: MacroEvaluationScope) -> (required: Set<String>, optional: Set<String>) {
-        // The XCTestRunner is required to have at least the same ARCHS as our test bundle, minus the arm64e and/or x86_64h subtypes of their respective architecture family. The removal logic ensures we always get a link-compatible result.
-        var requiredArchs = Set(scope.evaluate(BuiltinMacros.ARCHS))
-        var optionalArchs = Set<String>()
-
-        let linkCompatibleArchPairs = [
-            ("arm64e", "arm64"),
-            ("x86_64h", "x86_64"),
-        ]
-
-        for (arch, baseline) in linkCompatibleArchPairs {
-            if requiredArchs.contains(baseline) {
-                if let foundArch = requiredArchs.remove(arch) {
-                    optionalArchs.insert(foundArch)
-                }
-            }
-        }
-
-        return (requiredArchs, optionalArchs)
-    }
-
     /// A test target which is configured to use an XCTRunner will do the following:
     ///
     /// - Copy `XCTRunner.app` out of the platform being built for into the original target build dir using the name `$(XCTRUNNER_PRODUCT_NAME)` (where `$(PRODUCT_NAME)` is the test target's product name).
@@ -218,19 +197,7 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
                         continue
                     }
 
-                    let (requiredArchs, optionalArchs) = archsForXCTRunner(scope)
-                    archsToPreserve = requiredArchs
-
-                    // If we have any optional architectures, add the subset of those which the XCTRunner binary actually has
-                    if !optionalArchs.isEmpty {
-                        archsToPreserve.formUnion(optionalArchs.intersection(runnerArchs))
-                    }
-
-                    let missingArchs = archsToPreserve.subtracting(runnerArchs)
-                    if !missingArchs.isEmpty {
-                        // This is a warning instead of an error to ease future architecture bringup
-                        delegate.warning("missing architectures (\(missingArchs.sorted().joined(separator: ", "))) in XCTRunner.app: \(inputPath.str)")
-                    }
+                    archsToPreserve = Set(await context.availableMatchingArchitecturesInStubBinary(at: inputPath, requestedArchs: scope.evaluate(BuiltinMacros.ARCHS)))
 
                     // If the runner has only one architecture, perform a direct file copy since lipo can't use -extract on thin Mach-Os
                     if runnerArchs.count == 1 {
@@ -270,7 +237,7 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
                 Self.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
             ]
 
-            for platformExtension in await context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+            for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 frameworkPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
             }
 
@@ -355,9 +322,15 @@ final class XCTestProductPostprocessingTaskProducer: PhasedTaskProducer, TaskPro
 
     /// The path to the copy of `Testing.framework` which should be used by clients.
     static fileprivate func swiftTestingFrameworkPath(_ scope: MacroEvaluationScope, _ platform: Platform?, _ fs: any FSProxy) -> Path {
-         let testingFrameworkPath = Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks/Testing.framework")
-         return fs.exists(testingFrameworkPath) ? testingFrameworkPath : Path("")
-     }
+        let testingFrameworkPaths = [
+            // Swift.org toolchains, Apple Xcode
+            Path(scope.evaluate(BuiltinMacros.PLATFORM_DIR)).join("Developer/Library/Frameworks/Testing.framework"),
+
+            // Apple Developer Command Line Tools
+            scope.evaluate(BuiltinMacros.DEVELOPER_DIR).join("Library/Developer/Frameworks/Testing.framework"),
+        ]
+        return testingFrameworkPaths.first(where: fs.exists) ?? Path("")
+    }
 
      /// The paths to libraries and frameworks produced by the XCTest project, including `XCTest.framework` and some
      /// of its dependencies, which should be used by clients.
@@ -471,7 +444,7 @@ final class XCTestHostTaskProducer: PhasedTaskProducer, TaskProducer {
                 XCTestProductPostprocessingTaskProducer.swiftTestingFrameworkPath(scope, context.platform, context.workspaceContext.fs)
             ]
 
-            for platformExtension in await context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+            for platformExtension in context.workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
                 srcPaths.append(contentsOf: platformExtension.additionalTestLibraryPaths(scope: scope, platform: context.platform, fs: context.workspaceContext.fs))
             }
 

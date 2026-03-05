@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Identifier = com.apple.compilers.process-xcappextensionpoints;
         Type = Compiler;
         Name = "Process XCAppExtensionPoints";
@@ -31,18 +32,5 @@
         );
         Options = (
         );
-    },
-
-    {
-        Name = "XCAppExtensionPoints";
-        Type = FileType;
-        Identifier = text.plist.xcappextensionpoints;
-        BasedOn = text.plist;
-        Extensions = (
-            xcappextensionpoints
-        );
-        IsTransparent = NO;
-        AppliesToBuildRules = YES;
-        UTI = "com.apple.dt.xcappextensionpoints";
     },
 )

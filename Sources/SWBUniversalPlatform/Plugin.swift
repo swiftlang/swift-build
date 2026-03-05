@@ -16,10 +16,13 @@ import Foundation
 import SWBTaskConstruction
 import SWBTaskExecution
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(UniversalPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(UniversalPlatformTaskProducerExtension(), type: TaskProducerExtensionPoint.self)
     manager.register(UniversalPlatformTaskActionExtension(), type: TaskActionExtensionPoint.self)
+
+    manager.register(BareMetalPlatformExtension(), type: PlatformInfoExtensionPoint.self)
+    manager.register(BareMetalSDKRegistryExtension(), type: SDKRegistryExtensionPoint.self)
 }
 
 struct UniversalPlatformSpecsExtension: SpecificationsExtension {
@@ -74,10 +77,17 @@ struct UniversalPlatformTaskProducerExtension: TaskProducerExtension {
     var unorderedPostBuildPhasesTaskProducers: [any SWBTaskConstruction.TaskProducerFactory] { [] }
 
     var globalTaskProducers: [any SWBTaskConstruction.GlobalTaskProducerFactory] { [] }
+
+    func generateAdditionalTasks(_ tasks: inout [any SWBCore.PlannedTask], _ producer: any SWBTaskConstruction.TaskProducer) {
+    }
+
+    func productPostprocessingSteps() -> [any ProductPostprocessingStep.Type] {
+        []
+    }
 }
 
 struct UniversalPlatformTaskActionExtension: TaskActionExtension {
     var taskActionImplementations: [SWBUtil.SerializableTypeCode : any SWBUtil.PolymorphicSerializable.Type] {
-        [41: TestEntryPointGenerationTaskAction.self]
+        [44: TestEntryPointGenerationTaskAction.self]
     }
 }

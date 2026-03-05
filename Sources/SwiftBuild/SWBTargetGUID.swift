@@ -10,10 +10,16 @@
 //
 //===----------------------------------------------------------------------===//
 
+import SWBProtocol
+
 public struct SWBTargetGUID: RawRepresentable, Hashable, Sendable {
     public var rawValue: String
 
     public init(rawValue: String) {
         self.rawValue = rawValue
+    }
+
+    init(_ guid: TargetGUID) {
+        self.init(rawValue: guid.rawValue)
     }
 }

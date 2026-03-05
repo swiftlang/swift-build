@@ -110,7 +110,7 @@ public final class SwiftHeaderToolTaskAction: TaskAction {
             // If there's only a single architecture, don't add ifdefs.
             if options.single {
                 if let path = options.inputs.values.only {
-                    try executionDelegate.fs.write(options.output, contents: executionDelegate.fs.read(path))
+                    _ = try executionDelegate.fs.writeIfChanged(options.output, contents: executionDelegate.fs.read(path))
                     return .succeeded
                 } else {
                     outputDelegate.emitError("Multiple architectures are not supported on this target.")
@@ -169,7 +169,7 @@ public final class SwiftHeaderToolTaskAction: TaskAction {
             byteString += ByteString(encodingAsUTF8: "#error unsupported Swift architecture\n")
             byteString += ByteString(encodingAsUTF8: "#endif\n")
 
-            try executionDelegate.fs.write(options.output, contents: byteString)
+            _ = try executionDelegate.fs.writeIfChanged(options.output, contents: byteString)
 
             return .succeeded
         } catch {

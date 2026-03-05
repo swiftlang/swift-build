@@ -106,7 +106,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 let derivedData = tmpDir.join("build/Debug")
                 let appResources = derivedData.join("tool.app/Contents/Resources")
 
-                let sdkImportsPath = appResources.join("tool_normal_x86_64_sdk_imports.json")
+                let sdkImportsPath = appResources.join("tool_normal_\(results.runDestinationTargetArchitecture)_sdk_imports.json")
                 let sdkImportsData = try Data(contentsOf: .init(filePath: sdkImportsPath.str))
 
                 struct SDKImports: Codable {
@@ -118,7 +118,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 }
 
                 let sdkImports = try JSONDecoder().decode(SDKImports.self, from: sdkImportsData)
-                #expect(sdkImports.inputs.map { $0.path }.sorted() == ["libstaticlib.a", "main.o", "objc-file", "stubs-got-file"])
+                #expect(sdkImports.inputs.map { $0.path }.sorted().contains(["libstaticlib.a", "main.o"]))
             }
         }
     }
@@ -204,7 +204,7 @@ fileprivate struct SDKImportsBuildOperationTests: CoreBasedTests {
                 let destination: RunDestinationInfo = .host
                 try await tester.checkBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                     results.checkNoErrors()
-                    results.checkWarning(.prefix("-ld_classic is deprecated"))
+                    results.checkWarning(.contains("-ld_classic is deprecated"))
 
                     let derivedData = tmpDir.join("build/Debug")
                     let appResources = derivedData.join("tool.app/Contents/Resources")

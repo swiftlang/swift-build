@@ -225,8 +225,16 @@
                 Type = String;
                 DefaultValue = "";
                 Category = "General";
-                DisplayName = "Objective-C Bridging Header";
-                Description = "Path to the header defining the Objective-C interfaces to be exposed in Swift.";
+                DisplayName = "Bridging Header";
+                Description = "Path to the header defining the C interfaces to be exposed in Swift.";
+            },
+            {
+                Name = "SWIFT_BRIDGING_HEADER_IS_INTERNAL";
+                Type = Boolean;
+                DefaultValue = "NO";
+                Category = "General";
+                DisplayName = "Bridging Header is Internal to the Module";
+                Description = "When there is a bridging header, this setting indicates whether the contents of that bridging header should be imported as-if they came from an internal import. This is necessary when using bridging headers with Swift modules that are imported into other modules.";
             },
             {
                 Name = "SWIFT_OBJC_INTERFACE_HEADER_NAME";
@@ -376,12 +384,14 @@
                 Name = "SWIFT_ENFORCE_EXCLUSIVE_ACCESS";
                 Type = Enumeration;
                 Values = (
+                    "default",
                     "on",
                     "debug-only",
                     "off",
                 );
-                DefaultValue = "on";
+                DefaultValue = "default";
                 CommandLineArgs = {
+                    "default" = "";
                     "on" = "-enforce-exclusivity=checked";
                     "full" = (); // Handled by __SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT
                     "debug-only" = (); // Handled by __SWIFT_ENFORCE_EXCLUSIVE_ACCESS_DEBUG_ENFORCEMENT
@@ -439,7 +449,7 @@
             },
             {
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathList;
+                Type = PathOrderedSet;
                 "FlattenRecursiveSearchPathsInValue" = Yes;
             },
             {
@@ -625,10 +635,16 @@
             },
             {
                 Name = "SWIFT_STRICT_MEMORY_SAFETY";
-                Type = Boolean;
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    MIGRATE,
+                    NO,
+                );
                 DefaultValue = "NO";
                 CommandLineArgs = {
                     YES = ( "-strict-memory-safety" );
+                    MIGRATE = ( "-strict-memory-safety:migrate" );
                     NO = ();
                 };
                 DisplayName = "Strict Memory Safety";
@@ -820,10 +836,16 @@
 
             {
                 Name = "SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY";
-                Type = Boolean;
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    MIGRATE,
+                    NO,
+                );
                 DefaultValue = NO;
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "MemberImportVisibility" );
+                    MIGRATE = ( "-enable-upcoming-feature", "MemberImportVisibility:migrate" );
                     NO  = ();
                 };
                 DisplayName = "Member Import Visibility";
@@ -852,10 +874,16 @@
 
             {
                 Name = "SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES";
-                Type = Boolean;
+                Type = Enumeration;
+                Values = (
+                    YES,
+                    MIGRATE,
+                    NO,
+                );
                 DefaultValue = "$(SWIFT_APPROACHABLE_CONCURRENCY)";
                 CommandLineArgs = {
                     YES = ( "-enable-upcoming-feature", "InferIsolatedConformances" );
+                    MIGRATE = ( "-enable-upcoming-feature", "InferIsolatedConformances:migrate" );
                     NO  = ();
                 };
                 DisplayName = "Infer Isolated Conformances";
@@ -892,11 +920,16 @@
                     NO  = ();
                 };
             },
-
+            {
+                Name = SWIFTC_PASS_SDKROOT;
+                Type = Boolean;
+                DefaultValue = YES;
+            },
             {
                 Name = SDKROOT;
                 Type = Path;
                 CommandLineFlag = "-sdk";
+                Condition = "$(SWIFTC_PASS_SDKROOT)";
             },
             {
                 Name = "SWIFT_DEPLOYMENT_TARGET";
@@ -936,7 +969,6 @@
             {
                 Name = "SWIFT_EMIT_CONST_VALUE_PROTOCOLS";
                 Type = StringList;
-                DefaultValue = "AppIntent EntityQuery AppEntity TransientEntity AppEnum AppShortcutProviding AppShortcutsProvider AnyResolverProviding AppIntentsPackage DynamicOptionsProvider _IntentValueRepresentable _AssistantIntentsProvider _GenerativeFunctionExtractable";
                 DisplayName = "Const value emission protocol list";
                 Description = "A list of protocol names whose conformances the Swift compiler is to emit compile-time-known values for.";
             },
@@ -1022,7 +1054,7 @@
             {
                 Name = "SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH";
                 Type = Path;
-                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME).autolink";
+                DefaultValue = "$(PER_ARCH_OBJECT_FILE_DIR)/$(SWIFT_MODULE_NAME)-swiftbuild.autolink";
             },
             {
                 Name = "SWIFT_VALIDATE_CLANG_MODULES_ONCE_PER_BUILD_SESSION";
@@ -1113,12 +1145,75 @@
                 Name = "CLANG_COVERAGE_MAPPING_LINKER_ARGS";
                 Type = Boolean;
                 DefaultValue = "$(CLANG_COVERAGE_MAPPING)";
+            },
+
+            {
+                Name = "SWIFTC_CLANG_COVERAGE_MAPPING_LINKER_ARGS";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_COVERAGE_MAPPING_LINKER_ARGS)";
+                Condition = "$(LINKER_DRIVER) == swiftc";
+                AdditionalLinkerArgs = {
+                    NO = ();
+                    YES = (
+                        "-Xclang-linker", "-fprofile-instr-generate",
+                    );
+                };
+            },
+
+            {
+                Name = "CLANG_CLANG_COVERAGE_MAPPING_LINKER_ARGS";
+                Type = Boolean;
+                DefaultValue = "$(CLANG_COVERAGE_MAPPING_LINKER_ARGS)";
+                Condition = "$(LINKER_DRIVER) == clang";
                 AdditionalLinkerArgs = {
                     NO = ();
                     YES = (
                         "-fprofile-instr-generate",
                     );
                 };
+            },
+
+            {
+                Name = "ENABLE_CODESIZE_PROFILE";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+            {
+                Name = "CODESIZE_PROFILE_OUTPUT_DIR";
+                Type = Path;
+            },
+
+            {
+                Name = "SWIFT_EMIT_OPT_RECORDS";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "SWIFT_EMIT_SIL_FILES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "SWIFT_EMIT_IR_FILES";
+                Type = Boolean;
+                DefaultValue = NO;
+            },
+
+            {
+                Name = "SWIFT_SIL_OUTPUT_DIR";
+                Type = Path;
+            },
+
+            {
+                Name = "SWIFT_IR_OUTPUT_DIR";
+                Type = Path;
+            },
+
+            {
+                Name = "SWIFT_OPT_RECORD_OUTPUT_DIR";
+                Type = Path;
             },
 
             // Reflection metadata options
@@ -1180,7 +1275,7 @@
                 };
                 AdditionalLinkerArgs = {
                     YES = (
-                        "-fsanitize=address",
+                        "$(LD_ADDRESS_SANITIZER)",
                     );
                     NO = ();
                 };
@@ -1208,12 +1303,26 @@
                 Architectures = (
                     x86_64,
                     x86_64h,
+                    aarch64,
                     arm64,
                     arm64e,
                 );
                 CommandLineArgs = {
                     YES = (
                         "-sanitize=thread",
+                    );
+                    NO = ();
+                };
+                // Not visible in the build settings editor
+            },
+            // Memory-Tagging Address Sanitizer options.
+            {
+                Name = "SWIFT_MEMORY_TAGGING_ADDRESS_SANITIZER";
+                Type = Boolean;
+                DefaultValue = "$(ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER)";
+                CommandLineArgs = {
+                    YES = (
+                        "-sanitize=memtag-stack",
                     );
                     NO = ();
                 };
@@ -1294,6 +1403,33 @@
                     NO = ();
                 };
             },
+            {
+                Name = "SWIFT_INDEX_STORE_ONLY_PROJECT_FILES";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_ONLY_PROJECT_FILES)";
+                Condition = "$(SWIFT_INDEX_STORE_ENABLE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(SWIFT_OPTIMIZATION_LEVEL) == '-Onone' ) )";
+                CommandLineArgs = {
+                    YES = (
+                        // Assume that clang modules are getting indexed by a clang file within them. While this is technically not correct, since you could have a clang module that only consists of header files and is only included from Swift, such scenarios are rare.
+                        "-index-ignore-clang-modules",
+                        "-index-ignore-system-modules",
+                    );
+                    NO = ();
+                };
+            },
+            {
+                Name = "SWIFT_INDEX_STORE_COMPRESS";
+                Type = Boolean;
+                DefaultValue = "$(INDEX_STORE_COMPRESS)";
+                Condition = "$(SWIFT_INDEX_STORE_ENABLE)  &&  ( $(COMPILER_INDEX_STORE_ENABLE)  ||  ( $(COMPILER_INDEX_STORE_ENABLE) == Default  &&  $(SWIFT_OPTIMIZATION_LEVEL) == '-Onone' ) )";
+                CommandLineArgs = {
+                    YES = (
+                        "-Xfrontend",
+                        "-index-store-compress",
+                    );
+                    NO = ();
+                };
+            },
 
             // Swift caching options.
             {
@@ -1305,7 +1441,9 @@
                         "-scanner-prefix-map-sdk", "/^sdk",
                         "-scanner-prefix-map-toolchain", "/^toolchain",
                         "-scanner-prefix-map", "$(DEVELOPER_DIR)=/^xcode",
-                        // FIXME: add source and build directory mappings by default
+                        "-scanner-prefix-map", "$(PROJECT_DIR)=/^src",
+                        "-scanner-prefix-map", "$(PROJECT_TEMP_DIR)=/^derived",
+                        "-scanner-prefix-map", "$(BUILT_PRODUCTS_DIR)=/^built",
                     );
                     NO = ();
                 };
@@ -1368,6 +1506,8 @@
                     "objcxx-gnu++20" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
                     "objcxx-c++23" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
                     "objcxx-gnu++23" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-c++2b" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
+                    "objcxx-gnu++2b" = ("-Xcc", "-std=$(CLANG_CXX_LANGUAGE_STANDARD)");
                     "<<otherwise>>" = ();
                 };
             },
@@ -1422,7 +1562,7 @@
           },
           {
               Name = FRAMEWORK_SEARCH_PATHS;
-              Type = PathList;
+              Type = PathOrderedSet;
               DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
               FlattenRecursiveSearchPathsInValue = YES;
               CommandLineFlag = "-F";
@@ -1502,7 +1642,7 @@
           },
           {
               Name = FRAMEWORK_SEARCH_PATHS;
-              Type = PathList;
+              Type = PathOrderedSet;
               DefaultValue = "$(FRAMEWORK_SEARCH_PATHS)";
               FlattenRecursiveSearchPathsInValue = YES;
               CommandLineFlag = "-F";

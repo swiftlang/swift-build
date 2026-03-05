@@ -1,0 +1,204 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the Swift open source project
+//
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Licensed under Apache License v2.0 with Runtime Library Exception
+//
+// See http://swift.org/LICENSE.txt for license information
+// See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors
+//
+//===----------------------------------------------------------------------===//
+
+(
+    {
+        Type = FileType;
+        Identifier = "file.referenceobject";
+        BasedOn = sourcecode;
+        Name = "ARKit Reference Object";
+        Extensions = (
+            referenceobject,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.arkit.referenceobject";
+    },
+    {
+        Type = FileType;
+        Identifier = "text.json.xcstrings";
+        BasedOn = text.json;
+        Name = "XCStrings files";
+        UTI = "com.apple.xcode.xcstrings";
+        Extensions = (
+            xcstrings,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+    },
+    {
+        AppliesToBuildRules = YES;
+        CanSetIncludeInIndex = YES;
+        Extensions = (
+            rkassets,
+        );
+        Identifier = "folder.rkassets";
+        IncludeInIndex = YES;
+        IsFolder = YES;
+        IsTextFile = NO;
+        IsWrapperFolder = YES;
+        Name = "Reality Assets";
+        Type = FileType;
+        UTI = "com.apple.rkassets";
+    },
+    {
+        Type = FileType;
+        Identifier = "com.apple.instruments.package-definition";
+        BasedOn = text.xml;
+        Name = "Instruments Package Definition";
+        Extensions = (instrpkg);
+        AppliesToBuildRules = Yes;
+        UTI = "com.apple.instruments.package-definition";
+    },
+    {
+        Type = FileType;
+        Identifier = "com.apple.instruments.instrdst";
+        BasedOn = wrapper;
+        Name = "Instruments Distribution Package";
+        Extensions = (instrdst);
+        UTI = "com.apple.instruments.instrdst";
+    },
+    {
+        Type = FileType;
+        Identifier = "file.intentdefinition";
+        BasedOn = sourcecode;
+        Name = "SiriKit Intent Definition";
+        Extensions = (
+            intentdefinition,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.sirikit.intentdefinition";
+        "FallbackAutoroutingBuildPhase" = Resources;
+    },
+    {
+        Name = "XCAppExtensionPoints";
+        Type = FileType;
+        Identifier = text.plist.xcappextensionpoints;
+        BasedOn = text.plist;
+        Extensions = (
+            xcappextensionpoints
+        );
+        IsTransparent = NO;
+        AppliesToBuildRules = YES;
+        UTI = "com.apple.dt.xcappextensionpoints";
+    },
+    {
+        Type = FileType;
+        Identifier = "file.mlmodel";
+        BasedOn = sourcecode;
+        Name = "CoreML Machine Learning Model";
+        Extensions = (
+            mlmodel,
+            mlkitmodel,
+        );
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.coreml.model";
+    },
+    {
+        Type = FileType;
+        Identifier = "folder.mlpackage";
+        BasedOn = wrapper;
+        Name = "CoreML Machine Learning Model Package";
+        Extensions = (
+            mlpackage,
+        );
+        IsWrapperFolder = YES;
+        IsFolder = YES;
+        AppliesToBuildRules = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+        UTI = "com.apple.coreml.mlpackage";
+    },
+    // XDesign file types
+    {
+        Identifier = wrapper.xcdatamodel;
+        Type = FileType;
+        // Has to base on 'sourcecode' so that when we are adding data model file to a target,
+        // it gets dropped into the source code bucket to be compiled later.
+        BasedOn = sourcecode;
+        Name = "Data model files";
+        Extensions = (xcdatamodel);
+        AppliesToBuildRules = yes;
+
+        // from wrapper
+        IsWrapperFolder = YES;
+        IsFolder = NO;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+
+        // Don't set encoding
+        IsTextFile = NO;
+
+        UTI = "com.apple.xcode.model.data";
+    },
+
+    {
+        Identifier = wrapper.xcdatamodeld;
+        Type = FileType;
+        // Has to base on 'sourcecode' so that when we are adding data model file to a target,
+        // it gets dropped into the source code bucket to be compiled later.
+        BasedOn = sourcecode;
+        Name = "Data model version files";
+        Extensions = (xcdatamodeld);
+        AppliesToBuildRules = yes;
+
+        // from wrapper
+        IsWrapperFolder = YES;
+        IsFolder = YES;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+
+        // Don't set encoding
+        IsTextFile = NO;
+
+        UTI = "com.apple.xcode.model.data-version";
+    },
+
+    {
+        Identifier = wrapper.xcmappingmodel;
+        Type = FileType;
+        // Has to base on 'sourcecode' so that when we are adding data model file to a target,
+        // it gets dropped into the source code bucket to be compiled later.
+        BasedOn = sourcecode;
+        Name = "Mapping model files";
+        Extensions = (xcmappingmodel);
+        AppliesToBuildRules = yes;
+
+        // from wrapper
+        IsWrapperFolder = YES;
+        IsFolder = NO;
+        IncludeInIndex = YES;
+        CanSetIncludeInIndex = YES;
+
+        // Don't set encoding
+        IsTextFile = NO;
+
+        UTI = "com.apple.xcode.model.data-mapping";
+    },
+
+    {
+        Identifier = wrapper.xcclassmodel;
+        Type = FileType;
+        BasedOn = wrapper;
+        Name = "Class model files";
+        Extensions = (xcclassmodel);
+        IsTransparent = NO;
+        AppliesToBuildRules = yes;
+        UTI = "com.apple.xcode.model.class";
+    },
+)

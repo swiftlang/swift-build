@@ -429,41 +429,6 @@ public import class Foundation.ProcessInfo
 import SWBLibc
 
 extension ProcessInfo {
-    /// The version of the operating system kernel on which the process is running.
-    ///
-    /// This is distinct from `operatingSystemVersion` in that this property will return the kernel version, which may be different than the user-space operating system version. This can be the case in `chroot`-ed environments, for example where the user-space OS version may be 10.15, while the kernel version is 10.14.
-    ///
-    /// - note: This is still in terms of *product* version, for example "10.15", NOT a Darwin version like "19.0.0" as returned by `uname -r`.
-    public var operatingSystemKernelVersion: Version {
-        #if canImport(Darwin)
-        let kern_osproductversion = "kern.osproductversion"
-        var len: Int = 0
-        if sysctlbyname(kern_osproductversion, nil, &len, nil, 0) == 0 {
-            var p = [CChar](repeating: 0, count: len)
-            if sysctlbyname(kern_osproductversion, &p, &len, nil, 0) == 0 {
-                do {
-                    return try Version(String(cString: p))
-                } catch {
-                }
-            }
-        }
-        #endif
-        return Version()
-    }
-
-    /// Returns a Boolean value indicating whether the version of the operating system kernel on which the process is executing is the same or later than the given version.
-    ///
-    /// This method accounts for major, minor, and update versions of the operating system kernel.
-    ///
-    /// See `operatingSystemKernelVersion` for why this is distinct from `isOperatingSystemAtLeast`.
-    ///
-    /// - parameter version: The operating system kernel version to test against.
-    /// - returns: `true` if the operating system kernel on which the process is executing is the same or later than the given version; otherwise `false`.
-    /// - note: This is still in terms of *product* version, for example "10.15", NOT a Darwin version like "19.0.0" as returned by `uname -r`.
-    public func isOperatingSystemKernelAtLeast(_ version: Version) -> Bool {
-        return operatingSystemKernelVersion >= version
-    }
-
     /// Returns the build number of the running operating system.
     public func productBuildVersion() throws -> ProductBuildVersion {
         return try systemVersion().productBuildVersion

@@ -189,7 +189,29 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
 
     /// Generates a task for compiling the .xcstrings to .strings/dict files.
     private func constructCatalogCompilationTask(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
-        let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)).map(\.asString)
+
+        /// Custom lookup function to overwrite `XCSTRINGS_LANGUAGES_TO_COMPILE`
+        /// when `BUILD_ONLY_KNOWN_LOCALIZATIONS` is enabled for a regular build.
+        func lookup(_ macro: MacroDeclaration) -> MacroExpression? {
+            switch macro {
+            case BuiltinMacros.XCSTRINGS_LANGUAGES_TO_COMPILE:
+                if var restrictedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project) {
+                    restrictedLocalizations.remove("Base") // Base locale will never be in a String Catalog
+                    let restrictedLocalizations = restrictedLocalizations.sorted()
+                    if !restrictedLocalizations.isEmpty {
+                        delegate.note("XCStrings will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
+                    }
+
+                    // Only build the languages specified by the project:
+                    return cbc.scope.namespace.parseLiteralStringList(restrictedLocalizations)
+                }
+            default:
+                break
+            }
+            return nil
+        }
+
+        let commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(\.asString)
 
         // We can't know our precise outputs statically because we don't know what languages are in the xcstrings file,
         // nor do we know if any strings have variations (which would require one or more .stringsdict outputs).
@@ -205,7 +227,7 @@ public final class XCStringsCompilerSpec: GenericCompilerSpec, SpecIdentifierTyp
             dryRunCommandLine.insert("--dry-run", at: 2)
 
             outputs = try await generatedFilePaths(cbc, delegate, commandLine: dryRunCommandLine, workingDirectory: cbc.producer.defaultWorkingDirectory, environment: environmentFromSpec(cbc, delegate).bindingsDictionary, executionDescription: "Compute XCStrings \(cbc.input.absolutePath.basename) output paths") { output in
-                return output.unsafeStringValue.split(separator: "\n").map(Path.init)
+                return try output.unsafeStringValue.split(separator: "\n").map { try AbsolutePath(validating: String($0)) }
             }
         } catch {
             emitErrorsFromDryRunFailure(error, path: cbc.input.absolutePath, delegate: delegate)

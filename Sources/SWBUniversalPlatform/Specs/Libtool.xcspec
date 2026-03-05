@@ -23,7 +23,8 @@
         ExecDescription = "Create static library $(OutputFile:file)";
         ProgressDescription = "Creating static library";
         InputFileTypes = (
-            compiled.mach-o.objfile
+            compiled.mach-o.objfile,
+            compiled.object-library
         );
         Outputs = (
             // We're a linker-like task, so we expect to be given an output path in 'OutputPath'.
@@ -109,6 +110,17 @@
                 Name = "LIBTOOL_USE_RESPONSE_FILE";
                 Type = Boolean;
                 DefaultValue = YES;
+            },
+            {
+                Name = "LIBTOOL_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = unescapedNewlineSeparated;
             },
         );
     }

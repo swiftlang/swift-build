@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.appintents-ssu-training";
         Name = "App Intents SSU Training Processor";

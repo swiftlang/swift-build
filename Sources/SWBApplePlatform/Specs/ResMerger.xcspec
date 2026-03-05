@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Type = Linker;
+    {
+        _Domain = darwin;
+        Type = Linker;
         Identifier = com.apple.pbx.linkers.resmerger;
         Name = "ResMerger";
         Description = "Create a Carbon resource file using Apple's Carbon Resource Merger";

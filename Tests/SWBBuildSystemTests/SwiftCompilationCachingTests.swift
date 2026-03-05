@@ -19,8 +19,7 @@ import SWBUtil
 import SWBTaskExecution
 import SWBProtocol
 
-@Suite(.requireSwiftFeatures(.compilationCaching),
-       .flaky("A handful of Swift Build CAS tests fail when running the entire test suite"), .bug("rdar://146781403"))
+@Suite(.requireSwiftFeatures(.compilationCaching), .requireXcode26())
 fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
     @Test(.requireSDKs(.iOS))
     func swiftCachingSimple() async throws {
@@ -83,7 +82,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             var numCompile = 0
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes()
-                results.consumeTasksMatchingRuleTypes(["CopySwiftLibs", "GenerateDSYMFile", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "Touch", "Validate", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "SwiftDriver Compilation Requirements", "Copy", "Ld", "CompileC", "SwiftMergeGeneratedHeaders", "ProcessSDKImports"])
+                results.consumeTasksMatchingRuleTypes(["CopySwiftLibs", "GenerateDSYMFile", "ProcessInfoPlistFile", "RegisterExecutionPolicyException", "Touch", "Validate", "ExtractAppIntentsMetadata", "AppIntentsSSUTraining", "SwiftDriver Compilation Requirements", "Copy", "Ld", "CompileC", "SwiftMergeGeneratedHeaders", "ProcessSDKImports", "WriteCASConfig"])
 
                 results.checkTask(.matchTargetName("Application"), .matchRule(["SwiftDriver", "Application", "normal", "arm64", "com.apple.xcode.tools.swift.compiler"])) { task in
                     task.checkCommandLineMatches([.suffix("swiftc"), .anySequence, "-cache-compile-job", .anySequence])
@@ -111,15 +110,17 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     numCompile += tasks.count
                 }
 
-                results.checkNote("0 hits / 4 cacheable tasks (0%)")
+                results.checkNote("0 hits / \(numCompile) cacheable tasks (0%)")
 
                 results.checkNoTask()
             }
             #expect(try readMetrics("one").contains("\"swiftCacheHits\":0,\"swiftCacheMisses\":\(numCompile)"))
 
+            #expect(try tester.fs.read(tmpDirPath.join("Test/aProject/build/aProject.build/Debug-iphoneos/Application.build/.cas-config")).asString.contains("\"CASPath\":"))
+
             // touch a file, clean build folder, and rebuild.
             try await tester.fs.updateTimestamp(testWorkspace.sourceRoot.join("aProject/App.swift"))
-            try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            try await tester.checkBuild(runDestination: .anyiOSDevice, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
 
             tester.userInfo = rawUserInfo.withAdditionalEnvironment(environment: metricsEnv("two"))
             try await tester.checkBuild(runDestination: .anyiOSDevice, persistent: true) { results in
@@ -127,13 +128,13 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                     results.checkKeyQueryCacheHit(task)
                 }
 
-                results.checkNote("4 hits / 4 cacheable tasks (100%)")
+                results.checkNote("\(numCompile) hits / \(numCompile) cacheable tasks (100%)")
             }
             #expect(try readMetrics("two").contains("\"swiftCacheHits\":\(numCompile),\"swiftCacheMisses\":0"))
         }
     }
 
-    @Test(.requireSDKs(.iOS))
+    @Test(.requireSDKs(.macOS))
     func swiftCachingSwiftPM() async throws {
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let commonBuildSettings = try await [
@@ -192,7 +193,7 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
                             "PRODUCT_NAME": "$(TARGET_NAME)",
                             "SWIFT_ENABLE_COMPILE_CACHE": "YES",
                             "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
-                            "COMPILATION_CACHE_CAS_PATH": "$(DSTROOT)/CompilationCache"])],
+                            "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str])],
                         buildPhases: [
                             TestSourcesBuildPhase(["App1.swift"]),
                             TestFrameworksBuildPhase([TestBuildFile(.target("FooProduct"))])],
@@ -339,6 +340,73 @@ fileprivate struct SwiftCompilationCachingTests: CoreBasedTests {
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.checkTask(.matchRuleType("SwiftCompile")) { results.checkKeyQueryCacheMiss($0) }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS), .skipDeveloperDirectoryWithEqualSign, .disabled("to be enabled in the future after swift compiler fix"))
+    func prefixMapping() async throws {
+        try await withTemporaryDirectory { tmpDirPath in
+            func buildTestWorkspace(sourceDir: Path, _ body: (BuildOperationTester.BuildResults) async throws -> Void) async throws {
+                let testWorkspace = TestWorkspace(
+                    "Test",
+                    sourceRoot: sourceDir,
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup(
+                                "Sources",
+                                children: [
+                                    TestFile("file.swift"),
+                                ]),
+                            buildConfigurations: [TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": try await swiftVersion,
+                                    "SWIFT_ENABLE_COMPILE_CACHE": "YES",
+                                    "COMPILATION_CACHE_CAS_PATH": tmpDirPath.join("CompilationCache").str,
+                                    "COMPILATION_CACHE_ENABLE_DIAGNOSTIC_REMARKS": "YES",
+                                    "SWIFT_ENABLE_EXPLICIT_MODULES": "YES",
+                                    "SWIFT_ENABLE_PREFIX_MAPPING": "YES",
+                                    "DSTROOT": tmpDirPath.join("dstroot").str,
+                                    "EMIT_FRONTEND_COMMAND_LINES": "YES",
+                                ])],
+                            targets: [
+                                TestStandardTarget(
+                                    "Library",
+                                    type: .staticLibrary,
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["file.swift"]),
+                                    ]),
+                            ])])
+
+                let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+                try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/file.swift")) { stream in
+                    stream <<<
+                    """
+                    public func foo() {}
+                    """
+                }
+
+                try await tester.checkBuild(runDestination: .macOS, persistent: true, body: body)
+
+                // Clean.
+                try await tester.checkBuild(runDestination: .macOS, buildCommand: .cleanBuildFolder(style: .regular), body: { _ in })
+            }
+
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test1")) { results in
+                let compileTask: Task = try results.checkTask(.matchRuleType("SwiftCompile")) { $0 }
+                results.checkKeyQueryCacheMiss(compileTask)
+                results.checkNoDiagnostics()
+            }
+
+            try await buildTestWorkspace(sourceDir: tmpDirPath.join("Test2")) { results in
+                let compileTask: Task = try results.checkTask(.matchRuleType("SwiftCompile")) { $0 }
+                // Module is in a different directory, but it's canonicalized.
+                results.checkKeyQueryCacheHit(compileTask)
+                results.checkNoDiagnostics()
             }
         }
     }

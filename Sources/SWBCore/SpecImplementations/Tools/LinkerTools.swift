@@ -176,6 +176,64 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
     /// Maximum number of undefined symbols to emit.  Might be configurable in the future.
     let undefinedSymbolCountLimit = 100
 
+    override public func write(bytes: ByteString) {
+
+        // Split the buffer into slices separated by newlines.  The last slice represents the partial last line (there always is one, even if it's empty).
+        var lines = bytes.split(separator: UInt8(ascii: "\n"), maxSplits: .max, omittingEmptySubsequences: false)
+
+        // Any unparsed bytes belong to the first line. We don't want to run `split` over these because it can lead to accidentally quadratic behavior if write is called many times per line.
+        lines[0] = unparsedBytes + lines[0]
+
+        let linesToParse = lines.dropLast()
+
+        if let target = self.task.forTarget?.target {
+            // Linker errors and warnings take more effort to get actionable information out of build logs than those for source files. This is because the linker does not have the path to the project or target name so they are not included in the message.
+            //
+            // Prepend the path to the project and target name to any error or warning lines.
+            // Example input:
+            // ld: warning: linking with (/System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio) but not using any symbols from it
+            // Example output:
+            // /Path/To/ProjectFolder/ProjectName.xcodeproj: TargetName: ld: warning: linking with (/System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio) but not using any symbols from it
+
+            let workspace = self.workspaceContext.workspace
+            let projectPath = workspace.project(for: target).xcodeprojPath
+            let targetName = target.name
+
+            let processedLines: [ByteString] = linesToParse.map { lineBytes in
+                let lineString = String(decoding: lineBytes, as: Unicode.UTF8.self)
+                if lineString.contains(": error:")
+                    || lineString.contains(": warning:") {
+
+                    let issueString = "\(projectPath.str): \(targetName): \(lineString)"
+                    return ByteString(encodingAsUTF8: issueString)
+                }
+                return ByteString(lineBytes)
+            }
+
+            // Forward the bytes
+            processedLines.forEach {
+                delegate.emitOutput($0)
+                delegate.emitOutput("\n")
+            }
+        }
+        else {
+            // Forward the bytes
+            linesToParse.forEach {
+                delegate.emitOutput(ByteString($0))
+                delegate.emitOutput("\n")
+            }
+        }
+
+        // Parse any complete lines of output.
+        for line in linesToParse {
+            parseLine(line)
+        }
+
+        // Track the last, incomplete line to as the unparsed bytes.
+        unparsedBytes = lines.last ?? []
+    }
+
+    @discardableResult
     override func parseLine<S: Collection>(_ lineBytes: S) -> Bool where S.Element == UInt8 {
 
         // Create a string that we can examine.  Use the non-failable constructor, so that we are robust against potentially invalid UTF-8.
@@ -190,11 +248,14 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             }
             else if let match = LdLinkerOutputParser.problemMessageRegEx.firstMatch(in: lineString), match[3].hasPrefix("symbol(s) not found") {
                 // It's time to emit all the symbols.  We emit each as a separate message.
+                let projectLocation = Workspace.projectLocation(for: self.task.forTarget?.target,
+                                                                workspace: self.workspaceContext.workspace)
+
                 for symbol in undefinedSymbols.prefix(undefinedSymbolCountLimit) {
-                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("Undefined symbol: \(symbol)"), appendToOutputStream: false))
+                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .error, location: projectLocation, data: DiagnosticData("Undefined symbol: \(symbol)"), appendToOutputStream: false))
                 }
                 if undefinedSymbols.count > undefinedSymbolCountLimit {
-                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("(\(undefinedSymbols.count - undefinedSymbolCountLimit) additional undefined symbols are shown in the transcript"), appendToOutputStream: false))
+                    delegate.diagnosticsEngine.emit(Diagnostic(behavior: .note, location: projectLocation, data: DiagnosticData("(\(undefinedSymbols.count - undefinedSymbolCountLimit) additional undefined symbols are shown in the transcript"), appendToOutputStream: false))
                 }
                 collectingUndefinedSymbols = false
                 undefinedSymbols = []
@@ -213,7 +274,9 @@ public struct DiscoveredLdLinkerToolSpecInfo: DiscoveredCommandLineToolSpecInfo 
             let severity = match[2].isEmpty ? "error" : match[2]
             let behavior = Diagnostic.Behavior(name: severity) ?? .note
             let message = match[3].prefix(1).localizedCapitalized + match[3].dropFirst()
-            let diagnostic = Diagnostic(behavior: behavior, location: .unknown, data: DiagnosticData(message), appendToOutputStream: false)
+            let projectLocation = Workspace.projectLocation(for: self.task.forTarget?.target,
+                                                            workspace: self.workspaceContext.workspace)
+            let diagnostic = Diagnostic(behavior: behavior, location: projectLocation, data: DiagnosticData(message), appendToOutputStream: false)
             delegate.diagnosticsEngine.emit(diagnostic)
         }
         return true
@@ -237,6 +300,30 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // We use clang as our linker, so return ld and libtool in aliases in
         // order to parse the errors from the actual linker.
         return ["ld", "libtool"]
+    }
+
+    static let outputAgnosticLinkerArguments = Set<ByteString>([
+        "-v"
+    ])
+
+    func isOutputAgnosticLinkerArgument(_ argument: ByteString, prevArgument: ByteString?) -> Bool {
+        if LdLinkerSpec.outputAgnosticLinkerArguments.contains(argument) {
+            return true
+        }
+
+        return false
+    }
+
+    public override func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? {
+        let taskCommandLine = task.commandLine
+        return taskCommandLine.indices.compactMap { index in
+            let arg = taskCommandLine[index].asByteString
+            let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
+            if isOutputAgnosticLinkerArgument(arg, prevArgument: prevArg) {
+                return nil
+            }
+            return arg
+        }
     }
 
     public func sparseSDKSearchPathArguments(_ cbc: CommandBuildContext) -> [String] {
@@ -275,10 +362,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return usedTools.keys.map({ type(of: $0) }).contains(where: { $0 == SwiftCompilerSpec.self })
     }
 
-    static public func computeRPaths(_ cbc: CommandBuildContext,_ delegate: any TaskGenerationDelegate, inputRunpathSearchPaths: [String], isUsingSwift: Bool ) async -> [String] {
+    public struct RuntimeSearchPaths {
+        // The rpaths themselves
+        let paths: [String]
+        // Whether we should suppress rpaths the linker driver might otherwise insert
+        let suppressDriverStdlibPaths: Bool
+    }
+
+    static public func computeRPaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, inputRunpathSearchPaths: [String], isUsingSwift: Bool ) async -> RuntimeSearchPaths {
         // Product types can provide their own set of rpath values, we need to ensure that our rpath flags for Swift in the OS appear before those. Also, due to the fact that we are staging this rollout, we need to specifically override any Swift libraries that may be in the bundle _when_ the Swift ABI version matches on the system with that in which the tool was built with.
 
         var runpathSearchPaths = inputRunpathSearchPaths
+        var suppressDriverStdlibPaths = false
         // NOTE: For swift.org toolchains, we always add the search paths to the Swift SDK location as the overlays do not have the install name set. This also works when `SWIFT_USE_DEVELOPMENT_TOOLCHAIN_RUNTIME=YES` as `DYLD_LIBRARY_PATH` is used to override these settings during debug time. If users wish to use the development runtime while not debugging, they need to manually set their rpaths as this is not a supported configuration.
         // Also, if the deployment target does not support Swift in the OS, the rpath entries need to be added as well.
         // And, if the deployment target does not support Swift Concurrency natively, then the rpath needs to be added as well so that the shim library can find the real implementation. Note that we assume `true` in the case where `supportsSwiftInTheOS` is `nil` as we don't have the platform data to make the correct choice; so fallback to existing behavior.
@@ -298,9 +393,16 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             // NOTE: For swift.org toolchains, this is fine as `DYLD_LIBRARY_PATH` is used to override these settings.
             let swiftABIVersion =  await (cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate) as? DiscoveredSwiftCompilerToolSpecInfo)?.swiftABIVersion
             runpathSearchPaths.insert( swiftABIVersion.flatMap { "/usr/lib/swift-\($0)" } ?? "/usr/lib/swift", at: 0)
+            // Ensure the linker driver does not insert a duplicate rpath (if linking using swiftc)
+            suppressDriverStdlibPaths = true
         }
 
-        return runpathSearchPaths
+        return .init(paths: runpathSearchPaths, suppressDriverStdlibPaths: suppressDriverStdlibPaths)
+    }
+
+    private static func swiftcSupportsLinkingMachOType(_ type: String) -> Bool {
+        // swiftc does not currently support linking relocatable objects.
+        return type != "mh_object"
     }
 
     static func resolveLinkerDriver(_ cbc: CommandBuildContext, usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) -> LinkerDriverChoice {
@@ -312,7 +414,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         case .swiftc:
             return .swiftc
         case .auto:
-            if Self.isUsingSwift(usedTools) {
+            if Self.isUsingSwift(usedTools) && Self.swiftcSupportsLinkingMachOType(cbc.scope.evaluate(BuiltinMacros.MACH_O_TYPE)) {
                 return .swiftc
             } else {
                 return .clang
@@ -382,13 +484,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // Define the linker file list.
         let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__, lookup: linkerDriverLookup)
         if !fileListPath.isEmpty {
-            let contents = OutputByteStream()
-            for input in cbc.inputs {
-                // ld64 reads lines from the file using fgets, without doing any other processing.
-                contents <<< input.absolutePath.strWithPosixSlashes <<< "\n"
-            }
             let fileListPath = fileListPath
-            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: contents.bytes, permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+            cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc, lookup: linkerDriverLookup), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
             inputPaths.append(fileListPath)
         }
 
@@ -419,7 +516,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // Add the additional outputs defined by the spec.  These are not declared as outputs but should be processed by the tool separately.
         let additionalEvaluatedOutputsResult = await additionalEvaluatedOutputs(cbc, delegate)
-        outputs.append(contentsOf: additionalEvaluatedOutputsResult.outputs.map({ delegate.createNode($0) }))
+        outputs.append(contentsOf: additionalEvaluatedOutputsResult.outputs.map { output in
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+            return delegate.createNode(output.path)
+        })
 
         if let infoPlistContent = additionalEvaluatedOutputsResult.generatedInfoPlistContent {
             delegate.declareGeneratedInfoPlistContent(infoPlistContent)
@@ -446,7 +548,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
             let spec = info.key
             let inputFileTypes = info.value
-            let (args, inputs) = await spec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, inputFileTypes: [FileTypeSpec](inputFileTypes), optionContext: spec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), delegate: delegate)
+            let (args, inputs) = await spec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, lookup: linkerDriverLookup, inputFileTypes: [FileTypeSpec](inputFileTypes), optionContext: spec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), delegate: delegate)
             additionalLinkerArgsArray.append(contentsOf: args)
             inputPaths.append(contentsOf: inputs)
         }
@@ -467,7 +569,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
                 for scope in depScopes {
                     if scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) == "objcxx" {
                         let optionContext = await cbc.producer.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, scope, delegate)
-                        additionalLinkerArgsArray.append(contentsOf: await cbc.producer.swiftCompilerSpec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, inputFileTypes: [FileTypeSpec](), optionContext: optionContext, delegate: delegate).args)
+                        additionalLinkerArgsArray.append(contentsOf: await cbc.producer.swiftCompilerSpec.computeAdditionalLinkerArgs(cbc.producer, scope: cbc.scope, lookup: linkerDriverLookup, inputFileTypes: [FileTypeSpec](), optionContext: optionContext, delegate: delegate).args)
                         additionalLinkerArgsArray.append(["-l\(cbc.scope.evaluate(BuiltinMacros.SWIFT_STDLIB))"])
                         break
                     }
@@ -481,8 +583,13 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         // See related:
         var runpathSearchPaths: [String] = []
+        var stdlibRPathArgs: [String] = []
         if machOTypeString != "mh_object" {
-            runpathSearchPaths =  await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: cbc.scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS), isUsingSwift: isLinkUsingSwift)
+            let rpaths = await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: cbc.scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS), isUsingSwift: isLinkUsingSwift)
+            runpathSearchPaths = rpaths.paths
+            if rpaths.suppressDriverStdlibPaths && cbc.scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: linkerDriverLookup) == .swiftc {
+                stdlibRPathArgs.append("-no-stdlib-rpath")
+            }
 
             // If we're merging libraries and we're reexporting any libraries, then add an rpath to the ReexportedBinaries directory.
             // This coordinates with the logic in SourcesTaskProducer which copies content to that directory.
@@ -594,6 +701,8 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // Generate the command line.
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup).map(\.asString)
 
+        commandLine.append(contentsOf: stdlibRPathArgs)
+
         // Add flags to emit SDK imports info.
         let sdkImportsInfoFile = cbc.scope.evaluate(BuiltinMacros.LD_SDK_IMPORTS_FILE)
         let supportsSDKImportsFeature = (try? optionContext?.toolVersion >= .init("1164")) == true
@@ -659,15 +768,14 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             }
         }
 
-        let environment: EnvironmentBindings = self.environmentFromSpec(cbc, delegate)
-
         // Compute the inputs and outputs.
         var inputs: [any PlannedNode] = inputPaths.map{ delegate.createNode($0) }
 
         await inputs.append(contentsOf: additionalInputDependencies(cbc, delegate, optionContext: discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate), lookup: lookup).map(delegate.createNode))
 
+        let environment: [(String, String)] = self.environmentFromSpec(cbc, delegate)
         // Add dependencies for any arguments indicating a file path.
-        Self.addAdditionalDependenciesFromCommandLine(cbc, commandLine, environment, &inputs, &outputs, delegate)
+        Self.addAdditionalDependenciesFromCommandLine(cbc, commandLine, EnvironmentBindings(environment), &inputs, &outputs, delegate)
 
         let architecture = cbc.scope.evaluate(BuiltinMacros.arch)
         let buildVariant = cbc.scope.evaluate(BuiltinMacros.variant)
@@ -713,7 +821,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         let otherInputs = delegate.buildDirectories.sorted().compactMap { path in ldSearchPaths.contains(path.str) ? delegate.createBuildDirectoryNode(absolutePath: path) : nil } + cbc.commandOrderingInputs
 
         // Create the task.
-        delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environment, workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, dependencyData: dependencyInfo, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: EnvironmentBindings(environment), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs + otherInputs, outputs: outputs, action: delegate.taskActionCreationDelegate.createDeferredExecutionTaskActionIfRequested(userPreferences: cbc.producer.userPreferences), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
     public static func addAdditionalDependenciesFromCommandLine(_ cbc: CommandBuildContext, _ commandLine: [String], _ environment: EnvironmentBindings, _ inputs: inout [any PlannedNode], _ outputs: inout [any PlannedNode], _ delegate: any TaskGenerationDelegate) {
@@ -724,7 +832,9 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         enumerateLinkerCommandLine(arguments: commandLine, handleWl: cbc.scope.evaluate(BuiltinMacros._DISCOVER_COMMAND_LINE_LINKER_INPUTS_INCLUDE_WL)) { arg, value in
             func emitDependencyDiagnostic(type: String, node: PlannedPathNode) {
                 if delegate.userPreferences.enableDebugActivityLogs {
-                    delegate.note("Added \(type) dependency '\(node.path.str)' from command line argument \(arg)", location: .unknown)
+                    let projectLocation = cbc.producer.projectLocation
+
+                    delegate.note("Added \(type) dependency '\(node.path.str)' from command line argument \(arg)", location: projectLocation)
                 }
             }
 
@@ -913,7 +1023,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         )
 
         // Create the task.
-        delegate.createTask(type: self, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, payload: payload, ruleInfo: defaultRuleInfo(cbc, delegate), commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: createTaskAction(cbc, delegate), execDescription: resolveExecutionDescription(cbc, delegate), enableSandboxing: enableSandboxing)
     }
 
     public func constructPreviewsBlankInjectionDylibTask(
@@ -987,7 +1097,7 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: [],
             outputs: outputs,
-            action: nil,
+            action: createTaskAction(cbc, delegate),
             execDescription: resolveExecutionDescription(cbc, delegate),
             enableSandboxing: enableSandboxing
         )
@@ -1017,18 +1127,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
         let argPrefix = "-Xlinker"
 
+        // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
+        for arg in ["-export_dynamic", "-sdk_imports_each_object", "-dead_strip"] {
+            while let index = commandLine.firstIndex(of: arg) {
+                guard index > 0, commandLine[index - 1] == argPrefix else { break }
+                commandLine.removeSubrange(index - 1 ... index)
+            }
+        }
+
         // Args without parameters
         for arg in ["-dynamiclib", "-bundle", "-r", "-dead_strip", "-nostdlib", "-rdynamic"] {
             while let index = commandLine.firstIndex(of: arg) {
                 commandLine.remove(at: index)
-            }
-        }
-
-        // Args without parameters (-Xlinker-prefixed, e.g. -Xlinker)
-        for arg in ["-export_dynamic", "-sdk_imports_each_object"] {
-            while let index = commandLine.firstIndex(of: arg) {
-                guard index > 0, commandLine[index - 1] == argPrefix else { break }
-                commandLine.removeSubrange(index - 1 ... index)
             }
         }
 
@@ -1203,44 +1313,18 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     private static func computeLibraryArgs(_ libraries: [LibrarySpecifier], scope: MacroEvaluationScope) -> (args: [String], inputs: [Path]) {
         // Construct the library arguments.
         return libraries.compactMap { specifier -> (args: [String], inputs: [Path]) in
-            let basename = specifier.path.basename
-
-            // FIXME: This isn't a good system, we need to redesign how we talk to the linker w.r.t. search paths and our notion of paths.
             switch specifier.kind {
-            case .static:
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(".a") {
-                    return (specifier.searchPathFlagsForLd(basename.withoutPrefix("lib").withoutSuffix(".a")), [])
-                }
-                return (specifier.absolutePathFlagsForLd(), [specifier.path])
-            case .dynamic:
-                let suffix = ".\(scope.evaluate(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION))"
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(suffix) {
-                    return (specifier.searchPathFlagsForLd(basename.withoutPrefix("lib").withoutSuffix(suffix)), [])
-                }
-                return (specifier.absolutePathFlagsForLd(), [specifier.path])
-            case .textBased:
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(".tbd") {
-                    // .merge and .reexport are not supported for text-based libraries.
-                    return (specifier.searchPathFlagsForLd(basename.withoutPrefix("lib").withoutSuffix(".tbd")), [])
-                }
-                return (specifier.absolutePathFlagsForLd(), [specifier.path])
-            case .framework:
-                let frameworkName = Path(basename).withoutSuffix
+            case .static, .dynamic, .textBased, .framework:
                 if specifier.useSearchPaths {
-                    return (specifier.searchPathFlagsForLd(frameworkName), [])
+                    return (specifier.searchPathFlagsForLd(), [])
                 }
-                let absPathArgs = specifier.absolutePathFlagsForLd()
-                let returnPath: Path
-                if let pathArg = absPathArgs.last, Path(pathArg).basename == frameworkName {
-                    returnPath = Path(pathArg)
-                }
-                else {
-                    returnPath = specifier.path
-                }
-                return (absPathArgs, [returnPath])
+                return (specifier.absolutePathFlagsForLd(), [specifier.path])
             case .object:
                 // Object files are added to linker inputs in the sources task producer.
                 return ([], [])
+            case .objectLibrary:
+                let pathFlags = specifier.absolutePathFlagsForLd()
+                return (pathFlags, [specifier.path])
             }
         }.reduce(([], [])) { (lhs, rhs) in (lhs.args + rhs.args, lhs.inputs + rhs.inputs) }
     }
@@ -1253,10 +1337,29 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
     /// - parameter addError: A callback block which will be called when an error in processing the macro's value is found, with an error reason parameter.
     public static func processLinkerSettingsForLibraryOptions(in macros: [StringListMacroDeclaration] = [BuiltinMacros.OTHER_LDFLAGS, BuiltinMacros.PRODUCT_SPECIFIC_LDFLAGS], settings: Settings, addFramework: @Sendable (StringListMacroDeclaration, String, String) async -> Void, addLibrary: @Sendable (StringListMacroDeclaration, String, String) async -> Void, addError: @Sendable (String) async -> Void) async {
         struct StaticVars {
-            static let frameworkArgs = ["-framework", "-weak_framework", "-reexport_framework", "-merge_framework", "-no_merge_framework", "-lazy_framework", "-upward_framework"]
+            static let frameworkArgs = [
+                "-framework",
+                "-delay_framework",
+                "-lazy_framework",
+                "-merge_framework", "-no_merge_framework",
+                "-needed_framework",
+                "-reexport_framework",
+                "-upward_framework",
+                "-weak_framework", "-assert_weak_framework",
+            ]
             // FIXME: Handle the _library options, and also the case of normal linkage where there is no option passed, just an absolute path
-            // We're checking flags in this order, and there's an ambiguity between -l and -lazy-l because of the common prefix, so we need to make sure that -lazy-l goes first
-            static let libPrefixArgs = ["-weak-l", "-merge-l", "-no_merge-l", "-reexport-l", "-lazy-l", "-upward-l", "-l"]
+            static let libPrefixArgs = [
+                "-delay-l",
+                "-hidden-l",
+                "-lazy-l",
+                "-merge-l", "-no_merge-l",
+                "-needed-l",
+                "-reexport-l",
+                "-upward-l",
+                "-weak-l", "-assert-weak-l",
+                // Because of the ambiguity between -lazy-l and -l sharing a prefix, we need to make sure that -lazy-l always comes first.
+                "-l",
+            ]
         }
 
         // TODO: We could use something like the LibrarySpecifier struct to pass back something other than a literal string as the linker option, but it requires some more thought as the LibrarySpecifier as-is isn't really designed for this sort of use.
@@ -1362,6 +1465,12 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         return LdLinkerOutputParser.self
     }
 
+    override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
+        let useResponseFile = cbc.scope.evaluate(BuiltinMacros.CLANG_USE_RESPONSE_FILE)
+        let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
+    }
+
     override public func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ delegate: any CoreClientTargetDiagnosticProducingDelegate) async -> (any DiscoveredCommandLineToolSpecInfo)? {
         // The ALTERNATE_LINKER is the 'name' of the linker not the executable name, clang will find the linker binary based on name passed via -fuse-ld, but we need to discover
         // its properties by executing the actual binary. There is a common filename when the linker is not "ld" across all platforms using "ld.<ALTERNAME_LINKER>(.exe)"
@@ -1410,30 +1519,15 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
         // If the linker does not support multiple architectures update the path to include a subfolder based on the prefix map
         // to find the architecture specific executable.
         if !isLinkerMultiarch {
-            let archMap = scope.evaluate(BuiltinMacros._LD_MULTIARCH_PREFIX_MAP)
-            let archMappings = archMap.reduce(into: [String: String]()) { mappings, map in
-                let (arch, prefixDir) = map.split(":")
-                if !arch.isEmpty && !prefixDir.isEmpty {
-                    return mappings[arch] = prefixDir
-                }
-            }
-            if archMappings.isEmpty {
-                delegate.error("_LD_MULTIARCH is 'false', but no prefix mappings are present in _LD_MULTIARCH_PREFIX_MAP")
-                return nil
-            }
             // Linkers that don't support multiple architectures cannot support universal binaries, so ARCHS will
             // contain the target architecture and can only be a single value.
-            guard let arch = scope.evaluate(BuiltinMacros.ARCHS).only else {
-                delegate.error("_LD_MULTIARCH is 'false', but multiple ARCHS have been given, this is invalid")
+            let ld_arch = scope.evaluate(BuiltinMacros._LD_ARCH)
+            if ld_arch == "" {
+                delegate.error("_LD_MULTIARCH is 'false', but missing mapped linker arch, possible missing _LD_MULTIARCH_PREFIX_MAP setting")
                 return nil
             }
-            if let prefix = archMappings[arch] {
-                // Add in the target architecture prefix directory to path for search.
-                linkerPath = Path(prefix).join(linkerPath)
-            } else {
-                delegate.error("Could not find prefix mapping for \(arch) in _LD_MULTIARCH_PREFIX_MAP")
-                return nil
-            }
+            // Add in the target architecture prefix directory to path for search.
+            linkerPath = Path(ld_arch).join(linkerPath)
         }
         guard let toolPath = producer.executableSearchPaths.findExecutable(operatingSystem: producer.hostOperatingSystem, basename: linkerPath.str) else {
             return nil
@@ -1445,37 +1539,52 @@ public final class LdLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @unchec
 
 /// Extensions to `LinkerSpec.LibrarySpecifier` specific to the dynamic linker.
 fileprivate extension LinkerSpec.LibrarySpecifier {
-    func searchPathFlagsForLd(_ name: String) -> [String] {
+
+    func searchPathFlagsForLd() -> [String] {
+        precondition(useSearchPaths)
+        // Extract basename once to avoid redundant operations
+        let basename = path.basename
+        let basenameWithoutSuffix = Path(basename).withoutSuffix
+        // Strip the prefix if one exists and is present in the basename
+        let strippedName: String
+        if let prefix = libPrefix, basename.hasPrefix(prefix) {
+            strippedName = basenameWithoutSuffix.withoutPrefix(prefix)
+        } else {
+            strippedName = basenameWithoutSuffix
+        }
         switch (kind, mode) {
         case (.dynamic, .normal):
-            return ["-l" + name]
+            return ["-l" + strippedName]
         case (.dynamic, .reexport):
-            return ["-Xlinker", "-reexport-l" + name]
+            return ["-Xlinker", "-reexport-l" + strippedName]
         case (.dynamic, .merge):
-            return ["-Xlinker", "-merge-l" + name]
+            return ["-Xlinker", "-merge-l" + strippedName]
         case (.dynamic, .reexport_merge):
-            return ["-Xlinker", "-no_merge-l" + name]
+            return ["-Xlinker", "-no_merge-l" + strippedName]
         case (.dynamic, .weak):
-            return ["-weak-l" + name]
+            return ["-weak-l" + strippedName]
         case (.static, .weak),
              (.textBased, .weak):
-            return ["-weak-l" + name]
+            return ["-weak-l" + strippedName]
         case (.static, _),
              (.textBased, _):
             // Other modes are not supported for these kinds.
-            return ["-l" + name]
+            return ["-l" + strippedName]
         case (.framework, .normal):
-            return ["-framework", name]
+            return ["-framework", strippedName]
         case (.framework, .reexport):
-            return ["-Xlinker", "-reexport_framework", "-Xlinker", name]
+            return ["-Xlinker", "-reexport_framework", "-Xlinker", strippedName]
         case (.framework, .merge):
-            return ["-Xlinker", "-merge_framework", "-Xlinker", name]
+            return ["-Xlinker", "-merge_framework", "-Xlinker", strippedName]
         case (.framework, .reexport_merge):
-            return ["-Xlinker", "-no_merge_framework", "-Xlinker", name]
+            return ["-Xlinker", "-no_merge_framework", "-Xlinker", strippedName]
         case (.framework, .weak):
-            return ["-weak_framework", name]
+            return ["-weak_framework", strippedName]
         case (.object, _):
             // Object files are added to linker inputs in the sources task producer.
+            return []
+        case (.objectLibrary, _):
+            // Object libraries can't be found via search paths.
             return []
         }
     }
@@ -1513,6 +1622,8 @@ fileprivate extension LinkerSpec.LibrarySpecifier {
         case (.object, _):
             // Object files are added to linker inputs in the sources task producer.
             return []
+        case (.objectLibrary, _):
+            return ["@\(path.join("args.resp").str)"]
         }
     }
 }
@@ -1536,6 +1647,11 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
         return resolveExecutablePath(producer, lookupPath)
     }
 
+    public override func inputFileListContents(_ cbc: CommandBuildContext, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> ByteString {
+        let format = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_FILE_LIST_FORMAT, lookup: lookup)
+        return ByteString(encodingAsUTF8: ResponseFiles.responseFileContents(args: cbc.inputs.map { $0.absolutePath.strWithPosixSlashes }, format: format))
+    }
+
     static func discoveredCommandLineToolSpecInfo(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, toolPath: Path) async throws -> DiscoveredLibtoolLinkerToolSpecInfo {
         if toolPath.basenameWithoutSuffix == "llvm-lib" || toolPath.basenameWithoutSuffix == "ar" || toolPath.basenameWithoutSuffix.hasSuffix("-ar") {
             return DiscoveredLibtoolLinkerToolSpecInfo(toolPath: toolPath, toolVersion: nil)
@@ -1545,7 +1661,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             let regexes: [Regex<(Substring, libtool: Substring)>]
             if producer.isApplePlatform {
-                regexes = [#/^Apple Inc\. version cctools(?:_[A-Za-z0-9_]+)?-(?<libtool>[0-9\.]+)$/#]
+                regexes = [#/^Apple Inc\. version .*-(?<libtool>[0-9\.]+)$/#]
             } else {
                 regexes = [
                     #/^libtool \(GNU libtool\) (?<libtool>[0-9\.]+).*/#,
@@ -1569,6 +1685,12 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
         }
     }
 
+    override public func createTaskAction(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> (any PlannedTaskAction)? {
+        let useResponseFile = cbc.scope.evaluate(BuiltinMacros.LIBTOOL_USE_RESPONSE_FILE)
+        let responseFileFormat = cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT)
+        return delegate.taskActionCreationDelegate.createLinkerTaskAction(expandResponseFiles: !useResponseFile, responseFileFormat: responseFileFormat)
+    }
+
     override public func constructLinkerTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, libraries: [LibrarySpecifier], usedTools: [CommandLineToolSpec: Set<FileTypeSpec>]) async {
         var inputPaths = cbc.inputs.map({ $0.absolutePath })
         var specialArgs = [String]()
@@ -1577,8 +1699,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             // Define the linker file list.
             let fileListPath = cbc.scope.evaluate(BuiltinMacros.__INPUT_FILE_LIST_PATH__)
             if !fileListPath.isEmpty {
-                let contents = cbc.inputs.map({ return $0.absolutePath.strWithPosixSlashes + "\n" }).joined(separator: "")
-                cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: ByteString(encodingAsUTF8: contents), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
+                cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: fileListPath), delegate, contents: inputFileListContents(cbc), permissions: nil, preparesForIndexing: false, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
                 inputPaths.append(fileListPath)
             }
         } else {
@@ -1600,42 +1721,27 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
                     delegate.warning("Product \(cbc.output.basename) cannot weak-link \(specifier.kind) \(basename)")
                 }
 
-                if specifier.useSearchPaths, basename.hasPrefix("lib"), basename.hasSuffix(".a") {
+                if specifier.useSearchPaths {
                     // Locate using search paths: Add a -l option and *don't* add the path to the library as an input to the task.
-                    return ["-l" + basename.withoutPrefix("lib").withoutSuffix(".a")]
+                    let basename = specifier.path.basename
+                    let expectedPrefix = specifier.libPrefix ?? "lib"
+                    if basename.hasPrefix(expectedPrefix) {
+                        return ["-l" + Path(basename).withoutSuffix.withoutPrefix(expectedPrefix)]
+                    }
                 }
-                else {
-                    // Locate using an absolute path: Add the path as an option and as an input to the task.
-                    inputPaths.append(specifier.path)
-                    return [specifier.path.str]
-                }
+                // Locate using an absolute path: Add the path as an option and as an input to the task.
+                inputPaths.append(specifier.path)
+                return [specifier.path.str]
 
             case .object:
                 // Object files are added to linker inputs in the sources task producer and so end up in the link-file-list.
                 return []
 
-            case .framework:
-                // A static library can build against a framework, since the library in the framework could be a static library, which is valid, and we can't tell here whether it is or not.  So we leave it to libtool to do the right thing here.
-                // Also, we wouldn't want to emit an error here even if we could determine that it contained a dylib, since the target might be only using the framework to find headers.
+            case .objectLibrary:
+                inputPaths.append(specifier.path)
+                return ["@\(specifier.path.join("args.resp").str)"]
 
-                // If directed to link it weakly, we emit a warning, since libtool can't perform weak linking (since it's not really linking).  Then we pass it normally.
-                // We silently ignore other non-normal modes, since they are only set programmatically and there's nothing the user can do about them.
-                if specifier.mode == .weak {
-                    delegate.warning("Product \(cbc.output.basename) cannot weak-link \(specifier.kind) \(basename)")
-                }
-
-                let frameworkName = Path(basename).withoutSuffix
-                if specifier.useSearchPaths {
-                    return ["-framework", frameworkName]
-                } else {
-                    // If we aren't using search paths, we point to the library inside the framework.
-                    //
-                    // FIXME: This is probably a mis-feature, I doubt it is a good idea to bypass the linker's notion of frameworkness.
-                    let frameworkLibraryPath = specifier.path.join(frameworkName)
-                    return [frameworkLibraryPath.str]
-                }
-
-            case .dynamic, .textBased:
+            case .dynamic, .textBased, .framework:
                 // A static library can't build against a dynamic library, or against a .tbd file, so we don't add any arguments here.  But the inclusion of such a file in the Link Binaries build phase might be used to find implicit dependencies.
                 // We don't have a concrete example of this, and we used to emit an error here, but we removed it in <rdar://problem/34314195>.
                 return []
@@ -1705,7 +1811,7 @@ public final class LibtoolLinkerSpec : GenericLinkerSpec, SpecIdentifierType, @u
             workingDirectory: cbc.producer.defaultWorkingDirectory,
             inputs: inputs,
             outputs: outputs,
-            action: nil,
+            action: createTaskAction(cbc, delegate),
             execDescription: resolveExecutionDescription(cbc, delegate),
             enableSandboxing: enableSandboxing
         )

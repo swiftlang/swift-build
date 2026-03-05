@@ -301,6 +301,9 @@ public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
     /// Returns `true` if the `isWrapperFolder` value is set in the XCSpec for the file spec.
     public let isWrapper: Bool
 
+    /// Returns any common prefix this file may have (currently used when specifying searched libraries to linker)
+    public let prefix: String?
+
     required init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
         let basedOnFileTypeSpec = basedOnSpec as? FileTypeSpec ?? nil
 
@@ -318,8 +321,8 @@ public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
         self.isEmbeddableInProduct = parser.parseBool("IsEmbeddable") ?? false
         self.validateOnCopy = parser.parseBool("ValidateOnCopy") ?? false
         self.codeSignOnCopy = parser.parseBool("CodeSignOnCopy") ?? false
-
         self.isWrapper = parser.parseBool("IsWrapperFolder") ?? false
+        self.prefix = parser.parseString("Prefix")
 
         // Parse and ignore keys we have no use for.
         //
@@ -358,7 +361,6 @@ public class FileTypeSpec : Spec, SpecType, @unchecked Sendable {
         parser.parseStringList("MIMETypes")
         parser.parseString("Permissions")
         parser.parseString("PlistStructureDefinition")
-        parser.parseStringList("Prefix")
         parser.parseBool("RemoveHeadersOnCopy")
         parser.parseBool("RequiresHardTabs")
         parser.parseString("UTI")
@@ -454,6 +456,20 @@ public final class PlatformSpec : Spec, SpecType, @unchecked Sendable {
 public final class BuildSettingsSpec : PropertyDomainSpec, SpecType, @unchecked Sendable {
     class public override var typeName: String {
         return "BuildSettings"
+    }
+}
+
+public final class BuildSettingsExtensionSpec: PropertyDomainSpec, SpecType, @unchecked Sendable {
+    class public override var typeName: String {
+        return "BuildSettingsExtension"
+    }
+
+    /// The spec identifier that specs must conform to in order for these build settings to be incorporated into them.
+    let extendsConformsTo: String
+
+    public required init(_ parser: SpecParser, _ basedOnSpec: Spec?) {
+        extendsConformsTo = parser.parseRequiredString("ExtendsConformsTo")
+        super.init(parser, basedOnSpec)
     }
 }
 

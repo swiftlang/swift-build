@@ -32,7 +32,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         self.enableSandboxing = enableSandboxing
         self.preparesForIndexing = preparesForIndexing
     }
-    
+
     enum CodingKeys: CodingKey {
         case commandLine
         case environmentVars
@@ -44,7 +44,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         case enableSandboxing
         case preparesForIndexing
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.commandLine, forKey: .commandLine)
@@ -57,7 +57,7 @@ public struct CustomTask: SerializableCodable, Sendable {
         try container.encode(enableSandboxing, forKey: .enableSandboxing)
         try container.encode(preparesForIndexing, forKey: .preparesForIndexing)
     }
-    
+
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.commandLine = try container.decode([MacroExpressionSource].self, forKey: .commandLine)

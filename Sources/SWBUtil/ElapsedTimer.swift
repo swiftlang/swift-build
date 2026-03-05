@@ -15,47 +15,51 @@ public import struct Foundation.TimeInterval
 /// Provides a simple nanosecond-precision elapsed timer using a monotonic clock.
 ///
 /// This is a completely immutable object and thus is thread safe.
-public struct ElapsedTimer: Sendable {
+public struct ElapsedTimer<ClockType: Clock>: Sendable where ClockType.Duration == Duration {
+    private let clock: ClockType
+
     /// The beginning of the time interval, measured when the `ElapsedTimer` was initialized.
-    private let start = ContinuousClock.now
+    private let start: ClockType.Instant
 
     /// Initializes a new timer.
     ///
     /// The `ElapsedTimer` object captures the current time at initialization and uses this as the starting point of an elapsed time measurement.
     ///
     /// - note: The starting point of the timer is fixed once it is initialized and the object provides no facilities to "restart" the clock (simply create a new instance to do so).
-    public init() {
+    public init(clock: ClockType = ContinuousClock.continuous) {
+        self.clock = clock
+        self.start = clock.now
     }
 
     /// Computes the length of the time interval, that is, the length of the time interval between now and the point in time when the `ElapsedTimer` was initialized.
     ///
     /// This value is guaranteed to be positive.
     public func elapsedTime() -> ElapsedTimerInterval {
-        return ElapsedTimerInterval(duration: ContinuousClock.now - start)
+        return ElapsedTimerInterval(duration: start.duration(to: clock.now))
     }
 
     /// Time the given closure, returning the elapsed time and the result.
-    public static func measure<T>(_ body: () throws -> T) rethrows -> (elapsedTime: ElapsedTimerInterval, result: T) {
-        let timer = ElapsedTimer()
+    public static func measure<T>(clock: ClockType = ContinuousClock.continuous, _ body: () throws -> T) rethrows -> (elapsedTime: ElapsedTimerInterval, result: T) {
+        let timer = ElapsedTimer(clock: clock)
         let result = try body()
         return (timer.elapsedTime(), result)
     }
 
     /// Time the given closure, returning the elapsed time and the result.
-    public static func measure<T>(_ body: () async throws -> T) async rethrows -> (elapsedTime: ElapsedTimerInterval, result: T) {
-        let timer = ElapsedTimer()
+    public static func measure<T>(clock: ClockType = ContinuousClock.continuous, _ body: () async throws -> T) async rethrows -> (elapsedTime: ElapsedTimerInterval, result: T) {
+        let timer = ElapsedTimer(clock: clock)
         let result = try await body()
         return (timer.elapsedTime(), result)
     }
 
     /// Time the given closure, returning the elapsed time.
-    public static func measure(_ body: () throws -> Void) rethrows -> ElapsedTimerInterval {
-        return try measure(body).elapsedTime
+    public static func measure(clock: ClockType = ContinuousClock.continuous, _ body: () throws -> Void) rethrows -> ElapsedTimerInterval {
+        return try measure(clock: clock, body).elapsedTime
     }
 
     /// Time the given closure, returning the elapsed time.
-    public static func measure(_ body: () async throws -> Void) async rethrows -> ElapsedTimerInterval {
-        return try await measure(body).elapsedTime
+    public static func measure(clock: ClockType = ContinuousClock.continuous, _ body: () async throws -> Void) async rethrows -> ElapsedTimerInterval {
+        return try await measure(clock: clock, body).elapsedTime
     }
 }
 

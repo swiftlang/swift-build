@@ -12,7 +12,9 @@
 xcuserdata
 
 # Ignore VSCode user data.
+!.vscode/
 .vscode/*
+!.vscode/extensions.json
 
 # Commonly used name for build products, at the top level.
 /build

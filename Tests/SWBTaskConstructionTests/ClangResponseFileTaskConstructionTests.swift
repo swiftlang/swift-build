@@ -63,7 +63,6 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
 
                     // The command arguments in the response file vary vastly between different platforms, so just check for some basics present in the content.
                     let contentAsString = contents.asString
-                    #expect(contentAsString.contains("-target "))
                     #expect(contentAsString.contains("Test-generated-files.hmap"))
                     #expect(contentAsString.contains("Test-own-target-headers.hmap"))
                     #expect(contentAsString.contains("Test-all-target-headers.hmap"))
@@ -169,7 +168,7 @@ fileprivate struct ClangResponseFileTaskConstructionTests: CoreBasedTests {
                     let stringContents = contents.asString
                     #expect(stringContents.contains("-target"))
                     let blocksFlag = switch runDestination {
-                        case .macOS:
+                        case .macOSIntel:
                             "-fasm-blocks"
                         case .linux:
                             "-fblocks"

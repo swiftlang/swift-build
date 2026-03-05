@@ -80,6 +80,22 @@ public final class AuxiliaryFileTaskAction: TaskAction {
         return .succeeded
     }
 
+    override public func describeDifferences(comparedTo otherTaskAction: TaskAction, fs: any FSProxy) throws -> [String] {
+        guard let otherFileAction = otherTaskAction as? AuxiliaryFileTaskAction else {
+            return []
+        }
+
+        // The inputs are attachmnents identified by contents hash, so we only compare input paths here.
+        if context.input != otherFileAction.context.input {
+            let contents = try fs.read(context.input)
+            let otherContents = try fs.read(otherFileAction.context.input)
+            let diff = contents.asString.difference(from: otherContents.asString)
+            return ["file contents changed [\(diff.humanReadableDescription)]"]
+        } else {
+            return []
+        }
+    }
+
     // MARK: Serialization
 
     public override func serialize<T: Serializer>(to serializer: T) {

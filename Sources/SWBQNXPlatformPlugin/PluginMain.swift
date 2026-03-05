@@ -16,5 +16,5 @@ import SWBQNXPlatform
 
 @_cdecl("initializePlugin")
 @PluginExtensionSystemActor public func main(_ ptr: UnsafeRawPointer) {
-    initializePlugin(Unmanaged<PluginManager>.fromOpaque(ptr).takeUnretainedValue())
+    initializePlugin(Unmanaged<MutablePluginManager>.fromOpaque(ptr).takeUnretainedValue())
 }

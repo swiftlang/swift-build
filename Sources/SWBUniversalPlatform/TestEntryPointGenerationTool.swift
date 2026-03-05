@@ -19,9 +19,17 @@ final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecId
 
     override func commandLineFromTemplate(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, optionContext: (any DiscoveredCommandLineToolSpecInfo)?, specialArgs: [String] = [], lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) async -> [CommandLineArgument] {
         var args = await super.commandLineFromTemplate(cbc, delegate, optionContext: optionContext, specialArgs: specialArgs, lookup: lookup)
-        for (toolchainPath, toolchainLibrarySearchPath) in cbc.producer.toolchains.map({ ($0.path, $0.librarySearchPaths) }) {
-            if let path = toolchainLibrarySearchPath.findLibrary(operatingSystem: cbc.producer.hostOperatingSystem, basename: "IndexStore") {
-                args.append(contentsOf: ["--index-store-library-path", .path(path)])
+        if cbc.scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS) {
+            args.append("--discover-tests")
+
+            let format = cbc.scope.evaluate(BuiltinMacros.LINKER_FILE_LIST_FORMAT)
+            args.append(contentsOf: ["--linker-file-list-format", .literal(.init(encodingAsUTF8: format.rawValue))])
+
+            for toolchainLibrarySearchPath in cbc.producer.toolchains.map({ StackedSearchPath(paths: $0.librarySearchPaths.paths + $0.fallbackLibrarySearchPaths.paths, fs: $0.librarySearchPaths.fs) } ) {
+                if let path = toolchainLibrarySearchPath.findLibrary(operatingSystem: cbc.producer.hostOperatingSystem, basename: "IndexStore") {
+                    args.append(contentsOf: ["--index-store-library-path", .path(path)])
+                    break
+                }
             }
             for input in cbc.inputs {
                 if input.fileType.conformsTo(identifier: "text") {
@@ -43,12 +51,14 @@ final class TestEntryPointGenerationToolSpec: GenericCommandLineToolSpec, SpecId
     public func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, indexStorePaths: [Path], indexUnitBasePaths: [Path]) async {
         var commandLine = await commandLineFromTemplate(cbc, delegate, optionContext: nil)
 
-        for indexStorePath in indexStorePaths {
-            commandLine.append(contentsOf: ["--index-store", .path(indexStorePath)])
-        }
+        if cbc.scope.evaluate(BuiltinMacros.GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS) {
+            for indexStorePath in indexStorePaths {
+                commandLine.append(contentsOf: ["--index-store", .path(indexStorePath)])
+            }
 
-        for basePath in indexUnitBasePaths {
-            commandLine.append(contentsOf: ["--index-unit-base-path", .path(basePath)])
+            for basePath in indexUnitBasePaths {
+                commandLine.append(contentsOf: ["--index-unit-base-path", .path(basePath)])
+            }
         }
 
         delegate.createTask(

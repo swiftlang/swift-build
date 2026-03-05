@@ -22,10 +22,10 @@ import SWBMacro
     /// Delegate for testing loading SDKs in a registry.
     final class TestDataDelegate : SDKRegistryDelegate {
         let namespace = MacroNamespace()
-        let pluginManager: PluginManager
+        let pluginManager: any PluginManager
         private let _diagnosticsEngine = DiagnosticsEngine()
 
-        init(pluginManager: PluginManager) {
+        init(pluginManager: any PluginManager) {
             self.pluginManager = pluginManager
         }
 
@@ -81,7 +81,7 @@ import SWBMacro
             let components: SDK.CanonicalNameComponents?
             let errorString: String?
             do {
-                components = try SDK.parseSDKName(sdkName, pluginManager: try await getCore().pluginManager)
+                components = try SDK.parseSDKName(sdkName, registry: try await getCore().sdkRegistry)
                 errorString = nil
             }
             catch {
@@ -538,7 +538,12 @@ import SWBMacro
                     "CanonicalName": "macosbork",
                     "IsBaseSDK": "YES",
                     "SupportedTargets": [
-                        "iosmac": [] as PropertyListItem
+                        "iosmac": [
+                            "DeviceFamilies": [
+                                ["DisplayName": "iPad", "Identifier": "2", "Name": "pad"],
+                                ["DisplayName": "Mac", "Identifier": "6", "Name": "mac"],
+                            ]
+                        ] as PropertyListItem
                     ]
                 ])
 
@@ -559,7 +564,7 @@ import SWBMacro
                 }
 
                 let toastVariant = try #require(toastSDK.variants["toastos"])
-                let toastAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "embedded")
+                let toastAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "embedded", ofType: ProductTypeSpec.self)
 
                 table.push(BuiltinMacros.TARGETED_DEVICE_FAMILY, literal: "1,2")
                 scope = MacroEvaluationScope(table: table)
@@ -591,7 +596,7 @@ import SWBMacro
                 #expect(effectiveIds == Set([7]))
 
                 let iosmacVariant = try #require(macosBorkSDK.variants["iosmac"])
-                let macAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "macosx")
+                let macAppSpec: ProductTypeSpec = try core.specRegistry.getSpec("com.apple.product-type.application", domain: "macosx", ofType: ProductTypeSpec.self)
 
                 table.remove(BuiltinMacros.TARGETED_DEVICE_FAMILY)
                 scope = MacroEvaluationScope(table: table)
@@ -728,9 +733,9 @@ import SWBMacro
             let registry: SDKRegistry = try await {
                 final class TestDataDelegate : SDKRegistryDelegate {
                     let namespace = MacroNamespace()
-                    let pluginManager: PluginManager
+                    let pluginManager: any PluginManager
 
-                    init(pluginManager: PluginManager) {
+                    init(pluginManager: any PluginManager) {
                         self.pluginManager = pluginManager
                     }
 

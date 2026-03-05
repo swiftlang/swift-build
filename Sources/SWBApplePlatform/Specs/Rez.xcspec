@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Identifier = com.apple.compilers.rez;
+    {
+        _Domain = darwin;
+        Identifier = com.apple.compilers.rez;
         Type = Tool;
         Name = "Rez";
         Description = "Resource Manager Resource Compiler";
@@ -125,7 +127,7 @@
 
             {
                 Name = FRAMEWORK_SEARCH_PATHS;
-                Type = PathList;
+                Type = PathOrderedSet;
                 Condition = "$(REZ_NO_AUTOMATIC_SEARCH_PATHS) != YES";
                 CommandLineArgs = (
                     "-i", "$(value)",

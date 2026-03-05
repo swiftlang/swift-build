@@ -50,8 +50,9 @@ import SWBServiceCore
             class TestDataDelegate : ToolchainRegistryDelegate {
                 private let _diagnosticsEngine = DiagnosticsEngine()
 
-                init(pluginManager: PluginManager) {
+                init(pluginManager: any PluginManager, developerPath: Core.DeveloperPath) {
                     self.pluginManager = pluginManager
+                    self.developerPath = developerPath
                 }
 
                 var diagnosticsEngine: DiagnosticProducingDelegateProtocolPrivate<DiagnosticsEngine> {
@@ -66,14 +67,15 @@ import SWBServiceCore
                     return _diagnosticsEngine.diagnostics.pathMessageTuples(.error)
                 }
 
-                var pluginManager: PluginManager
+                var pluginManager: any PluginManager
+                var developerPath: Core.DeveloperPath
 
                 var platformRegistry: PlatformRegistry? {
                     nil
                 }
             }
 
-            let pluginManager = await PluginManager(skipLoadingPluginIdentifiers: [])
+            let pluginManager = await MutablePluginManager(skipLoadingPluginIdentifiers: [])
             await pluginManager.registerExtensionPoint(DeveloperDirectoryExtensionPoint())
             await pluginManager.registerExtensionPoint(SpecificationsExtensionPoint())
             await pluginManager.registerExtensionPoint(ToolchainRegistryExtensionPoint())
@@ -106,8 +108,8 @@ import SWBServiceCore
                 }
                 return
             }
-            let delegate = TestDataDelegate(pluginManager: core.pluginManager)
-            let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [(tmpDirPath, strict: strict)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
+            let delegate = TestDataDelegate(pluginManager: core.pluginManager, developerPath: core.developerPath)
+            let registry = await ToolchainRegistry(delegate: delegate, searchPaths: [.init(path: tmpDirPath, strict: strict, type: .toolchainsDirectoryPath)], fs: fs, hostOperatingSystem: core.hostOperatingSystem)
             try perform(registry, delegate.warnings, delegate.errors)
         }
     }

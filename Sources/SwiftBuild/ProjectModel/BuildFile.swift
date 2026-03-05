@@ -62,6 +62,7 @@ extension ProjectModel {
             self.platformFilters = platformFilters
             self.codeSignOnCopy = codeSignOnCopy
             self.removeHeadersOnCopy = removeHeadersOnCopy
+            self.resourceRule = resourceRule
         }
 
         public init(
@@ -95,11 +96,11 @@ extension ProjectModel.BuildFile: Codable {
         }
 
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.id, forKey: .guid)
-        try container.encode(self.platformFilters, forKey: .platformFilters)
+        try container.encode(self.platformFilters.sorted(), forKey: .platformFilters)
 
         switch self.ref {
         case .reference(id: let refId):

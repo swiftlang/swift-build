@@ -116,6 +116,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
+    package func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
+        return BuildDependencyInfoTaskAction()
+    }
+
     package func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }
@@ -176,8 +180,8 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return LSRegisterURLTaskAction()
     }
 
-    package func createProcessProductEntitlementsTaskAction(scope: MacroEvaluationScope, mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
-        return ProcessProductEntitlementsTaskAction(scope: scope, fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
+    package func createProcessProductEntitlementsTaskAction(mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
+        return ProcessProductEntitlementsTaskAction(fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, allowEntitlementsModification: allowEntitlementsModification, entitlementsDestination: entitlementsDestination, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
     }
 
     package func createProcessProductProvisioningProfileTaskAction() -> any PlannedTaskAction {
@@ -202,6 +206,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
 
     package func createClangCompileTaskAction() -> any PlannedTaskAction {
         return ClangCompileTaskAction()
+    }
+
+    package func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
     }
 
     package func createClangScanTaskAction() -> any PlannedTaskAction {
@@ -238,5 +246,17 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
 
     package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
+    }
+
+    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateDependenciesTaskAction()
+    }
+
+    package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    package func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
     }
 }

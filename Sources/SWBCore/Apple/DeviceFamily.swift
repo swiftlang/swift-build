@@ -82,7 +82,7 @@ public struct DeviceFamily: Decodable, Hashable, Sendable {
     }
 }
 
-public struct DeviceFamilies: Hashable {
+public struct DeviceFamilies: Hashable, Sendable {
     @_spi(Testing) public let list: [DeviceFamily]
 
     /// Used for platforms where a numeric `UIDeviceFamily` value is not used, but a device family name must still be passed to asset processing tools via the `--target-device` flag. Mutually exclusive with `deviceFamiliesByIdentifier`.

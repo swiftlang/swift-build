@@ -17,7 +17,7 @@ import SWBProtocol
 import Foundation
 import SWBTaskConstruction
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     manager.register(AppleDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(ApplePlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(ActoolInputFileGroupingStrategyExtension(), type: InputFileGroupingStrategyExtensionPoint.self)
@@ -28,6 +28,7 @@ import SWBTaskConstruction
     manager.register(MacCatalystInfoExtension(), type: SDKVariantInfoExtensionPoint.self)
     manager.register(ApplePlatformInfoExtension(), type: PlatformInfoExtensionPoint.self)
     manager.register(AppleSettingsBuilderExtension(), type: SettingsBuilderExtensionPoint.self)
+    manager.registerDeveloperCommandLineToolsExtensions()
 }
 
 struct AppleDeveloperDirectoryExtension: DeveloperDirectoryExtension {
@@ -37,7 +38,6 @@ struct AppleDeveloperDirectoryExtension: DeveloperDirectoryExtension {
 }
 
 struct TaskProducersExtension: TaskProducerExtension {
-
     func createPreSetupTaskProducers(_ context: TaskProducerContext) -> [any TaskProducer] {
         [DevelopmentAssetsTaskProducer(context)]
     }
@@ -47,9 +47,9 @@ struct TaskProducersExtension: TaskProducerExtension {
     }
 
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] {
-        [
-            StubBinaryTaskProducerFactory()
-        ]
+        [StubBinaryTaskProducerFactory(),
+         AppExtensionInfoPlistGeneratorTaskProducerFactory(),
+         ExtensionPointExtractorTaskProducerFactory()]
     }
 
     var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] {
@@ -60,6 +60,35 @@ struct TaskProducersExtension: TaskProducerExtension {
 
     var globalTaskProducers: [any GlobalTaskProducerFactory] {
         [StubBinaryTaskProducerFactory()]
+    }
+
+    func generateAdditionalTasks(_ tasks: inout [any SWBCore.PlannedTask], _ producer: any SWBTaskConstruction.TaskProducer) {
+    }
+
+    func productPostprocessingSteps() -> [any ProductPostprocessingStep.Type] {
+        return [
+            RegisterExecutionPolicyExceptionStep.self
+        ]
+    }
+}
+
+struct ExtensionPointExtractorTaskProducerFactory: TaskProducerFactory {
+    var name: String {
+        "ExtensionPointExtractorTaskProducer"
+    }
+
+    func createTaskProducer(_ context: TargetTaskProducerContext, startPhaseNodes: [PlannedVirtualNode], endPhaseNode: PlannedVirtualNode) -> any TaskProducer {
+        ExtensionPointExtractorTaskProducer(context, phaseStartNodes: startPhaseNodes, phaseEndNode: endPhaseNode)
+    }
+}
+
+struct AppExtensionInfoPlistGeneratorTaskProducerFactory: TaskProducerFactory {
+    var name: String {
+        "AppExtensionInfoPlistGeneratorTaskProducer"
+    }
+
+    func createTaskProducer(_ context: TargetTaskProducerContext, startPhaseNodes: [PlannedVirtualNode], endPhaseNode: PlannedVirtualNode) -> any TaskProducer {
+        AppExtensionInfoPlistGeneratorTaskProducer(context, phaseStartNodes: startPhaseNodes, phaseEndNode: endPhaseNode)
     }
 }
 
@@ -100,9 +129,11 @@ struct RealityAssetsTaskProducerFactory: TaskProducerFactory {
 struct ApplePlatformSpecsExtension: SpecificationsExtension {
     func specificationClasses() -> [any SpecIdentifierType.Type] {
         [
-            ActoolCompilerSpec.self,
+            AppExtensionPlistGeneratorSpec.self,
             AppIntentsMetadataCompilerSpec.self,
             AppIntentsSSUTrainingCompilerSpec.self,
+            ExtensionPointExtractorSpec.self,
+            ActoolCompilerSpec.self,
             CoreDataModelCompilerSpec.self,
             CoreMLCompilerSpec.self,
             CopyTiffFileSpec.self,
@@ -143,6 +174,12 @@ struct ApplePlatformSpecsExtension: SpecificationsExtension {
             mappings["\(platform)simulator"] = ["\(platform)os-shared", "embedded-simulator"]
         }
         return mappings
+    }
+
+    func specificationImplementations() -> [any SpecImplementationType.Type] {
+        [
+            RegisterExecutionPolicyExceptionToolSpec.self,
+        ]
     }
 }
 
@@ -232,14 +269,51 @@ struct AppleSettingsBuilderExtension: SettingsBuilderExtension {
         ]
     }
 
-    func addBuiltinDefaults(fromEnvironment environment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
-    func addOverrides(fromEnvironment: [String : String], parameters: BuildParameters) throws -> [String : String] { [:] }
-    func addProductTypeDefaults(productType: ProductTypeSpec) -> [String : String] { [:] }
-    func addSDKOverridingSettings(_ sdk: SDK, _ variant: SDKVariant?, _ sparseSDKs: [SDK], specLookupContext: any SWBCore.SpecLookupContext) throws -> [String : String] { [:] }
-    func addPlatformSDKSettings(_ platform: SWBCore.Platform?, _ sdk: SDK, _ sdkVariant: SDKVariant?) -> [String : String] { [:] }
-    func xcconfigOverrideData(fromParameters: BuildParameters) -> ByteString { ByteString() }
-    func getTargetTestingSwiftPluginFlags(_ scope: MacroEvaluationScope, toolchainRegistry: ToolchainRegistry, sdkRegistry: SDKRegistry, activeRunDestination: RunDestinationInfo?, project: SWBCore.Project?) -> [String] { [] }
-    func shouldSkipPopulatingValidArchs(platform: SWBCore.Platform, sdk: SDK?) -> Bool { false }
-    func shouldDisableXOJITPreviews(platformName: String, sdk: SDK?) -> Bool { false }
-    func overridingBuildSettings(_: MacroEvaluationScope, platform: SWBCore.Platform?, productType: ProductTypeSpec) -> [String : String] { [:] }
+    func addBuiltinDefaults(fromEnvironment environment: [String : String], parameters: BuildParameters) throws -> [String : String] {
+        let appIntentsProtocols = "AppIntent EntityQuery AppEntity TransientEntity AppEnum AppShortcutProviding AppShortcutsProvider AnyResolverProviding AppIntentsPackage DynamicOptionsProvider _IntentValueRepresentable _AssistantIntentsProvider _GenerativeFunctionExtractable IntentValueQuery Resolver"
+        let extensionKitProtocols = "AppExtension ExtensionPointDefining"
+        let constValueProtocols = [appIntentsProtocols, extensionKitProtocols].joined(separator: " ")
+        return ["SWIFT_EMIT_CONST_VALUE_PROTOCOLS" : constValueProtocols]
+    }
 }
+
+enum RegisterExecutionPolicyExceptionStep: ProductPostprocessingStep {
+    static let name = "RegisterExecutionPolicyException"
+
+    static func shouldRunPerVariant(producer: ProductPostprocessingTaskProducer) -> Bool {
+        // Use per-variant for unbundled products
+        return !(producer.context.settings.productType is BundleProductTypeSpec)
+    }
+
+    static func generateTasks(scope: MacroEvaluationScope, tasks: inout [any PlannedTask], producer: ProductPostprocessingTaskProducer) async {
+        let context = producer.context
+
+        guard context.isApplePlatform else {
+            return
+        }
+
+        guard scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("build") else {
+            return
+        }
+
+        // Pointless for static libraries/frameworks
+        if context.productType is StaticLibraryProductTypeSpec || context.productType is StaticFrameworkProductTypeSpec {
+            return
+        }
+
+        let domain = context.settings.platform?.name ?? ""
+        do {
+            let spec = try context.specRegistry.getSpec(RegisterExecutionPolicyExceptionToolSpec.identifier, domain: domain, ofType: RegisterExecutionPolicyExceptionToolSpec.self)
+
+            await producer.appendGeneratedTasks(&tasks) { delegate in
+                let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+                let input = FileToBuild(absolutePath: path.normalize(), inferringTypeUsing: context)
+                let cbc = CommandBuildContext(producer: context, scope: scope, inputs: [input])
+                await spec.constructRegisterExecutionPolicyExceptionTask(cbc, delegate)
+            }
+        } catch {
+            context.error("error generating \(name) postprocessing tasks: \(error)")
+        }
+    }
+}
+

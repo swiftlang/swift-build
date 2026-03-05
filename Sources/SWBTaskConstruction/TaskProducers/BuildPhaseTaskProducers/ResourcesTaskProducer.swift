@@ -96,7 +96,22 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
         // An exception is xcstrings files.
         let isXCStrings = group.files.contains(where: { $0.fileType.conformsTo(identifier: "text.json.xcstrings") })
         if scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
-            guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
+            guard isXCStrings || group.isValidLocalizedContentForInstallloc(scope, in: context.project) else { return }
+        }
+
+        var inputFiles = group.files
+
+        // Check if we should build the input file based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+        inputFiles = inputFiles.filter { file in
+            file.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: file.absolutePath,
+                delegate
+            )
+        }
+        guard !inputFiles.isEmpty else {
+            return
         }
 
         // Compute the path to the effective localized directories (.lproj) in the resources and temp resources directories to define the output file for the tool.
@@ -112,7 +127,7 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
             context.didProduceAssetPackSubPath(assetPackInfo, subPath)
         }
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: tmpResourcesDir, unlocalizedResourcesDir: unlocalizedResourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputFiles, isPreferredArch: buildFilesContext.belongsToPreferredArch, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: tmpResourcesDir, unlocalizedResourcesDir: unlocalizedResourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -163,11 +178,25 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
                     await addTasksForEmbeddedLocalizedBundle(ftb, buildFilesContext, scope, &tasks)
                     return
                 }
+            } else if scope.evaluate(BuiltinMacros.INSTALLLOC_DIRECTORY_CONTENTS), !ftb.isValidLocalizedContentForInstallloc(scope, in: context.project), context.workspaceContext.fs.isDirectory(ftb.absolutePath) {
+                // Treat any package or directory the same as a copied bundle and copy over the relevant lproj directories.
+                await addTasksForEmbeddedLocalizedBundle(ftb, buildFilesContext, scope, &tasks)
+                return
             }
-            guard ftb.isValidLocalizedContent(scope) || targetBundleProduct else { return }
+            guard ftb.isValidLocalizedContentForInstallloc(scope, in: context.project) || targetBundleProduct else { return }
         }
 
         await appendGeneratedTasks(&tasks) { delegate in
+            // Check if we should filter localizations based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+            guard ftb.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: ftb.absolutePath,
+                delegate
+            ) else {
+                return
+            }
+
             // Compute the output path, taking the region into account.
             let assetPackInfo = context.onDemandResourcesAssetPack(for: FileToBuildGroup(nil, files: [ftb], action: nil))
             let outputDir = assetPackInfo?.path ?? buildFilesContext.resourcesDir
@@ -195,12 +224,28 @@ final class ResourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBa
         }
     }
 
+    override func buildFilesToSkip(_ scope: MacroEvaluationScope) async -> Set<Ref<SWBCore.BuildFile>> {
+        // Some files might generate sources (e.g. generating symbols) and thus were moved to the Sources phase.
+        // So they should be skipped in Resources.
+
+        let standardTarget = targetContext.configuredTarget?.target as? StandardTarget
+        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles ?? []
+        let resourceFiles = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
+
+        guard !sourceFiles.isEmpty && !resourceFiles.isEmpty else {
+            return []
+        }
+
+        let files = await sourceGenerationInputFiles(from: resourceFiles, scope: scope)
+        return Set(files.map({ Ref($0) }))
+    }
+
     override func additionalFilesToBuild(_ scope: MacroEvaluationScope) -> [FileToBuild] {
         var additionalFilesToBuild: [FileToBuild] = []
 
-        // Add the generated xcassets when we're not generating asset symbols since we'll be handling the other xcassets here as well.
+        // Add the generated xcassets when there are no sources since we'll be handling the other xcassets here as well.
         let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        if (!scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) || sourceFiles == 0) && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
+        if sourceFiles == 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
             let assetCatalogToBeGenerated = scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATED_ASSET_CATALOG_FILE)
             additionalFilesToBuild.append(
                 FileToBuild(absolutePath: assetCatalogToBeGenerated, inferringTypeUsing: context)

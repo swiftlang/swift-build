@@ -178,21 +178,36 @@ public final class SWBBuildServiceSession: Sendable {
     /// - note: This method does not _start_ the build operation, which must subsequently be done by calling ``SWBBuildOperation/start()`` on the received build operation object.
     @_disfavoredOverload
     public func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate) async throws -> SWBBuildOperation {
-        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: false)
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: false, retainBuildDescription: false)
+    }
+
+    @_disfavoredOverload
+    public func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, retainBuildDescription: Bool) async throws -> SWBBuildOperation {
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: false, retainBuildDescription: retainBuildDescription)
     }
 
     @_disfavoredOverload
     public func createBuildOperationForBuildDescriptionOnly(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate) async throws -> SWBBuildOperation {
-        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: true)
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: true, retainBuildDescription: false)
+    }
+
+    @_disfavoredOverload
+    public func createBuildOperationForBuildDescriptionOnly(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, retainBuildDescription: Bool) async throws -> SWBBuildOperation {
+        try await createBuildOperation(request: request, delegate: delegate, onlyCreateBuildDescription: true, retainBuildDescription: retainBuildDescription)
     }
 
     internal func trackBuildOperation(_ operation: SWBBuildOperation) async {
         await sessionResourceTracker.enqueue(operation)
     }
 
-    private func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, onlyCreateBuildDescription: Bool) async throws -> SWBBuildOperation {
+    private func createBuildOperation(request: SWBBuildRequest, delegate: any SWBPlanningOperationDelegate, onlyCreateBuildDescription: Bool, retainBuildDescription: Bool) async throws -> SWBBuildOperation {
         // Allocate a new SWBBuildOperation object that we can return to the client to use for observing and controlling the build.  As we start getting replies from Swift Build, we will keep it informed, and it will in turn tell all of its observers what’s going on.
-        return try await SWBBuildOperation(session: self, delegate: delegate, request: request, onlyCreateBuildDescription: onlyCreateBuildDescription)
+        return try await SWBBuildOperation(session: self, delegate: delegate, request: request, onlyCreateBuildDescription: onlyCreateBuildDescription, retainBuildDescription: retainBuildDescription)
+    }
+
+    /// Releases a build description. The session is allowed to keep build descriptions no longer retained by the client in caches, but will never evict one which is currently retained.
+    public func releaseBuildDescription(id: SWBBuildDescriptionID) async {
+        _ = await service.send(ReleaseBuildDescriptionRequest(sessionHandle: self.uid, buildDescriptionID: BuildDescriptionID(id)))
     }
 
     public func generateIndexingFileSettings(for request: SWBBuildRequest, targetID: String, filePath: String?, outputPathOnly: Bool, delegate: any SWBIndexingDelegate) async throws -> SWBIndexingFileSettings {
@@ -369,11 +384,7 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     public func computeDependencyGraph(targetGUIDs: [SWBTargetGUID], buildParameters: SWBBuildParameters, includeImplicitDependencies: Bool) async throws -> [SWBTargetGUID: [SWBTargetGUID]] {
-        var result: [SWBTargetGUID: [SWBTargetGUID]] = [:]
-        for (key, value) in try await service.send(request: ComputeDependencyGraphRequest(sessionHandle: uid, targetGUIDs: targetGUIDs.map { TargetGUID(rawValue: $0.rawValue) }, buildParameters: buildParameters.messagePayloadRepresentation, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: .workspace)).adjacencyList {
-            result[SWBTargetGUID(rawValue: key.rawValue)] = value.map { SWBTargetGUID(rawValue: $0.rawValue) }
-        }
-        return result
+        return try await computeDependencyGraph(targetGUIDs: targetGUIDs, buildParameters: buildParameters, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: .workspace)
     }
 
     public func computeDependencyClosure(targetGUIDs: [String], buildParameters: SWBBuildParameters, includeImplicitDependencies: Bool, dependencyScope: SWBDependencyScope) async throws -> [String] {
@@ -381,13 +392,63 @@ public final class SWBBuildServiceSession: Sendable {
     }
 
     public func computeDependencyGraph(targetGUIDs: [SWBTargetGUID], buildParameters: SWBBuildParameters, includeImplicitDependencies: Bool, dependencyScope: SWBDependencyScope) async throws -> [SWBTargetGUID: [SWBTargetGUID]] {
+        guard let msg: DependencyGraphResponse = try await handleDelegateMessageOnChannel(makeMessage: { [uid] in NonBlockingComputeDependencyGraphRequest(sessionHandle: uid, responseChannel: $0, targetGUIDs: targetGUIDs.map { TargetGUID(rawValue: $0.rawValue) }, buildParameters: buildParameters.messagePayloadRepresentation, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: dependencyScope.messagePayload) }, delegate: nil) else {
+            throw StubError.error("Failed to receive dependency graph response")
+        }
         var result: [SWBTargetGUID: [SWBTargetGUID]] = [:]
-        for (key, value) in try await service.send(request: ComputeDependencyGraphRequest(sessionHandle: uid, targetGUIDs: targetGUIDs.map { TargetGUID(rawValue: $0.rawValue) }, buildParameters: buildParameters.messagePayloadRepresentation, includeImplicitDependencies: includeImplicitDependencies, dependencyScope: dependencyScope.messagePayload)).adjacencyList {
+        for (key, value) in msg.adjacencyList {
             result[SWBTargetGUID(rawValue: key.rawValue)] = value.map { SWBTargetGUID(rawValue: $0.rawValue) }
         }
         return result
     }
 
+    public func configuredTargets(buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [SWBConfiguredTargetInfo] {
+        let response = try await service.send(request: BuildDescriptionConfiguredTargetsRequest(sessionHandle: uid, buildDescriptionID: BuildDescriptionID(buildDescription), request: buildRequest.messagePayloadRepresentation))
+        return response.configuredTargets.map { SWBConfiguredTargetInfo($0) }
+    }
+
+    public func sources(of configuredTargets: [SWBConfiguredTargetIdentifier], buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [SWBConfiguredTargetSourceFilesInfo] {
+        let response = try await service.send(
+            request: BuildDescriptionConfiguredTargetSourcesRequest(
+                sessionHandle: uid,
+                buildDescriptionID: BuildDescriptionID(buildDescription),
+                request: buildRequest.messagePayloadRepresentation,
+                configuredTargets: configuredTargets.map { ConfiguredTargetIdentifier($0) }
+            )
+        )
+        return response.targetSourceFileInfos.map { SWBConfiguredTargetSourceFilesInfo($0) }
+    }
+
+    public func indexCompilerArguments(of file: AbsolutePath, in configuredTarget: SWBConfiguredTargetIdentifier, buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [String] {
+        let buildSettings = try await service.send(
+            request: IndexBuildSettingsRequest(
+                sessionHandle: uid,
+                buildDescriptionID: BuildDescriptionID(buildDescription),
+                request: buildRequest.messagePayloadRepresentation,
+                configuredTarget: ConfiguredTargetIdentifier(configuredTarget),
+                file: Path(file.pathString)
+            )
+        )
+        return buildSettings.compilerArguments
+    }
+
+    public func selectConfiguredTargetsForIndex(targets: [SWBTargetGUID], buildDescription: SWBBuildDescriptionID, buildRequest: SWBBuildRequest) async throws -> [SWBConfiguredTargetIdentifier] {
+        let response = try await service.send(
+            request: BuildDescriptionSelectConfiguredTargetsForIndexRequest(
+                sessionHandle: uid,
+                buildDescriptionID: BuildDescriptionID(buildDescription),
+                request: buildRequest.messagePayloadRepresentation,
+                targets: targets.map { TargetGUID(rawValue: $0.rawValue) }
+            )
+         )
+
+        return response.configuredTargets.map {
+            SWBConfiguredTargetIdentifier(
+                rawGUID: $0.rawGUID,
+                targetGUID: .init($0.targetGUID)
+            )
+        }
+    }
 
     // MARK: Macro evaluation
 
@@ -600,6 +661,14 @@ public final class SWBBuildServiceSession: Sendable {
     public func setUserPreferences(enableDebugActivityLogs: Bool, enableBuildDebugging: Bool, enableBuildSystemCaching: Bool, activityTextShorteningLevel: Int, usePerConfigurationBuildLocations: Bool?, allowsExternalToolExecution: Bool) async throws {
         _ = try await service.send(request: SetSessionUserPreferencesRequest(sessionHandle: self.uid, enableDebugActivityLogs: enableDebugActivityLogs, enableBuildDebugging: enableBuildDebugging, enableBuildSystemCaching: enableBuildSystemCaching, activityTextShorteningLevel: ActivityTextShorteningLevel(rawValue: activityTextShorteningLevel) ?? .default, usePerConfigurationBuildLocations: usePerConfigurationBuildLocations, allowsExternalToolExecution: allowsExternalToolExecution))
     }
+
+    public func lookupToolchain(at path: String) async throws -> SWBToolchainIdentifier? {
+        return try await service.send(request: LookupToolchainRequest(sessionHandle: self.uid, path: Path(path))).toolchainIdentifier.map { SWBToolchainIdentifier(rawValue: $0) }
+    }
+}
+
+public struct SWBToolchainIdentifier {
+    public var rawValue: String
 }
 
 extension SWBBuildServiceSession {
@@ -749,7 +818,7 @@ extension SWBBuildQoS {
 
 extension SWBBuildRequest {
     var messagePayloadRepresentation: BuildRequestMessagePayload {
-        return BuildRequestMessagePayload(parameters: parameters.messagePayloadRepresentation, configuredTargets: configuredTargets.map{ $0.messagePayloadRepresentation }, dependencyScope: dependencyScope.messagePayload, continueBuildingAfterErrors: continueBuildingAfterErrors, hideShellScriptEnvironment: hideShellScriptEnvironment, useParallelTargets: useParallelTargets, useImplicitDependencies: useImplicitDependencies, useDryRun: useDryRun, showNonLoggedProgress: showNonLoggedProgress, recordBuildBacktraces: recordBuildBacktraces, generatePrecompiledModulesReport: generatePrecompiledModulesReport, buildPlanDiagnosticsDirPath: buildPlanDiagnosticsDirPath.map(Path.init), buildCommand: buildCommand.messagePayloadRepresentation, schemeCommand: schemeCommand?.messagePayloadRepresentation, containerPath: containerPath.map(Path.init), buildDescriptionID: buildDescriptionID, qos: qos?.messagePayloadRepresentation, jsonRepresentation: try? jsonData())
+        return BuildRequestMessagePayload(parameters: parameters.messagePayloadRepresentation, configuredTargets: configuredTargets.map{ $0.messagePayloadRepresentation }, dependencyScope: dependencyScope.messagePayload, continueBuildingAfterErrors: continueBuildingAfterErrors, hideShellScriptEnvironment: hideShellScriptEnvironment, useParallelTargets: useParallelTargets, useImplicitDependencies: useImplicitDependencies, useDryRun: useDryRun, showNonLoggedProgress: showNonLoggedProgress, recordBuildBacktraces: recordBuildBacktraces, generatePrecompiledModulesReport: generatePrecompiledModulesReport, buildPlanDiagnosticsDirPath: buildPlanDiagnosticsDirPath.map(Path.init), buildCommand: buildCommand.messagePayloadRepresentation, schemeCommand: schemeCommand?.messagePayloadRepresentation, containerPath: containerPath.map(Path.init), buildDescriptionID: buildDescriptionID, qos: qos?.messagePayloadRepresentation, schedulerLaneWidthOverride: schedulerLaneWidthOverride, jsonRepresentation: try? jsonData())
     }
 }
 
@@ -768,7 +837,12 @@ extension SWBBuildParameters {
 
 fileprivate extension RunDestinationInfo {
     init(_ x: SWBRunDestinationInfo) {
-        self.init(platform: x.platform, sdk: x.sdk, sdkVariant: x.sdkVariant, targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        switch x.buildTarget._internalBuildTarget {
+        case let .toolchainSDK(platform, sdk, sdkVariant):
+            self.init(buildTarget: .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        case let .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple):
+            self.init(buildTarget: .swiftSDK(sdkManifestPath: sdkManifestPath, triple: triple),  targetArchitecture: x.targetArchitecture, supportedArchitectures: OrderedSet(x.supportedArchitectures), disableOnlyActiveArch: x.disableOnlyActiveArch, hostTargetedPlatform: x.hostTargetedPlatform)
+        }
     }
 }
 
@@ -920,6 +994,7 @@ fileprivate extension SWBPreviewTargetDependencyInfo {
         case .thunkInfo:
             throw StubError.error("Unexpected response type for request")
         case let .targetDependencyInfo(targetDependencyInfo):
+            self.productModuleName = targetDependencyInfo.productModuleName
             self.objectFileInputMap = targetDependencyInfo.objectFileInputMap
             self.linkCommandLine = targetDependencyInfo.linkCommandLine
             self.linkerWorkingDirectory = targetDependencyInfo.linkerWorkingDirectory
@@ -930,6 +1005,7 @@ fileprivate extension SWBPreviewTargetDependencyInfo {
             self.enableAddressSanitizer = targetDependencyInfo.enableAddressSanitizer
             self.enableThreadSanitizer = targetDependencyInfo.enableThreadSanitizer
             self.enableUndefinedBehaviorSanitizer = targetDependencyInfo.enableUndefinedBehaviorSanitizer
+            self.enableMemoryTaggingAddressSanitizer = targetDependencyInfo.enableMemoryTaggingAddressSanitizer
         }
     }
 }

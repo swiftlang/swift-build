@@ -42,6 +42,10 @@ extension PIF.Project : PIFRepresentable {
             dict[PIFKey_Project_developmentRegion] = developmentRegion
         }
 
+        if let knownLocalizations {
+            dict[PIFKey_Project_knownRegions] = knownLocalizations
+        }
+
         return dict
     }
 }
@@ -108,6 +112,8 @@ extension PIF.FileReference : PIFRepresentable {
 
         case "xcframework":
             return "wrapper.xcframework"
+        case "artifactbundle":
+            return "wrapper.artifactbundle"
 
         case "docc":
             return "folder.documentationcatalog"
@@ -135,6 +141,14 @@ extension PIF.FileReference : PIFRepresentable {
 extension PIF.BaseTarget : PIFRepresentable {
     public func serialize(to serializer: any IDEPIFSerializer) -> PIFDict {
         _serialize(to: serializer)
+    }
+}
+
+extension Set<PIF.PlatformFilter> {
+    public func serialize(to serializer: any IDEPIFSerializer) -> [PIFDict] {
+        return self.sorted().map {
+            $0.serialize(to: serializer)
+        }
     }
 }
 
@@ -301,7 +315,7 @@ extension PIF.BuildFile : PIFRepresentable {
             dict[PIFKey_guid] = id
             dict[PIFKey_BuildFile_fileReference] = refId
             dict[PIFKey_BuildFile_headerVisibility] = headerVisibility?.rawValue
-            dict[PIFKey_platformFilters] = platformFilters.map{ $0.serialize(to: serializer) }
+            dict[PIFKey_platformFilters] = platformFilters.serialize(to: serializer)
 
             dict[PIFKey_BuildFile_codeSignOnCopy] = codeSignOnCopy ? "true" : "false"
             dict[PIFKey_BuildFile_removeHeadersOnCopy] = removeHeadersOnCopy ? "true" : "false"
@@ -329,7 +343,7 @@ extension PIF.BuildFile : PIFRepresentable {
             return [
                 PIFKey_guid: id,
                 PIFKey_BuildFile_targetReference: refId,
-                PIFKey_platformFilters: platformFilters.map{ $0.serialize(to: serializer) }
+                PIFKey_platformFilters: platformFilters.serialize(to: serializer)
             ]
         }
     }

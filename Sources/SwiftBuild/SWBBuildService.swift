@@ -301,6 +301,18 @@ public final class SWBBuildService: Sendable {
         }
     }
 
+    public func dumpBuildDependencyInfo(session: SWBBuildServiceSession, request: SWBBuildRequest, outputPath: String) async {
+        let (channel, _): (UInt64, Bool) = await withCheckedContinuation { continuation in
+            Task {
+                let channel = self.openChannel { channel, message in
+                }
+
+                _ = await send(DumpBuildDependencyInfoRequest(sessionHandle: session.name, responseChannel: channel, request: request.messagePayloadRepresentation, outputPath: outputPath))
+            }
+        }
+        self.connection.close(channel: channel)
+    }
+
     @available(*, deprecated, message: "Do not use.")
     public func appleSystemFrameworkNames(developerPath: String?) async throws -> Set<String> {
         try await Set(send(request: AppleSystemFrameworkNamesRequest(developerPath: developerPath.map(Path.init))).value)

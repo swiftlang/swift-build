@@ -15,7 +15,7 @@ import SwiftBuild
 import SWBTestSupport
 import SWBUtil
 
-@Suite(.skipInGitHubActions("failing in the GitHub actions runner environment"), .skipHostOS(.windows))
+@Suite(.skipHostOS(.windows))
 fileprivate struct GeneralCommandsTests {
     @Test(.skipHostOS(.windows), // PTY not supported on Windows
         .requireHostOS(.macOS)) // something with terminal echo is different on macOS vs Linux
@@ -69,6 +69,7 @@ fileprivate struct GeneralCommandsTests {
                     build\r
                     clang-scan\r
                     clearAllCaches\r
+                    createBuildDescription\r
                     createSession\r
                     createXCFramework\r
                     deleteSession\r
@@ -77,6 +78,7 @@ fileprivate struct GeneralCommandsTests {
                     dumpMsgPack\r
                     dumpPID\r
                     exit\r
+                    generateDependencyInfo\r
                     headermap\r
                     help\r
                     isAlive\r
@@ -131,6 +133,7 @@ fileprivate struct GeneralCommandsTests {
             "build",
             "clang-scan",
             "clearAllCaches",
+            "createBuildDescription",
             "createSession",
             "createXCFramework",
             "deleteSession",
@@ -139,6 +142,7 @@ fileprivate struct GeneralCommandsTests {
             "dumpMsgPack",
             "dumpPID",
             "exit",
+            "generateDependencyInfo",
             "headermap",
             "help",
             "isAlive",

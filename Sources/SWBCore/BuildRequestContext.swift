@@ -13,6 +13,7 @@
 public import SWBProtocol
 public import SWBUtil
 public import SWBMacro
+import Foundation
 
 /// Encapsulates the context relevant to the work needed to construct a build description for an incoming build request.
 ///
@@ -35,6 +36,19 @@ public final class BuildRequestContext: Sendable {
         workspaceContext.fs
     }
 
+    // Cache toolset.json access per-build request. Don't cache at the session level because toolsets may change between builds.
+    private let toolsetCache = Registry<Path, SwiftSDK.Toolset>()
+    public func loadToolset(_ path: Path) throws -> SwiftSDK.Toolset {
+        try toolsetCache.getOrInsert(path) {
+            let data = try Data(fs.read(path))
+            let toolset = try JSONDecoder().decode(SwiftSDK.Toolset.self, from: data)
+            guard toolset.schemaVersion == "1.0" else {
+                throw StubError.error("Unknown schema version \(toolset.schemaVersion) for toolset at \(path.str)")
+            }
+            return toolset
+        }
+    }
+
     public func keepAliveSettingsCache<R>(_ f: () throws -> R) rethrows -> R {
         try workspaceContext.workspaceSettingsCache.keepAlive(f)
     }
@@ -44,25 +58,25 @@ public final class BuildRequestContext: Sendable {
     }
 
     /// Get the cached settings for the given parameters, without considering the context of any project/target.
-    public func getCachedSettings(_ parameters: BuildParameters) -> Settings {
+    package func getCachedSettings(_ parameters: BuildParameters) -> Settings {
         workspaceContext.workspaceSettingsCache.getCachedSettings(parameters, buildRequestContext: self, purpose: .build, filesSignature: filesSignature(for:))
     }
 
     /// Get the cached settings for the given parameters and project.
-    public func getCachedSettings(_ parameters: BuildParameters, project: Project, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil) -> Settings {
-        getCachedSettings(parameters, project: project, target: nil, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties)
+    package func getCachedSettings(_ parameters: BuildParameters, project: Project, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil) -> Settings {
+        getCachedSettings(parameters, project: project, target: nil, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: nil, artifactBundleInfo: nil)
     }
 
     /// Get the cached settings for the given parameters and target.
-    public func getCachedSettings(_ parameters: BuildParameters, target: Target, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil) -> Settings {
-        getCachedSettings(parameters, project: workspaceContext.workspace.project(for: target), target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties)
+    package func getCachedSettings(_ parameters: BuildParameters, target: Target, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs? = nil, impartedBuildProperties: [ImpartedBuildProperties]? = nil, artifactBundleInfo: [ArtifactBundleInfo]? = nil) -> Settings {
+        getCachedSettings(parameters, project: workspaceContext.workspace.project(for: target), target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo)
     }
 
     /// Private method to get the cached settings for the given parameters, project, and target.
     ///
     /// - remark: This is private so that clients don't somehow call this with a project which doesn't match the target.  There are public methods covering this one.
-    private func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target?, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs?, impartedBuildProperties: [ImpartedBuildProperties]?) -> Settings {
-        workspaceContext.workspaceSettingsCache.getCachedSettings(parameters, project: project, target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, buildRequestContext: self, filesSignature: filesSignature(for:))
+    private func getCachedSettings(_ parameters: BuildParameters, project: Project, target: Target?, purpose: SettingsPurpose = .build, provisioningTaskInputs: ProvisioningTaskInputs?, impartedBuildProperties: [ImpartedBuildProperties]?, artifactBundleInfo: [ArtifactBundleInfo]?) -> Settings {
+        workspaceContext.workspaceSettingsCache.getCachedSettings(parameters, project: project, target: target, purpose: purpose, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildProperties, artifactBundleInfo: artifactBundleInfo, buildRequestContext: self, filesSignature: filesSignature(for:))
     }
 
     @_spi(Testing) public func getCachedMacroConfigFile(_ path: Path, project: Project? = nil, context: MacroConfigLoadContext) -> MacroConfigInfo {
@@ -101,7 +115,7 @@ public final class BuildRequestContext: Sendable {
             [Path("\(name).framework/\(name)"), Path("/\(name).framework/Versions/A/\(name)")]
         })
 
-        for platformExtension in await workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
+        for platformExtension in workspaceContext.core.pluginManager.extensions(of: PlatformInfoExtensionPoint.self) {
             suffixes.append(contentsOf: platformExtension.additionalKnownTestLibraryPathSuffixes())
         }
         return suffixes
@@ -197,10 +211,11 @@ extension BuildRequestContext {
         func platformAndSDKVariant(for target: ConfiguredTarget) -> PlatformAndSDKVariant {
             if hasEnabledIndexBuildArena,
                let activeRunDestination = target.parameters.activeRunDestination,
-               let platform = workspaceContext.core.platformRegistry.lookup(name: activeRunDestination.platform) {
+               case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = activeRunDestination.buildTarget,
+               let platform = workspaceContext.core.platformRegistry.lookup(name: platform) {
                 // Configured targets include their platform in parameters, we can use it directly and avoid the expense of `getCachedSettings()` calls.
                 // If in future `ConfiguredTarget` carries along an instance of its Settings, we can avoid this check and go back to using `Settings` without the cost of `getCachedSettings`.
-                return PlatformAndSDKVariant(platform: platform, sdkVariant: activeRunDestination.sdkVariant)
+                return PlatformAndSDKVariant(platform: platform, sdkVariant: sdkVariant)
             } else {
                 let settings = getCachedSettings(target.parameters, target: target.target)
                 return PlatformAndSDKVariant(platform: settings.platform, sdkVariant: settings.sdkVariant?.name)
@@ -249,9 +264,14 @@ extension BuildRequestContext {
         guard let destination = runDestination else {
             return selectWithoutRunDestination()
         }
-        if matchesPlatform(lhsPlatform, platformName: destination.platform, sdkVariant: destination.sdkVariant) { return lhs }
-        if matchesPlatform(rhsPlatform, platformName: destination.platform, sdkVariant: destination.sdkVariant) { return rhs }
-        guard let destinationPlatform = workspaceContext.core.platformRegistry.lookup(name: destination.platform) else {
+
+        guard case let .toolchainSDK(platform: platform, _, sdkVariant: sdkVariant) = destination.buildTarget else {
+            return selectWithoutRunDestination()
+        }
+
+        if matchesPlatform(lhsPlatform, platformName: platform, sdkVariant: sdkVariant) { return lhs }
+        if matchesPlatform(rhsPlatform, platformName: platform, sdkVariant: sdkVariant) { return rhs }
+        guard let destinationPlatform = workspaceContext.core.platformRegistry.lookup(name: platform) else {
             return selectWithoutRunDestination()
         }
         if lhsPlatform.platform?.familyName != rhsPlatform.platform?.familyName {

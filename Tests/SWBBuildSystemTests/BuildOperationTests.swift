@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 import class Foundation.ProcessInfo
+import class Foundation.JSONEncoder
 import struct Foundation.URL
 import struct Foundation.UUID
 
@@ -40,8 +41,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                     "SomeFiles",
                     children: [
                         TestFile("main.swift"),
-                        TestFile("dynamic.swift"),
-                        TestFile("static.swift"),
+                        TestFile("dynamic library.swift"),
+                        TestFile("static library.swift"),
                     ]),
                 buildConfigurations: [
                     TestBuildConfiguration("Debug", buildSettings: [
@@ -93,8 +94,9 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             ])
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["dynamic.swift"]),
-                        ]
+                            TestSourcesBuildPhase(["dynamic library.swift"]),
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                     TestStandardTarget(
                         "staticlib",
@@ -107,8 +109,9 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                             ])
                         ],
                         buildPhases: [
-                            TestSourcesBuildPhase(["static.swift"]),
-                        ]
+                            TestSourcesBuildPhase(["static library.swift"]),
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                 ])
             let core = try await getCore()
@@ -125,11 +128,11 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 stream <<< "print(\"Hello world\")\n"
             }
 
-            try await tester.fs.writeFileContents(projectDir.join("dynamic.swift")) { stream in
+            try await tester.fs.writeFileContents(projectDir.join("dynamic library.swift")) { stream in
                 stream <<< "public func dynamicLib() { }"
             }
 
-            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
+            try await tester.fs.writeFileContents(projectDir.join("static library.swift")) { stream in
                 stream <<< "public func staticLib() { }"
             }
 
@@ -154,6 +157,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                 }
                 #expect(String(decoding: executionResult.stderr, as: UTF8.self) == "")
             }
+
+            try await tester.checkNullBuild(runDestination: destination, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs)
         }
     }
 
@@ -279,7 +284,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["dynamic.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                     TestStandardTarget(
                         "staticlib",
@@ -293,7 +299,8 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["static.swift"]),
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     ),
                 ])
             let core = try await getCore()
@@ -330,40 +337,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.checkNoErrors()
                 if core.hostOperatingSystem.imageFormat.requiresSwiftModulewrap {
-                    try results.checkTask(.matchTargetName("tool"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
-                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
-                        let contents = try tester.fs.read(auxFileAction.context.input).asString
-                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                        #expect(files.count == 2)
-                        #expect(files[0].hasSuffix("tool.o"))
-                        #expect(files[1].hasSuffix("main.o"))
-                    }
                     let toolWrap = try #require(results.getTask(.matchTargetName("tool"), .matchRuleType("SwiftModuleWrap")))
                     try results.checkTask(.matchTargetName("tool"), .matchRuleType("Ld")) { task in
                         try results.checkTaskFollows(task, toolWrap)
                     }
 
-                    try results.checkTask(.matchTargetName("dynamiclib"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
-                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
-                        let contents = try tester.fs.read(auxFileAction.context.input).asString
-                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                        #expect(files.count == 2)
-                        #expect(files[0].hasSuffix("dynamiclib.o"))
-                        #expect(files[1].hasSuffix("dynamic.o"))
-                    }
                     let dylibWrap = try #require(results.getTask(.matchTargetName("dynamiclib"), .matchRuleType("SwiftModuleWrap")))
                     try results.checkTask(.matchTargetName("dynamiclib"), .matchRuleType("Ld")) { task in
                         try results.checkTaskFollows(task, dylibWrap)
                     }
 
-                    try results.checkTask(.matchTargetName("staticlib"), .matchRulePattern(["WriteAuxiliaryFile", .suffix("LinkFileList")])) { task in
-                        let auxFileAction = try #require(task.action as? AuxiliaryFileTaskAction)
-                        let contents = try tester.fs.read(auxFileAction.context.input).asString
-                        let files = contents.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                        #expect(files.count == 2)
-                        #expect(files[0].hasSuffix("staticlib.o"))
-                        #expect(files[1].hasSuffix("static.o"))
-                    }
                     let staticWrap = try #require(results.getTask(.matchTargetName("staticlib"), .matchRuleType("SwiftModuleWrap")))
                     try results.checkTask(.matchTargetName("staticlib"), .matchRuleType("Libtool")) { task in
                         try results.checkTaskFollows(task, staticWrap)
@@ -382,7 +365,197 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.host), .skipHostOS(.macOS), .skipHostOS(.windows, "cannot find testing library"))
+    @Test(.requireSDKs(.host))
+    func commandLineTool_whitespaceEscaping() async throws {
+        try await withTemporaryDirectory { (tmpDir: Path) in
+            let tmpDir = tmpDir.join("has whitespace")
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.swift"),
+                        TestFile("dynamic.swift"),
+                        TestFile("static.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": ProcessInfo.processInfo.hostOperatingSystem() == .macOS ? "YES" : "NO",
+                        "CODE_SIGN_IDENTITY": "-",
+                        "CODE_SIGN_ENTITLEMENTS": "Entitlements.plist",
+                        "DEFINES_MODULE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "GCC_GENERATE_DEBUGGING_SYMBOLS": "YES",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "tool",
+                        type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "@loader_path/",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("dynamiclib")),
+                                TestBuildFile(.target("staticlib")),
+                            ])
+                        ],
+                        dependencies: [
+                            "dynamiclib",
+                            "staticlib",
+                        ]
+                    ),
+                    TestStandardTarget(
+                        "dynamiclib",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "DYLIB_INSTALL_NAME_BASE": "$ORIGIN",
+                                "DYLIB_INSTALL_NAME_BASE[sdk=macosx*]": "@rpath",
+
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["dynamic.swift"]),
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
+                    ),
+                    TestStandardTarget(
+                        "staticlib",
+                        type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["static.swift"]),
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
+                    ),
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("main.swift")) { stream in
+                stream <<< "import dynamiclib\n"
+                stream <<< "import staticlib\n"
+                stream <<< "dynamicLib()\n"
+                stream <<< "dynamicLib()\n"
+                stream <<< "staticLib()\n"
+                stream <<< "print(\"Hello world\")\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("dynamic.swift")) { stream in
+                stream <<< "public func dynamicLib() { }"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("static.swift")) { stream in
+                stream <<< "public func staticLib() { }"
+            }
+
+            try await tester.fs.writePlist(projectDir.join("Entitlements.plist"), .plDict([:]))
+
+            let provisioningInputs = [
+                "dynamiclib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
+                "staticlib": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:])),
+                "tool": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: .plDict([:]), simulatedEntitlements: .plDict([:]))
+            ]
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
+                results.checkNoErrors()
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func unitTestWithGeneratedEntryPointViaMacOSOverride() async throws {
+        try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("test.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                        "LINKER_DRIVER": "swiftc"
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "MyTests",
+                        type: .unitTest,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "GENERATE_TEST_ENTRYPOINTS_FOR_BUNDLES": "YES"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["test.swift"]),
+                        ],
+                    ),
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            try localFS.createDirectory(tmpDir.join("index"))
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
+                stream <<< """
+                    import Testing
+                    import XCTest
+                    @Suite struct MySuite {
+                        @Test func myTest() {
+                            #expect(42 == 42)
+                        }
+                    }
+
+                    final class MYXCTests: XCTestCase {
+                        func testFoo() {
+                            XCTAssertTrue(true)
+                        }
+                    }
+                """
+            }
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkNoErrors()
+                results.checkTask(.matchRuleType("GenerateTestEntryPoint")) { task in
+                    task.checkCommandLineMatches(["builtin-generateTestEntryPoint", "--output", .suffix("test_entry_point.swift")])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS))
     func unitTestWithGeneratedEntryPoint() async throws {
         try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
             let testProject = try await TestProject(
@@ -418,7 +591,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildPhases: [
                             TestSourcesBuildPhase(),
                             TestFrameworksBuildPhase([
-                                "MyTests.so"
+                                TestBuildFile(.target("MyTests"))
                             ])
                         ],
                         dependencies: ["MyTests"]
@@ -429,7 +602,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "MyTests.so"
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)"
                             ])
                         ],
                         buildPhases: [
@@ -440,7 +613,7 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         ], dependencies: [
                             "library"
                         ],
-                        productReferenceName: "MyTests.so"
+                        productReferenceName: "$(EXECUTABLE_NAME)"
                     ),
                     TestStandardTarget(
                         "library",
@@ -448,16 +621,16 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
                         buildConfigurations: [
                             TestBuildConfiguration("Debug", buildSettings: [
                                 "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
-                                "LD_DYLIB_INSTALL_NAME": "liblibrary.so",
-
                                 // FIXME: Find a way to make these default
                                 "EXECUTABLE_PREFIX": "lib",
                                 "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)",
                             ])
                         ],
                         buildPhases: [
                             TestSourcesBuildPhase(["library.swift"]),
                         ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
                     )
                 ])
             let core = try await getCore()
@@ -492,15 +665,150 @@ fileprivate struct BuildOperationTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: destination, persistent: true) { results in
                 results.checkNoErrors()
 
-                let environment = destination.hostRuntimeEnvironment(core)
+                let environment = try destination.hostRuntimeEnvironment(core)
 
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 1 test"))
                 }
                 do {
                     let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                    #expect(executionResult.exitStatus == .exit(0))
                     #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .skipHostOS(.macOS))
+    func unitTestWithGeneratedEntryPoint_testabilityDisabled() async throws {
+        try await withTemporaryDirectory(removeTreeOnDeinit: false) { (tmpDir: Path) in
+            let testProject = try await TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("library.swift"),
+                        TestFile("test.swift"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration("Debug", buildSettings: [
+                        "ARCHS": "$(ARCHS_STANDARD)",
+                        "CODE_SIGNING_ALLOWED": "NO",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "SDKROOT": "$(HOST_PLATFORM)",
+                        "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                        "SWIFT_VERSION": swiftVersion,
+                        "INDEX_DATA_STORE_DIR": "\(tmpDir.join("index").str)",
+                        "LINKER_DRIVER": "swiftc",
+                        "ENABLE_TESTABILITY": "NO",
+                        "SWIFT_ENABLE_TESTABILITY": "NO",
+                    ])
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "UnitTestRunner",
+                        type: .swiftpmTestRunner,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                            ]),
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("MyTests"))
+                            ])
+                        ],
+                        dependencies: ["MyTests"]
+                    ),
+                    TestStandardTarget(
+                        "MyTests",
+                        type: .unitTest,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)"
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["test.swift"]),
+                            TestFrameworksBuildPhase([
+                                TestBuildFile(.target("library")),
+                            ])
+                        ], dependencies: [
+                            "library"
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)"
+                    ),
+                    TestStandardTarget(
+                        "library",
+                        type: .dynamicLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration("Debug", buildSettings: [
+                                "LD_RUNPATH_SEARCH_PATHS": "$(RPATH_ORIGIN)",
+                                // FIXME: Find a way to make these default
+                                "EXECUTABLE_PREFIX": "lib",
+                                "EXECUTABLE_PREFIX[sdk=windows*]": "",
+                                "LD_DYLIB_INSTALL_NAME": "$(EXECUTABLE_NAME)",
+                            ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["library.swift"]),
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)",
+                    )
+                ])
+            let core = try await getCore()
+            let tester = try await BuildOperationTester(core, testProject, simulated: false)
+            try localFS.createDirectory(tmpDir.join("index"))
+            let projectDir = tester.workspace.projects[0].sourceRoot
+
+            try await tester.fs.writeFileContents(projectDir.join("library.swift")) { stream in
+                stream <<< "public func foo() -> Int { 42 }\n"
+            }
+
+            try await tester.fs.writeFileContents(projectDir.join("test.swift")) { stream in
+                stream <<< """
+                    import Testing
+                    import XCTest
+                    import library
+                    @Suite struct MySuite {
+                        @Test func myTest() {
+                            #expect(foo() == 42)
+                        }
+                    }
+
+                    final class MYXCTests: XCTestCase {
+                        func testFoo() {
+                            XCTAssertTrue(true)
+                        }
+                    }
+                """
+            }
+
+            let destination: RunDestinationInfo = .host
+            try await tester.checkBuild(runDestination: destination, persistent: true) { results in
+                results.checkWarning(.prefix("Skipping XCTest discovery for 'MyTests' because it was not built for testing"))
+                results.checkNoErrors()
+
+                let environment = try destination.hostRuntimeEnvironment(core)
+
+                do {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: [], environment: environment)
+                    #expect(executionResult.exitStatus == .exit(0))
+                    #expect(String(decoding: executionResult.stdout, as: UTF8.self).contains("Executed 0 tests"))
+                }
+                do {
+                    let executionResult = try await Process.getOutput(url: URL(fileURLWithPath: projectDir.join("build").join("Debug\(destination.builtProductsDirSuffix)").join(core.hostOperatingSystem.imageFormat.executableName(basename: "UnitTestRunner")).str), arguments: ["--testing-library", "swift-testing"], environment: environment)
+                    withKnownIssue("On windows the test output indicates no tests ran, needs investigation") {
+                        #expect(executionResult.exitStatus == .exit(0))
+                        #expect(String(decoding: executionResult.stderr, as: UTF8.self).contains("Test run with 1 test "))
+                    } when: {
+                        core.hostOperatingSystem == .windows
+                    }
                 }
             }
         }
@@ -1338,8 +1646,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 let driverPlanning = try #require(results.checkTask(.matchRuleType("SwiftDriver")) { $0 })
                 let driverCompilationRequirements = try #require(results.checkTask(.matchRuleType("SwiftDriver Compilation Requirements")) { $0 })
                 let driverCompilation = try #require(results.checkTask(.matchRuleType("SwiftDriver Compilation")) { $0 })
-                results.checkTaskExists(.matchRule(["SwiftCompile", "normal", "x86_64", "Compiling Swifty.swift", SRCROOT.join("Sources/Swifty.swift").str]))
-                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", "x86_64", "Emitting module for CoreFoo"]))
+                results.checkTaskExists(.matchRule(["SwiftCompile", "normal", results.runDestinationTargetArchitecture, "Compiling Swifty.swift", SRCROOT.join("Sources/Swifty.swift").str]))
+                results.checkTaskExists(.matchRule(["SwiftEmitModule", "normal", results.runDestinationTargetArchitecture, "Emitting module for CoreFoo"]))
                 try results.checkTask(.matchRuleType("CpHeader"), .matchRuleItemBasename("CoreFoo.h"), .matchRuleItemPattern(.suffix("Versions/A/Headers/CoreFoo.h"))) { cpHeaderTask in
                     try results.checkTaskFollows(driverCompilationRequirements, cpHeaderTask, resolveDynamicTaskRequests: true)
                     try results.checkTaskFollows(driverCompilation, cpHeaderTask, resolveDynamicTaskRequests: true)
@@ -1595,6 +1903,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                         // This checks that the VFS contains module map entries which allow the compiler to find the module map even before it is installed.
                         contents <<< "@import CoreFoo;\n"
                     }
+                    contents <<< "void foo(void) {}\n"
                 }
 
                 try await tester.checkBuild(runDestination: .macOS) { results in
@@ -2404,7 +2713,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     /// Check non-UTF8 encoded shell scripts don't cause any unexpected issues.
-    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", yum: "vim-common"))
+    @Test(.requireSDKs(.host), .skipHostOS(.windows), .requireSystemPackages(apt: "xxd", yum: "vim-common", freebsd: "xxd", openbsd: "vim"))
     func nonUTF8ShellScript() async throws {
         try await withTemporaryDirectory { tmpDir in
             let testWorkspace = TestWorkspace(
@@ -2940,12 +3249,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "Versions/A/Resources/Info.plist",
                 "Versions/A/Resources/ja.lproj",
                 "Versions/A/Resources/ja.lproj/Localizable.strings",
-                "Versions/A/_CodeSignature",
-                "Versions/A/_CodeSignature/CodeDirectory",
-                "Versions/A/_CodeSignature/CodeRequirements",
-                "Versions/A/_CodeSignature/CodeRequirements-1",
-                "Versions/A/_CodeSignature/CodeResources",
-                "Versions/A/_CodeSignature/CodeSignature",
                 "Versions/Current",
             ]
 
@@ -2982,12 +3285,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Versions/A/Headers/AFwk.h",
                     "Versions/A/Resources/AResource.plist",
                     "Versions/A/Resources/Info.plist",
-                    "Versions/A/_CodeSignature",
-                    "Versions/A/_CodeSignature/CodeDirectory",
-                    "Versions/A/_CodeSignature/CodeRequirements",
-                    "Versions/A/_CodeSignature/CodeRequirements-1",
-                    "Versions/A/_CodeSignature/CodeResources",
-                    "Versions/A/_CodeSignature/CodeSignature",
                     "Versions/Current",
                 ])
             }
@@ -3073,7 +3370,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 ]))
             }
 
-            let sourceDynamicFrameworkFiles = try tester.fs.traverse(sourceDynamicFrameworkPath, { $0.relativeSubpath(from: sourceDynamicFrameworkPath) }).sorted()
+            let sourceDynamicFrameworkFiles = try tester.fs.traverse(sourceDynamicFrameworkPath, { $0.relativeSubpath(from: sourceDynamicFrameworkPath) }).sorted().filter { !$0.contains("_CodeSignature") }
             if runDestination.platform == "macosx" {
                 XCTAssertEqualSequences(sourceDynamicFrameworkFiles, [
                     "ADynamicFwk",
@@ -3087,12 +3384,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Versions/A/Resources",
                     "Versions/A/Resources/ADynamicResource.plist",
                     "Versions/A/Resources/Info.plist",
-                    "Versions/A/_CodeSignature",
-                    "Versions/A/_CodeSignature/CodeDirectory",
-                    "Versions/A/_CodeSignature/CodeRequirements",
-                    "Versions/A/_CodeSignature/CodeRequirements-1",
-                    "Versions/A/_CodeSignature/CodeResources",
-                    "Versions/A/_CodeSignature/CodeSignature",
                     "Versions/Current",
                 ])
             } else {
@@ -3102,8 +3393,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Headers",
                     "Headers/ADynamicFwk.h",
                     "Info.plist",
-                    "_CodeSignature",
-                    "_CodeSignature/CodeResources",
                 ])
             }
 
@@ -3123,7 +3412,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 ]))
             }
 
-            let sourceStaticFrameworkFiles = try tester.fs.traverse(sourceStaticFrameworkPath, { $0.relativeSubpath(from: sourceStaticFrameworkPath) }).sorted()
+            let sourceStaticFrameworkFiles = try tester.fs.traverse(sourceStaticFrameworkPath, { $0.relativeSubpath(from: sourceStaticFrameworkPath) }).sorted().filter { !$0.contains("_CodeSignature") }
             if runDestination.platform == "macosx" {
                 XCTAssertEqualSequences(sourceStaticFrameworkFiles, [
                     "AStaticFwk",
@@ -3137,12 +3426,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Versions/A/Resources",
                     "Versions/A/Resources/AStaticResource.plist",
                     "Versions/A/Resources/Info.plist",
-                    "Versions/A/_CodeSignature",
-                    "Versions/A/_CodeSignature/CodeDirectory",
-                    "Versions/A/_CodeSignature/CodeRequirements",
-                    "Versions/A/_CodeSignature/CodeRequirements-1",
-                    "Versions/A/_CodeSignature/CodeResources",
-                    "Versions/A/_CodeSignature/CodeSignature",
                     "Versions/Current",
                 ])
             } else {
@@ -3152,12 +3435,6 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     "Headers",
                     "Headers/AStaticFwk.h",
                     "Info.plist",
-                    "_CodeSignature",
-                    "_CodeSignature/CodeDirectory",
-                    "_CodeSignature/CodeRequirements",
-                    "_CodeSignature/CodeRequirements-1",
-                    "_CodeSignature/CodeResources",
-                    "_CodeSignature/CodeSignature",
                 ])
             }
 
@@ -3211,7 +3488,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-exclude", "Headers", "-exclude", "PrivateHeaders", "-exclude", "Modules", "-exclude", "*.tbd", "-resolve-src-symlinks"] + (keepStaticBinary ? [] : ["-remove-static-executable"]) + ["\(tmpDirPath.str)/ADynamicFwk.framework", frameworkDestinationDir])
 
                             let destDynamicFrameworkPath = Path("\(frameworkDestinationDir)/ADynamicFwk.framework")
-                            let delta = try Set(sourceDynamicFrameworkFiles).diff(against: tester.fs.traverse(destDynamicFrameworkPath, { $0.relativeSubpath(from: destDynamicFrameworkPath) }))
+                            let delta = try Set(sourceDynamicFrameworkFiles).diff(against: tester.fs.traverse(destDynamicFrameworkPath, { $0.relativeSubpath(from: destDynamicFrameworkPath) }).filter{ !$0.contains("_CodeSignature") })
                             XCTAssertEqualSequences(delta.right, [])
 
                             // Check that we removed all the headers
@@ -3233,7 +3510,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             task.checkCommandLine(["builtin-copy", "-exclude", ".DS_Store", "-exclude", "CVS", "-exclude", ".svn", "-exclude", ".git", "-exclude", ".hg", "-exclude", "Headers", "-exclude", "PrivateHeaders", "-exclude", "Modules", "-exclude", "*.tbd", "-resolve-src-symlinks"] + (keepStaticBinary ? [] : ["-remove-static-executable"]) + ["\(tmpDirPath.str)/AStaticFwk.framework", frameworkDestinationDir])
 
                             let destStaticFrameworkPath = Path("\(frameworkDestinationDir)/AStaticFwk.framework")
-                            let delta = try Set(sourceStaticFrameworkFiles).diff(against: tester.fs.traverse(destStaticFrameworkPath, { $0.relativeSubpath(from: destStaticFrameworkPath) }))
+                            let delta = try Set(sourceStaticFrameworkFiles).diff(against: tester.fs.traverse(destStaticFrameworkPath, { $0.relativeSubpath(from: destStaticFrameworkPath) }).filter{ !$0.contains("_CodeSignature") })
                             XCTAssertEqualSequences(delta.right, [])
 
                             // Check that we removed all the headers, as well as the binary (since it is static), if configured
@@ -3252,22 +3529,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                         "Headers/AStaticFwk.h",
                                     ])
                                 } else if useAppStoreCodelessFrameworksWorkaround {
-                                    let additionalFiles: [String]
-                                    if codesign {
-                                        additionalFiles = [
-                                            "_CodeSignature/CodeDirectory",
-                                            "_CodeSignature/CodeRequirements",
-                                            "_CodeSignature/CodeRequirements-1",
-                                            "_CodeSignature/CodeSignature",
-                                        ]
-                                    } else {
-                                        additionalFiles = []
-                                    }
-
                                     XCTAssertEqualSequences(delta.left.sorted(), [
                                         "Headers",
                                         "Headers/AStaticFwk.h",
-                                    ] + additionalFiles)
+                                    ])
                                 } else {
                                     XCTAssertEqualSequences(delta.left.sorted(), [
                                         "AStaticFwk",
@@ -4842,7 +5107,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     ])],
                 buildPhases: [
                     TestSourcesBuildPhase(["Core.c"]),
-                    TestHeadersBuildPhase(["Core.h"])
+                    TestHeadersBuildPhase([.init("Core.h", headerVisibility: .public)])
                 ])
             let testProject = TestProject(
                 "aProject",
@@ -4861,8 +5126,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
 
             // Write the test files.
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.c")) { _ in }
-            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.h")) { _ in }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.c")) { stream in stream <<< "void foo(void) {}" }
+            try await tester.fs.writeFileContents(testWorkspace.sourceRoot.join("aProject/Core.h")) { stream in stream <<< "void foo(void);" }
             try await tester.fs.writePlist(testWorkspace.sourceRoot.join("aProject/Info.plist"), .plDict(["CFBundleExecutable": .plString("$(EXECUTABLE_NAME)")]))
 
             // Configure the provisioning inputs.
@@ -4871,7 +5136,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 "com.apple.security.files.user-selected.read-only": 1,
             ]
             let provisioningInputs = ["Core": ProvisioningTaskInputs(identityHash: "-", signedEntitlements: entitlements, simulatedEntitlements: [:])]
-            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "ProcessInfoPlistFile", "ClangStatCache", "ProcessSDKImports"])
+            let excludedTypes = Set(["Gate", "WriteAuxiliaryFile", "SymLink", "MkDir", "Touch", "Copy", "CreateBuildDirectory", "ProcessInfoPlistFile", "ClangStatCache", "ProcessSDKImports", "CpHeader"])
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: Set(provisioningInputs.keys), signableTargetInputs: provisioningInputs) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTypes)
 
@@ -5077,7 +5342,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 for ruleType in ["SwiftDriver Compilation Requirements", "SwiftDriver Compilation"] {
-                    results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"\(ruleType)\", \"aFramework\", \"normal\", \"x86_64\", \"com.apple.xcode.tools.swift.compiler\"])")
+                    results.checkError("Build input file cannot be found: \'\(tmpDirPath.str)/Test/aProject/File.swift\'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (for task: [\"\(ruleType)\", \"aFramework\", \"normal\", \"\(results.runDestinationTargetArchitecture)\", \"com.apple.xcode.tools.swift.compiler\"])")
                 }
                 if !SWBFeatureFlag.performOwnershipAnalysis.value {
                     for fname in ["aFramework.swiftmodule", "aFramework.swiftdoc", "aFramework.swiftsourceinfo", "aFramework.abi.json"] {
@@ -5153,7 +5418,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             try await tester.checkBuild(parameters: BuildParameters(action: .install, configuration: "Debug"), runDestination: .macOS, persistent: true) { _ in }
 
             let ldDepsPath = SRCROOT.join(
-                "build/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Tool_dependency_info.dat"
+                "build/aProject.build/Debug/Tool.build/Objects-normal/\(RunDestinationInfo.macOS.targetArchitecture)/Tool_dependency_info.dat"
             )
 
             let dependencyInfo: DependencyInfo = try DependencyInfo(bytes: tester.fs.read(ldDepsPath).bytes)
@@ -5311,7 +5576,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let migPath = try await self.migPath
 
             try await tester.checkBuild(parameters: BuildParameters(configuration: "Debug"), runDestination: .anyMac, persistent: true) { results in
-                results.checkNoWarnings()
+                results.checkedWarnings = true
                 results.checkNoErrors()
 
                 results.checkTask(.matchRule(["Iig", "\(SRCROOT)/aProject/interface.iig"])) { task in
@@ -5474,28 +5739,28 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Verify that the .o files are compiled.
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
 
                 // Verify that the .a files are created.
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/Debug/libDeepLib.a")) { task in
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/DeepLib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/DeepLib_libtool_dependency_info.dat"])
                 }
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/Debug/libLib.a")) { task in
                     task.checkCommandLineContains(["-lDeepLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat"])
                 }
 
                 // Verify that everything is linked together properly. Note that the "deep lib" is linked into the static archive above.
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItem("\(buildDirectory)/Debug/Tool")) { task in
                     task.checkCommandLineContains(["-lLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Tool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Tool_dependency_info.dat"])
                 }
 
                 // Verify that the dependency info indeed has the libraries we expected.
-                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat")).bytes)
+                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat")).bytes)
                 #expect(actual.inputs.sorted() == [
-                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o",
+                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
                     "\(buildDirectory)/Debug/libDeepLib.a"
                 ].sorted())
                 #expect(actual.outputs.sorted() == [
@@ -5512,7 +5777,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool", "normal"])) { _ in }
                 results.checkNoTask()
@@ -5524,7 +5789,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(["RegisterExecutionPolicyException", "Gate", "ClangStatCache", "ProcessSDKImports"])
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libDeepLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/Debug/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool", "normal"])) { _ in }
@@ -5605,28 +5870,28 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             let parameters = BuildParameters(action: .install, configuration: "Debug")
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 // Verify that the .o files are compiled.
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
 
                 // Verify that the .a files are created.
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a")) { task in
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/DeepLib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/DeepLib_libtool_dependency_info.dat"])
                 }
                 results.checkTask(.matchRuleType("Libtool"), .matchRuleItem("\(buildDirectory)/UninstalledProducts/macosx/libLib.a")) { task in
                     task.checkCommandLineContains(["-lDeepLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat"])
                 }
 
                 // Verify that everything is linked together properly. Note that the "deep lib" is linked into the static archive above.
                 results.checkTask(.matchRuleType("Ld"), .matchRuleItem("\(SRCROOT)/aProject/installable/usr/local/bin/Tool")) { task in
                     task.checkCommandLineContains(["-lLib"])
-                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/Tool_dependency_info.dat"])
+                    task.checkCommandLineContains(["-dependency_info", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Tool_dependency_info.dat"])
                 }
 
                 // Verify that the dependency info indeed has the libraries we expected.
-                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/Lib_libtool_dependency_info.dat")).bytes)
+                let actual = try DependencyInfo(bytes: try tester.fs.read(Path("\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/Lib_libtool_dependency_info.dat")).bytes)
                 #expect(actual.inputs.sorted() == [
-                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o",
+                    "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o",
                     "\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a",
                     "\(buildDirectory)/Debug/libDeepLib.a",
                 ].sorted())
@@ -5644,7 +5909,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(excludingTypes)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/x86_64/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Lib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/lib.o", "\(SRCROOT)/aProject/lib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(SRCROOT)/aProject/installable/usr/local/bin/Tool", "normal"])) { _ in }
                 results.checkNoTask()
@@ -5656,7 +5921,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(parameters: parameters, runDestination: .macOS, persistent: true) { results in
                 results.consumeTasksMatchingRuleTypes(excludingTypes)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/x86_64/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/DeepLib.build/Objects-normal/\(results.runDestinationTargetArchitecture)/deeplib.o", "\(SRCROOT)/aProject/deeplib.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libDeepLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Libtool", "\(buildDirectory)/UninstalledProducts/macosx/libLib.a", "normal"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(SRCROOT)/aProject/installable/usr/local/bin/Tool", "normal"])) { _ in }
@@ -5766,8 +6031,9 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
         }
     }
 
-    @Test(.requireSDKs(.macOS))
+    @Test(.requireSDKs(.macOS), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
     func incrementalMetalLinkWithCodeSign() async throws {
+        let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -5785,6 +6051,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                             "CODE_SIGN_IDENTITY": "-",
                                             "INFOPLIST_FILE": "Info.plist",
                                             "CODESIGN": "/usr/bin/true",
+                                            "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
                                             "SWIFT_VERSION": swiftVersion])],
                         targets: [
                             TestStandardTarget(
@@ -5793,7 +6060,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                                 buildPhases: [
                                     TestSourcesBuildPhase(["SwiftFile.swift", "Metal.metal"]),
                                 ])])])
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false, fileSystem: localFS)
             let signableTargets: Set<String> = ["aFramework"]
 
             // Create the input files.
@@ -5996,8 +6263,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/x86_64/other.o", "\(SRCROOT)/aProject/other.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/\(results.runDestinationTargetArchitecture)/other.o", "\(SRCROOT)/aProject/other.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Other.framework/Versions/A/Other", "normal"])) { _ in }
                 results.checkTask(.matchRule(["GenerateTAPI", "\(buildDirectory)/EagerLinkingTBDs/Debug/Other.framework/Versions/A/Other.tbd"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool.app/Contents/MacOS/Tool", "normal"])) { _ in }
@@ -6111,7 +6378,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: signableTargets) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/x86_64/other.o", "\(SRCROOT)/aProject/other.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Other.build/Objects-normal/\(results.runDestinationTargetArchitecture)/other.o", "\(SRCROOT)/aProject/other.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Other.framework/Versions/A/Other", "normal"])) { _ in }
                 results.checkTask(.matchRule(["GenerateTAPI", "\(buildDirectory)/EagerLinkingTBDs/Debug/Other.framework/Versions/A/Other.tbd"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Other.framework/Versions/A"])) { _ in }
@@ -6462,7 +6729,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                 // For the first pass, these should be the same for both targets.
 
                 for targetName in signableTargets {
-                    results.checkTask(.matchTargetName(targetName), .matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/\(targetName).build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                    results.checkTask(.matchTargetName(targetName), .matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/\(targetName).build/Objects-normal/\(results.runDestinationTargetArchitecture)/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                     results.checkTask(.matchTargetName(targetName), .matchRule(["Ld", "\(buildDirectory)/Debug/\(targetName).app/Contents/MacOS/\(targetName)", "normal"])) { _ in }
                     results.checkTask(.matchTargetName(targetName), .matchRule(["Copy", "\(buildDirectory)/Debug/\(targetName).app/Contents/Resources/resource.txt", "\(SRCROOT)/aProject/resource.txt"])) { _ in }
                     results.checkTask(.matchTargetName(targetName), .matchRule(["Copy", "\(buildDirectory)/Debug/\(targetName).app/Contents/Resources/other.txt", "\(SRCROOT)/aProject/other.txt"])) { _ in }
@@ -6707,8 +6974,8 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true, signableTargets: ["Tool"]) { results in
                 results.consumeTasksMatchingRuleTypes(excludedTasks)
-                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/x86_64/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
-                results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool.app/Contents/MacOS/Tool", "normal", "x86_64"])) { _ in }
+                results.checkTask(.matchRule(["CompileC", "\(buildDirectory)/aProject.build/Debug/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/tool.o", "\(SRCROOT)/aProject/tool.c", "normal", results.runDestinationTargetArchitecture, "c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchRule(["Ld", "\(buildDirectory)/Debug/Tool.app/Contents/MacOS/Tool", "normal", results.runDestinationTargetArchitecture])) { _ in }
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/Resources/resource.txt", "\(SRCROOT)/aProject/resource.txt"])) { _ in }
                 results.checkTask(.matchRule(["CodeSign", "\(buildDirectory)/Debug/Tool.app"])) { _ in }
                 results.checkTask(.matchRule(["Copy", "\(buildDirectory)/Debug/Tool.app/Contents/other.txt", "\(SRCROOT)/aProject/other.txt"])) { _ in }
@@ -6734,10 +7001,10 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
     }
 
     @Test(.requireSDKs(.iOS))
-    func pointerAuthenticationBuildSetting() async throws {
+    func pointerAuthenticationBuildSetting_iOS() async throws {
         func test(buildSettings: [String: String], expectedArchs: [String], line: UInt = #line) async throws {
 
-            try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
                 let testWorkspace = try await TestWorkspace(
                     "Test",
                     sourceRoot: tmpDirPath.join("Test"),
@@ -6773,8 +7040,80 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     try await tester.fs.writeFileContents(swiftFile) { stream in }
                 }
 
-                try await tester.checkBuild(runDestination: .anyiOSDevice) { results in
+                try await tester.checkBuild(runDestination: .anyiOSDevice) { results -> Void in
                     results.checkNoErrors()
+
+                    for arch in expectedArchs {
+                        results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("File.c")), .matchRuleItem(arch)) { _ in }
+                        results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("File.m")), .matchRuleItem(arch)) { _ in }
+                        results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItem(arch)) { _ in }
+                        results.checkTask(.matchRuleType("SwiftEmitModule"), .matchRuleItem(arch)) { _ in }
+
+                    }
+                }
+            }
+        }
+
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["arm64"])
+
+        // ENABLE_ENHANCED_SECURITY enables pointer authentication unless ENABLE_POINTER_AUTHENTICATION is explicitly disabled.
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES"], expectedArchs: ["arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO"], expectedArchs: ["arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES", "ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["arm64e"])
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func pointerAuthenticationBuildSetting_macOS() async throws {
+        func test(buildSettings: [String: String], expectedArchs: [String], line: UInt = #line) async throws {
+
+            try await withTemporaryDirectory { (tmpDirPath: Path) async throws -> Void in
+                let testWorkspace = try await TestWorkspace(
+                    "Test",
+                    sourceRoot: tmpDirPath.join("Test"),
+                    projects: [
+                        TestProject(
+                            "aProject",
+                            groupTree: TestGroup("Sources", children: [
+                                TestFile("File.c"),
+                                TestFile("File.swift"),
+                                TestFile("File.m"),
+                            ]),
+                            buildConfigurations: [TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "SDKROOT": "macosx",
+                                    "DONT_GENERATE_INFOPLIST_FILE": "YES",
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion,
+                                ])],
+                            targets: [
+                                TestStandardTarget(
+                                    "aFramework", type: .framework,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
+                                    ]),
+                                TestStandardTarget(
+                                    "anApp", type: .application,
+                                    buildConfigurations: [TestBuildConfiguration("Debug", buildSettings: buildSettings)],
+                                    buildPhases: [
+                                        TestSourcesBuildPhase(["File.c", "File.swift", "File.m"]),
+                                    ])
+                            ])])
+
+                let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+
+                // create the files
+                for file in ["File.swift", "File.c", "File.m"] {
+                    let swiftFile = testWorkspace.sourceRoot.join("aProject/\(file)")
+                    try await tester.fs.writeFileContents(swiftFile) { stream in }
+                }
+
+                try await tester.checkBuild(runDestination: .anyMac) { results -> Void in
+                    results.checkNoErrors()
+
 
                     for arch in expectedArchs {
                         results.checkTask(.matchRuleType("CompileC"), .matchRuleItemPattern(.suffix("File.c")), .matchRuleItem(arch)) { _ in }
@@ -6786,8 +7125,14 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
             }
         }
 
-        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["arm64", "arm64e"])
-        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["arm64"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["x86_64", "arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["x86_64", "arm64"])
+
+        // ENABLE_ENHANCED_SECURITY enables pointer authentication unless ENABLE_POINTER_AUTHENTICATION is explicitly disabled.
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES"], expectedArchs: ["x86_64", "arm64", "arm64e"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO"], expectedArchs: ["x86_64", "arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "YES", "ENABLE_POINTER_AUTHENTICATION": "NO"], expectedArchs: ["x86_64", "arm64"])
+        try await test(buildSettings: ["ENABLE_ENHANCED_SECURITY": "NO", "ENABLE_POINTER_AUTHENTICATION": "YES"], expectedArchs: ["x86_64", "arm64e"])
     }
 
     @Test(.requireSDKs(.macOS))
@@ -7032,7 +7377,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     results.checkNoDiagnostics()
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example.fake-ts"), .matchRuleItemBasename("example.fake-ts.fake-js")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js", "\(SRCROOT)/example.fake-ts", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js", "\(SRCROOT)/example.fake-ts", "debug", results.runDestinationTargetArchitecture])
 
                         if enableSandboxingInTest {
                             #expect(task.commandLine.first == "/usr/bin/sandbox-exec")
@@ -7063,7 +7408,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     }
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example.fake-ts.fake-js"), .matchRuleItemBasename("example.fake-ts.fake-js.fake-uglified")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js.fake-uglified", "\(SRCROOT)/example.fake-ts.fake-js", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example.fake-ts.fake-js.fake-uglified", "\(SRCROOT)/example.fake-ts.fake-js", "debug", results.runDestinationTargetArchitecture])
 
                         let path = task.outputPaths[0]
                         let output = try fs.read(path).asString
@@ -7187,7 +7532,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     results.checkNoDiagnostics()
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example-1.fake-ts")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-1.fake-ts.E.fake-js", "\(SRCROOT)/example-1.fake-ts.F.fake-js", "\(SRCROOT)/example-1.fake-ts", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-1.fake-ts.E.fake-js", "\(SRCROOT)/example-1.fake-ts.F.fake-js", "\(SRCROOT)/example-1.fake-ts", "debug", results.runDestinationTargetArchitecture])
 
                         if enableSandboxingInTest {
                             #expect(task.commandLine.first == "/usr/bin/sandbox-exec")
@@ -7206,7 +7551,7 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                     }
 
                     try results.checkTask(.matchRuleType("RuleScriptExecution"), .matchRuleItemBasename("example-2.fake-ts")) { task in
-                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-2.fake-ts.E.fake-js", "\(SRCROOT)/example-2.fake-ts.F.fake-js", "\(SRCROOT)/example-2.fake-ts", "debug", "x86_64"])
+                        task.checkRuleInfo(["RuleScriptExecution", "\(SRCROOT)/example-2.fake-ts.E.fake-js", "\(SRCROOT)/example-2.fake-ts.F.fake-js", "\(SRCROOT)/example-2.fake-ts", "debug", results.runDestinationTargetArchitecture])
 
                         if enableSandboxingInTest {
                             #expect(task.commandLine.first == "/usr/bin/sandbox-exec")
@@ -7582,6 +7927,75 @@ That command depends on command in Target 'agg2' (project \'aProject\'): script 
                             "\(SRCROOT.str)/build/Debug/TargetA.framework/Versions/A/TargetA",
                             "\(SRCROOT.str)/build/aProject.build/Debug/TargetA.build/Objects-normal/arm64e/TargetA_dependency_info.dat",
                         ])
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func swiftSDKToolsets() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let toolsetPath = tmpDirPath.join("toolset.json")
+            let toolsetData = try JSONEncoder().encode(SwiftSDK.Toolset(swiftCompiler: .init(extraCLIOptions: ["-DTOOLSET_FLAG"])))
+            try await localFS.writeFileContents(toolsetPath, waitForNewTimestamp: false) { stream in
+                stream.write(toolsetData)
+            }
+
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources", path: "Sources", children: [
+                                TestFile("main.swift"),
+                            ]),
+                        buildConfigurations: [TestBuildConfiguration(
+                            "Debug",
+                            buildSettings: [
+                                "PRODUCT_NAME": "$(TARGET_NAME)",
+                                "SDKROOT": "$(HOST_PLATFORM)",
+                                "SUPPORTED_PLATFORMS": "$(HOST_PLATFORM)",
+                                "SWIFT_VERSION": swiftVersion,
+                                "SWIFT_SDK_TOOLSETS": toolsetPath.strWithPosixSlashes,
+                                "CODE_SIGNING_ALLOWED": "NO",
+                            ]
+                        )],
+                        targets: [
+                            TestStandardTarget(
+                                "Tool", type: .commandLineTool,
+                                buildPhases: [
+                                    TestSourcesBuildPhase(["main.swift"]),
+                                ])
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources").join("main.swift")) { contents in
+                contents <<< """
+                    print("hello, world!")
+                """
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoErrors()
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-DTOOLSET_FLAG"])
+                }
+            }
+
+            let updatedToolsetData = try JSONEncoder().encode(SwiftSDK.Toolset(swiftCompiler: .init(extraCLIOptions: ["-DNEW_TOOLSET_FLAG"])))
+            try await localFS.writeFileContents(toolsetPath, waitForNewTimestamp: false) { stream in
+                stream.write(updatedToolsetData)
+            }
+
+            try await tester.checkBuild(runDestination: .host, persistent: true) { results in
+                results.checkNoErrors()
+                results.checkTask(.matchRuleType("SwiftDriver Compilation")) { task in
+                    task.checkCommandLineContains(["-DNEW_TOOLSET_FLAG"])
                 }
             }
         }

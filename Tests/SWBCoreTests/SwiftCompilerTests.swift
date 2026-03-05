@@ -62,9 +62,9 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         }
     }
 
-    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
+    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate {
         state.state.withLock { state in
-            state.events.append(("startSubtask", id.asString))
+            state.events.append(("startSubtask", ""))
             let delegate = TestSwiftParserDelegate(buildOperationIdentifier: buildOperationIdentifier)
             state.subtasks.append((ruleInfo, delegate, executionDescription, interestingPath, serializedDiagnosticsPaths))
             return delegate
@@ -117,8 +117,9 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
     }
 
     /// Check the standard library linking options.
-    @Test(.requireHostOS(.macOS))
-    func standardLibraryLinking() async throws {
+    @Test(
+        .requireHostOS(.macOS)
+    ) func standardLibraryLinkingMacOS() async throws {
         let core = try await getCore()
 
         // Computes the expected standard swift linker arguments.
@@ -126,11 +127,10 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             return localFS.exists(stdlibPath) ? [["-L\(stdlibPath.str)"], ["-L/usr/lib/swift"]] : [["-L/usr/lib/swift"]]
         }
 
-        let spec = try core.specRegistry.getSpec() as SwiftCompilerSpec
+        let spec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
 
         let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
-        let swiftcPath = defaultToolchain.path.join("usr/bin/swiftc")
-
+        let swiftcPath = defaultToolchain.path.join("usr").join("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
         // Check basics.
         do {
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx", toolchain: core.toolchainRegistry.defaultToolchain)
@@ -142,10 +142,22 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
+            let actual = try await spec.computeAdditionalLinkerArgs(
+                producer,
+                scope: scope,
+                lookup: { _ in nil },
+                inputFileTypes: [],
+                optionContext: optionContext,
+                delegate: CapturingTaskGenerationDelegate(
+                    producer: producer,
+                    userPreferences: .defaultForTesting,
+                ),
+            ).args
+            let expected = additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)
+            #expect(actual == expected)
         }
 
-        // Check force static stdlib.
+        // Check force static stdlib on Apple platforms (macOS).
         do {
             let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "macosx")
             let stdlibPath = swiftcPath.dirname.dirname.join("lib/swift_static/fakeos")
@@ -157,7 +169,20 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == (additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)) + [["-Xlinker", "-force_load_swift_libs"], ["-lc++", "-framework", "Foundation"]])
+            // On Apple platforms, should use Apple-specific static linking flags
+            let actual = try await spec.computeAdditionalLinkerArgs(
+                producer,
+                scope: scope,
+                lookup: { _ in nil },
+                inputFileTypes: [],
+                optionContext: optionContext,
+                delegate: CapturingTaskGenerationDelegate(
+                    producer: producer,
+                    userPreferences: .defaultForTesting,
+                ),
+            ).args
+            let expected = (additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)) + [["-Xlinker", "-force_load_swift_libs"], ["-lc++", "-framework", "Foundation"]]
+            #expect(actual == expected)
         }
 
         // Check tool product type.
@@ -171,7 +196,18 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
+            let actual = try await spec.computeAdditionalLinkerArgs(
+                producer,
+                scope: scope, lookup: { _ in nil },
+                inputFileTypes: [],
+                optionContext: optionContext,
+                delegate: CapturingTaskGenerationDelegate(
+                    producer: producer,
+                    userPreferences: .defaultForTesting,
+                ),
+            ).args
+            let expected = additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)
+            #expect(actual == expected)
         }
 
         // Check tool product type forced to dynamic link.
@@ -186,7 +222,19 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
+            let actual = try await spec.computeAdditionalLinkerArgs(
+                producer,
+                scope: scope,
+                lookup: { _ in nil },
+                inputFileTypes: [],
+                optionContext: optionContext,
+                delegate: CapturingTaskGenerationDelegate(
+                    producer: producer,
+                    userPreferences: .defaultForTesting,
+                ),
+            ).args
+            let expected = additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)
+            #expect(actual == expected)
         }
 
         // Check system stdlib option.
@@ -201,17 +249,127 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             let scope = MacroEvaluationScope(table: table)
             let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
             let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            try await #expect(spec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, delegate: CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)).args == ([["-L/usr/lib/swift"]] + additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath)))
+            let actual = try await spec.computeAdditionalLinkerArgs(
+                producer,
+                scope: scope,
+                lookup: { _ in nil },
+                inputFileTypes: [],
+                optionContext: optionContext,
+                delegate: CapturingTaskGenerationDelegate(
+                    producer: producer,
+                    userPreferences: .defaultForTesting,
+                ),
+            ).args
+            let expected = ([["-L/usr/lib/swift"]] + additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath))
+            #expect(actual == expected)
         }
     }
+
+    @Test(
+        arguments: LinkerDriverChoice.allCases.filter { $0 != .auto },
+    )
+    func standardLibraryLinkingAllPlatforms(
+        linkerDriverUT: LinkerDriverChoice
+    ) async throws {
+        try await withKnownIssue(isIntermittent: true) {
+            let core = try await getCore()
+
+            // Computes the expected standard swift linker arguments.
+            func additionalSwiftLinkerArgs(_ spec: CompilerSpec, _ producer: any CommandProducer, _ scope: MacroEvaluationScope, _ stdlibPath: Path) -> [[String]] {
+                return localFS.exists(stdlibPath) ? [["-L\(stdlibPath.str)"], ["-L/usr/lib/swift"]] : [["-L/usr/lib/swift"]]
+            }
+
+            let spec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
+
+            let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
+            let swiftcPath = defaultToolchain.path.join("usr").join("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            // Check force static stdlib on non-Apple platforms (Linux).
+            do {
+                let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "linux")
+                let stdlibPath = swiftcPath.dirname.dirname.join("lib/swift_static/linux")
+                var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+                table.push(BuiltinMacros.SWIFT_EXEC, literal: swiftcPath.str)
+                table.push(BuiltinMacros.SWIFT_STDLIB, literal: "swiftCore")
+                table.push(BuiltinMacros.PLATFORM_NAME, literal: "linux")
+                table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
+                table.push(BuiltinMacros.LINKER_DRIVER, literal: linkerDriverUT)
+                let scope = MacroEvaluationScope(table: table)
+                let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+                let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
+                // On non-Apple platforms, should use standard static linking flags (no Darwin-specific flags)
+                let actual = try await spec.computeAdditionalLinkerArgs(
+                    producer,
+                    scope: scope,
+                    lookup: { _ in nil },
+                    inputFileTypes: [],
+                    optionContext: optionContext,
+                    delegate: CapturingTaskGenerationDelegate(
+                        producer: producer,
+                        userPreferences: .defaultForTesting,
+                    ),
+                ).args
+                let expectedAdditionalArgs: [[String]] = switch linkerDriverUT {
+                    case .swiftc: [["-static-stdlib"]]
+                    case .auto, .clang, .qcc: []
+                }
+                let expected = additionalSwiftLinkerArgs(spec, producer, scope, stdlibPath) +  expectedAdditionalArgs
+                #expect(actual == expected)
+            }
+
+        } when: {
+            linkerDriverUT == .qcc  // qcc support is very rough
+        }
+    }
+
+    #if false
+    // We should get this test working, though I was encountering compilation errors.
+    @Test
+    func standardLibraryLinkingUsingAutoLinkderDriverFails() async throws {
+        try await #require(
+            processExitsWith: .failure,
+        ) {
+            let linkerDriverUT = LinkerDriverChoice.auto
+            let core = try await getCore()
+
+            let spec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
+
+            // let defaultToolchain = try #require(core.toolchainRegistry.defaultToolchain)
+            // let swiftcPath = defaultToolchain.path.join("usr").join("bin").join(core.hostOperatingSystem.imageFormat.executableName(basename: "swiftc"))
+            // Check force static stdlib on non-Apple platforms (Linux).
+            let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: "linux")
+            // let stdlibPath = swiftcPath.dirname.dirname.join("lib/swift_static/linux")
+            var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
+            // table.push(BuiltinMacros.SWIFT_EXEC, literal: swiftcPath.str)
+            // table.push(BuiltinMacros.SWIFT_STDLIB, literal: "swiftCore")
+            table.push(BuiltinMacros.PLATFORM_NAME, literal: "linux")
+            table.push(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, literal: true)
+            table.push(BuiltinMacros.LINKER_DRIVER, literal: linkerDriverUT)
+            let scope = MacroEvaluationScope(table: table)
+            let delegate = TestTaskPlanningDelegate(clientDelegate: MockTestTaskPlanningClientDelegate(), fs: localFS)
+            let optionContext = await spec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
+            // On non-Apple platforms, should use standard static linking flags (no Darwin-specific flags)
+            let _ = try await spec.computeAdditionalLinkerArgs(
+                producer,
+                scope: scope,
+                lookup: { _ in nil },
+                inputFileTypes: [],
+                optionContext: optionContext,
+                delegate: CapturingTaskGenerationDelegate(
+                    producer: producer,
+                    userPreferences: .defaultForTesting,
+                ),
+            )
+        }
+    }
+    #endif
 }
 
 @Suite fileprivate struct SwiftCompilerOutputParserTests: CoreBasedTests {
-    private func makeTestParser() async throws -> (TestSwiftParserDelegate, SwiftCommandOutputParser) {
+    private func makeTestParser() async throws -> (TestSwiftParserDelegate, LegacySwiftCommandOutputParser) {
         let delegate = TestSwiftParserDelegate()
         let core = try await getCore()
         let workspaceContext = try WorkspaceContext(core: core, workspace: TestWorkspace("test", projects: []).load(core), processExecutionCache: .sharedForTesting)
-        let parser = SwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", arch: "ARCH", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil)
+        let parser = LegacySwiftCommandOutputParser(workingDirectory: .root, variant: "VARIANT", arch: "ARCH", workspaceContext: workspaceContext, buildRequestContext: BuildRequestContext(workspaceContext: workspaceContext), delegate: delegate, progressReporter: nil)
         return (delegate, parser)
     }
 
@@ -224,7 +382,7 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
         return stream.bytes
     }
 
-    private func makeTestParserWithMessages(_ messages: [[String: any PropertyListItemConvertible]]) async throws -> (TestSwiftParserDelegate, SwiftCommandOutputParser) {
+    private func makeTestParserWithMessages(_ messages: [[String: any PropertyListItemConvertible]]) async throws -> (TestSwiftParserDelegate, LegacySwiftCommandOutputParser) {
         // Convert the messages into the expected stream.
         let stream = OutputByteStream()
         for message in messages {
@@ -370,13 +528,11 @@ fileprivate final class TestSwiftParserDelegate: TaskOutputParserDelegate, Senda
             parser.close(result: nil)
             #expect(delegate.events.count == 4)
             #expect(delegate.events[safe: 0]?.0 == "startSubtask")
-            #expect(delegate.events[safe: 0]?.1 == "1")
             #expect(delegate.events[safe: 1]?.0 == "output")
             XCTAssertMatch(delegate.events[safe: 1]?.1, .contains("unable to execute"))
             #expect(delegate.events[safe: 2]?.0 == "output")
             XCTAssertMatch(delegate.events[safe: 2]?.1, .contains("not a message"))
             #expect(delegate.events[safe: 3]?.0 == "startSubtask")
-            #expect(delegate.events[safe: 3]?.1 == "2")
         }
     }
 

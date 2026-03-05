@@ -106,7 +106,7 @@
                 DefaultValue = "";
                 Description = "Specifies the name of the binary the target produces.
 
-When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecutable](https://developer.apple.com/documentation/bundleresources/information_property_list/cfbundleexecutable) key in the `Info.plist` file to the value of this build setting.";
+When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecutable](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleexecutable) key in the `Info.plist` file to the value of this build setting.";
             },
             {   Name = EXECUTABLE_PATH;
                 Type = Path;
@@ -253,7 +253,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecut
                 Category = "Search Paths";
             },
             {   Name = FRAMEWORK_SEARCH_PATHS;
-                Type = PathList;
+                Type = PathOrderedSet;
                 DefaultValue = "";
                 ConditionFlavors = ( "arch", "sdk" );
                 Category = "Search Paths";
@@ -831,7 +831,7 @@ When `GENERATE_INFOPLIST_FILE` is enabled, sets the value of the [CFBundleExecut
             },
             {   Name = CHOWN;
                 Type = Path;
-                DefaultValue = "/usr/sbin/chown";
+                DefaultValue = "chown";
             },
             {   Name = CHMOD;
                 Type = Path;

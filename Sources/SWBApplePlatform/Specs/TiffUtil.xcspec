@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Identifier = com.apple.compilers.tiffutil;
+    {
+        _Domain = darwin;
+        Identifier = com.apple.compilers.tiffutil;
         Type = Compiler;
         Name = "TiffUtil";
         Description = "Combine a set of images at different resolutions into one HiDPI compliant file using TiffUtil";

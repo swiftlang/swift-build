@@ -122,9 +122,9 @@ fileprivate final class SwiftCryptoHashContext<HF: HashFunction>: HashContext {
         guard let result = self.result else {
             let digest = hash.finalize()
             let byteCount = type(of: digest).byteCount
-            
+
             var result = [UInt8](repeating: 0, count: Int(byteCount) * 2)
-            
+
             digest.withUnsafeBytes { ptr in
                 for i in 0..<byteCount {
                     let value = ptr[i]
@@ -132,7 +132,7 @@ fileprivate final class SwiftCryptoHashContext<HF: HashFunction>: HashContext {
                     result[i*2 + 1] = hexchar(value & 0x0F)
                 }
             }
-            
+
             let tmp = ByteString(result)
             self.result = tmp
             return tmp

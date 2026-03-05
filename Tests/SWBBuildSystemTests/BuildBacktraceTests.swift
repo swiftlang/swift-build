@@ -66,7 +66,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                         ])
                 ])
 
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS)
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS, buildDescriptionMaxCacheSize: (2, 2))
             let parameters = BuildParameters(configuration: "Debug")
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             let SRCROOT = testWorkspace.sourceRoot.join("aProject")
@@ -92,10 +92,10 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
-                    results.checkBacktrace(task, ["<category='ruleNeverBuilt' description=''Compile foo.c (x86_64)' had never run'>"])
+                    results.checkBacktrace(task, ["<category='ruleNeverBuilt' description=''Compile foo.c (\(results.runDestinationTargetArchitecture))' had never run'>"])
                 }
                 results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("Ld")) { task in
-                    results.checkBacktrace(task, ["<category='ruleNeverBuilt' description=''Link TargetBar (x86_64)' had never run'>"])
+                    results.checkBacktrace(task, ["<category='ruleNeverBuilt' description=''Link TargetBar (\(results.runDestinationTargetArchitecture))' had never run'>"])
                 }
             }
 
@@ -114,19 +114,19 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, [
-                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (x86_64)' changed'>",
+                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
                         "<category='ruleHadInvalidValue' description='file '\(SRCROOT.join("Sources/foo.c").str)' changed'>"
                     ])
                 }
                 results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("Ld")) { task in
                     results.checkBacktrace(task, [
-                        "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (x86_64)' changed'>",
+                        "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed'>",
                         "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/EagerLinkingTBDs/Debug/TargetFoo.framework/Versions/A/TargetFoo.tbd' ran'>",
                         "<category='ruleInputRebuilt' description='an input of 'Generate TBD TargetFoo' changed'>",
                         "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/Debug/TargetFoo.framework/Versions/A/TargetFoo' ran'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Link TargetFoo (x86_64)' changed'>",
-                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/x86_64/foo.o' ran'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (x86_64)' changed'>",
+                        "<category='ruleInputRebuilt' description='an input of 'Link TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
+                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/foo.o' ran'>",
+                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
                         "<category='ruleHadInvalidValue' description='file '\(SRCROOT.str)/Sources/foo.c' changed'>"
                     ])
                 }
@@ -138,15 +138,15 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, [
-                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (x86_64)' changed'>",
-                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/x86_64/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
-                        "<category='ruleSignatureChanged' description='arguments, environment, or working directory of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (x86_64)' changed'>"
+                        "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
+                        "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
+                        "<category='ruleSignatureChanged' description='signature of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (\(results.runDestinationTargetArchitecture))' changed: file contents changed [inserted 'DMY_DEF -']'>"
                     ])
                 }
                 if tester.fs.fileSystemMode == .checksumOnly {
                     results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("CompileC")) { task in
                         results.checkBacktrace(task, [
-                            "<category='ruleSignatureChanged' description='signature of 'Compile bar.c (x86_64)' changed'>"
+                            "<category='ruleSignatureChanged' description='signature of 'Compile bar.c (\(results.runDestinationTargetArchitecture))' changed'>"
                         ])
                     }
                     // Ensure "Ld" is not executed, because contents of "bar.o" are unchanged
@@ -154,11 +154,11 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 } else {
                     results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("Ld")) { task in
                         results.checkBacktrace(task, [
-                            "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (x86_64)' changed'>",
-                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/x86_64/bar.o' ran'>",
-                            "<category='ruleInputRebuilt' description='an input of 'Compile bar.c (x86_64)' changed'>",
-                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/x86_64/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
-                            "<category='ruleSignatureChanged' description='arguments, environment, or working directory of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (x86_64)' changed'>"
+                            "<category='ruleInputRebuilt' description='an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/\(results.runDestinationTargetArchitecture)/bar.o' ran'>",
+                            "<category='ruleInputRebuilt' description='an input of 'Compile bar.c (\(results.runDestinationTargetArchitecture))' changed'>",
+                            "<category='ruleInputRebuilt' description='the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetBar.build/Objects-normal/\(results.runDestinationTargetArchitecture)/7187679823f38a2a940e0043cdf9d637-common-args.resp' ran'>",
+                            "<category='ruleSignatureChanged' description='signature of 'Write 7187679823f38a2a940e0043cdf9d637-common-args.resp (\(results.runDestinationTargetArchitecture))' changed: file contents changed [inserted 'DMY_DEF -']'>"
                         ])
                     }
                 }
@@ -220,14 +220,14 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     results.checkBacktrace(task, [
                         "<category='dynamicTaskRegistration' description=''>",
                         "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleNeverBuilt' description=''Compile TargetFoo (x86_64)' had never run'>"
+                        "<category='ruleNeverBuilt' description=''Compile TargetFoo (\(results.runDestinationTargetArchitecture))' had never run'>"
                     ])
                 }
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftCompile")) { task in
                     results.checkBacktrace(task, [
                         "<category='dynamicTaskRegistration' description=''>",
                         "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleNeverBuilt' description=''Compile TargetFoo (x86_64)' had never run'>"
+                        "<category='ruleNeverBuilt' description=''Compile TargetFoo (\(results.runDestinationTargetArchitecture))' had never run'>"
                     ])
                 }
             }
@@ -236,7 +236,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 file <<<
                     """
                     func foo() {}
-                    
+
                     func bar() {}
                     """
             }
@@ -247,7 +247,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     results.checkBacktrace(task, [
                         "<category='dynamicTaskRegistration' description=''>",
                         "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (x86_64)' changed'>",
+                        "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
                         "<category='ruleHadInvalidValue' description='file '\(tmpDirPath.str)/Test/aProject/Sources/foo.swift' changed'>"
                     ])
                 }
@@ -255,7 +255,7 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                     results.checkBacktrace(task, [
                         "<category='dynamicTaskRegistration' description=''>",
                         "<category='dynamicTaskRequest' description='task was scheduled by the Swift driver'>",
-                        "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (x86_64)' changed'>",
+                        "<category='ruleInputRebuilt' description='an input of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed'>",
                         "<category='ruleHadInvalidValue' description='file '\(tmpDirPath.str)/Test/aProject/Sources/foo.swift' changed'>"
                     ])
                 }
@@ -314,13 +314,13 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
-            try tester.fs.remove(SRCROOT.join("build/aProject.build/Debug/TargetFoo.build/Objects-normal/x86_64/foo.o"))
+            try tester.fs.remove(SRCROOT.join("build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(RunDestinationInfo.host.targetArchitecture)/foo.o"))
 
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
                     results.checkBacktrace(task, [
-                        "<category='ruleHadInvalidValue' description='outputs of 'Compile foo.c (x86_64)' were missing or modified'>",
+                        "<category='ruleHadInvalidValue' description='outputs of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' were missing or modified'>",
                     ])
                 }
             }
@@ -560,16 +560,120 @@ fileprivate struct BuildBacktraceTests: CoreBasedTests {
                 results.checkNoDiagnostics()
                 results.checkTask(.matchTargetName("TargetBar"), .matchRuleType("Ld")) { task in
                     results.checkTextualBacktrace(task, """
-                    #0: an input of 'Link TargetBar (x86_64)' changed
+                    #0: an input of 'Link TargetBar (\(results.runDestinationTargetArchitecture))' changed
                     #1: the task producing file '\(SRCROOT.str)/build/EagerLinkingTBDs/Debug/TargetFoo.framework/Versions/A/TargetFoo.tbd' ran
                     #2: an input of 'Generate TBD TargetFoo' changed
                     #3: the task producing file '\(SRCROOT.str)/build/Debug/TargetFoo.framework/Versions/A/TargetFoo' ran
-                    #4: an input of 'Link TargetFoo (x86_64)' changed
-                    #5: the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/x86_64/foo.o' ran
-                    #6: an input of 'Compile foo.c (x86_64)' changed
+                    #4: an input of 'Link TargetFoo (\(results.runDestinationTargetArchitecture))' changed
+                    #5: the task producing file '\(SRCROOT.str)/build/aProject.build/Debug/TargetFoo.build/Objects-normal/\(results.runDestinationTargetArchitecture)/foo.o' ran
+                    #6: an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed
                     #7: file '\(SRCROOT.str)/Sources/foo.c' changed
-                    
+
                     """)
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func signatureDiffing() async throws {
+        try await withTemporaryDirectory { tmpDirPath async throws -> Void in
+            let testWorkspace = try await TestWorkspace(
+                "Test",
+                sourceRoot: tmpDirPath.join("Test"),
+                projects: [
+                    TestProject(
+                        "aProject",
+                        groupTree: TestGroup(
+                            "Sources",
+                            path: "Sources",
+                            children: [
+                                TestFile("foo.c"),
+                                TestFile("bar.swift"),
+                            ]),
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "SWIFT_VERSION": swiftVersion
+                                ])
+                        ],
+                        targets: [
+                            TestStandardTarget(
+                                "TargetFoo",
+                                type: .staticLibrary,
+                                buildPhases: [
+                                    TestSourcesBuildPhase([
+                                        "foo.c",
+                                        "bar.swift"
+                                    ]),
+                                ]),
+                        ])
+                ])
+
+            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false, fileSystem: localFS, buildDescriptionMaxCacheSize: (2, 2))
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+            let SRCROOT = testWorkspace.sourceRoot.join("aProject")
+
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/foo.c")) { file in
+                file <<<
+                    """
+                    int foo(void) {
+                        return 1;
+                    }
+                    """
+            }
+            try await tester.fs.writeFileContents(SRCROOT.join("Sources/bar.swift")) { file in
+                file <<<
+                    """
+                    func bar() -> Int {
+                        return 2
+                    }
+                    """
+            }
+
+            try await tester.checkBuild(runDestination: .host, buildRequest: buildRequest, persistent: true) { results in
+                results.checkNoDiagnostics()
+                results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
+                    results.checkBacktrace(task, ["<category='ruleNeverBuilt' description=''Compile foo.c (\(results.runDestinationTargetArchitecture))' had never run'>"])
+                }
+            }
+
+            try await tester.checkNullBuild(runDestination: .host, buildRequest: buildRequest, persistent: true)
+
+            do {
+                let modifiedParameters = BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "MY_DEF",])
+                let modifiedBuildRequest = BuildRequest(parameters: modifiedParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: modifiedParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+                try await tester.checkBuild(runDestination: .host, buildRequest: modifiedBuildRequest, persistent: true) { results in
+                    results.checkNoDiagnostics()
+                    results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC")) { task in
+                        results.checkBacktrace(task, [
+                            "<category='ruleInputRebuilt' description='an input of 'Compile foo.c (\(results.runDestinationTargetArchitecture))' changed'>",
+                            .regex(#/<category='ruleInputRebuilt' description='the task producing file '.*-common-args.resp' ran'>/#),
+                            .regex(#/<category='ruleSignatureChanged' description='signature of 'Write .*-common-args.resp \(.*\)' changed: file contents changed \[inserted 'DMY_DEF -'\]'>/#)
+                        ])
+                    }
+                    results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftDriver Compilation")) { task in
+                        results.checkBacktrace(task, [
+                            "<category='ruleSignatureChanged' description='signature of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed: command line changed [inserted '-Xcc', inserted '-DMY_DEF']\'>"
+                        ])
+                    }
+                }
+            }
+
+            do {
+                let modifiedParameters = BuildParameters(configuration: "Debug", overrides: ["GCC_PREPROCESSOR_DEFINITIONS": "MY_DEF", "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "MY_SWIFT_DEF"])
+                let modifiedBuildRequest = BuildRequest(parameters: modifiedParameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: modifiedParameters, target: $0) }), dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+                try await tester.checkBuild(runDestination: .host, buildRequest: modifiedBuildRequest, persistent: true) { results in
+                    results.checkNoDiagnostics()
+                    results.checkNoTask(.matchTargetName("TargetFoo"), .matchRuleType("CompileC"))
+                    results.checkTask(.matchTargetName("TargetFoo"), .matchRuleType("SwiftDriver Compilation")) { task in
+                        results.checkBacktrace(task, [
+                            "<category='ruleSignatureChanged' description='signature of 'Compile TargetFoo (\(results.runDestinationTargetArchitecture))' changed: command line changed [inserted '-DMY_SWIFT_DEF']\'>"
+                        ])
+                    }
                 }
             }
         }

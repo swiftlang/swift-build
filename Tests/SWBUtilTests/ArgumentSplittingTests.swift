@@ -283,4 +283,13 @@ import Testing
         #expect(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, joinSequence: " ", encodingBehavior: .fullCommandLine)?.encode(["This", "is", "typical"]) == "This is typical")
         #expect(UNIXShellCommandCodec(encodingStrategy: .singleQuotes, joinSequence: "   ", encodingBehavior: .fullCommandLine)?.encode(["This", "is", "apparently", "more", "readable"]) == "This   is   apparently   more   readable")
     }
+
+    @Test
+    func windowsProcessArgsEncoding() {
+        #expect(WindowsProcessArgumentsCodec().encode([#"normalarg"#]) == #"normalarg"#)
+        #expect(WindowsProcessArgumentsCodec().encode([#"argument with spaces"#]) == #""argument with spaces""#)
+        #expect(WindowsProcessArgumentsCodec().encode([#"\windows\path\ending\in\backslash\"#]) == #"\windows\path\ending\in\backslash\"#)
+        #expect(WindowsProcessArgumentsCodec().encode([#"\windows\path\with space\ending\in\backslash\"#]) == #""\windows\path\with space\ending\in\backslash\\""#)
+        #expect(WindowsProcessArgumentsCodec().encode([#"has"quote"#]) == #""has\"quote""#)
+    }
 }

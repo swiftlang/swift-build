@@ -17,7 +17,7 @@ import Testing
 import SWBProtocol
 import SWBTestSupport
 @_spi(Testing) import SWBUtil
-import SWBMacro
+@_spi(Testing) import SWBMacro
 @_spi(Testing) import SWBCore
 
 @Suite fileprivate struct SettingsTests: CoreBasedTests {
@@ -284,7 +284,7 @@ import SWBMacro
             #expect(settings.errors == [])
 
             // Verify that the global scope has the expected conditions (sdk and config).
-            #expect(Set(settings.globalScope.conditionParameterValues.keys) == Set([BuiltinMacros.sdkCondition, BuiltinMacros.configurationCondition, BuiltinMacros.sdkBuildVersionCondition]))
+            #expect(Set(settings.globalScope.conditionParameterValues.keys) == Set([BuiltinMacros.sdkCondition, BuiltinMacros.targetNameCondition, BuiltinMacros.configurationCondition, BuiltinMacros.sdkBuildVersionCondition]))
 
             // Verify that the target configuration was captured.  Notice that this is *not* the configuration the build parameters were configured with.
             #expect(settings.targetConfiguration?.name == "Config1")
@@ -397,7 +397,7 @@ import SWBMacro
                 if let project = settings.project {
                     #expect(settings.globalScope.evaluate(BuiltinMacros.OBJROOT) == Path("\(project.sourceRoot.str)/build"))
                     #expect(settings.globalScope.evaluate(BuiltinMacros.CONFIGURATION_BUILD_DIR) == Path("\(project.sourceRoot.str)/build/Config1"))
-                    #expect(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH) == "\(project.sourceRoot.str)/build/ExplicitPrecompiledModules")
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH).str == "\(project.sourceRoot.str)/build/ExplicitPrecompiledModules")
                 }
 
                 // check that we get the right value for VERSION_INFO_STRING, which validates we parsed it correctly.
@@ -1005,9 +1005,9 @@ import SWBMacro
 
             final class TestDataDelegate : SDKRegistryDelegate {
                 let namespace: MacroNamespace
-                let pluginManager: PluginManager
+                let pluginManager: any PluginManager
                 private let _diagnosticsEngine = DiagnosticsEngine()
-                init(_ namespace: MacroNamespace, pluginManager: PluginManager) {
+                init(_ namespace: MacroNamespace, pluginManager: any PluginManager) {
                     self.namespace = namespace
                     self.pluginManager = pluginManager
                 }
@@ -1773,7 +1773,7 @@ import SWBMacro
         #expect(!core.platformRegistry.platforms.isEmpty)
         for developmentTeam in ["ABCDWXYZ", ""] {
             for platform in core.platformRegistry.platforms {
-                if ["android", "freebsd", "linux", "qnx", "windows"].contains(platform.name) {
+                if ["android", "freebsd", "linux", "none", "qnx", "windows"].contains(platform.name) {
                     continue
                 }
                 for sdk in platform.sdks {
@@ -2450,9 +2450,9 @@ import SWBMacro
             }
             final class TestDataDelegate : SDKRegistryDelegate {
                 let namespace: MacroNamespace
-                let pluginManager: PluginManager
+                let pluginManager: any PluginManager
                 private let _diagnosticsEngine = DiagnosticsEngine()
-                init(_ namespace: MacroNamespace, pluginManager: PluginManager) {
+                init(_ namespace: MacroNamespace, pluginManager: any PluginManager) {
                     self.namespace = namespace
                     self.pluginManager = pluginManager
                 }
@@ -4897,8 +4897,9 @@ import SWBMacro
                             baseConfig: "Project.xcconfig",
                             buildSettings: [
                                 "SDKROOT": "macosx",
-                                "OTHER_CFLAGS": "$(inherited) Project",
-                                "OTHER_LDFLAGS[target=Target]": "$(inherited) Project",
+                                // Use $(inherited) so that higher-precedence strings appear first in the list.
+                                "OTHER_CFLAGS": "Project $(inherited)",
+                                "OTHER_LDFLAGS[target=Target]": "Project $(inherited)",
                                 "SUPPORTED_PLATFORMS": "$(AVAILABLE_PLATFORMS)",
                                 "SUPPORTS_MACCATALYST": "YES",
                             ])
@@ -4927,21 +4928,26 @@ import SWBMacro
                 let settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject, target: testProject.targets[0])
 
                 do {
-                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["XCConfig", "Project"])
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["Project", "XCConfig"])
                     let macro = settings.globalScope.table.lookupMacro(BuiltinMacros.OTHER_CFLAGS)
                     #expect(macro != nil)
+                    // The project object assignment.
                     #expect(macro?.location == nil)
+                    // The xcconfig file assignment.
                     #expect(macro?.next?.location == .init(path: projectXcconfigPath, startLine: 1, endLine: 1, startColumn: 15, endColumn: 24))
                     #expect(macro?.next?.next == nil)
                 }
 
                 do {
-                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS) == ["XCConfig", "Project"])
+                    #expect(settings.globalScope.evaluate(BuiltinMacros.OTHER_LDFLAGS) == ["Project", "XCConfig"])
                     let macro = settings.globalScope.table.lookupMacro(BuiltinMacros.OTHER_LDFLAGS)
                     #expect(macro != nil)
+                    // The project object assignment.
                     #expect(macro?.location == nil)
+                    // The xcconfig file assignment.
                     #expect(macro?.next?.location == .init(path: projectXcconfigPath, startLine: 2, endLine: 2, startColumn: 31, endColumn: 40))
-                    #expect(macro?.next?.next == nil)
+                    // I think macro?.next?.next is an empty value from defaults or maybe from constructing the Settings object.
+                    #expect(macro?.next?.next?.next == nil)
                 }
             }
         }
@@ -5371,7 +5377,7 @@ import SWBMacro
         #include \"\(Path.root.join("tmp/A.xcconfig").strWithPosixSlashes)\"
         #include \"\(Path.root.join("tmp/D.xcconfig").strWithPosixSlashes)\"
         #include \"\(Path.root.join("tmp/E.xcconfig").strWithPosixSlashes)\"
-        
+
         """
 
         let info = buildRequestContext.loadSettingsFromConfig(data: ByteString(encodingAsUTF8: data), path: Path.root.join("mock/base/path"), namespace: MacroNamespace(), searchPaths: [Path]())
@@ -5393,7 +5399,7 @@ import SWBMacro
         let data: String = """
         #include "\(Path.root.join("tmp/A").strWithPosixSlashes)"
         #include "\(Path.root.join("tmp/B").strWithPosixSlashes)"
-        
+
         """
 
         let buildRequestContext = BuildRequestContext(workspaceContext: context)
@@ -5477,10 +5483,10 @@ import SWBMacro
 
         let parameters = BuildParameters(action: .build, configuration: "Debug")
         var settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        let originalSignature = settings.macroConfigSignature
+        let originalSignature = settings.inputPathsAffectingSettingsSignature
 
         settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        #expect(originalSignature == settings.macroConfigSignature)
+        #expect(originalSignature == settings.inputPathsAffectingSettingsSignature)
     }
 
     @Test
@@ -5491,12 +5497,12 @@ import SWBMacro
 
         let parameters = BuildParameters(action: .build, configuration: "Debug")
         var settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        let originalSignature = settings.macroConfigSignature
+        let originalSignature = settings.inputPathsAffectingSettingsSignature
 
         try context.fs.write(Path.root.join("tmp/xcconfigs/Base0.xcconfig"), contents: "XCCONFIG_USER_SETTING = changed\n")
 
         settings = Settings(workspaceContext: context, buildRequestContext: buildRequestContext, parameters: parameters, project: testProject)
-        #expect(originalSignature != settings.macroConfigSignature)
+        #expect(originalSignature != settings.inputPathsAffectingSettingsSignature)
     }
 
     func evaluateXCConfigFiles(_ files: [Path: String], primary: Path) async throws {
@@ -5629,6 +5635,28 @@ import SWBMacro
 
             let otherCflagsValues = BuiltinMacros.ifSet(BuiltinMacros.OTHER_CFLAGS, in: scope) { ["blah", $0] }
             #expect(otherCflagsValues == ["blah", "-Wall", "blah", "-O3"])
+        }
+
+        @Test
+        func tripleCondition() async throws {
+            let namespace = try await getCore().specRegistry.internalMacroNamespace
+            var table = MacroValueAssignmentTable(namespace: namespace)
+
+            table.push(
+                BuiltinMacros.OTHER_CFLAGS,
+                literal: ["-DARM64_APPLE_IOS"],
+                conditions: .init(conditions: [MacroCondition(parameter: BuiltinMacros.normalizedUnversionedTripleCondition, valuePattern: "arm64-apple-ios")])
+            )
+
+            do {
+                let scope = MacroEvaluationScope(table: table).subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: "arm64-apple-ios26.0")
+                #expect(scope.evaluate(BuiltinMacros.OTHER_CFLAGS) == ["-DARM64_APPLE_IOS"])
+            }
+
+            do {
+                let scope = MacroEvaluationScope(table: table).subscope(binding: BuiltinMacros.normalizedUnversionedTripleCondition, to: "arm64-apple-macos")
+                #expect(scope.evaluate(BuiltinMacros.OTHER_CFLAGS) == [])
+            }
         }
     }
 }

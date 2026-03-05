@@ -40,7 +40,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
     }
 
     // FIXME: Ideally this would just go in the spec itself
-    public override func commandLineFromOptions(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, optionContext: (any BuildOptionGenerationContext)?, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
+    public override func commandLineFromOptions(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, optionContext: (any BuildOptionGenerationContext)?, buildOptionsFilter: BuildOptionsFilter, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
         let innerLookup: ((MacroDeclaration) -> MacroExpression?) = { macro in
             switch macro {
             case BuiltinMacros.TAPI_HEADER_SEARCH_PATHS:
@@ -67,7 +67,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
 
         let tapiFileListArgs: [CommandLineArgument] = ["-filelist", .path(Path(cbc.scope.evaluate(BuiltinMacros.TapiFileListPath, lookup: lookup)))]
 
-        return super.commandLineFromOptions(cbc, delegate, optionContext: optionContext, lookup: requiresSRCROOTSupport ? innerLookup : lookup) + tapiFileListArgs
+        return super.commandLineFromOptions(cbc, delegate, optionContext: optionContext, buildOptionsFilter: buildOptionsFilter, lookup: requiresSRCROOTSupport ? innerLookup : lookup) + tapiFileListArgs
     }
 
     /// Construct a new task to run the TAPI tool.
@@ -75,7 +75,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
         let scope = cbc.scope
         let useOnlyFilelist = scope.evaluate(BuiltinMacros.TAPI_ENABLE_PROJECT_HEADERS) || scope.evaluate(BuiltinMacros.TAPI_USE_SRCROOT)
 
-        let runpathSearchPaths = await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: scope.evaluate(BuiltinMacros.TAPI_RUNPATH_SEARCH_PATHS), isUsingSwift: !generatedTBDFiles.isEmpty)
+        let runpathSearchPaths = await LdLinkerSpec.computeRPaths(cbc, delegate, inputRunpathSearchPaths: scope.evaluate(BuiltinMacros.TAPI_RUNPATH_SEARCH_PATHS), isUsingSwift: !generatedTBDFiles.isEmpty).paths
         let runpathSearchPathsExpr = scope.namespace.parseStringList(runpathSearchPaths)
 
         // Create a lookup closure for build setting overrides.
@@ -120,7 +120,7 @@ public final class TAPIToolSpec : GenericCommandLineToolSpec, GCCCompatibleCompi
             let producer = cbc.producer
             let swiftCompilerSpec = producer.swiftCompilerSpec
             let optionContext = await swiftCompilerSpec.discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-            commandLine += await swiftCompilerSpec.computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: [], optionContext: optionContext, forTAPI: true, delegate: delegate).args.flatMap({ $0 })
+            commandLine += await swiftCompilerSpec.computeAdditionalLinkerArgs(producer, scope: scope, lookup: { _ in nil }, inputFileTypes: [], optionContext: optionContext, forTAPI: true, delegate: delegate).args.flatMap({ $0 })
 
             if !scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTERFACE_HEADER_NAME).isEmpty && scope.evaluate(BuiltinMacros.SWIFT_INSTALL_OBJC_HEADER) {
                 let generatedHeaderPath = SwiftCompilerSpec.generatedObjectiveCHeaderOutputPath(scope).str

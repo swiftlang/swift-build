@@ -356,6 +356,32 @@ final class MacroEvaluationProgram: Serializable, Sendable {
 
     /// Executes the “macro evaluation program” within `context`, which provides all the state needed for macro value lookup.  Any emitted output will be added to `resultBuilder`.  If `alwaysEvalAsString` is true, all macro evaluation instructions will evaluate the string form of the looked-up macro value — otherwise, only the instructions whose `asString` flag is true will be evaluated as strings, and the others will evaluate as whatever the native form of the value is (string or string list).
     func executeInContext(_ context: MacroEvaluationContext, withResultBuilder resultBuilder: MacroEvaluationResultBuilder, alwaysEvalAsString: Bool = false) {
+        // Use stack to avoid stack overflow when evaluating deeply nested macro expressions.
+        //
+        // Each frame on the stack represents an in-progress evaluation of a macro expression.
+        // When we need to evaluate a nested macro, instead of making a recursive call,
+        // we push the current state onto the stack and start evaluating the nested expression.
+        // When we complete an expression evaluation, we pop the stack and continue.
+        //
+        // We use a class so that we can share the subresults array between parent and child frames
+        // when the child needs to output to the parent's subresult buffer.
+        final class EvaluationFrame {
+            let instructions: [EvalInstr]
+            var instructionIndex: Int = 0
+            let context: MacroEvaluationContext
+            let resultBuilder: MacroEvaluationResultBuilder
+            let alwaysEvalAsString: Bool
+            // Stack of subresult buffers.  All instructions that affect buffers apply to the top one on this stack.
+            var subresults: [MacroEvaluationResultBuilder] = []
+
+            init(instructions: [EvalInstr], context: MacroEvaluationContext, resultBuilder: MacroEvaluationResultBuilder, alwaysEvalAsString: Bool) {
+                self.instructions = instructions
+                self.context = context
+                self.resultBuilder = resultBuilder
+                self.alwaysEvalAsString = alwaysEvalAsString
+            }
+        }
+
         // Extract the variant.
         let instructions: [EvalInstr]
         switch variant {
@@ -370,107 +396,130 @@ final class MacroEvaluationProgram: Serializable, Sendable {
             instructions = value
         }
 
-        // Stack of subresult buffers.  All instructions that affect buffers apply to the top one on this stack.
-        var subresults: [MacroEvaluationResultBuilder] = []
+        var stack: [EvaluationFrame] = [
+            EvaluationFrame(
+                instructions: instructions,
+                context: context,
+                resultBuilder: resultBuilder,
+                alwaysEvalAsString: alwaysEvalAsString,
+            )
+        ]
 
-        // Iterate over all the instructions in order.  We currently don’t have any branching or conditional instructions, so this is very simple.
-        for instr in instructions {
+        while let frame = stack.last {
+            guard frame.instructionIndex < frame.instructions.count else {
+                // If any new subresult buffers were created (using the `BeginSubresult` instruction), they should have all been consumed again (using either `EvalNamedMacro` or `MergeSubresult` instructions) by now.
+                assert(frame.subresults.isEmpty, "Subresult buffers should be consumed by the end of evaluation")
+                stack.removeLast()
+                continue
+            }
+
+            // Iterate over all the instructions in order.  We currently don’t have any branching or conditional instructions, so this is very simple.
+            let instr = frame.instructions[frame.instructionIndex]
+            frame.instructionIndex += 1
+
             switch instr {
 
-              case .appendLiteral(let s):
+            case .appendLiteral(let s):
                 // Emit a literal sequence of characters to the result buffer.  Even an empty string can have significant meaning if it causes a pending list element separator to be made real, so we don’t take any shortcuts here by checking for empty string or anything like that.  Any instruction that is actually unnecessary should have already been optimized out by the instruction generation logic anyway.
-                (subresults.last ?? resultBuilder).append(s)
+                (frame.subresults.last ?? frame.resultBuilder).append(s)
 
-              case .appendStringFormOnlyLiteral(let s):
+            case .appendStringFormOnlyLiteral(let s):
                 // Emit a literal sequence of characters to the result buffer, as with `.appendLiteral`, but only if 'alwaysEvalAsString' is true.  This is used for whitespace, quotes, and escape characters that appear in the string form but not the string list form.  This allows the same macro evaluation program to be used for both the string form and the string list form.
-                if alwaysEvalAsString {
-                    (subresults.last ?? resultBuilder).append(s)
+                if frame.alwaysEvalAsString {
+                    (frame.subresults.last ?? frame.resultBuilder).append(s)
                 }
 
-              case .setNeedsListSeparator(let s):
+            case .setNeedsListSeparator(let s):
                 // Either set a list separator or add a string-list-form-only substring (such as whitespace) to the result buffer, depending on whether or not the caller wants us to always execute the evaluation program as a string.  Note that we don’t look at `allEvalsAreStrings` here — that refers to evaluation of any embedded macro references.
-                if alwaysEvalAsString {
+                if frame.alwaysEvalAsString {
                     // Add the whitespace which was captured for this separator in the string form.
-                    (subresults.last ?? resultBuilder).append(s)
-                }
-                else {
+                    (frame.subresults.last ?? frame.resultBuilder).append(s)
+                } else {
                     // Tell the result builder that we’ll need a list element separator.  This doesn’t add one immediately, but rather sets a flag so that the next `.appendLiteral` instruction will cause a list separator to be added.  This allows us to, for example, concatenate a completely empty array without getting extraneous list separators.
-                    (subresults.last ?? resultBuilder).setNeedsListElementSeparator()
+                    (frame.subresults.last ?? frame.resultBuilder).setNeedsListElementSeparator()
                 }
 
-              case .beginSubresult:
+            case .beginSubresult:
                 // Push a new, empty buffer onto the top of the subresult stack.  This must be balanced by one of the below instructions that use and pop result buffers off the stack.
-                let subresult = MacroEvaluationResultBuilder()
-                subresults.append(subresult)
+                frame.subresults.append(MacroEvaluationResultBuilder())
 
-              case .evalNamedMacro(let asString, let preservesOriginal):
-                // Pop the topmost subresult buffer, and use its contents as the name of a macro to evaluate.  It’s an internal error if the subresult stack is empty.
-                let nb = subresults.popLast()!
+            case .evalNamedMacro(let asString, let preservesOriginal):
+                // Pop the topmost subresult buffer, and use its contents as the name of a macro to evaluate.  It’s an internal error if frame the subresult stack is empty.
+                let nb = frame.subresults.popLast()!
                 let s = nb.buildString()
                 // Look up the declaration (if any) for the macro name.
-                if let macro = lookupMacroInContext(context, name: s) {
+                if let macro = lookupMacroInContext(frame.context, name: s) {
                     // Find the next value (if any) in the list of values for that macro name.
-                    if let value = context.nextValueForMacro(macro) {
+                    if let value = frame.context.nextValueForMacro(macro) {
                         // We found a value, so we evaluate its associated "macro evaluation program” into it the topmost subresult buffer.  Note that multiple programs often contribute to the same buffer, e.g. in "$(X)/$(Y)".
-                        value.expression.evaluate(context: MacroEvaluationContext(scope: context.scope, macro: macro, value: value, parent: context), resultBuilder: subresults.last!, alwaysEvalAsString: asString || alwaysEvalAsString)
-                    }
-                    else {
+                        // We don't use `value.expression.evaluate(context:resultBuilder:alwaysEvalAsString)` to avoid stack overflow when evaluating deeply nested macro expressions.
+                        switch value.expression.evalProgram.variant {
+                        case .empty:
+                            break
+                        case .literal(let literalStr):
+                            (frame.subresults.last ?? frame.resultBuilder).append(literalStr)
+                        case .instructions(let nestedInstructions):
+                            let nextFrame = EvaluationFrame(
+                                instructions: nestedInstructions,
+                                context: MacroEvaluationContext(scope: frame.context.scope, macro: macro, value: value, parent: frame.context),
+                                resultBuilder: frame.subresults.last ?? frame.resultBuilder,
+                                alwaysEvalAsString: asString || frame.alwaysEvalAsString,
+                            )
+                            // Frame will be processed in the next iteration. The current frame remains on the stack and will continue after the nested frame completes
+                            stack.append(nextFrame)
+                        }
+                    } else {
                         if preservesOriginal {
                             // If we are preserving the original string, we append it now.
-                            (subresults.last ?? resultBuilder).append("$" + s)
+                            (frame.subresults.last ?? frame.resultBuilder).append("$" + s)
                         } else {
                             // It’s a known macro but no value has been defined for it.  If it’s a boolean or a string we substitute the empty string.
                             if macro.type == .boolean || macro.type == .string {
-                                (subresults.last ?? resultBuilder).append("")
+                                (frame.subresults.last ?? frame.resultBuilder).append("")
                             }
                         }
                     }
-                }
-                else {
+                } else {
                     // It’s an unknown macro, so we cannot possibly have any definition for it — this should really be reported back as an error, and we should refine the API so that we can tell the calling context about it.  For now we silently append either the original string, if we've been asked to preserve it.
                     if preservesOriginal {
-                        (subresults.last ?? resultBuilder).append("$" + s)
+                        (frame.subresults.last ?? frame.resultBuilder).append("$" + s)
                     }
                 }
 
-              case .mergeSubresult:
+            case .mergeSubresult:
                 // Pop the topmost subresult buffer, and merge its contents into the buffer below it buffer.  It’s an internal error if the subresult stack is empty.
-                let nb = subresults.popLast()!
-                (subresults.last ?? resultBuilder).appendContentsOfResultBuilder(nb)
+                let nb = frame.subresults.popLast()!
+                (frame.subresults.last ?? frame.resultBuilder).appendContentsOfResultBuilder(nb)
 
-              case .applyRetrievalOperator(let op):
+            case .applyRetrievalOperator(let op):
                 // Pop the topmost subresult buffer, and apply the retrieval operator to each of its elements.  This results in a new equivalent subresult buffer, which we then push.  It’s an internal error if the subresult stack is empty.
-                let sb = subresults.popLast()!
+                let sb = frame.subresults.popLast()!
                 let nb = MacroEvaluationResultBuilder()
                 sb.enumerateListElementSubstrings() { elem in
                     nb.append(op.apply(to: elem))
                     nb.setNeedsListElementSeparator()
                 }
-                subresults.append(nb)
+                frame.subresults.append(nb)
 
-              case .applyReplacementOperator(let op):
+            case .applyReplacementOperator(let op):
                 // Pop the topmost subresult buffer, and apply the retrieval operator to each of its elements.  This results in a new equivalent subresult buffer, which we then push.  It’s an internal error if the subresult stack is empty.
-                let operand = subresults.popLast()!.buildString()
-                let sb = subresults.popLast()!
+                let operand = frame.subresults.popLast()!.buildString()
+                let sb = frame.subresults.popLast()!
                 let nb = MacroEvaluationResultBuilder()
                 if sb.hasHadAnyTextAppended {
                     sb.enumerateListElementSubstrings() { elem in
                         nb.append(op.apply(to: elem, withReplacement: operand))
                         nb.setNeedsListElementSeparator()
                     }
-                }
-                else {
+                } else {
                     // Special case: If the subresult buffer is empty, but the operator wants to be applied even to empty results, then we do so here, applying it to an empty string.
                     if op.applyToEmptyResult {
                         nb.append(op.apply(to: "", withReplacement: operand))
                     }
                 }
-                subresults.append(nb)
+                frame.subresults.append(nb)
             }
         }
-
-        // If any new subresult buffers were created (using the `BeginSubresult` instruction), they should have all been consumed again (using either `EvalNamedMacro` or `MergeSubresult` instructions) by now.
-        assert(subresults.isEmpty)
     }
 
     // Serialization

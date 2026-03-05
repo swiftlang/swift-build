@@ -101,6 +101,7 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<PackageResourceTargetKind>
         case "VALIDATE_DEPENDENCIES",
             "VALIDATE_MODULE_DEPENDENCIES",
+            "VALIDATE_HEADER_DEPENDENCIES",
             "VALIDATE_DEVELOPMENT_ASSET_PATHS":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<BooleanWarningLevel>
         case "STRIP_STYLE":
@@ -115,6 +116,14 @@ private final class EnumBuildOptionType : BuildOptionType {
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<LinkerDriverChoice>
         case "SWIFT_API_DIGESTER_MODE":
             return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<SwiftAPIDigesterMode>
+        case "LINKER_FILE_LIST_FORMAT":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<ResponseFileFormat>
+        case "LIBTOOL_FILE_LIST_FORMAT":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<ResponseFileFormat>
+        case "LINKER_RESPONSE_FILE_FORMAT":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<ResponseFileFormat>
+        case "DOCC_MINIMUM_ACCESS_LEVEL":
+            return try namespace.declareEnumMacro(name) as EnumMacroDeclaration<DoccMinimumAccessLevel>
         default:
             return try namespace.declareStringMacro(name)
         }
@@ -165,6 +174,15 @@ private final class PathListBuildOptionType : BuildOptionType {
         return try namespace.declarePathListMacro(name)
     }
 }
+private final class PathOrderedSetBuildOptionType : BuildOptionType {
+    let typeName = "PathOrderedSet"
+    let isListType = true
+    let supportsValuesDefinitions = false
+
+    func declareMacro(_ namespace: MacroNamespace, _ name: String) throws -> MacroDeclaration {
+        return try namespace.declarePathOrderedSetMacro(name)
+    }
+}
 private final class ProvisioningProfileBuildOptionType : BuildOptionType {
     let typeName = "ProvisioningProfile"
     let isListType = false
@@ -188,6 +206,7 @@ private let boolBuildOptionBoolType = BoolBuildOptionType()
 private let enumBuildOptionEnumType = EnumBuildOptionType()
 private let pathBuildOptionType = PathBuildOptionType()
 private let pathListBuildOptionType = PathListBuildOptionType()
+private let pathOrderedSetBuildOptionType = PathOrderedSetBuildOptionType()
 private let stringBuildOptionType = StringBuildOptionType()
 private let stringListBuildOptionType = StringListBuildOptionType()
 
@@ -212,6 +231,8 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     "Path": pathBuildOptionType,
     "pathlist": pathListBuildOptionType,
     "PathList": pathListBuildOptionType,
+    "pathOrderedSet": pathOrderedSetBuildOptionType,
+    "PathOrderedSet": pathOrderedSetBuildOptionType,
     "ProvisioningProfile": ProvisioningProfileBuildOptionType(),
     "ProvisioningProfileSpecifier": ProvisioningProfileSpecifierBuildOptionType(),
 ]
@@ -345,7 +366,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     let inputInclusions: [MacroStringExpression]?
 
     /// Additional output dependencies to consider when this build option is active.
-    let outputDependencies: [MacroStringExpression]?
+    let outputDependencies: [(path: MacroStringExpression, fileType: MacroStringExpression?)]?
 
     /// Helper function for extract an individual value definition from a dictionary.
     private static func parseBuildOptionValue(_ parser: SpecParser, _ name: String, _ type: any BuildOptionType, _ data: [String: PropertyListItem]) -> (String, BuildOptionValue)? {
@@ -806,7 +827,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         var dependencyFormat: DependencyDataFormat? = nil
         var featureFlags: [String]? = nil
         var inputInclusions: [MacroStringExpression]? = nil
-        var outputDependencies: [MacroStringExpression]? = nil
+        var outputDependencies: [(path: MacroStringExpression, fileType: MacroStringExpression?)]? = nil
         for (key, valueData) in items {
             switch key {
             case "Name":
@@ -1033,14 +1054,36 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             case "OutputDependencies":
                 switch valueData {
                 case .plString(let value):
-                    outputDependencies = [parser.delegate.internalMacroNamespace.parseString(value)]
+                    outputDependencies = [(parser.delegate.internalMacroNamespace.parseString(value), nil)]
                 case .plArray(let values):
                     outputDependencies = values.compactMap({ data in
-                        guard case .plString(let value) = data else {
-                            error("expected all string values in array for '\(key)'")
+                        switch data {
+                        case let .plString(value):
+                            return (parser.delegate.internalMacroNamespace.parseString(value), nil)
+                        case let .plDict(value):
+                            let path: MacroStringExpression
+                            switch value["Path"] {
+                            case let .plString(expr):
+                                path = parser.delegate.internalMacroNamespace.parseString(expr)
+                            default:
+                                error("expected string value for subkey 'Path' in element of array in '\(key)'")
+                                return nil
+                            }
+
+                            let fileType: MacroStringExpression
+                            switch value["FileType"] {
+                            case let .plString(expr):
+                                fileType = parser.delegate.internalMacroNamespace.parseString(expr)
+                            default:
+                                error("expected string value for subkey 'FileType' in element of array in '\(key)'")
+                                return nil
+                            }
+
+                            return (path, fileType)
+                        default:
+                            error("expected all string or dictionary values in array for '\(key)'")
                             return nil
                         }
-                        return parser.delegate.internalMacroNamespace.parseString(value)
                     })
                 default:
                     error("expected string or array value for build option key '\(key)'")
@@ -1367,7 +1410,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             }
         }
 
-        let valuesArePaths = type is PathBuildOptionType || type is PathListBuildOptionType
+        let valuesArePaths = type is PathBuildOptionType || type is PathListBuildOptionType || type is PathOrderedSetBuildOptionType
 
         // Handle list typed options.
         guard !type.isListType else {
@@ -1375,6 +1418,8 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             case let macro as StringListMacroDeclaration:
                 scope.evaluate(macro, lookup: lookup)
             case let macro as PathListMacroDeclaration:
+                scope.evaluate(macro, lookup: lookup)
+            case let macro as PathOrderedSetMacroDeclaration:
                 scope.evaluate(macro, lookup: lookup)
             default:
                 fatalError("invalid macro type for List option")
@@ -1538,7 +1583,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
     }
 
     /// Get the command line arguments to use for this option in the given scope.
-    func getAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec]) -> [String] {
+    func getAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec]) -> [String] {
         // Filter by (any) supported file type.
         func supportsAnyFileType() -> Bool {
             for fileType in inputFileTypes {
@@ -1553,7 +1598,7 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         }
 
         // Filter by macro condition expression.  If we don't have one, or we do have one and it evaluates to true, then we can proceed with argument generation.
-        guard condition == nil || condition!.evaluateAsBoolean(scope) else {
+        guard condition == nil || condition!.evaluateAsBoolean(scope, lookup: lookup) else {
             return []
         }
 
@@ -1565,16 +1610,18 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             guard let valueDefnOpt = scope.evaluate(self.macro as! BooleanMacroDeclaration) ? otherValueDefn : emptyValueDefn else { return [] }
 
             guard let expr = valueDefnOpt.additionalLinkerArgs else { return [] }
-            return scope.evaluate(expr)
+            return scope.evaluate(expr, lookup: lookup)
         }
 
         // Handle list typed options.
         guard !type.isListType else {
             let values = switch self.macro {
             case let macro as StringListMacroDeclaration:
-                scope.evaluate(macro)
+                scope.evaluate(macro, lookup: lookup)
             case let macro as PathListMacroDeclaration:
-                scope.evaluate(macro)
+                scope.evaluate(macro, lookup: lookup)
+            case let macro as PathOrderedSetMacroDeclaration:
+                scope.evaluate(macro, lookup: lookup)
             default:
                 fatalError("invalid macro type for List option")
             }
@@ -1583,11 +1630,11 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
             let valueDefnOpt = values.isEmpty ? emptyValueDefn : otherValueDefn
 
             guard let expr = valueDefnOpt?.additionalLinkerArgs else { return [] }
-            return scope.evaluate(expr)
+            return scope.evaluate(expr, lookup: lookup)
         }
 
         // Otherwise, we have a scalar option.
-        let value = scope.evaluateAsString(self.macro)
+        let value = scope.evaluateAsString(self.macro, lookup: lookup)
 
         // Get the value expression to use.
         let valueDefnOpt = valueDefns.flatMap { $0[value] } ?? (value.isEmpty ? emptyValueDefn : otherValueDefn)
@@ -1597,6 +1644,9 @@ private let buildOptionTypes: [String: any BuildOptionType] = [
         return scope.evaluate(expr) { macro in
             if macro === BuiltinMacros.value {
                 return scope.table.namespace.parseLiteralString(value)
+            }
+            if let lookupResult = lookup(macro) {
+                return lookupResult
             }
             return nil
         }
@@ -1722,11 +1772,11 @@ open class PropertyDomainSpec : Spec, @unchecked Sendable {
 
 
 /// Extensions to PropertyDomainSpec for performance testing.
-public extension PropertyDomainSpec {
+extension PropertyDomainSpec {
 
     /// Creates and returns a ``MacroValueAssignmentTable`` populated with the default values of the receiver's build options.
     /// The table's namespace is also returned so that the caller can add further settings to it if desired.
-    func macroTableForBuildOptionDefaults(_ core: Core) -> (MacroValueAssignmentTable, MacroNamespace) {
+    @_spi(Testing) public func macroTableForBuildOptionDefaults(_ core: Core) -> (MacroValueAssignmentTable, MacroNamespace) {
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
         for option in self.flattenedOrderedBuildOptions {
             guard let value = option.defaultValue else { continue }

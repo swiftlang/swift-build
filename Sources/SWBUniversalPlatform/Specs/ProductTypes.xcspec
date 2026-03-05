@@ -89,7 +89,9 @@
             INSTALL_PATH = "/usr/local/lib";
             DYLIB_INSTALL_NAME_BASE = "$(DYLIB_INSTALL_NAME_BASE_$(LLVM_TARGET_TRIPLE_VENDOR))";
             DYLIB_INSTALL_NAME_BASE_apple = "$(INSTALL_PATH)";
-            LD_DYLIB_INSTALL_NAME = "$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)";
+            LD_DYLIB_INSTALL_NAME_WHEN_BASE_NONEMPTY = "$(DYLIB_INSTALL_NAME_BASE:standardizepath)/$(EXECUTABLE_PATH)";
+            LD_DYLIB_INSTALL_NAME_WHEN_BASE_ = "$(EXECUTABLE_PATH)";
+            LD_DYLIB_INSTALL_NAME = "$(LD_DYLIB_INSTALL_NAME_WHEN_BASE_$(DYLIB_INSTALL_NAME_BASE):default=$(LD_DYLIB_INSTALL_NAME_WHEN_BASE_NONEMPTY))";
             DYLIB_COMPATIBILITY_VERSION = "1";
             DYLIB_CURRENT_VERSION = "1";
             FRAMEWORK_FLAG_PREFIX = "-framework";
@@ -164,11 +166,63 @@
             GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
             KEEP_PRIVATE_EXTERNS = YES;
             DEAD_CODE_STRIPPING = NO;
+            // Disable code coverage linker flags since we're producing .o files.
+            // Otherwise, we will run into duplicated symbols when there are more than one targets that produce .o
+            // as their product.
+            CLANG_COVERAGE_MAPPING_LINKER_ARGS = NO;
         };
         PackageTypes = (
             com.apple.package-type.mach-o-objfile
         );
     },
+
+    // Object library
+    {
+        Type = ProductType;
+        Identifier = org.swift.product-type.library.object;
+        Class = XCStandaloneExecutableProductType;
+        Name = "Object Library";
+        Description = "Object library";
+        IconNamePrefix = "TargetLibrary";
+        DefaultTargetName = "Object Library";
+        DefaultBuildProperties = {
+            FULL_PRODUCT_NAME = "$(EXECUTABLE_NAME)";
+            MACH_O_TYPE = "objectlib";
+            REZ_EXECUTABLE = YES;
+            EXECUTABLE_SUFFIX = ".$(EXECUTABLE_EXTENSION)";
+            EXECUTABLE_EXTENSION = "objlib";
+            PUBLIC_HEADERS_FOLDER_PATH = "/usr/local/include";
+            PRIVATE_HEADERS_FOLDER_PATH = "/usr/local/include";
+            INSTALL_PATH = "/usr/local/lib";
+            FRAMEWORK_FLAG_PREFIX = "-framework";
+            LIBRARY_FLAG_PREFIX = "-l";
+            LIBRARY_FLAG_NOSPACE = YES;
+            SKIP_INSTALL = YES;
+            STRIP_STYLE = "debugging";
+            GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+            CODE_SIGNING_ALLOWED = NO;
+        };
+        PackageTypes = (
+            org.swift.package-type.object-library
+        );
+    },
+
+    {
+        Type = ProductType;
+        Identifier = org.swift.product-type.common.object;
+        BasedOn = com.apple.product-type.objfile;
+        Name = "Mappable Common Object Type";
+        Description = "This type should be used as the top level product type for object files as it may map to different types on different platforms";
+    },
+
+    {
+        Type = ProductType;
+        Identifier = org.swift.product-type.library.static;
+        BasedOn = com.apple.product-type.objfile;
+        Name = "Mappable Common Static Library Type";
+        Description = "This type should be used as the top level product type for static libraries as it may map to different types on different platforms";
+    },
+
 
     //
     // Wrapper product types
@@ -290,8 +344,10 @@
         DefaultBuildProperties = {
             WRAPPER_EXTENSION = "xctest";
             ENABLE_TESTING_SEARCH_PATHS = YES;
-            PRODUCT_SPECIFIC_LDFLAGS = "-Xlinker -needed_framework -Xlinker XCTest -framework XCTest -Xlinker -needed-lXCTestSwiftSupport -lXCTestSwiftSupport";
-            PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS = "--scan-executable \"$(PLATFORM_DIR)/Developer/usr/lib/libXCTestSwiftSupport.dylib\"";
+            PRODUCT_SPECIFIC_LDFLAGS = "$(PRODUCT_SPECIFIC_LDFLAGS_NO_XCTEST_$(NO_XCTEST:default=NO))";
+            PRODUCT_SPECIFIC_LDFLAGS_NO_XCTEST_NO = (-Xlinker, -needed_framework, -Xlinker, XCTest, -framework, XCTest, -Xlinker, -needed-lXCTestSwiftSupport, -lXCTestSwiftSupport);
+            PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS = "$(PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS_NO_XCTEST_$(NO_XCTEST:default=NO))";
+            PRODUCT_TYPE_SWIFT_STDLIB_TOOL_FLAGS_NO_XCTEST_NO = ("--scan-executable", "$(PLATFORM_DIR)/Developer/usr/lib/libXCTestSwiftSupport.dylib");
             XCTRUNNER_PATH = "$(XCTRUNNER_PATH$(TEST_BUILD_STYLE))";
             LD_RUNPATH_SEARCH_PATHS = "$(inherited) $(LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_$(SHALLOW_BUNDLE))";
             LD_RUNPATH_SEARCH_PATHS_SHALLOW_BUNDLE_YES = "@loader_path/Frameworks";
@@ -304,6 +360,9 @@
 
             PROVISIONING_PROFILE_SUPPORTED = YES;
             PROVISIONING_PROFILE_REQUIRED = NO;
+
+            GENERATE_TEST_ENTRY_POINT = "$(GENERATE_TEST_ENTRYPOINTS_FOR_BUNDLES)";
+            GENERATED_TEST_ENTRY_POINT_PATH = "$(DERIVED_SOURCES_DIR)/test_entry_point.swift";
         };
         PackageTypes = (
             com.apple.package-type.bundle.unit-test
@@ -322,6 +381,7 @@
             ENABLE_TESTING_SEARCH_PATHS = YES;
             GENERATE_TEST_ENTRY_POINT = YES;
             GENERATED_TEST_ENTRY_POINT_PATH = "$(DERIVED_SOURCES_DIR)/test_entry_point.swift";
+            GENERATED_TEST_ENTRY_POINT_INCLUDE_DISCOVERED_TESTS = YES;
         };
         PackageTypes = (
             com.apple.package-type.mach-o-executable

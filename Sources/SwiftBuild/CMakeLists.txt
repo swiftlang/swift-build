@@ -31,16 +31,21 @@ add_library(SwiftBuild
   ProjectModel/TargetDependency.swift
   ProjectModel/Targets.swift
   SWBBuildAction.swift
+  SWBBuildDescriptionID.swift
   SWBBuildOperation.swift
   SWBBuildOperationBacktraceFrame.swift
   SWBBuildParameters.swift
   SWBBuildRequest.swift
+  SWBBuildServer.swift
   SWBBuildService.swift
   SWBBuildServiceConnection.swift
   SWBBuildServiceConsole.swift
   SWBBuildServiceSession.swift
   SWBChannel.swift
   SWBClientExchangeSupport.swift
+  SWBConfiguredTargetIdentifier.swift
+  SWBConfiguredTargetInfo.swift
+  SWBConfiguredTargetSourceFilesInfo.swift
   SWBDocumentationSupport.swift
   SWBIndexingSupport.swift
   SWBLocalizationSupport.swift
@@ -49,6 +54,7 @@ add_library(SwiftBuild
   SWBProductPlannerSupport.swift
   SWBPropertyList.swift
   SWBProvisioningTaskInputs.swift
+  SWBSourceLanguage.swift
   SWBSystemInfo.swift
   SWBTargetGUID.swift
   SWBTerminal.swift
@@ -65,7 +71,12 @@ target_link_libraries(SwiftBuild PUBLIC
   SWBCore
   SWBProtocol
   SWBUtil
-  SWBProjectModel)
+  SWBProjectModel
+  SwiftToolsProtocols::SKLogging
+  SwiftToolsProtocols::ToolsProtocolsSwiftExtensions
+  SwiftToolsProtocols::BuildServerProtocol
+  SwiftToolsProtocols::LanguageServerProtocol
+  SwiftToolsProtocols::LanguageServerProtocolTransport)
 
 set_target_properties(SwiftBuild PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})

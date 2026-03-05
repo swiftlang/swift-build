@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025-2026 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://swift.org/LICENSE.txt for license information
@@ -101,7 +101,7 @@ protocol DependencyInfoEditableTaskPayload: TaskPayload {
 
 
 /// A class that adopts this protocol can be used to collect information for creating tasks for a given command line tool spec, e.g. information from elsewhere in the build phase or target which is not local to the input files of the task being created.
-public protocol BuildPhaseInfoForToolSpec: AnyObject {
+public protocol BuildPhaseInfoForToolSpec: AnyObject, Sendable {
     // Certainly other parameters can be added here, or ways to collect broader information than just on individual files, but the initial implementation only covers what it was needed for.
     //
     /// Have the info object collect information from the file-to-build.
@@ -210,7 +210,7 @@ public struct ProjectVersionInfo {
 
     init(string: String) throws {
         guard let match = try #/^(?<project>[A-Za-z0-9_]+)-(?<version>[\d\.]+)$/#.wholeMatch(in: string) else {
-            throw StubError.error("Could not parse project version from string: \(string)")
+            throw StubError.error("Could not parse project version from string '\(string)'")
         }
         self.project = String(match.output.project)
         self.version = try Version(String(match.output.version))
@@ -224,7 +224,7 @@ public struct AppleGenericVersionInfo: Sendable {
 
     init(string: String) throws {
         guard let match = try #/^PROGRAM:(?<program>.+)  PROJECT:(?<project>[A-Za-z0-9_]+)-(?<version>[\d\.]+)$/#.wholeMatch(in: string) else {
-            throw StubError.error("Could not parse Apple Generic Version from string: \(string)")
+            throw StubError.error("Could not parse Apple Generic Version from string '\(string)'")
         }
         self.program = String(match.output.program)
         self.project = String(match.output.project)
@@ -234,22 +234,36 @@ public struct AppleGenericVersionInfo: Sendable {
 
 extension DiscoveredCommandLineToolSpecInfo {
     /// Parses a standard version number from a command line invocation.
-    public static func parseProjectNameAndSourceVersionStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, commandLine: [String], construct: (ProjectVersionInfo) -> T) async throws -> T {
+    public static func parseProjectNameAndSourceVersionStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, commandLine: [String], construct: @Sendable (ProjectVersionInfo) -> T) async throws -> T {
         try await producer.discoveredCommandLineToolSpecInfo(delegate, nil, commandLine) { executionResult in
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-            return try construct(ProjectVersionInfo(string: outputString))
+            let projectVersionInfo: ProjectVersionInfo
+            do {
+                projectVersionInfo = try ProjectVersionInfo(string: outputString)
+            }
+            catch let error {
+                throw StubError.error("\(error), command line '\(commandLine.joined(separator: " "))'")
+            }
+            return construct(projectVersionInfo)
         }
     }
 
     /// Parses a standard Apple Generic Versioning style version number from the output of invoking `what -q` on a binary.
-    public static func parseWhatStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, toolPath: Path, construct: (AppleGenericVersionInfo) -> T) async throws -> T {
+    public static func parseWhatStyleVersionInfo<T: DiscoveredCommandLineToolSpecInfo>(_ producer: any CommandProducer, _ delegate: any CoreClientTargetDiagnosticProducingDelegate, toolPath: Path, construct: @Sendable (AppleGenericVersionInfo) -> T) async throws -> T {
         if !toolPath.isAbsolute {
             throw StubError.error("\(toolPath.str) is not absolute")
         }
         return try await producer.discoveredCommandLineToolSpecInfo(delegate, toolPath.basename, ["/usr/bin/what", "-q", toolPath.str]) { executionResult in
             let outputString = String(decoding: executionResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             let lines = Set(outputString.split(separator: "\n").map(String.init)) // version info is printed once per architecture slice, but we never expect them to differ
-            return try construct(AppleGenericVersionInfo(string: lines.only ?? outputString))
+            let versionInfo: AppleGenericVersionInfo
+            do {
+                versionInfo = try AppleGenericVersionInfo(string: lines.only ?? outputString)
+            }
+            catch let error {
+                throw StubError.error("\(error), tool path '\(toolPath.str)'")
+            }
+            return construct(versionInfo)
         }
     }
 }
@@ -776,7 +790,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         let scope = cbc.scope
         let inputFileType = cbc.inputs.first?.fileType
         let lookup = { self.lookup($0, cbc, delegate) }
-        for buildOption in self.flattenedOrderedBuildOptions {
+        for buildOption in cbc.producer.effectiveFlattenedOrderedBuildOptions(self) {
             guard let dependencyFormat = buildOption.dependencyFormat else {
                 continue
             }
@@ -916,7 +930,12 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
 
         // Add the additional outputs defined by the spec.  These are not declared as outputs but should be processed by the tool separately.
         let additionalEvaluatedOutputsResult = await additionalEvaluatedOutputs(cbc, delegate)
-        outputs.append(contentsOf: additionalEvaluatedOutputsResult.outputs.map({ delegate.createNode($0) }))
+        outputs.append(contentsOf: additionalEvaluatedOutputsResult.outputs.map { output in
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+            return delegate.createNode(output.path)
+        })
 
         if let infoPlistContent = additionalEvaluatedOutputsResult.generatedInfoPlistContent {
             delegate.declareGeneratedInfoPlistContent(infoPlistContent)
@@ -978,7 +997,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     }
 
     public struct AdditionalEvaluatedOutputsResult {
-        public var outputs = [Path]()
+        public var outputs = [(path: Path, fileType: String?)]()
         public var generatedInfoPlistContent: Path? = nil
     }
 
@@ -994,7 +1013,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
 
             // FIXME: In Xcode, this is also marked as an "auxiliary output", which we use in conjunction with the "MightNotEmitAllOutput" flag to determine whether or not the tool needs to rerun if the output is missing.
 
-            result.outputs.append(output)
+            result.outputs.append((output, nil))
         }
 
         let producer = cbc.producer
@@ -1002,12 +1021,17 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         let inputFileType = cbc.inputs.first?.fileType
         let lookup = { self.lookup($0, cbc, delegate) }
         let optionContext = await discoveredCommandLineToolSpecInfo(producer, scope, delegate)
-        result.outputs.append(contentsOf: self.flattenedOrderedBuildOptions.flatMap { buildOption -> [Path] in
+        result.outputs.append(contentsOf: cbc.producer.effectiveFlattenedOrderedBuildOptions(self, filter: .all).flatMap { buildOption -> [(Path, String?)] in
             // Check if the effective arguments for this build option were non-empty as a proxy for whether it got filtered out by architecture mismatch, etc.
             guard let outputDependencies = buildOption.outputDependencies, !buildOption.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup).isEmpty else {
                 return []
             }
-            return outputDependencies.compactMap { Path(scope.evaluate($0, lookup: lookup)).nilIfEmpty?.normalize() }
+            return outputDependencies.compactMap { outputDependency in
+                guard let path = Path(scope.evaluate(outputDependency.path, lookup: lookup)).nilIfEmpty else {
+                    return nil
+                }
+                return (path.normalize(), outputDependency.fileType.map { scope.evaluate($0, lookup: lookup).nilIfEmpty } ?? nil)
+            }
         })
 
         return result
@@ -1173,7 +1197,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     public static let fallbackExecutionDescription: String = "Processing…"
 
     /// Resolve the execution description to use for the given context.
-    public func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
+    open func resolveExecutionDescription(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> String {
         guard let execDescription else {
             // FIXME: We should either require an execution description, or make up a better fallback description.
             return Self.fallbackExecutionDescription
@@ -1231,7 +1255,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
                 return cbc.scope.evaluate(value, lookup: lookup).map { .literal(ByteString(encodingAsUTF8: $0)) }
 
             case .options:
-                return self.commandLineFromOptions(cbc, delegate, optionContext: optionContext, lookup: lookup)
+                return self.commandLineFromOptions(cbc, delegate, optionContext: optionContext, buildOptionsFilter: .all, lookup: lookup)
 
             case .output:
                 // We always resolve the Output via a recursive macro evaluation. See constructTasks() for more information.
@@ -1260,22 +1284,22 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     /// Creates and returns the command line arguments generated by the options of the specification.
     ///
     /// - parameter lookup: An optional closure which functionally defined overriding values during build setting evaluation.
-    public func commandLineFromOptions(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileType: FileTypeSpec?, optionContext: (any BuildOptionGenerationContext)?, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
-        return self.flattenedOrderedBuildOptions.flatMap { $0.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup) }
+    public func commandLineFromOptions(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileType: FileTypeSpec?, optionContext: (any BuildOptionGenerationContext)?, buildOptionsFilter: BuildOptionsFilter, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
+        return producer.effectiveFlattenedOrderedBuildOptions(self, filter: buildOptionsFilter).flatMap { $0.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup) }
     }
 
     /// Creates and returns the command line arguments generated by the options of the specification.
     ///
     /// - parameter lookup: An optional closure which functionally defined overriding values during build setting evaluation.
-    public func commandLineFromOptions(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, optionContext: (any BuildOptionGenerationContext)?, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
-        return commandLineFromOptions(cbc.producer, scope: cbc.scope, inputFileType: cbc.inputs.first?.fileType, optionContext: optionContext, lookup: { self.lookup($0, cbc, delegate, lookup) })
+    public func commandLineFromOptions(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, optionContext: (any BuildOptionGenerationContext)?, buildOptionsFilter: BuildOptionsFilter = .all, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
+        return commandLineFromOptions(cbc.producer, scope: cbc.scope, inputFileType: cbc.inputs.first?.fileType, optionContext: optionContext, buildOptionsFilter: buildOptionsFilter, lookup: { self.lookup($0, cbc, delegate, lookup) })
     }
 
     /// Creates and returns the command line arguments generated by the specification's build setting corresponding to the given macro declaration.
     ///
     /// - parameter lookup: An optional closure which functionally defined overriding values during build setting evaluation.
     func commandLineFromMacroDeclaration(_ producer: any CommandProducer, optionContext: (any BuildOptionGenerationContext)?, scope: MacroEvaluationScope, macro: MacroDeclaration, inputFileType: FileTypeSpec?, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [CommandLineArgument] {
-        return buildOptions.first { $0.name == macro.name }?.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup) ?? []
+        return producer.effectiveBuildOptions(self).first { $0.name == macro.name }?.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup) ?? []
     }
 
     /// Creates and returns the command line arguments generated by the specification's build setting corresponding to the given macro declaration.
@@ -1291,7 +1315,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         let scope = cbc.scope
         let inputFileType = cbc.inputs.first?.fileType
         let lookup = { self.lookup($0, cbc, delegate, lookup) }
-        return self.flattenedOrderedBuildOptions.flatMap { buildOption -> [Path] in
+        return cbc.producer.effectiveFlattenedOrderedBuildOptions(self).flatMap { buildOption -> [Path] in
             // Check if the effective arguments for this build option were non-empty as a proxy for whether it got filtered out by architecture mismatch, etc.
             guard let inputInclusions = buildOption.inputInclusions, !buildOption.getArgumentsForCommand(producer, scope: scope, inputFileType: inputFileType, optionContext: optionContext, lookup: lookup).isEmpty else {
                 return []
@@ -1301,9 +1325,9 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
     }
 
     /// Compute the list of additional linker arguments to use when this tool is used for building with the given scope.
-    public func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
+    public func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
         // FIXME: Optimize the list to search here.
-        return (args: self.flattenedOrderedBuildOptions.map { $0.getAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes) }, inputPaths: [])
+        return (args: producer.effectiveFlattenedOrderedBuildOptions(self).map { $0.getAdditionalLinkerArgs(producer, scope: scope, lookup: lookup, inputFileTypes: inputFileTypes) }, inputPaths: [])
     }
 
     // Creates and returns the environment from the specification.  This includes both the 'EnvironmentVariables' property for this tool spec, and any build options which define that their value should be exported via their 'SetValueInEnvironmentVariable' property.
@@ -1319,7 +1343,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
 
         // Add environment variables from build options which specify they should be added via a 'SetValueInEnvironmentVariable' property.
         // FIXME: Optimize the list to search here.
-        for buildOption in self.flattenedOrderedBuildOptions {
+        for buildOption in cbc.producer.effectiveFlattenedOrderedBuildOptions(self) {
             if let assignment = buildOption.getEnvironmentAssignmentForCommand(cbc, lookup: wrappedLookup) {
                 environment.append(assignment)
             }
@@ -1331,7 +1355,7 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return EnvironmentBindings(environmentFromSpec(cbc, delegate, lookup: lookup))
     }
 
-    open func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    open func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         return []
     }
 
@@ -1413,8 +1437,8 @@ open class CommandLineToolSpec : PropertyDomainSpec, SpecType, TaskTypeDescripti
         return try parse(ByteString(executionResult.stdout))
     }
 
-    public func generatedFilePaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: Path?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> [Path]) async throws -> [Path] {
-        return try await executeExternalTool(cbc, delegate, commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription, parse)
+    public func generatedFilePaths(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, commandLine: [String], workingDirectory: Path?, environment: [String: String], executionDescription: String?, _ parse: @escaping (ByteString) throws -> [AbsolutePath]) async throws -> [Path] {
+        return try await executeExternalTool(cbc, delegate, commandLine: commandLine, workingDirectory: workingDirectory, environment: environment, executionDescription: executionDescription, { try parse($0).map { $0.path } })
     }
 }
 
@@ -1453,7 +1477,7 @@ open class GenericOutputParser : TaskOutputParser {
     public let toolBasenames: Set<String>
 
     /// Buffered output that has not yet been parsed (parsing is line-by-line, so we buffer incomplete lines until we receive more output).
-    private var unparsedBytes: ArraySlice<UInt8> = []
+    internal var unparsedBytes: ArraySlice<UInt8> = []
 
     /// The Diagnostic that is being constructed, possibly across multiple lines of input.
     private var inProgressDiagnostic: Diagnostic?
@@ -1639,8 +1663,8 @@ public final class SerializedDiagnosticsOutputParser: TaskOutputParser {
         // Don't try to read diagnostics if the process crashed or got cancelled as they were almost certainly not written in this case.
         if result.shouldSkipParsingDiagnostics { return }
 
-        for path in task.type.serializedDiagnosticsPaths(task, workspaceContext.fs) {
-            delegate.processSerializedDiagnostics(at: path, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
+        for info in task.type.serializedDiagnosticsInfo(task, workspaceContext.fs) {
+            delegate.processSerializedDiagnostics(at: info.serializedDiagnosticsPath, workingDirectory: task.workingDirectory, workspaceContext: workspaceContext)
         }
     }
 }

@@ -70,7 +70,7 @@ public struct DescribeSchemesResponse: Message, Equatable {
 
 public struct DescribeProductsRequest: SessionChannelMessage, RequestMessage, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "PRODUCT_DESCRIPTION_REQUESTED"
 
     /// The identifier for the session to initiate the request in.

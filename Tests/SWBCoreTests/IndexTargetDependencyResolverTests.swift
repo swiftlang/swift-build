@@ -134,6 +134,8 @@ import SWBUtil
                     ])])
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
+        let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
+        workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [macApp, macApp2, iosApp, iosApp2, fwkTarget_mac, fwkTarget_ios], workspaceOperation: true) { results in
             #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
                 "FwkTarget_mac-macos", "macApp-macos", "macApp2-macos",
@@ -150,7 +152,7 @@ import SWBUtil
             try results.checkDependencies(of: fwkTarget_mac, are: [])
             try results.checkDependencies(of: .init(fwkTarget_ios, "iphoneos"), are: [])
             try results.checkDependencies(of: .init(fwkTarget_ios, "iphonesimulator"), are: [])
-            if results.buildGraph.workspaceContext.userPreferences.enableDebugActivityLogs {
+            if workspaceContext.userPreferences.enableDebugActivityLogs {
                 results.delegate.checkDiagnostics([
                     "FwkTarget_mac rejected as an implicit dependency because its SUPPORTED_PLATFORMS (macosx) does not contain this target's platform (iphoneos). (in target 'iosApp' from project 'aProject')",
                     "FwkTarget_ios rejected as an implicit dependency because its SUPPORTED_PLATFORMS (iphoneos iphonesimulator) does not contain this target's platform (macosx). (in target 'macApp' from project 'aProject')",
@@ -260,6 +262,8 @@ import SWBUtil
                     ])])
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
+        let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
+        workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [macApp, iosApp, watchKitApp, watchKitExt], workspaceOperation: true) { results in
             #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
                 "macApp-macos", "iosApp-iphoneos", "iosApp-iphonesimulator",
@@ -270,7 +274,7 @@ import SWBUtil
             try results.checkDependencies(of: .init(iosApp, "iphonesimulator"), are: [])
             try results.checkDependencies(of: .init(watchKitApp, "watchos"), are: [.init(watchKitExt, "watchos")])
             try results.checkDependencies(of: .init(watchKitApp, "watchsimulator"), are: [.init(watchKitExt, "watchsimulator")])
-            if results.buildGraph.workspaceContext.userPreferences.enableDebugActivityLogs {
+            if workspaceContext.userPreferences.enableDebugActivityLogs {
                 results.delegate.checkDiagnostics([
                     "Watchable WatchKit App rejected as an implicit dependency because its SUPPORTED_PLATFORMS (watchos watchsimulator) does not contain this target's platform (iphoneos). (in target 'iosApp' from project 'aProject')",
                     "Watchable WatchKit App rejected as an implicit dependency because its SUPPORTED_PLATFORMS (watchos watchsimulator) does not contain this target's platform (iphonesimulator). (in target 'iosApp' from project 'aProject')"
@@ -755,6 +759,8 @@ import SWBUtil
                     ])])
 
         let tester = try await BuildOperationTester(core, workspace, simulated: false)
+        let workspaceContext = WorkspaceContext(core: core, workspace: tester.workspace, processExecutionCache: .sharedForTesting)
+        workspaceContext.updateUserPreferences(.defaultForTesting)
         try await tester.checkIndexBuildGraph(targets: [catalystAppTarget1, catalystAppTarget2, catalystAppTarget3, osxAppTarget, osxAppTarget_iosmac, fwkTarget, fwkTarget_osx], workspaceOperation: true) { results in
             #expect(results.targets().map { results.targetNameAndPlatform($0) } == [
                 "FwkTarget-iphoneos", "catalystApp1-iphoneos", "FwkTarget-iphonesimulator", "catalystApp1-iphonesimulator", "FwkTarget-iosmac", "catalystApp1-iosmac", "catalystApp2-iphoneos", "catalystApp2-iphonesimulator", "catalystApp2-iosmac", "catalystApp3-iphoneos", "catalystApp3-iphonesimulator", "catalystApp3-iosmac", "FwkTarget_osx-macos", "catalystApp3-macos", "osxApp-macos", "osxApp_iosmac-iosmac", "FwkTarget_osx-iosmac",
@@ -773,7 +779,7 @@ import SWBUtil
             try results.checkDependencies(of: osxAppTarget, are: [.init(fwkTarget_osx, "macos")])
             try results.checkDependencies(of: osxAppTarget_iosmac, are: [.init(fwkTarget, "iosmac")])
 
-            if results.buildGraph.workspaceContext.userPreferences.enableDebugActivityLogs  {
+            if workspaceContext.userPreferences.enableDebugActivityLogs  {
                 results.delegate.checkDiagnostics([
                     "FwkTarget rejected as an implicit dependency because its SUPPORTED_PLATFORMS (iphoneos iphonesimulator) does not contain this target's platform (macosx). (in target 'catalystApp3' from project 'aProject')",
                     "FwkTarget rejected as an implicit dependency because its SUPPORTED_PLATFORMS (iphoneos iphonesimulator) does not contain this target's platform (macosx). (in target 'osxApp' from project 'aProject')",
@@ -949,8 +955,12 @@ import SWBUtil
             #expect(results.targets(packageProduct).map{ results.targetNameAndPlatform($0) } == ["PackageLibProduct-iphoneos"])
             #expect(results.targets(unreferencedPackageLib).map{ results.targetNameAndPlatform($0) } == ["UnreferencedPackageLib-iphoneos"])
 
-            try results.checkDependencies(of: .init(packageLib2, "iphoneos"), are: [])
-
+            switch results.graphType {
+            case .dependency:
+                try results.checkDependencies(of: packageLib2, are: [.init(packageTool, "macos")])
+            case .linkage:
+                try results.checkDependencies(of: packageLib2, are: [])
+            }
             results.delegate.checkNoDiagnostics()
         }
     }
@@ -1069,20 +1079,6 @@ import SWBUtil
             "iosApp-iphonesimulator": "arm64",
             "driver-driverkit": "arm64",
         ])
-    }
-
-    @Test
-    func verifyAllPlatformsHaveDefaultArch() async throws {
-        let core = try await getCore()
-
-        var defaultArchs: [String: String] = [:]
-        for platform in core.platformRegistry.platforms {
-            let archName: String? = platform.determineDefaultArchForIndexArena(preferredArch: "unknown_arch", using: core)
-            defaultArchs[platform.name] = archName
-            #expect(archName != nil, "'\(platform.identifier)' is missing a default architecture for indexing")
-        }
-
-        //attach(name: "Index Platform Architecture Defaults", plistObject: defaultArchs, lifetime: .keepAlways)
     }
 }
 

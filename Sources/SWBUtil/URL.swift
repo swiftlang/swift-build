@@ -18,7 +18,7 @@ extension URL {
     /// This should always be used whenever the file path equivalent of a URL is needed. DO NOT use ``path`` or ``path(percentEncoded:)``, as these deal in terms of the path portion of the URL representation per RFC8089, which on Windows would include a leading slash.
     ///
     /// - throws: ``FileURLError`` if the URL does not represent a file or its path is otherwise not representable.
-    public var filePath: Path {
+    public var absoluteFilePath: AbsolutePath {
         get throws {
             guard isFileURL else {
                 throw FileURLError.notRepresentable(self)
@@ -27,10 +27,14 @@ extension URL {
                 guard let cString else {
                     throw FileURLError.notRepresentable(self)
                 }
-                let fp = Path(String(cString: cString))
-                precondition(fp.isAbsolute, "path '\(fp.str)' is not absolute")
-                return fp
+                return try AbsolutePath(validating: String(cString: cString))
             }
+        }
+    }
+
+    public var filePath: Path {
+        get throws {
+            try absoluteFilePath.path
         }
     }
 }

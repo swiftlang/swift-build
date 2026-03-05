@@ -65,7 +65,7 @@ public struct PingRequest: RequestMessage, Equatable {
 
 public struct SetConfigItemRequest: RequestMessage, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "SET_CONFIG_ITEM"
 
     public let key: String
@@ -288,7 +288,7 @@ public struct GetBuildSettingsDescriptionRequest: SessionMessage, RequestMessage
 
 public struct CreateXCFrameworkRequest: RequestMessage, Equatable, SerializableCodable {
     public typealias ResponseMessage = StringResponse
-    
+
     public static let name = "CREATE_XCFRAMEWORK_REQUEST"
 
     public let developerPath: Path?
@@ -629,6 +629,31 @@ public struct SetSessionUserPreferencesRequest: SessionMessage, RequestMessage, 
         self.activityTextShorteningLevel = activityTextShorteningLevel
         self.usePerConfigurationBuildLocations = usePerConfigurationBuildLocations
         self.allowsExternalToolExecution = allowsExternalToolExecution
+    }
+}
+
+public struct LookupToolchainRequest: SessionMessage, RequestMessage, Equatable, SerializableCodable {
+    public typealias ResponseMessage = LookupToolchainResponse
+
+    public static let name = "LOOKUP_TOOLCHAIN"
+
+    public let sessionHandle: String
+
+    public let path: Path
+
+    public init(sessionHandle: String, path: Path) {
+        self.sessionHandle = sessionHandle
+        self.path = path
+    }
+}
+
+public struct LookupToolchainResponse: Message, Equatable, SerializableCodable {
+    public static let name = "LOOKUP_TOOLCHAIN_RESPONSE"
+
+    public let toolchainIdentifier: String?
+
+    public init(toolchainIdentifier: String?) {
+        self.toolchainIdentifier = toolchainIdentifier
     }
 }
 
@@ -1024,11 +1049,13 @@ public struct WorkspaceInfoResponse: Message, Equatable {
             public let guid: String
             public let targetName: String
             public let projectName: String
+            public let dynamicTargetVariantGuid: String?
 
-            public init(guid: String, targetName: String, projectName: String) {
+            public init(guid: String, targetName: String, projectName: String, dynamicTargetVariantGuid: String?) {
                 self.guid = guid
                 self.targetName = targetName
                 self.projectName = projectName
+                self.dynamicTargetVariantGuid = dynamicTargetVariantGuid
             }
         }
 
@@ -1176,6 +1203,8 @@ public struct IPCMessage: Serializable, Sendable {
         SetSessionSystemInfoRequest.self,
         SetSessionUserInfoRequest.self,
         SetSessionUserPreferencesRequest.self,
+        LookupToolchainRequest.self,
+        LookupToolchainResponse.self,
         ListSessionsRequest.self,
         ListSessionsResponse.self,
         WaitForQuiescenceRequest.self,
@@ -1218,12 +1247,15 @@ public struct IPCMessage: Serializable, Sendable {
       + localizationMessageTypes
       + dependencyClosureMessageTypes
       + dependencyGraphMessageTypes
+      + buildDescriptionMessages
 
     /// Reverse name mapping.
     static let messageNameToID: [String: any Message.Type] = {
         var result = [String: any Message.Type]()
         for type in IPCMessage.messageTypes {
-            result[type.name] = type
+            if let oldValue = result.updateValue(type, forKey: type.name) {
+                fatalError("Multiple message types registered for same name: \(type.name): \(type) vs \(oldValue)")
+            }
         }
         return result
     }()

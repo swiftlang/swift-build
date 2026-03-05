@@ -24,7 +24,7 @@ public protocol IbtoolCompilerSupport {
     func minimumDeploymentTargetArguments(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> [String]
 
     /// Get the string files paths and regions.
-    func stringsFilesAndRegions(_ cbc: CommandBuildContext) -> [(stringsFile: Path, region: String)]
+    func stringsFilesAndRegions(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> [(stringsFile: Path, region: String)]
 }
 
 extension IbtoolCompilerSupport {
@@ -55,13 +55,27 @@ extension IbtoolCompilerSupport {
         return minimumDeploymentTargetArguments
     }
 
-    public func stringsFilesAndRegions(_ cbc: CommandBuildContext) -> [(stringsFile: Path, region: String)] {
+    public func stringsFilesAndRegions(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) -> [(stringsFile: Path, region: String)] {
         var result = [(Path, String)]()
+
+        // Check if we should filter localizations based on the setting BUILD_ONLY_KNOWN_LOCALIZATIONS:
+        let allowedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project)
+
         for ftb in cbc.inputs {
             if let buildFile = ftb.buildFile {
                 if case .reference(let guid) = buildFile.buildableItem, case let variantGroup as VariantGroup = cbc.producer.lookupReference(for: guid) {
                     for ref in variantGroup.children {
                         if let fileRef = ref as? FileReference, let region = fileRef.regionVariantName {
+                            // Filter by knownLocalizations if BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled:
+                            if let allowedLocalizations, !allowedLocalizations.contains(region) {
+                                // Skip this .strings file.
+                                if region != "mul" {
+                                    // Don't leave a note about mul.lproj
+                                    delegate.note("Skipping file in .lproj directory '\(region).lproj' because '\(region)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(ftb.absolutePath))
+                                }
+                                continue
+                            }
+
                             if let fileType = cbc.producer.lookupFileType(reference: fileRef), let stringFileType = cbc.producer.lookupFileType(identifier: "text.plist.strings"), fileType.conformsTo(stringFileType) {
                                 let absolutePath = cbc.producer.filePathResolver.resolveAbsolutePath(fileRef)
                                 result.append((absolutePath, region))

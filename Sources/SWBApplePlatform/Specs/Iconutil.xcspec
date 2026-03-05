@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Identifier = com.apple.compilers.iconutil;
+    {
+        _Domain = darwin;
+        Identifier = com.apple.compilers.iconutil;
         Type = Compiler;
         Name = "Iconutil";
         Description = "Icon conversion utility";

@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.xcode.tools.ibtool.postprocessor";
         Name = "Interface Builder NIB Postprocessor";

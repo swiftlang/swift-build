@@ -14,7 +14,7 @@ public import SWBUtil
 public import SWBCore
 import Foundation
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = WindowsPlugin()
     manager.register(WindowsDeveloperDirectoryExtension(), type: DeveloperDirectoryExtensionPoint.self)
     manager.register(WindowsPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
@@ -155,6 +155,14 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             return []
         }
     }
+
+    public func platformName(triple: LLVMTriple) -> String? {
+        if triple.system == "windows" {
+            return triple.system
+        }
+
+        return nil
+    }
 }
 
 struct WindowsSDKRegistryExtension: SDKRegistryExtension {
@@ -168,16 +176,17 @@ struct WindowsSDKRegistryExtension: SDKRegistryExtension {
         guard case let .plDict(dict) = windowsSDKSettingsPlist else {
             throw StubError.error("Unexpected top-level property list type in \(windowsSDKSettingsPlistPath.str) (expected dictionary)")
         }
-
+        let testingLibraryPath = windowsPlatform.path.join("Developer").join("Library")
         let defaultProperties: [String: PropertyListItem] = [
             "GCC_GENERATE_DEBUGGING_SYMBOLS": .plString("NO"),
             "LD_DEPENDENCY_INFO_FILE": .plString(""),
+            "PRELINK_DEPENDENCY_INFO_FILE": .plString(""),
 
             "GENERATE_TEXT_BASED_STUBS": "NO",
             "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
 
             "LIBRARY_SEARCH_PATHS": "$(inherited) $(SDKROOT)/usr/lib/swift/windows/$(CURRENT_ARCH)",
-
+            "TEST_LIBRARY_SEARCH_PATHS": .plString("\(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/ \(testingLibraryPath.strWithPosixSlashes)/Testing-$(SWIFT_TESTING_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows/$(CURRENT_ARCH) \(testingLibraryPath.strWithPosixSlashes)/XCTest-$(XCTEST_VERSION)/usr/lib/swift/windows"),
             "OTHER_SWIFT_FLAGS": "$(inherited) -libc $(DEFAULT_USE_RUNTIME)",
 
             "DEFAULT_USE_RUNTIME": "MD",

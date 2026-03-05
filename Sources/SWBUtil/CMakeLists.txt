@@ -12,6 +12,7 @@ add_library(SWBUtil
   Architecture.swift
   ArgumentSplitting.swift
   Array.swift
+  ArtifactInfo.swift
   AsyncCache.swift
   AsyncFlatteningSequence.swift
   AsyncIteratorProtocol.swift
@@ -23,6 +24,7 @@ add_library(SWBUtil
   ByteString.swift
   Cache.swift
   Collection.swift
+  CollectionDifferenceExtensions.swift
   CountedSet.swift
   CSV.swift
   Debugger.swift
@@ -55,6 +57,7 @@ add_library(SWBUtil
   LazyCache.swift
   Library.swift
   LineReader.swift
+  LLVMTriple.swift
   Lock.swift
   MachO.swift
   Math.swift

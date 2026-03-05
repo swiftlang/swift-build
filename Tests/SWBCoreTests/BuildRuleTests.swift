@@ -26,16 +26,16 @@ import SWBMacro
         // Create a set of rules.  We’ll use a couple of helper functions for creating the rules.
         var rules = Array<(any BuildRuleCondition,any BuildRuleAction)>()
         func MakeNamePatternConditionTaskActionRule(_ namePattern: String, _ compilerSpecIdent: String) throws -> (any BuildRuleCondition, any BuildRuleAction) {
-            return (BuildRuleFileNameCondition(namePatterns: [core.specRegistry.internalMacroNamespace.parseString(namePattern)]), BuildRuleTaskAction(toolSpec: try core.specRegistry.getSpec(compilerSpecIdent) as CommandLineToolSpec))
+            return (BuildRuleFileNameCondition(namePatterns: [core.specRegistry.internalMacroNamespace.parseString(namePattern)]), BuildRuleTaskAction(toolSpec: try core.specRegistry.getSpec(compilerSpecIdent, ofType: CommandLineToolSpec.self)))
         }
         func MakeNamePatternConditionScriptActionRule(_ namePattern: String, _ scriptSource: String) throws -> (any BuildRuleCondition, any BuildRuleAction) {
             return (BuildRuleFileNameCondition(namePatterns: [core.specRegistry.internalMacroNamespace.parseString(namePattern)]), BuildRuleScriptAction(guid: "BR\(scriptSource)", name: "BR\(scriptSource)", interpreterPath: "/bin/sh:", scriptSource: scriptSource, inputFiles: [], inputFileLists: [], outputFiles: [], outputFileLists: [], dependencyInfo: nil, runOncePerArchitecture: true, runDuringInstallAPI: false, runDuringInstallHeaders: false))
         }
         func MakeFileTypeConditionTaskActionRule(_ fileTypeIdent: String, _ compilerSpecIdent: String) throws -> (any BuildRuleCondition, any BuildRuleAction) {
-            return (BuildRuleFileTypeCondition(fileType: try core.specRegistry.getSpec(fileTypeIdent) as FileTypeSpec), BuildRuleTaskAction(toolSpec: try core.specRegistry.getSpec(compilerSpecIdent) as CommandLineToolSpec))
+            return (BuildRuleFileTypeCondition(fileType: try core.specRegistry.getSpec(fileTypeIdent, ofType: FileTypeSpec.self)), BuildRuleTaskAction(toolSpec: try core.specRegistry.getSpec(compilerSpecIdent, ofType: CommandLineToolSpec.self)))
         }
         func MakeFileTypeConditionScriptActionRule(_ fileTypeIdent: String, _ scriptSource: String) throws -> (any BuildRuleCondition, any BuildRuleAction) {
-            return (BuildRuleFileTypeCondition(fileType: try core.specRegistry.getSpec(fileTypeIdent) as FileTypeSpec), BuildRuleScriptAction(guid: "BR\(scriptSource)", name: "BR\(scriptSource)", interpreterPath: "/bin/sh:", scriptSource: scriptSource, inputFiles: [], inputFileLists: [], outputFiles: [], outputFileLists: [], dependencyInfo: nil, runOncePerArchitecture: true, runDuringInstallAPI: false, runDuringInstallHeaders: false))
+            return (BuildRuleFileTypeCondition(fileType: try core.specRegistry.getSpec(fileTypeIdent, ofType: FileTypeSpec.self)), BuildRuleScriptAction(guid: "BR\(scriptSource)", name: "BR\(scriptSource)", interpreterPath: "/bin/sh:", scriptSource: scriptSource, inputFiles: [], inputFileLists: [], outputFiles: [], outputFileLists: [], dependencyInfo: nil, runOncePerArchitecture: true, runDuringInstallAPI: false, runDuringInstallHeaders: false))
         }
         rules.append(try MakeNamePatternConditionTaskActionRule("*.c", "com.apple.compilers.llvm.clang.1_0"))
         rules.append(try MakeNamePatternConditionScriptActionRule("*.tiff", "pwd"))
@@ -45,9 +45,9 @@ import SWBMacro
         let ruleSet = BasicBuildRuleSet(rules: rules)
 
         // Create some matchable entities.
-        let hFile = FileToBuild(absolutePath: Path.root.join("foo.h"), fileType: try core.specRegistry.getSpec(SpecRegistry.headerFileTypeIdentifiers.first!) as FileTypeSpec)
-        let cFile = FileToBuild(absolutePath: Path.root.join("foo.c"), fileType: try core.specRegistry.getSpec("sourcecode.c.c") as FileTypeSpec)
-        let pngFile = FileToBuild(absolutePath: Path.root.join("bar.png"), fileType: try core.specRegistry.getSpec("sourcecode.c.c") as FileTypeSpec)
+        let hFile = FileToBuild(absolutePath: Path.root.join("foo.h"), fileType: try core.specRegistry.getSpec(SpecRegistry.headerFileTypeIdentifiers.first!, ofType: FileTypeSpec.self))
+        let cFile = FileToBuild(absolutePath: Path.root.join("foo.c"), fileType: try core.specRegistry.getSpec("sourcecode.c.c", ofType: FileTypeSpec.self))
+        let pngFile = FileToBuild(absolutePath: Path.root.join("bar.png"), fileType: try core.specRegistry.getSpec("sourcecode.c.c", ofType: FileTypeSpec.self))
 
         // Create a scope for evaluation.
         let table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)
@@ -103,7 +103,7 @@ import SWBMacro
 
         func testDiagnostic(enableDebugActivityLogs: Bool) throws {
             let ruleSet = DisambiguatingBuildRuleSet(rules: rules, enableDebugActivityLogs: enableDebugActivityLogs)
-            let textSpec = try core.specRegistry.getSpec("text") as FileTypeSpec
+            let textSpec = try core.specRegistry.getSpec("text", ofType: FileTypeSpec.self)
             let textFilePath = Path.root.join("tmp/foo.out")
             let textFile = FileToBuild(absolutePath: textFilePath, fileType: textSpec)
 
@@ -139,7 +139,7 @@ import SWBMacro
             BasicBuildRuleSet(rules: [rule1]),
             BasicBuildRuleSet(rules: [rule2]),
         ])
-        let textSpec = try core.specRegistry.getSpec("text") as FileTypeSpec
+        let textSpec = try core.specRegistry.getSpec("text", ofType: FileTypeSpec.self)
         let textFile = FileToBuild(absolutePath: Path.root.join("tmp/foo.out"), fileType: textSpec)
 
         let result = ruleSet.match(textFile, scope)

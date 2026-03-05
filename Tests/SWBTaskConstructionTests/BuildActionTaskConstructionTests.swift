@@ -680,7 +680,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
     }
 
 
-    /// Test running an install on a product to a location which contains an upwards path component ('..'), as path normalization and provisional task nullification can results in some build artifacts not being produced if paths don't line up.
+    /// Test running an install on a product to a location which contains an upwards path component ('..'), as path normalization and task validation criteria nullification can results in some build artifacts not being produced if paths don't line up.
     @Test(.requireSDKs(.macOS))
     func installWithUpwardsPath() async throws {
         // Test running the installhdrs build action on a framework.
@@ -784,7 +784,7 @@ fileprivate struct BuildActionTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["CpHeader", "/tmp/aProject.dst/Applications/SomeOtherApp.app/InternalFrameworks/FrameworkTarget.framework/Versions/A/PrivateHeaders/PrivateHeaderFile.h", "\(SRCROOT)/PrivateHeaderFile.h"])) { _ in }
 
                 // There should be tasks to create the binary.
-                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/x86_64/SourceOne.o", "\(SRCROOT)/SourceOne.m", "normal", "x86_64", "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileC", "\(SRCROOT)/build/aProject.build/Release/FrameworkTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SourceOne.o", "\(SRCROOT)/SourceOne.m", "normal", results.runDestinationTargetArchitecture, "objective-c", "com.apple.compilers.llvm.clang.1_0.compiler"])) { _ in }
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld"), .matchRuleItem("/tmp/aProject.dst/Applications/SomeOtherApp.app/InternalFrameworks/FrameworkTarget.framework/Versions/A/FrameworkTarget")) { _ in }
 
                 results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI"), .matchRuleItem("/tmp/Test/aProject/build/EagerLinkingTBDs/Release/FrameworkTarget.framework/Versions/A/FrameworkTarget.tbd")) { _ in }

@@ -207,7 +207,7 @@ Pascal string literals take the form `\"\\pstring\"` . The special escape sequen
 "[GCC_SHORT_ENUMS]-name" = "Short Enumeration Constants";
 "[GCC_SHORT_ENUMS]-description" = "Make enums only as large as needed for the range of possible values.
 
-This setting generates code that may not binary compatible with code generated without this setting or with macOS frameworks.";
+This setting generates code that may not be binary compatible with code generated without this setting or with macOS frameworks.";
 "[GCC_SHORT_ENUMS]-value-[NO]" = "No";
 "[GCC_SHORT_ENUMS]-value-[YES]" = "Yes";
 
@@ -694,6 +694,23 @@ The restrictions on `offsetof` may be relaxed in a future version of the C++ sta
 "[CLANG_ENABLE_MODULES]-description" = "Enables the use of modules for system APIs. System headers are imported as semantic modules instead of raw headers. This can result in faster builds and project indexing.";
 "[CLANG_ENABLE_MODULES]-value-[YES]" = "Yes";
 "[CLANG_ENABLE_MODULES]-value-[NO]" = "No";
+
+"[CLANG_ENABLE_STACK_ZERO_INIT]-name" = "Enable Stack Zero Initialization";
+"[CLANG_ENABLE_STACK_ZERO_INIT]-description" = "Automatically initializes stack variables to zero as a security protection.";
+"[CLANG_ENABLE_STACK_ZERO_INIT]-value-[YES]" = "Yes";
+"[CLANG_ENABLE_STACK_ZERO_INIT]-value-[NO]" = "No";
+
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-name" = "Enable Typed Allocator in C";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-description" = "Enables compiler rewriting of allocation calls in C to provide type information to the allocator. Mitigates use-after-free security vulnerabilities.";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-value-[YES]" = "Yes";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-value-[NO]" = "No";
+"[CLANG_ENABLE_C_TYPED_ALLOCATOR_SUPPORT]-value-[compiler-default]" = "Compiler Default";
+
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-name" = "Enable Typed Allocator in C++";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-description" = "Enables compiler rewriting of allocation calls in C++ to provide type information to the allocator. Mitigates use-after-free security vulnerabilities.";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-value-[YES]" = "Yes";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-value-[NO]" = "No";
+"[CLANG_ENABLE_CPLUSPLUS_TYPED_ALLOCATOR_SUPPORT]-value-[compiler-default]" = "Compiler Default";
 
 "[CLANG_MODULES_AUTOLINK]-name" = "Link Frameworks Automatically";
 "[CLANG_MODULES_AUTOLINK]-description" = "Automatically link SDK frameworks that are referenced using `#import` or `#include`. This feature requires also enabling support for modules. This build setting only applies to C-family languages.";

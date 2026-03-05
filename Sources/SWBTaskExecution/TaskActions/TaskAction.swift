@@ -79,6 +79,10 @@ open class TaskAction: PlannedTaskAction, PolymorphicSerializable
         return md5.signature
     }
 
+    open func describeDifferences(comparedTo otherTaskAction: TaskAction, fs: any FSProxy) throws -> [String] {
+        []
+    }
+
     /// Hook for task actions to configure itself in the build system, if they need to.
     /// - parameter task: The `Task` the action is acting on behalf of.
     /// - parameter dynamicExecutionDelegate: The dynamic execution context to request dynamic dependencies from.

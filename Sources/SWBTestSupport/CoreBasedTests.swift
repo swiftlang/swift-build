@@ -23,10 +23,11 @@ package protocol CoreBasedTests {
 }
 
 extension CoreBasedTests {
-    package static func makeCore(skipLoadingPluginsNamed: Set<String> = [], registerExtraPlugins: @PluginExtensionSystemActor (PluginManager) -> Void = { _ in }, simulatedInferiorProductsPath: Path? = nil, environment: [String: String] = [:], _ delegate: TestingCoreDelegate? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws -> Core {
+    /// This will create a customized `Core` object using the specified parameters, providing a test with detailed control over the contents of the `Core` it uses.
+    package static func makeCore(skipLoadingPluginsNamed: Set<String> = [], registerExtraPlugins: @PluginExtensionSystemActor (MutablePluginManager) -> Void = { _ in }, simulatedInferiorProductsPath: Path? = nil, environment: [String: String] = [:], _ delegate: TestingCoreDelegate? = nil, configurationDelegate: TestingCoreConfigurationDelegate? = nil, developerPathOverride: Core.DeveloperPath? = nil, sourceLocation: SourceLocation = #_sourceLocation) async throws -> Core {
         let core: Result<Core, any Error>
         do {
-            let theCore = try await Core.createInitializedTestingCore(skipLoadingPluginsNamed: skipLoadingPluginsNamed, registerExtraPlugins: registerExtraPlugins, simulatedInferiorProductsPath: simulatedInferiorProductsPath, environment: environment, delegate: delegate)
+            let theCore = try await Core.createInitializedTestingCore(skipLoadingPluginsNamed: skipLoadingPluginsNamed, registerExtraPlugins: registerExtraPlugins, simulatedInferiorProductsPath: simulatedInferiorProductsPath, environment: environment, delegate: delegate, configurationDelegate: configurationDelegate, developerPathOverride: developerPathOverride)
             core = .success(theCore)
         } catch {
             core = .failure(error)
@@ -48,6 +49,7 @@ extension CoreBasedTests {
         return try Self._getCore(core: core, sourceLocation: sourceLocation)
     }
 
+    /// This private method caches the `Core` object created in `GetCore(sourceLocation:)`, and returns the same object if queried again.
     private static func _getCore(core: Result<Core, any Error>, sourceLocation: SourceLocation = #_sourceLocation) throws -> Core {
         do {
             return try core.get()
@@ -87,7 +89,7 @@ extension CoreBasedTests {
             // FIXME: We could probably collapse all of this logic into a single method inside the spec, with some refactoring in several places.
             let swiftSpecInfo = try await discoveredSwiftCompilerInfo(at: swiftc)
             let provisionalSwiftVersion = swiftSpecInfo.swiftVersion
-            let swiftSpec = try core.specRegistry.getSpec() as SwiftCompilerSpec
+            let swiftSpec = try core.specRegistry.getSpec(ofType: SwiftCompilerSpec.self)
             let swiftVersion: Version
             switch swiftSpec.validateSwiftVersion(provisionalSwiftVersion) {
             case .invalid:
@@ -132,10 +134,24 @@ extension CoreBasedTests {
         }
     }
 
+    private var clangPlusPlusInfo: DiscoveredClangToolSpecInfo {
+        get async throws {
+            let (core, defaultToolchain) = try await coreAndToolchain()
+            let clang = try #require(defaultToolchain.executableSearchPaths.findExecutable(operatingSystem: core.hostOperatingSystem, basename: "clang++"), "couldn't find clang in default toolchain")
+            return try await discoveredClangToolInfo(toolPath: clang, arch: "undefined_arch", sysroot: nil)
+        }
+    }
+
     /// The path to the Clang compiler in the default toolchain.
     package var clangCompilerPath: Path {
         get async throws {
             try await clangInfo.toolPath
+        }
+    }
+
+    package var clangPlusPlusCompilerPath: Path {
+        get async throws {
+            try await clangPlusPlusInfo.toolPath
         }
     }
 
@@ -152,6 +168,14 @@ extension CoreBasedTests {
             }
 
             return ToolFeatures(realToolFeatures)
+        }
+    }
+
+    /// The path to clang in the default toolchain.
+    public var defaultClangPath: Path {
+        get async throws {
+            let clangInfo = try await clangInfo
+            return clangInfo.toolPath
         }
     }
 
@@ -399,7 +423,7 @@ extension CoreBasedTests {
 
     fileprivate func discoveredToolSpecInfo(specIdentifier: String, sourceLocation: SourceLocation = #_sourceLocation) async throws -> (any DiscoveredCommandLineToolSpecInfo)? {
         let core = try await getCore()
-        let spec = try core.specRegistry.getSpec(specIdentifier) as CommandLineToolSpec
+        let spec = try core.specRegistry.getSpec(specIdentifier, ofType: CommandLineToolSpec.self)
         let producer = try MockCommandProducer(core: core, productTypeIdentifier: "com.apple.product-type.framework", platform: nil, useStandardExecutableSearchPaths: true, toolchain: nil, fs: localFS)
         let delegate = DiscoveredInfoDelegate()
         let info = await spec.discoveredCommandLineToolSpecInfo(producer, MacroEvaluationScope(table: MacroValueAssignmentTable(namespace: MacroNamespace())), delegate)

@@ -25,7 +25,7 @@ private extension Path {
     init(_ virtualPath: TypedVirtualPath) throws {
         switch virtualPath.file {
         case let .absolute(absPath): self = Path(absPath.pathString)
-        case .standardInput, .standardOutput, .fileList, .relative, .temporary, .temporaryWithKnownContents:
+        case .standardInput, .standardOutput, .fileList, .relative, .temporary, .temporaryWithKnownContents, .buildArtifactWithKnownContents:
             fallthrough
         @unknown default:
             throw StubError.error("Cannot build Path from \(virtualPath); unimplemented path type.")
@@ -80,6 +80,8 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
     public let outputs: [Path]
     /// The command line to execute for this job
     public let commandLine: [SWBUtil.ByteString]
+    /// The signature uniquely identifying the command line, looking through any indirection through response files.
+    public let commandLineSignature: SWBUtil.ByteString
     /// Cache keys for the swift-frontend invocation (one key per output producing input)
     public let cacheKeys: [String]
 
@@ -91,20 +93,35 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
         self.displayInputs = try job.displayInputs.map { try Path(resolver.resolve(.path($0.file))) }
         self.outputs = try job.outputs.map { try Path(resolver.resolve(.path($0.file))) }
         self.descriptionForLifecycle = job.descriptionForLifecycle
-        if categorizer.isExplicitDependencyBuild {
-            self.commandLine = try explicitModulesResolver.resolveArgumentList(for: job, useResponseFiles: .heuristic).map { ByteString(encodingAsUTF8: $0) }
-            self.kind = .explicitModule(uniqueID: commandLine.hashValue)
-        } else {
-            self.commandLine = try resolver.resolveArgumentList(for: job, useResponseFiles: .heuristic).map { ByteString(encodingAsUTF8: $0) }
-            self.kind = .target
+        let chosenResolver = categorizer.isExplicitDependencyBuild ? explicitModulesResolver : resolver
+        let args: ResolvedCommandLine = try chosenResolver.resolveArgumentList(for: job, useResponseFiles: .heuristic)
+        switch args {
+        case .plain(let args):
+            self.commandLine = args.map { ByteString(encodingAsUTF8: $0) }
+            let ctx = InsecureHashContext()
+            for arg in args {
+                ctx.add(string: arg)
+            }
+            self.commandLineSignature = ctx.signature
+            self.kind = categorizer.isExplicitDependencyBuild ? .explicitModule(uniqueID: args.hashValue) : .target
+        case .usingResponseFile(resolved: let args, responseFileContents: let responseFileContents):
+            // When using a response file, jobs should be uniqued based on the contents of the response file
+            self.commandLine = args.map { ByteString(encodingAsUTF8: $0) }
+            let ctx = InsecureHashContext()
+            for arg in responseFileContents {
+                ctx.add(string: arg)
+            }
+            self.commandLineSignature = ctx.signature
+            self.kind = categorizer.isExplicitDependencyBuild ? .explicitModule(uniqueID: responseFileContents.hashValue) : .target
         }
+
         self.cacheKeys = job.outputCacheKeys.reduce(into: [String]()) { result, key in
             result.append(key.value)
         }.sorted()
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(9) {
+        serializer.serializeAggregate(10) {
             serializer.serialize(kind)
             serializer.serialize(ruleInfoType)
             serializer.serialize(moduleName)
@@ -112,6 +129,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
             serializer.serialize(displayInputs)
             serializer.serialize(outputs)
             serializer.serialize(commandLine)
+            serializer.serialize(commandLineSignature)
             serializer.serialize(descriptionForLifecycle)
             serializer.serialize(cacheKeys)
         }
@@ -126,6 +144,7 @@ public struct SwiftDriverJob: Serializable, CustomDebugStringConvertible {
         try self.displayInputs = deserializer.deserialize()
         try self.outputs = deserializer.deserialize()
         try self.commandLine = deserializer.deserialize()
+        try self.commandLineSignature = deserializer.deserialize()
         try self.descriptionForLifecycle = deserializer.deserialize()
         try self.cacheKeys = deserializer.deserialize()
     }
@@ -173,9 +192,7 @@ extension LibSwiftDriver {
                 self.dependencies = dependencies
                 self.workingDirectory = workingDirectory
                 let md5 = InsecureHashContext()
-                for arg in driverJob.commandLine {
-                    md5.add(bytes: arg)
-                }
+                md5.add(bytes: driverJob.commandLineSignature)
                 md5.add(string: workingDirectory.str)
                 md5.add(number: dependencies.hashValue)
                 self.signature = md5.signature
@@ -526,6 +543,16 @@ extension LibSwiftDriver {
                     try iterator(plannedJob)
                     self.jobExecutionDelegate?.jobSkipped(job: driverJob)
                 }
+            }
+        }
+
+        public func getCrashReproducerCommand(for job: PlannedSwiftDriverJob, output dir: Path) async throws -> [String]? {
+            try await dispatchQueue.sync {
+                let driverJob = try self.driverJob(for: job)
+                guard let reproJob = self.jobExecutionDelegate?.getReproducerJob(job: driverJob, output: try VirtualPath(path: dir.str)) else {
+                  return nil
+                }
+                return try self.argsResolver.resolveArgumentList(for: reproJob, useResponseFiles: .heuristic)
             }
         }
 

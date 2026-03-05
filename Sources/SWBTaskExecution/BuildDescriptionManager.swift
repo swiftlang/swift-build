@@ -90,6 +90,9 @@ package final class BuildDescriptionManager: Sendable {
     /// The in-memory cache of build descriptions.
     private let inMemoryCachedBuildDescriptions: HeavyCache<BuildDescriptionSignature, BuildDescription>
 
+    /// Build descriptions explicitly retained by clients.
+    private let retainedBuildDescriptions: Registry<BuildDescriptionSignature, (BuildDescription, UInt)> = .init()
+
     /// The last build plan request. Used to generate a diff of the current plan for debugging purposes.
     private let lastBuildPlanRequest: SWBMutex<BuildPlanRequest?> = .init(nil)
 
@@ -180,16 +183,27 @@ package final class BuildDescriptionManager: Sendable {
         var settingsPerTarget = [ConfiguredTarget:Settings]()
         var rootPathsPerTarget = [ConfiguredTarget:[Path]]()
         var moduleCachePathsPerTarget = [ConfiguredTarget: [Path]]()
+        var artifactInfoPerTarget = [ConfiguredTarget: ArtifactInfo]()
 
-        var casValidationInfos: OrderedSet<BuildDescription.CASValidationInfo> = []
+        // Note: for the purposes of validation we intentionally ignore irrelevant differences in CASOptions and whether we are post-build verifying. However, we need to keep the llvm-cas executable in case there are multiple cas format versions sharing the path.
+        struct CASValidationInfoKey: Hashable {
+            var casPath: Path
+            var llvmCasPath: Path
+            init(_ info: BuildDescription.CASValidationInfo) {
+                self.casPath = info.options.casPath
+                self.llvmCasPath = info.llvmCasExec
+            }
+        }
+        var casValidationInfos: OrderedDictionary<CASValidationInfoKey, BuildDescription.CASValidationInfo> = [:]
+
         let buildGraph = planRequest.buildGraph
-        let shouldValidateCAS = UserDefaults.enableCASValidation
+        let validateCASPreBuild = UserDefaults.enableCASValidation
 
         // Add the SFR identifier for target-independent tasks.
         staleFileRemovalIdentifierPerTarget[nil] = plan.staleFileRemovalTaskIdentifier(for: nil)
 
         for target in buildGraph.allTargets {
-            let settings = planRequest.buildRequestContext.getCachedSettings(target.parameters, target: target.target)
+            let settings = plan.globalProductPlan.getTargetSettings(target)
             rootPathsPerTarget[target] = [
                 settings.globalScope.evaluate(BuiltinMacros.DSTROOT),
                 settings.globalScope.evaluate(BuiltinMacros.OBJROOT),
@@ -198,17 +212,30 @@ package final class BuildDescriptionManager: Sendable {
 
             moduleCachePathsPerTarget[target] = [
                 settings.globalScope.evaluate(BuiltinMacros.MODULE_CACHE_DIR),
-                Path(settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)),
-                Path(settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH)),
+                settings.globalScope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH),
+                settings.globalScope.evaluate(BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH),
             ]
 
-            if shouldValidateCAS, settings.globalScope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) || settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) {
+            artifactInfoPerTarget[target] = settings.productType?.artifactInfo(in: settings.globalScope)
+
+            let validateCASPostBuild = settings.globalScope.evaluate(BuiltinMacros.COMPILATION_CACHE_VALIDATE_POST_BUILD)
+
+            if validateCASPreBuild || validateCASPostBuild, settings.globalScope.evaluate(BuiltinMacros.CLANG_ENABLE_COMPILE_CACHE) || settings.globalScope.evaluate(BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE) {
                 // FIXME: currently we only handle the compiler cache here, because the plugin configuration for the generic CAS is not configured by build settings.
                 for purpose in [CASOptions.Purpose.compiler(.c)] {
                     if let casOpts = try? CASOptions.create(settings.globalScope, purpose) {
                         let execName = settings.globalScope.evaluate(BuiltinMacros.VALIDATE_CAS_EXEC).nilIfEmpty ?? "llvm-cas"
                         if let execPath = settings.executableSearchPaths.lookup(Path(execName)) {
-                            casValidationInfos.append(.init(options: casOpts, llvmCasExec: execPath))
+                            let info = BuildDescription.CASValidationInfo(options: casOpts, llvmCasExec: execPath, validatePostBuild: validateCASPostBuild)
+                            let key = CASValidationInfoKey(info)
+                            // Insert the new CAS, or merge it with an existing entry.
+                            if let existingInfo = casValidationInfos[key] {
+                                if !existingInfo.validatePostBuild && info.validatePostBuild {
+                                    casValidationInfos[key]!.validatePostBuild = true
+                                }
+                            } else {
+                                casValidationInfos[key] = info
+                            }
                         }
                     }
                 }
@@ -221,7 +248,7 @@ package final class BuildDescriptionManager: Sendable {
         let definingTargetsByModuleName = {
             var definingTargetsByModuleName: [String: OrderedSet<ConfiguredTarget>] = [:]
             for target in buildGraph.allTargets {
-                let settings = planRequest.buildRequestContext.getCachedSettings(target.parameters, target: target.target)
+                let settings = plan.globalProductPlan.getTargetSettings(target)
                 let moduleInfo = plan.globalProductPlan.getModuleInfo(target)
                 let specLookupContext = SpecLookupCtxt(specRegistry: planRequest.workspaceContext.core.specRegistry, platform: settings.platform)
                 let buildingAnySwiftSourceFiles = (target.target as? BuildPhaseTarget)?.sourcesBuildPhase?.containsSwiftSources(planRequest.workspaceContext.workspace, specLookupContext, settings.globalScope, settings.filePathResolver) ?? false
@@ -236,17 +263,8 @@ package final class BuildDescriptionManager: Sendable {
             return definingTargetsByModuleName
         }()
 
-        // Only capture build information if it was requested.
-        let capturedBuildInfo: CapturedBuildInfo?
-        if planRequest.workspaceContext.userInfo?.processEnvironment["CAPTURED_BUILD_INFO_DIR"] != nil {
-            // Capture the info about this build.
-            capturedBuildInfo = CapturedBuildInfo(buildGraph, settingsPerTarget)
-        } else {
-            capturedBuildInfo = nil
-        }
-
         // Create the build description.
-        return try await BuildDescription.construct(workspace: buildGraph.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, casValidationInfos: casValidationInfos.elements, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, capturedBuildInfo: capturedBuildInfo, userPreferences: buildGraph.workspaceContext.userPreferences)
+        return try await BuildDescription.construct(workspace: planRequest.workspaceContext.workspace, tasks: plan.tasks, path: path, signature: signature, buildCommand: planRequest.buildRequest.buildCommand, diagnostics: planningDiagnostics, indexingInfo: [], fs: fs, bypassActualTasks: bypassActualTasks, targetsBuildInParallel: buildGraph.targetsBuildInParallel, emitFrontendCommandLines: plan.emitFrontendCommandLines, moduleSessionFilePath: planRequest.workspaceContext.getModuleSessionFilePath(planRequest.buildRequest.parameters), invalidationPaths: plan.invalidationPaths, recursiveSearchPathResults: plan.recursiveSearchPathResults, copiedPathMap: plan.copiedPathMap, rootPathsPerTarget: rootPathsPerTarget, moduleCachePathsPerTarget: moduleCachePathsPerTarget, artifactInfoPerTarget: artifactInfoPerTarget, casValidationInfos: casValidationInfos.values, staleFileRemovalIdentifierPerTarget: staleFileRemovalIdentifierPerTarget, settingsPerTarget: settingsPerTarget, delegate: delegate, targetDependencies: buildGraph.targetDependenciesByGuid, definingTargetsByModuleName: definingTargetsByModuleName, userPreferences: planRequest.workspaceContext.userPreferences)
     }
 
     /// Encapsulates the two ways `getNewOrCachedBuildDescription` can be called, whether we want to retrieve or create a build description based on a plan or whether we have an explicit build description ID that we want to retrieve and we don't need to create a new one.
@@ -254,35 +272,44 @@ package final class BuildDescriptionManager: Sendable {
     /// During normal operation (outside of tests), this should always be called on `queue`.
     package enum BuildDescriptionRequest {
         /// Retrieve or create a build description based on a build plan.
-        case newOrCached(BuildPlanRequest, bypassActualTasks: Bool, useSynchronousBuildDescriptionSerialization: Bool)
+        case newOrCached(BuildPlanRequest, bypassActualTasks: Bool, useSynchronousBuildDescriptionSerialization: Bool, retain: Bool)
         /// Retrieve an existing build description, build planning has been avoided. If the build description is not available then `getNewOrCachedBuildDescription` will fail.
-        case cachedOnly(BuildDescriptionID, request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext)
+        case cachedOnly(BuildDescriptionID, request: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, retain: Bool)
 
         var buildRequest: BuildRequest {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest.buildRequest
-            case .cachedOnly(_, let request, _, _): return request
+            case .newOrCached(let planRequest, _, _, _): return planRequest.buildRequest
+            case .cachedOnly(_, let request, _, _, _): return request
             }
         }
 
         var buildRequestContext: BuildRequestContext {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest.buildRequestContext
-            case .cachedOnly(_, _, let buildRequestContext, _): return buildRequestContext
+            case .newOrCached(let planRequest, _, _, _): return planRequest.buildRequestContext
+            case .cachedOnly(_, _, let buildRequestContext, _, _): return buildRequestContext
             }
         }
 
         var planRequest: BuildPlanRequest? {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest
+            case .newOrCached(let planRequest, _, _, _): return planRequest
             case .cachedOnly: return nil
             }
         }
 
         var workspaceContext: WorkspaceContext {
             switch self {
-            case .newOrCached(let planRequest, _, _): return planRequest.workspaceContext
-            case .cachedOnly(_, _, _, let workspaceContext): return workspaceContext
+            case .newOrCached(let planRequest, _, _, _): return planRequest.workspaceContext
+            case .cachedOnly(_, _, _, let workspaceContext, _): return workspaceContext
+            }
+        }
+
+        var retain: Bool {
+            switch self {
+            case .newOrCached(_, _, _, let retain):
+                retain
+            case .cachedOnly(_, _, _, _, let retain):
+                retain
             }
         }
 
@@ -305,8 +332,8 @@ package final class BuildDescriptionManager: Sendable {
 
         func signature(cacheDir: Path) throws -> BuildDescriptionSignature {
             switch self {
-            case .newOrCached(let planRequest, _, _): return try BuildDescriptionSignature.buildDescriptionSignature(planRequest, cacheDir: cacheDir)
-            case .cachedOnly(let buildDescriptionID, _, _, _):  return BuildDescriptionSignature.buildDescriptionSignature(buildDescriptionID)
+            case .newOrCached(let planRequest, _, _, _): return try BuildDescriptionSignature.buildDescriptionSignature(planRequest, cacheDir: cacheDir)
+            case .cachedOnly(let buildDescriptionID, _, _, _, _):  return BuildDescriptionSignature.buildDescriptionSignature(buildDescriptionID)
             }
         }
     }
@@ -317,6 +344,8 @@ package final class BuildDescriptionManager: Sendable {
             description = lastDescription
         } else if let inMemoryDescription = inMemoryCachedBuildDescriptions[signature] {
             description = inMemoryDescription
+        } else if let retainedDescription = retainedBuildDescriptions[signature] {
+            description = retainedDescription.0
         } else {
             description = nil
         }
@@ -329,7 +358,7 @@ package final class BuildDescriptionManager: Sendable {
     }
 
     /// Returns a build description info struct for a particular workspace and request. This method is primarily intended for testing, as the struct contains information about whether a cached instance was used.
-    package func getNewOrCachedBuildDescription(_ request: BuildDescriptionRequest, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate) async throws -> BuildDescriptionRetrievalInfo? {
+    package func getNewOrCachedBuildDescription(_ request: BuildDescriptionRequest, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate, skipRecordingAccess: Bool = false) async throws -> BuildDescriptionRetrievalInfo? {
         BuildDescriptionManager.descriptionsRequested.increment()
 
         // May perform settings construction and take 25-30ms uncached
@@ -382,7 +411,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         // Touch the serialized file to denote its use (if we didn't just create it)
-        if source != .new {
+        if source != .new && !skipRecordingAccess {
             if UserDefaults.useSynchronousBuildDescriptionSerialization || request.workspaceContext.userPreferences.enableBuildDebugging {
                 await onDiskCacheAccessQueue.sync {
                     try? self.fs.touch(buildDescription.packagePath)
@@ -397,16 +426,60 @@ package final class BuildDescriptionManager: Sendable {
             }
         }
 
+        if request.retain {
+            retainedBuildDescriptions.update(signature, update: { ($0.0, $0.1 + 1) }, default: { (buildDescription, 0) })
+        }
+
         return BuildDescriptionRetrievalInfo(buildDescription: buildDescription, source: source, inMemoryCacheSize: inMemoryCachedBuildDescriptions.count, onDiskCachePath: buildDescriptionPath)
     }
 
     /// Returns a build description for a particular workspace and request.
     ///
     /// - Returns: A build description, or nil if cancelled.
-    package func getBuildDescription(_ request: BuildPlanRequest, bypassActualTasks: Bool = false, useSynchronousBuildDescriptionSerialization: Bool = false, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate) async throws -> BuildDescription? {
-        let descRequest = BuildDescriptionRequest.newOrCached(request, bypassActualTasks: bypassActualTasks, useSynchronousBuildDescriptionSerialization: useSynchronousBuildDescriptionSerialization)
+    package func getBuildDescription(_ request: BuildPlanRequest, bypassActualTasks: Bool = false, useSynchronousBuildDescriptionSerialization: Bool = false, retained: Bool, clientDelegate: any TaskPlanningClientDelegate, constructionDelegate: any BuildDescriptionConstructionDelegate) async throws -> BuildDescription? {
+        let descRequest = BuildDescriptionRequest.newOrCached(request, bypassActualTasks: bypassActualTasks, useSynchronousBuildDescriptionSerialization: useSynchronousBuildDescriptionSerialization, retain: retained)
         let retrievalInfo = try await getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: constructionDelegate)
         return retrievalInfo?.buildDescription
+    }
+
+    /// Loads the prior build description on a best-effort basis. This is currently used to identify the cause of task signature changes in an incremental build.
+    package func attemptLoadingPriorBuildDescription(
+        currentDescription: BuildDescription,
+        buildRequest: BuildRequest,
+        buildRequestContext: BuildRequestContext,
+        workspaceContext: WorkspaceContext,
+        clientDelegate: any TaskPlanningClientDelegate,
+        constructionDelegate: any BuildDescriptionConstructionDelegate
+    ) async -> BuildDescription? {
+        guard let contents = try? fs.read(currentDescription.priorBuildDescriptionsRecordPath).asString else {
+            return nil
+        }
+        let lines = contents.split(separator: "\n", omittingEmptySubsequences: true)
+        guard let priorID = lines.last else {
+            return nil
+        }
+        let priorBuildDescriptionID = BuildDescriptionID(String(priorID))
+        let descRequest = BuildDescriptionRequest.cachedOnly(
+            priorBuildDescriptionID,
+            request: buildRequest,
+            buildRequestContext: buildRequestContext,
+            workspaceContext: workspaceContext,
+            retain: false
+        )
+        return try? await getNewOrCachedBuildDescription(descRequest, clientDelegate: clientDelegate, constructionDelegate: constructionDelegate, skipRecordingAccess: true)?.buildDescription
+    }
+
+    package func releaseBuildDescription(id: BuildDescriptionID) {
+        self.retainedBuildDescriptions.update(BuildDescriptionSignature.buildDescriptionSignature(id), update: {
+            let newCount = $0.1 - 1
+            if newCount == 0 {
+                return nil
+            } else {
+                return ($0.0, newCount)
+            }
+        }, default: {
+            nil
+        })
     }
 
     /// Returns the path in which the`XCBuildData` directory will live. That location is uses to cache build descriptions for a particular workspace and request, the manifest, and the `build.db` database for llbuild.
@@ -514,7 +587,7 @@ package final class BuildDescriptionManager: Sendable {
         }
 
         // Unable to load from disk, create a new description
-        guard case let .newOrCached(request, bypassActualTasks, useSynchronousBuildDescriptionSerialization) = request else {
+        guard case let .newOrCached(request, bypassActualTasks, useSynchronousBuildDescriptionSerialization, _) = request else {
             preconditionFailure("entered build construction path but request was for existing cached description")
         }
 
@@ -768,6 +841,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
+    func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
+        return BuildDependencyInfoTaskAction()
+    }
+
     func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }
@@ -828,8 +905,8 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
         return LSRegisterURLTaskAction()
     }
 
-    func createProcessProductEntitlementsTaskAction(scope: MacroEvaluationScope, mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
-        return ProcessProductEntitlementsTaskAction(scope: scope, fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
+    func createProcessProductEntitlementsTaskAction(mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
+        return ProcessProductEntitlementsTaskAction(fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, allowEntitlementsModification: allowEntitlementsModification, entitlementsDestination: entitlementsDestination, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
     }
 
     func createProcessProductProvisioningProfileTaskAction() -> any PlannedTaskAction {
@@ -854,6 +931,10 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
 
     func createClangCompileTaskAction() -> any PlannedTaskAction {
         return ClangCompileTaskAction()
+    }
+
+    func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
     }
 
     func createClangScanTaskAction() -> any PlannedTaskAction {
@@ -890,6 +971,18 @@ extension BuildSystemTaskPlanningDelegate: TaskActionCreationDelegate {
 
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
+    }
+
+    func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateDependenciesTaskAction()
+    }
+
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
     }
 }
 

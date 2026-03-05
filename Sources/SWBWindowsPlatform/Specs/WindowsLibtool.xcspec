@@ -28,7 +28,8 @@
         ProgressDescription = "Creating static library";
         InputFileTypes = (
             // TODO: elf files instead
-            compiled.mach-o.objfile
+            compiled.mach-o.objfile,
+            compiled.object-library
         );
         Outputs = (
             // We're a linker-like task, so we expect to be given an output path in 'OutputPath'.
@@ -61,6 +62,33 @@
                     "@$(value:standardizepath)",
                 );
                 IsInputDependency = Yes;
+            },
+            {
+                Name = "LIBTOOL_FILE_LIST_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = windowsShellQuotedNewlineSeparated;
+            },
+            {
+                Name = "LINKER_RESPONSE_FILE_FORMAT";
+                Type = Enumeration;
+                Values = (
+                    unescapedNewlineSeparated,
+                    unixShellQuotedSpaceSeparated,
+                    unixShellQuotedNewlineSeparated,
+                    windowsShellQuotedNewlineSeparated,
+                );
+                DefaultValue = windowsShellQuotedNewlineSeparated;
+            },
+            {   Name = ALL_OTHER_LIBTOOLFLAGS;
+                Type = StringList;
+                DefaultValue = "$(OTHER_LIBTOOLFLAGS) $(OTHER_LIBTOOLFLAGS_$(variant)) $(OTHER_LIBTOOLFLAGS_$(arch)) $(OTHER_LIBTOOLFLAGS_$(variant)_$(arch)) $(PRODUCT_SPECIFIC_LIBTOOLFLAGS)";
+                CommandLinePrefixFlag = "";
             },
         );
     },

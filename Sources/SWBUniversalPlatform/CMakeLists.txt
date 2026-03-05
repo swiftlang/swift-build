@@ -9,6 +9,7 @@ See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 ]]
 
 add_library(SWBUniversalPlatform
+  BareMetal.swift
   CopyPlistFile.swift
   CopyStringsFile.swift
   CppTool.swift
@@ -37,6 +38,7 @@ SwiftBuild_Bundle(MODULE SWBUniversalPlatform FILES
   Specs/Ld.xcspec
   Specs/Lex.xcspec
   Specs/Libtool.xcspec
+  Specs/ObjectLibraryAssembler.xcspec
   Specs/PackageTypes.xcspec
   Specs/PBXCp.xcspec
   Specs/ProductTypes.xcspec

@@ -855,6 +855,16 @@
     },
     {
         Type = FileType;
+        Identifier = compiled.object-library;
+        Class = PBXMachOFileType;
+        BasedOn = compiled.mach-o;
+        Name = "Object Library";
+        Extensions = (o);
+        AppliesToBuildRules = yes;
+        UTI = "org.swift.object-library";
+    },
+    {
+        Type = FileType;
         Identifier = compiled.mach-o.executable;
         Class = PBXMachOFileType;
         BasedOn = compiled.mach-o;
@@ -893,6 +903,7 @@
         Class = PBXMachOFileType;
         BasedOn = compiled.mach-o;
         Extensions = (dylib);
+        Prefix = lib;
         IsLibrary = YES;
         IsDynamicLibrary = YES;
         CodeSignOnCopy = YES;
@@ -929,6 +940,7 @@
         Identifier = sourcecode.text-based-dylib-definition;
         BasedOn = sourcecode;
         Extensions = (tbd);
+        Prefix = lib;
         IsLibrary = YES;
         IsDynamicLibrary = YES;
         CodeSignOnCopy = YES;
@@ -1203,6 +1215,13 @@
     },
     {
         Type = FileType;
+        Identifier = wrapper.artifactbundle;
+        BasedOn = wrapper;
+        Extensions = (artifactbundle);
+        UTI = "org.swift.artifactbundle";
+    },
+    {
+        Type = FileType;
         Identifier = wrapper.plug-in;
         Class = PBXCFBundleWrapperFileType;
         BasedOn = wrapper.cfbundle;
@@ -1454,7 +1473,7 @@
         Identifier = archive.ar;
         BasedOn = archive;
         Extensions = (a);
-        Prefix = (lib);
+        Prefix = lib;
         IsLibrary = YES;
         IsStaticLibrary = YES;
         ContainsNativeCode = YES;
@@ -1702,5 +1721,12 @@
         AppliesToBuildRules = yes;
         CanSetIncludeInIndex = YES;
         UTI = "public.protobuf-source";
+    },
+    {
+        Identifier = text.json.sarif;
+        Type = FileType;
+        Name = "Diagnostics log in SARIF format";
+        UTI = "com.apple.sarif";
+        BasedOn = text.json;
     },
 )

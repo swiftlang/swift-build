@@ -40,9 +40,9 @@ public final class Core: Sendable {
     /// Get a configured instance of the core.
     ///
     /// - returns: An initialized Core instance on which all discovery and loading will have been completed. If there are errors during that process, they will be logged to `stderr` and no instance will be returned. Otherwise, the initialized object is returned.
-    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: PluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginPaths: [Path]) -> Void = { _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
+    public static func getInitializedCore(_ delegate: any CoreDelegate, pluginManager: MutablePluginManager, developerPath: DeveloperPath? = nil, resourceSearchPaths: [Path] = [], inferiorProductsPath: Path? = nil, extraPluginRegistration: @PluginExtensionSystemActor (_ pluginManager: MutablePluginManager, _ pluginPaths: [Path]) -> Void = { _, _ in }, additionalContentPaths: [Path] = [], environment: [String:String] = [:], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async -> Core? {
         // Enable macro expression interning during loading.
-        return await MacroNamespace.withExpressionInterningEnabled {
+        return await MacroNamespace.withExpressionInterningEnabled { () -> Core? in
             let hostOperatingSystem: OperatingSystem
             do {
                 hostOperatingSystem = try ProcessInfo.processInfo.hostOperatingSystem()
@@ -51,13 +51,13 @@ public final class Core: Sendable {
                 return nil
             }
 
-            #if USE_STATIC_PLUGIN_INITIALIZATION
-            // In a package context, plugins are statically linked into the build system.
-            // Load specs from service plugins if requested since we don't have a Service in certain tests
-            // Here we don't have access to `core.pluginPaths` like we do in the call below,
-            // but it doesn't matter because it will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
-            await extraPluginRegistration([])
-            #endif
+            if useStaticPluginInitialization {
+                // In a package context, plugins are statically linked into the build system.
+                // Load specs from service plugins if requested since we don't have a Service in certain tests
+                // Here we don't have access to `core.pluginPaths` like we do in the call below,
+                // but it doesn't matter because `core.pluginPaths` will return an empty array when USE_STATIC_PLUGIN_INITIALIZATION is defined.
+                await extraPluginRegistration(pluginManager, [])
+            }
 
             let resolvedDeveloperPath: DeveloperPath
             do {
@@ -81,33 +81,33 @@ public final class Core: Sendable {
                 return nil
             }
 
+            if !useStaticPluginInitialization {
+                // In a package context, plugins are statically linked into the build system.
+                // Load specs from service plugins if requested since we don't have a Service in certain tests.
+                await extraPluginRegistration(pluginManager, Self.pluginPaths(inferiorProductsPath: inferiorProductsPath, developerPath: resolvedDeveloperPath))
+            }
+
             let core: Core
             do {
-                core = try await Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: pluginManager, developerPath: resolvedDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode)
+                core = try await Core(delegate: delegate, hostOperatingSystem: hostOperatingSystem, pluginManager: pluginManager.finalize(), developerPath: resolvedDeveloperPath, resourceSearchPaths: resourceSearchPaths, inferiorProductsPath: inferiorProductsPath, additionalContentPaths: additionalContentPaths, environment: environment, buildServiceModTime: buildServiceModTime, connectionMode: connectionMode)
             } catch {
                 delegate.error("\(error)")
                 return nil
             }
 
             if UserDefaults.enablePluginManagerLogging {
-                let plugins = await core.pluginManager.pluginsByIdentifier
+                let plugins = core.pluginManager.pluginsByIdentifier
                 delegate.emit(Diagnostic(behavior: .note, location: .unknown, data: DiagnosticData("Loaded \(plugins.count) plugins"), childDiagnostics: plugins.sorted(byKey: <).map { (identifier, plugin) in
                     Diagnostic(behavior: .note, location: .path(plugin.path), data: DiagnosticData("Loaded plugin: \(identifier) from \(plugin.path.str)"))
                 }))
             }
 
-            for diagnostic in await core.pluginManager.loadingDiagnostics {
+            for diagnostic in core.pluginManager.loadingDiagnostics {
                 // Only emit "severe" diagnostics (warning, error) from the plugin manager if the logging dwrite isn't set.
                 if UserDefaults.enablePluginManagerLogging || [.error, .warning].contains(diagnostic.behavior) {
                     delegate.emit(diagnostic)
                 }
             }
-
-            #if !USE_STATIC_PLUGIN_INITIALIZATION
-            // In a package context, plugins are statically linked into the build system.
-            // Load specs from service plugins if requested since we don't have a Service in certain tests
-            await extraPluginRegistration(core.pluginPaths)
-            #endif
 
             await core.initializeSpecRegistry()
 
@@ -116,17 +116,20 @@ public final class Core: Sendable {
             await core.initializeToolchainRegistry()
 
             // Force loading SDKs.
+            let sdkPaths = core.platformRegistry.platforms.flatMap { platform in platform.sdkSearchPaths.map { ($0, platform) } }
+            core._sdkRegistry.initialize(to: SDKRegistry(delegate: core.registryDelegate, searchPaths: sdkPaths, type: .builtin, hostOperatingSystem: hostOperatingSystem))
             let sdkRegistry = core.sdkRegistry
 
             struct Context: SDKRegistryExtensionAdditionalSDKsContext {
                 var hostOperatingSystem: OperatingSystem
+                var developerPath: Core.DeveloperPath
                 var platformRegistry: PlatformRegistry
                 var fs: any FSProxy
             }
 
             for `extension` in await pluginManager.extensions(of: SDKRegistryExtensionPoint.self) {
                 do {
-                    try await sdkRegistry.registerSDKs(extension: `extension`, context: Context(hostOperatingSystem: hostOperatingSystem, platformRegistry: core.platformRegistry, fs: localFS))
+                    try await sdkRegistry.registerSDKs(extension: `extension`, context: Context(hostOperatingSystem: hostOperatingSystem, developerPath: resolvedDeveloperPath, platformRegistry: core.platformRegistry, fs: localFS))
                 } catch {
                     delegate.emit(Diagnostic(behavior: .error, location: .unknown, data: DiagnosticData("\(error)")))
                 }
@@ -143,8 +146,8 @@ public final class Core: Sendable {
 
             // FIXME: <rdar://problem/36364112> We should also perform late binding of the toolchains' settings here.  Presently this is done when a Settings object which uses a toolchain is constructed.
 
-            // Force loading the CoreSettings (which can emit errors about missing required specs).
-            let _ = core.coreSettings
+            // Initialize the CoreSettings (which can emit errors about missing required specs).
+            core._coreSettings.initialize(to: CoreSettings(core))
 
             // If there were any loading errors, discard the core.
             if delegate.hasErrors {
@@ -167,7 +170,7 @@ public final class Core: Sendable {
     /// The host operating system.
     public let hostOperatingSystem: OperatingSystem
 
-    public let pluginManager: PluginManager
+    public let pluginManager: any PluginManager
 
     public enum DeveloperPath: Sendable, Hashable {
         // A path to an Xcode install's "/Contents/Developer" directory
@@ -220,7 +223,7 @@ public final class Core: Sendable {
 
     public let connectionMode: ServiceHostConnectionMode
 
-    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: PluginManager, developerPath: DeveloperPath, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
+    @_spi(Testing) public init(delegate: any CoreDelegate, hostOperatingSystem: OperatingSystem, pluginManager: any PluginManager, developerPath: DeveloperPath, resourceSearchPaths: [Path], inferiorProductsPath: Path?, additionalContentPaths: [Path], environment: [String:String], buildServiceModTime: Date, connectionMode: ServiceHostConnectionMode) async throws {
         self.delegate = delegate
         self.hostOperatingSystem = hostOperatingSystem
         self.pluginManager = pluginManager
@@ -269,35 +272,35 @@ public final class Core: Sendable {
         self.stopAfterOpeningLibClang = UserDefaults.stopAfterOpeningLibClang
 
         self.toolchainPaths = {
-            var toolchainPaths = [(Path, strict: Bool)]()
+            var toolchainPaths = [ToolchainRegistry.SearchPath]()
 
             switch developerPath {
             case .xcode(let path):
-                toolchainPaths.append((path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer")))
+                toolchainPaths.append(.init(path: path.join("Toolchains"), strict: path.str.hasSuffix(".app/Contents/Developer"), type: .toolchainsDirectoryPath))
             case .swiftToolchain(let path, xcodeDeveloperPath: let xcodeDeveloperPath):
                 if hostOperatingSystem == .windows {
-                    toolchainPaths.append((path.join("Toolchains"), strict: true))
-                } else {
-                    toolchainPaths.append((path, strict: true))
+                    toolchainPaths.append(.init(path: path.join("Toolchains"), strict: true, type: .toolchainsDirectoryPath, aliases: ["default"]))
+                } else if !path.isRoot {
+                    toolchainPaths.append(.init(path: path, strict: false, type: .toolchainPath))
                 }
                 if let xcodeDeveloperPath {
-                    toolchainPaths.append((xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer")))
+                    toolchainPaths.append(.init(path: xcodeDeveloperPath.join("Toolchains"), strict: xcodeDeveloperPath.str.hasSuffix(".app/Contents/Developer"), type: .toolchainsDirectoryPath))
                 }
             }
 
             // FIXME: We should support building the toolchain locally (for `inferiorProductsPath`).
 
-            toolchainPaths.append((Path("/Library/Developer/Toolchains"), strict: false))
+            toolchainPaths.append(.init(path: Path("/Library/Developer/Toolchains"), strict: false, type: .toolchainsDirectoryPath))
 
             if let homeString = getEnvironmentVariable("HOME")?.nilIfEmpty {
                 let userToolchainsPath = Path(homeString).join("Library/Developer/Toolchains")
-                toolchainPaths.append((userToolchainsPath, strict: false))
+                toolchainPaths.append(.init(path: userToolchainsPath, strict: false, type: .toolchainsDirectoryPath))
             }
 
             if let externalToolchainDirs = getEnvironmentVariable("EXTERNAL_TOOLCHAINS_DIR") ?? environment["EXTERNAL_TOOLCHAINS_DIR"] {
                 let envPaths = externalToolchainDirs.split(separator: Path.pathEnvironmentSeparator)
                 for envPath in envPaths {
-                    toolchainPaths.append((Path(envPath), strict: false))
+                    toolchainPaths.append(.init(path: Path(envPath), strict: false, type: .toolchainsDirectoryPath))
                 }
             }
 
@@ -308,16 +311,17 @@ public final class Core: Sendable {
     }
 
     /// The shared core settings object.
-    @_spi(Testing) public lazy var coreSettings: CoreSettings = {
-        return CoreSettings(self)
-    }()
+    let _coreSettings = UnsafeDelayedInitializationSendableWrapper<CoreSettings>()
+    @_spi(Testing) public var coreSettings: CoreSettings {
+        _coreSettings.value
+    }
 
     /// The list of plugin search paths.
-    @_spi(Testing) public lazy var pluginPaths: [Path] = {
-        #if USE_STATIC_PLUGIN_INITIALIZATION
-        // In a package context, plugins are statically linked into the build system.
-        return []
-        #else
+    private static func pluginPaths(inferiorProductsPath: Path?, developerPath: DeveloperPath) -> [Path] {
+        if useStaticPluginInitialization {
+            // In a package context, plugins are statically linked into the build system.
+            return []
+        }
 
         var result = [Path]()
 
@@ -325,7 +329,7 @@ public final class Core: Sendable {
         //
         // FIXME: This is error prone, as it won't validate that any of these are installed in the expected location.
         // FIXME: If we remove, move or rename something in the built Xcode, then this will still find the old item in the installed Xcode.
-        if let inferiorProductsPath = self.inferiorProductsPath {
+        if let inferiorProductsPath {
             result.append(inferiorProductsPath)
         }
 
@@ -336,7 +340,7 @@ public final class Core: Sendable {
         // Search paths relative to SWBCore itself.
         do {
             func appendInferior(_ path: Path) {
-                if !developerPath.dirname.isAncestor(of: path) {
+                if !developerPath.path.dirname.isAncestor(of: path) {
                     result.append(path)
                 }
             }
@@ -359,16 +363,10 @@ public final class Core: Sendable {
         }
 
         return result.map { $0.normalize() }
-        #endif
-    }()
-
-    /// The list of SDK search paths.
-    @_spi(Testing) public lazy var sdkPaths: [(Path, Platform?)] = {
-        return self.platformRegistry.platforms.flatMap { platform in platform.sdkSearchPaths.map { ($0, platform) } }
-    }()
+    }
 
     /// The list of toolchain search paths.
-    @_spi(Testing) public var toolchainPaths: [(Path, strict: Bool)]
+    @_spi(Testing) public let toolchainPaths: [ToolchainRegistry.SearchPath]
 
     /// The platform registry.
     let _platformRegistry: UnsafeDelayedInitializationSendableWrapper<PlatformRegistry> = .init()
@@ -381,12 +379,16 @@ public final class Core: Sendable {
     }
 
     /// The SDK registry for Xcode's builtin SDKs. Clients should generally use `WorkspaceContext.sdkRegistry` to include dynamically discovered SDKs.
-    public lazy var sdkRegistry: SDKRegistry = {
-        return SDKRegistry(delegate: self.registryDelegate, searchPaths: self.sdkPaths, type: .builtin, hostOperatingSystem: hostOperatingSystem)
-    }()
+    let _sdkRegistry = UnsafeDelayedInitializationSendableWrapper<SDKRegistry>()
+    public var sdkRegistry: SDKRegistry {
+        _sdkRegistry.value
+    }
 
     /// The toolchain registry.
-    public private(set) var toolchainRegistry: ToolchainRegistry! = nil
+    let _toolchainRegistry = UnsafeDelayedInitializationSendableWrapper<ToolchainRegistry>()
+    public var toolchainRegistry: ToolchainRegistry {
+        _toolchainRegistry.value
+    }
 
     private let libclangRegistry = Registry<Path, (Libclang?, Version?)>()
     private let stopAfterOpeningLibClang: Bool
@@ -428,15 +430,10 @@ public final class Core: Sendable {
     }
 
     /// The specification registry.
+    private let _specRegistry = UnsafeDelayedInitializationSendableWrapper<SpecRegistry>()
     public var specRegistry: SpecRegistry {
-        guard let specRegistry = _specRegistry else {
-            // FIXME: We should structure the initialization path better and remove reliance on `lazy var` so that this can be handled more cleanly.
-            preconditionFailure("Spec registry not initialized.")
-        }
-        return specRegistry
+        return _specRegistry.value
     }
-
-    private var _specRegistry: SpecRegistry?
 
     @_spi(Testing) public func initializePlatformRegistry() async {
         var searchPaths: [Path]
@@ -467,19 +464,17 @@ public final class Core: Sendable {
 
 
     private func initializeToolchainRegistry() async {
-        self.toolchainRegistry = await ToolchainRegistry(delegate: self.registryDelegate, searchPaths: self.toolchainPaths, fs: localFS, hostOperatingSystem: hostOperatingSystem)
+        self._toolchainRegistry.initialize(to: await ToolchainRegistry(delegate: self.registryDelegate, searchPaths: self.toolchainPaths, fs: localFS, hostOperatingSystem: hostOperatingSystem))
     }
 
     @_spi(Testing) public func initializeSpecRegistry() async {
-        precondition(_specRegistry == nil)
-
         var domainInclusions: [String: [String]] = [:]
 
         // Compute the complete list of search paths (and default domains).
         var searchPaths = additionalContentPaths.map { ($0, "") }
 
         // Find all plugin provided specs.
-        for ext in await self.pluginManager.extensions(of: SpecificationsExtensionPoint.self) {
+        for ext in self.pluginManager.extensions(of: SpecificationsExtensionPoint.self) {
             if let bundle = ext.specificationFiles(resourceSearchPaths: resourceSearchPaths) {
                 for url in bundle.urls(forResourcesWithExtension: "xcspec", subdirectory: nil) ?? [] {
                     do {
@@ -499,7 +494,7 @@ public final class Core: Sendable {
             }
         }
 
-        _specRegistry = await SpecRegistry(self.pluginManager, self.registryDelegate, searchPaths, domainInclusions, [:])
+        _specRegistry.initialize(to: await SpecRegistry(self.pluginManager, self.registryDelegate, searchPaths, domainInclusions, [:]))
     }
 
     /// Force all specs to be loaded.
@@ -596,6 +591,7 @@ public final class Core: Sendable {
 
         let specs: [SpecDump] = specRegistry.domains.flatMap { domain -> [SpecDump] in
             let allSpecs = specRegistry.findSpecs(BuildSettingsSpec.self, domain: domain, includeInherited: false)
+                + specRegistry.findSpecs(BuildSettingsExtensionSpec.self, domain: domain, includeInherited: false)
                 + specRegistry.findSpecs(BuildSystemSpec.self, domain: domain, includeInherited: false)
                 + specRegistry.findSpecs(CommandLineToolSpec.self, domain: domain, includeInherited: false)
             return allSpecs.map { spec in
@@ -623,7 +619,7 @@ public final class Core: Sendable {
 
     public func productTypeSupportsMacCatalyst(productTypeIdentifier: String) throws -> Bool {
         do {
-            let productTypeSpec = try specRegistry.getSpec(productTypeIdentifier, domain: "macosx") as ProductTypeSpec
+            let productTypeSpec = try specRegistry.getSpec(productTypeIdentifier, domain: "macosx", ofType: ProductTypeSpec.self)
             return productTypeSupportsPlatform(productType: productTypeSpec, platformName: "macosx")
         } catch SpecLoadingError.notFound {
             return false
@@ -738,7 +734,7 @@ struct CoreRegistryDelegate : PlatformRegistryDelegate, SDKRegistryDelegate, Spe
         return specRegistry.internalMacroNamespace
     }
 
-    var pluginManager: PluginManager {
+    var pluginManager: any PluginManager {
         core.pluginManager
     }
 

@@ -30,6 +30,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             ArchitectureSpec.self,
             BuildPhaseSpec.self,
             BuildSettingsSpec.self,
+            BuildSettingsExtensionSpec.self,
             BuildSystemSpec.self,
             CommandLineToolSpec.self,
             CompilerSpec.self,
@@ -58,6 +59,7 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
             LibtoolLinkerSpec.self,
             LipoToolSpec.self,
             MkdirToolSpec.self,
+            ObjectLibraryAssemblerSpec.self,
             PLUtilToolSpec.self,
             ProductPackagingToolSpec.self,
             ShellScriptToolSpec.self,
@@ -117,15 +119,16 @@ public struct BuiltinSpecsExtension: SpecificationsExtension {
     // spec implementations (custom classes we provide which have no backing spec file at all).
     public func specificationImplementations() -> [any SpecImplementationType.Type] {
         [
+            BuildDependencyInfoSpec.self,
             ConcatenateToolSpec.self,
             CreateAssetPackManifestToolSpec.self,
             CreateBuildDirectorySpec.self,
             MergeInfoPlistSpec.self,
             ProcessSDKImportsSpec.self,
             ProcessXCFrameworkLibrarySpec.self,
-            RegisterExecutionPolicyExceptionToolSpec.self,
             SwiftHeaderToolSpec.self,
             TAPIMergeToolSpec.self,
+            ValidateDependenciesSpec.self,
             ValidateDevelopmentAssets.self,
             ConstructStubExecutorFileListToolSpec.self,
             GateSpec.self,

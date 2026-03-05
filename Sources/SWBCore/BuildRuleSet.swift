@@ -166,7 +166,7 @@ extension Core {
         switch inputSpecifier {
         case let .fileType(fileTypeIdentifier):
             let domain = platform?.name ?? ""
-            condition = BuildRuleFileTypeCondition(fileType: try specRegistry.getSpec(fileTypeIdentifier, domain: domain) as FileTypeSpec)
+            condition = BuildRuleFileTypeCondition(fileType: try specRegistry.getSpec(fileTypeIdentifier, domain: domain, ofType: FileTypeSpec.self))
         case let .patterns(filePatterns):
             condition = BuildRuleFileNameCondition(namePatterns: filePatterns)
         }
@@ -181,13 +181,13 @@ extension Core {
 
         switch inputSpecifier {
         case let .fileType(fileTypeIdentifier):
-            let spec = try specRegistry.getSpec(compilerSpecificationIdentifier, domain: domain) as CommandLineToolSpec
+            let spec = try specRegistry.getSpec(compilerSpecificationIdentifier, domain: domain, ofType: CommandLineToolSpec.self)
 
             // Capture the tool spec's supports file types, if any.  But we only need to do this if the condition is not a pattern identifier.
             var toolSpecSupportedFileTypes = [FileTypeSpec]()
             if let inputFileTypeDescriptors = spec.inputFileTypeDescriptors {
                 for inputFileType in inputFileTypeDescriptors {
-                    let fileType = try specRegistry.getSpec(inputFileType.identifier, domain: domain) as FileTypeSpec
+                    let fileType = try specRegistry.getSpec(inputFileType.identifier, domain: domain, ofType: FileTypeSpec.self)
                     toolSpecSupportedFileTypes.append(fileType)
                 }
             }
@@ -195,7 +195,7 @@ extension Core {
             let action = BuildRuleTaskAction(toolSpec: spec)
 
             let condition: any BuildRuleCondition
-            let fileType = try specRegistry.getSpec(fileTypeIdentifier, domain: domain) as FileTypeSpec
+            let fileType = try specRegistry.getSpec(fileTypeIdentifier, domain: domain, ofType: FileTypeSpec.self)
             let fileTypes = toolSpecSupportedFileTypes.compactMap({ $0.conformsTo(fileType) ? $0 : nil })
             if fileTypes.isEmpty {
                 // If the compiler spec defined any supported file types, then the file types for the condition are those from the compiler spec which conform to the one we looked up.
@@ -208,7 +208,7 @@ extension Core {
             // Return the build rule condition and action.
             return (condition, action)
         case let .patterns(filePatterns):
-            return (BuildRuleFileNameCondition(namePatterns: filePatterns), BuildRuleTaskAction(toolSpec: try specRegistry.getSpec(compilerSpecificationIdentifier, domain: domain) as CommandLineToolSpec))
+            return (BuildRuleFileNameCondition(namePatterns: filePatterns), BuildRuleTaskAction(toolSpec: try specRegistry.getSpec(compilerSpecificationIdentifier, domain: domain, ofType: CommandLineToolSpec.self)))
         }
     }
 }

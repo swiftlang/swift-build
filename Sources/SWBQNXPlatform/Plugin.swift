@@ -15,7 +15,7 @@ import SWBCore
 import SWBMacro
 import Foundation
 
-@PluginExtensionSystemActor public func initializePlugin(_ manager: PluginManager) {
+public let initializePlugin: PluginInitializationFunction = { manager in
     let plugin = QNXPlugin()
     manager.register(QNXPlatformSpecsExtension(), type: SpecificationsExtensionPoint.self)
     manager.register(QNXEnvironmentExtension(plugin: plugin), type: EnvironmentExtensionPoint.self)
@@ -45,7 +45,7 @@ struct QNXEnvironmentExtension: EnvironmentExtension {
     let plugin: QNXPlugin
 
     func additionalEnvironmentVariables(context: any EnvironmentExtensionAdditionalEnvironmentVariablesContext) async throws -> [String : String] {
-        if let latest = try await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first {
+        if let latest = try? await plugin.cachedQNXSDPInstallations(host: context.hostOperatingSystem).first {
             return .init(latest.environment)
         }
         return [:]
@@ -65,6 +65,14 @@ struct QNXPlatformExtension: PlatformInfoExtension {
                 "IsDeploymentPlatform": .plString("YES"),
             ])
         ]
+    }
+
+    func platformName(triple: LLVMTriple) -> String? {
+        if triple.system == "nto" {
+            return "qnx"
+        }
+
+        return nil
     }
 }
 

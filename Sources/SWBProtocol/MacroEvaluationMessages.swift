@@ -158,7 +158,7 @@ public struct AllExportedMacrosAndValuesResponse: Message, Equatable, Serializab
 /// Request to get macro assignment and resolved value information to show in the build settings editor.
 public struct BuildSettingsEditorInfoRequest: SessionMessage, RequestMessage, Equatable, SerializableCodable {
     public typealias ResponseMessage = BuildSettingsEditorInfoResponse
-    
+
     public static let name = "INFO_FOR_BUILD_SETTINGS_EDITOR_REQUEST"
 
     public let sessionHandle: String

@@ -451,7 +451,7 @@ final public class TAPISymbolExtractor: GenericCompilerSpec, GCCCompatibleCompil
         var paths: [Path] = []
 
         let archSpecificSubScopes = cbc.scope.evaluate(BuiltinMacros.ARCHS).map { arch in
-            return cbc.scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+            cbc.scope.subscopeBindingArchAndTriple(arch: arch)
         }
 
         for subScope in archSpecificSubScopes {

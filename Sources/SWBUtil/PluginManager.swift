@@ -32,8 +32,8 @@ import SWBLibc
 /// This manager works by using a *very* minimal API between the service and the plugins, only the PluginManager itself is passed to the plugins (as an opaque pointer). All actual plugging then can happen using real Swift APIs between the plugin manager and the plugins.
 ///
 /// This mechanism is *NOT* intended to be used to build plugins which have a stable API -- all plugins must be built with exactly the Swift Build the are intended to plug in to. The only thing this allows is for dynamically loaded the plugin in order to manage distributing parts independently.
-@PluginExtensionSystemActor public final class PluginManager: Sendable {
-    private struct Plugin: CommonPlugin {
+@PluginExtensionSystemActor public final class MutablePluginManager: Sendable {
+    fileprivate struct Plugin: CommonPlugin {
         /// The identifier of the plugin.
         @_spi(Testing) public let identifier: String
 
@@ -44,7 +44,7 @@ import SWBLibc
     /// The set of all plugins we've successfully loaded (CFBundleIdentifier for bundles if they have one, filenames otherwise), mapping to the paths to those plugins (for debugging convenience).
     ///
     /// This is primarily used to avoid loading the same plugin twice.
-    private var loadedPlugins = [String: Path]()
+    fileprivate var loadedPlugins = [String: Path]()
 
     /// Diagnostics produced during plugin loading.
     public private(set) var loadingDiagnostics: [Diagnostic] = []
@@ -52,7 +52,7 @@ import SWBLibc
     /// The set of registered extension points.
     private var extensionPoints: [String: any ExtensionPoint] = [:]
 
-    private var extensions: [Ref<any ExtensionPoint>: [Any]] = [:]
+    fileprivate var extensions: [Ref<any ExtensionPoint>: [any Sendable]] = [:]
 
     private let skipLoadingPluginIdentifiers: Set<String>
 
@@ -183,4 +183,51 @@ import SWBLibc
             return []
         }
     }
+
+    /// Finalizes the loading process by returning a read-only interface to the plugin manager which prevents further loading.
+    public consuming func finalize() -> any PluginManager {
+        ImmutablePluginManager(pluginManager: self)
+    }
+}
+
+public protocol PluginManager: Sendable {
+    var pluginsByIdentifier: [String: any CommonPlugin] { get }
+    var loadingDiagnostics: [Diagnostic] { get }
+
+    func extensions<T: ExtensionPoint>(of extensionPoint: T.Type) -> [T.ExtensionProtocol]
+}
+
+private final class ImmutablePluginManager: Sendable, PluginManager {
+    private let loadedPlugins: [String: Path]
+    public let loadingDiagnostics: [Diagnostic]
+    private let extensions: [Ref<any ExtensionPoint>: [any Sendable]]
+
+    @PluginExtensionSystemActor public init(pluginManager: MutablePluginManager) {
+        self.loadedPlugins = pluginManager.loadedPlugins
+        self.loadingDiagnostics = pluginManager.loadingDiagnostics
+        self.extensions = pluginManager.extensions
+    }
+
+    public var pluginsByIdentifier: [String: any CommonPlugin] {
+        Dictionary(uniqueKeysWithValues: loadedPlugins.map { ($0.key, MutablePluginManager.Plugin(identifier: $0.key, path: $0.value)) })
+    }
+
+    public func extensions<T: ExtensionPoint>(of extensionPoint: T.Type) -> [T.ExtensionProtocol] {
+        extensions.flatMap { key, value in
+            if type(of: key.instance) == extensionPoint {
+                return value as! [T.ExtensionProtocol]
+            }
+            return []
+        }
+    }
+}
+
+public typealias PluginInitializationFunction = @Sendable @PluginExtensionSystemActor (_ manager: MutablePluginManager) -> ()
+
+public var useStaticPluginInitialization: Bool {
+    #if USE_STATIC_PLUGIN_INITIALIZATION
+    true
+    #else
+    false
+    #endif
 }

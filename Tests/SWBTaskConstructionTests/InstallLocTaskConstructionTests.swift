@@ -150,6 +150,151 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    // The same test as installLocBasic, but with knownLocalizations, which
+    // should be ignored in favor of installLoc settings.
+    @Test(.requireSDKs(.macOS))
+    func installLocLanguageRespectsKnownLocalizations() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("foo.xib", children: [
+                        TestFile("Base.lproj/foo.xib", regionVariantName: "Base"),
+                        TestFile("en.lproj/foo.strings", regionVariantName: "en"),
+                        TestFile("de.lproj/foo.strings", regionVariantName: "de"),
+                    ]),
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                    ]),
+                    TestVariantGroup("Main.storyboard", children: [
+                        TestFile("Base.lproj/Main.storyboard", regionVariantName: "Base"),
+                        TestFile("en.lproj/Main.strings", regionVariantName: "en"),
+                        TestFile("de.lproj/Main.strings", regionVariantName: "de"),
+                        TestFile("ja.lproj/Main.strings", regionVariantName: "ja"),
+                    ]),
+                    TestVariantGroup("Intents.intentdefinition", children: [
+                        TestFile("Base.lproj/Intents.intentdefinition", regionVariantName: "Base"),
+                        TestFile("de.lproj/Intents.strings", regionVariantName: "de"),
+                        TestFile("ja.lproj/Intents.strings", regionVariantName: "ja"),
+                    ])
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "IBC_EXEC": ibtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "foo.xib",
+                            "Localizable.strings",
+                            "Main.storyboard"
+                        ]),
+                        TestSourcesBuildPhase([
+                            // Intent definition files appear in the "Compile Sources" phase
+                            "Intents.intentdefinition"
+                        ]),
+                    ])
+            ],
+            knownLocalizations: ["en", "de", "Base"])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // Regular installloc build with no specific requested languages.
+        // Should build en and de only, not ja.
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .macOS) { results in
+            // Ignore all Gate tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            // Ignore all build directory tasks
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+            results.checkTarget("App") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "/tmp/aProject.dst/Applications/App.app"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "/tmp/aProject.dst/Applications/App.app/Contents"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["MkDir", "/tmp/aProject.dst/Applications/App.app/Contents/Resources"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["SymLink", "/tmp/Test/aProject/build/Debug/App.app", "../../../../aProject.dst/Applications/App.app"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "/tmp/Test/aProject/Sources/Base.lproj/foo.xib"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Intents.strings", "/tmp/Test/aProject/Sources/de.lproj/Intents.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CompileStoryboard", "/tmp/Test/aProject/Sources/Base.lproj/Main.storyboard"])) { _ in }
+                if SWBFeatureFlag.enableDefaultInfoPlistTemplateKeys.value {
+                    results.checkTask(.matchTarget(target), .matchRule(["WriteAuxiliaryFile", "/tmp/Test/aProject/build/aProject.build/Debug/App.build/empty.plist"])) { _ in }
+                    results.checkTask(.matchTarget(target), .matchRule(["ProcessInfoPlistFile", "/tmp/aProject.dst/Applications/App.app/Contents/Info.plist", "/tmp/Test/aProject/build/aProject.build/Debug/App.build/empty.plist"])) { _ in }
+                }
+            }
+            results.checkNoTask()
+            results.checkNoDiagnostics()
+        }
+
+        // INSTALLLOC_LANGUAGE set to "de" should only have de.lproj/foo.strings and not Base.lproj/foo.xib in the output.
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "de"]), runDestination: .macOS) { results in
+            // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("MkDir")) { _ in }
+            results.checkTasks(.matchRuleType("SymLink")) { _ in }
+            results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+            results.checkTarget("App") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/foo.strings", "/tmp/Test/aProject/Sources/de.lproj/foo.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Main.strings", "/tmp/Test/aProject/Sources/de.lproj/Main.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Intents.strings", "/tmp/Test/aProject/Sources/de.lproj/Intents.strings"])) { _ in }
+            }
+            results.checkNoTask()
+            results.checkNoDiagnostics()
+        }
+
+        // INSTALLLOC_LANGUAGE set to "ja" should not produce anything.
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS) { results in
+            // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("MkDir")) { _ in }
+            results.checkTasks(.matchRuleType("SymLink")) { _ in }
+            results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+            results.checkNoTask()
+            results.checkNoDiagnostics()
+        }
+
+        // INSTALLLOC_LANGUAGE can also be set to a string list of language codes
+        // These would generally contain all languages other than English, but could differ.
+        // Here ja should still be excluded because of BUILD_ONLY_KNOWN_LOCALIZATIONS
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "de ja"]), runDestination: .macOS) { results in
+            // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+            results.checkTasks(.matchRuleType("Gate")) { _ in }
+            results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+            results.checkTasks(.matchRuleType("MkDir")) { _ in }
+            results.checkTasks(.matchRuleType("SymLink")) { _ in }
+            results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+            results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+            results.checkTarget("App") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/foo.strings", "/tmp/Test/aProject/Sources/de.lproj/foo.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Main.strings", "/tmp/Test/aProject/Sources/de.lproj/Main.strings"])) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/de.lproj/Intents.strings", "/tmp/Test/aProject/Sources/de.lproj/Intents.strings"])) { _ in }
+            }
+            results.checkNoTask()
+            results.checkNoDiagnostics()
+        }
+    }
+
     /// Check that we don't generate any tasks for any resources that don't exist in an lproj.
     @Test(.requireSDKs(.macOS))
     func installLocIgnoreUnlocalizedResources() async throws {
@@ -630,7 +775,7 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkNoDiagnostics()
             }
 
-            // INSTALLLOC_LANGUAGE set to "ja"
+            // INSTALLLOC_LANGUAGE set to "zh_TW" and "ja"
             let specificLangs = ["zh_TW", "ja"]
             await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": specificLangs.joined(separator: " ")]), runDestination: .iOS, fs: fs) { results in
                 // Ignore all Gate, build directory, MkDir, and SymLink tasks.
@@ -644,6 +789,230 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkTarget("App") { target in
                     for (language, path) in languageLprojPathPairs where specificLangs.contains(language) {
                         results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Applications/App.app/Frameworks/CoreFoo.framework/\(language).lproj", path.str])) { _ in }
+                    }
+                }
+
+                results.checkNoTask()
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    /// Test an App that has a directory or package (not an explicit bundle) in resources phase
+    @Test(.requireSDKs(.macOS))
+    func embeddedDirectoriesInResources() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("MyFolder"),
+                        TestFile("MyPackage.myPackage"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "INSTALLLOC_DIRECTORY_CONTENTS": "YES"
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "App",
+                        type: .application,
+                        buildPhases: [
+                            TestResourcesBuildPhase([
+                                "MyFolder",
+                                "MyPackage.myPackage"
+                            ], onlyForDeployment: false)
+                        ]
+                    )
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let fs = PseudoFS()
+            var languageComponentPathGroupings: [(lang: String, component: String, path: Path)] = []
+            for pathComponent in ["MyFolder", "MyPackage.myPackage"] {
+                let bundlePath = srcRoot.join("Sources/\(pathComponent)", preserveRoot: true, normalize: true)
+                try fs.createDirectory(bundlePath, recursive: true)
+                try fs.write(bundlePath.join("Info.plist"), contents: "LocTest")
+
+                for lang in ["en", "ja", "zh_TW"] {
+                    let path = bundlePath.join("\(lang).lproj", preserveRoot: true, normalize: true)
+                    try fs.createDirectory(path, recursive: false)
+                    try fs.write(path.join("Localizable.strings"), contents: "LocTest")
+                    languageComponentPathGroupings += [(lang, pathComponent, path)]
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+                // Ignore all Gate, build directory, SymLink, and MkDir tasks.
+                results.checkTasks(.matchRuleType("Gate")) { _ in }
+                results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+                results.checkTasks(.matchRuleType("SymLink")) { _ in }
+                results.checkTasks(.matchRuleType("MkDir")) { _ in }
+                results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessInfoPlistFile")) { _ in }
+
+                results.checkTarget("App") { target in
+                    for (language, component, path) in languageComponentPathGroupings {
+                        results.checkTask(.matchTarget(target), .matchRule(["CpResource", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/\(component)/\(language).lproj", path.str])) { _ in }
+                    }
+                }
+                results.checkNoTask()
+                results.checkNoDiagnostics()
+            }
+
+            // INSTALLLOC_LANGUAGE set to "ja"
+            await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS, fs: fs) { results in
+                // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+                results.checkTasks(.matchRuleType("Gate")) { _ in }
+                results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+                results.checkTasks(.matchRuleType("MkDir")) { _ in }
+                results.checkTasks(.matchRuleType("SymLink")) { _ in }
+                results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+                results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+                results.checkTarget("App") { target in
+                    for (language, component, path) in languageComponentPathGroupings where language == "ja" {
+                        results.checkTask(.matchTarget(target), .matchRule(["CpResource", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/\(component)/\(language).lproj", path.str])) { _ in }
+                    }
+                }
+
+                results.checkNoTask()
+                results.checkNoDiagnostics()
+            }
+
+            // INSTALLLOC_LANGUAGE set to "zh_TW" and "ja"
+            let specificLangs = ["zh_TW", "ja"]
+            await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": specificLangs.joined(separator: " ")]), runDestination: .macOS, fs: fs) { results in
+                // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+                results.checkTasks(.matchRuleType("Gate")) { _ in }
+                results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+                results.checkTasks(.matchRuleType("MkDir")) { _ in }
+                results.checkTasks(.matchRuleType("SymLink")) { _ in }
+                results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+                results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+                results.checkTarget("App") { target in
+                    for (language, component, path) in languageComponentPathGroupings where specificLangs.contains(language) {
+                        results.checkTask(.matchTarget(target), .matchRule(["CpResource", "/tmp/aProject.dst/Applications/App.app/Contents/Resources/\(component)/\(language).lproj", path.str])) { _ in }
+                    }
+                }
+
+                results.checkNoTask()
+                results.checkNoDiagnostics()
+            }
+        }
+    }
+
+    /// Test an App that has a directory or package (not an explicit bundle) in copy files phase
+    @Test(.requireSDKs(.macOS))
+    func embeddedDirectoriesInCopyFiles() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let srcRoot = tmpDir.join("srcroot")
+
+            let testProject = TestProject(
+                "aProject",
+                sourceRoot: srcRoot,
+                groupTree: TestGroup(
+                    "SomeFiles", path: "Sources",
+                    children: [
+                        TestFile("MyFolder"),
+                        TestFile("MyPackage.myPackage"),
+                    ]),
+                buildConfigurations: [
+                    TestBuildConfiguration(
+                        "Debug",
+                        buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "INSTALLLOC_DIRECTORY_CONTENTS": "YES"
+                        ]),
+                ],
+                targets: [
+                    TestStandardTarget(
+                        "App",
+                        type: .application,
+                        buildPhases: [
+                            TestCopyFilesBuildPhase([
+                                "MyFolder",
+                                "MyPackage.myPackage"
+                            ], destinationSubfolder: .absolute, destinationSubpath: "/tmp/CustomPath", onlyForDeployment: false)
+                        ]
+                    )
+                ])
+            let tester = try await TaskConstructionTester(getCore(), testProject)
+            let fs = PseudoFS()
+            var languageComponentPathGroupings: [(lang: String, component: String, path: Path)] = []
+            for pathComponent in ["MyFolder", "MyPackage.myPackage"] {
+                let bundlePath = srcRoot.join("Sources/\(pathComponent)", preserveRoot: true, normalize: true)
+                try fs.createDirectory(bundlePath, recursive: true)
+                try fs.write(bundlePath.join("Info.plist"), contents: "LocTest")
+
+                for lang in ["en", "ja", "zh_TW"] {
+                    let path = bundlePath.join("\(lang).lproj", preserveRoot: true, normalize: true)
+                    try fs.createDirectory(path, recursive: false)
+                    try fs.write(path.join("Localizable.strings"), contents: "LocTest")
+                    languageComponentPathGroupings += [(lang, pathComponent, path)]
+                }
+            }
+
+            await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug"), runDestination: .macOS, fs: fs) { results in
+                // Ignore all Gate, build directory, SymLink, and MkDir tasks.
+                results.checkTasks(.matchRuleType("Gate")) { _ in }
+                results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+                results.checkTasks(.matchRuleType("SymLink")) { _ in }
+                results.checkTasks(.matchRuleType("MkDir")) { _ in }
+                results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+                results.checkTasks(.matchRuleType("ProcessInfoPlistFile")) { _ in }
+
+                results.checkTarget("App") { target in
+                    for (language, component, path) in languageComponentPathGroupings {
+                        results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/tmp/CustomPath/\(component)/\(language).lproj", path.str])) { _ in }
+                    }
+                }
+                results.checkNoTask()
+                results.checkNoDiagnostics()
+            }
+
+            // INSTALLLOC_LANGUAGE set to "ja"
+            await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS, fs: fs) { results in
+                // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+                results.checkTasks(.matchRuleType("Gate")) { _ in }
+                results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+                results.checkTasks(.matchRuleType("MkDir")) { _ in }
+                results.checkTasks(.matchRuleType("SymLink")) { _ in }
+                results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+                results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+                results.checkTarget("App") { target in
+                    for (language, component, path) in languageComponentPathGroupings where language == "ja" {
+                        results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/tmp/CustomPath/\(component)/\(language).lproj", path.str])) { _ in }
+                    }
+                }
+
+                results.checkNoTask()
+                results.checkNoDiagnostics()
+            }
+
+            // INSTALLLOC_LANGUAGE set to "zh_TW" and "ja"
+            let specificLangs = ["zh_TW", "ja"]
+            await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Debug", overrides: ["INSTALLLOC_LANGUAGE": specificLangs.joined(separator: " ")]), runDestination: .macOS, fs: fs) { results in
+                // Ignore all Gate, build directory, MkDir, and SymLink tasks.
+                results.checkTasks(.matchRuleType("Gate")) { _ in }
+                results.checkTasks(.matchRuleType("CreateBuildDirectory")) { _ in }
+                results.checkTasks(.matchRuleType("MkDir")) { _ in }
+                results.checkTasks(.matchRuleType("SymLink")) { _ in }
+                results.checkTasks(.matchRuleType("LinkStoryboards")) { _ in }
+                results.checkTasks(.matchRuleType("WriteAuxiliaryFile")) { _ in }
+
+                results.checkTarget("App") { target in
+                    for (language, component, path) in languageComponentPathGroupings where specificLangs.contains(language) {
+                        results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/tmp/CustomPath/\(component)/\(language).lproj", path.str])) { _ in }
                     }
                 }
 
@@ -786,6 +1155,83 @@ fileprivate struct InstallLocTaskConstructionTests: CoreBasedTests {
                 results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/Library/Frameworks/CoreFoo.framework/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"])) { _ in }
             }
             results.checkNoTask()
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func copyFilesRulesMergeRegion() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                        TestFile("zh_TW.lproj/Localizable.strings", regionVariantName: "zh_TW"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "APPLY_RULES_IN_COPY_FILES": "YES"
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .absolute, destinationSubpath: "/System/Library/Bundles/MyBundle.bundle", onlyForDeployment: true),
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .builtProductsDir, destinationSubpath: "OtherProduct.bundle", onlyForDeployment: false),
+                    ]
+                )
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        // installloc single language
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "ja"]), runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+            }
+
+            results.checkNoDiagnostics()
+        }
+
+        // installloc multi-language
+        await tester.checkBuild(BuildParameters(action: .installLoc, configuration: "Release", overrides: ["INSTALLLOC_LANGUAGE": "ja zh_TW"]), runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["Copy", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+            }
+
+            results.checkNoDiagnostics()
+        }
+
+        // install
+        await tester.checkBuild(BuildParameters(action: .install, configuration: "Release"), runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]))
+
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/ja.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/ja.lproj/Localizable.strings"]))
+
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/OtherProduct.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+                results.checkTaskExists(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/aProject.dst/System/Library/Bundles/MyBundle.bundle/zh_TW.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/zh_TW.lproj/Localizable.strings"]))
+            }
+
             results.checkNoDiagnostics()
         }
     }

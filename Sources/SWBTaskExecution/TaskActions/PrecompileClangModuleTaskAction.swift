@@ -93,7 +93,8 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                 libclangPath: key.libclangPath,
                 casOptions: key.casOptions,
                 verifyingModule: key.verifyingModule,
-                fileNameMapPath: key.fileNameMapPath
+                fileNameMapPath: key.fileNameMapPath,
+                reproducerOutputPath: key.reproducerOutputPath
             )
 
             dynamicExecutionDelegate.requestDynamicTask(
@@ -175,7 +176,7 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
 
         do {
             let casDBs: ClangCASDatabases?
-            if let casOptions = key.casOptions, casOptions.enableIntegratedCacheQueries {
+            if let casOptions = key.casOptions {
                 casDBs = try clangModuleDependencyGraph.getCASDatabases(
                     libclangPath: key.libclangPath,
                     casOptions: casOptions
@@ -215,16 +216,31 @@ final public class PrecompileClangModuleTaskAction: TaskAction, BuildValueValida
                         enableStrictCASErrors: key.casOptions!.enableStrictCASErrors
                     )
                 }
-            } else if result == .failed && !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
-                let commandString = UNIXShellCommandCodec(
-                    encodingStrategy: .backslashes,
-                    encodingBehavior: .fullCommandLine
-                ).encode(commandLine)
+            } else if result == .failed {
+                if !executionDelegate.userPreferences.enableDebugActivityLogs && !executionDelegate.emitFrontendCommandLines {
+                    let commandString = UNIXShellCommandCodec(
+                        encodingStrategy: .backslashes,
+                        encodingBehavior: .fullCommandLine
+                    ).encode(commandLine)
 
-                // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
-                // the build log.
-                outputDelegate.emitOutput("Failed frontend command:\n")
-                outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
+                    // <rdar://59354519> We need to find a way to use the generic infrastructure for displaying the command line in
+                    // the build log.
+                    outputDelegate.emitOutput("Failed frontend command:\n")
+                    outputDelegate.emitOutput(ByteString(encodingAsUTF8: commandString) + "\n")
+                }
+                if case .some(.exit(.uncaughtSignal, _)) = outputDelegate.result {
+                    do {
+                        if let reproducerMessage = try clangModuleDependencyGraph.generateReproducer(
+                                forFailedDependency: dependencyInfo,
+                                libclangPath: key.libclangPath,
+                                casOptions: key.casOptions,
+                                location: key.reproducerOutputPath?.str) {
+                            outputDelegate.emitOutput(ByteString(encodingAsUTF8: reproducerMessage) + "\n")
+                        }
+                    } catch {
+                        outputDelegate.error(error.localizedDescription)
+                    }
+                }
             }
             return result
         } catch {

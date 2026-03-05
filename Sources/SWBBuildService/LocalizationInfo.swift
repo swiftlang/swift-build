@@ -68,7 +68,7 @@ extension BuildDescriptionManager {
 
         let buildDescription: BuildDescription
         do {
-            if let retrievedBuildDescription = try await getNewOrCachedBuildDescription(.cachedOnly(descriptionID, request: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext), clientDelegate: delegate.clientDelegate, constructionDelegate: delegate)?.buildDescription {
+            if let retrievedBuildDescription = try await getNewOrCachedBuildDescription(.cachedOnly(descriptionID, request: buildRequest, buildRequestContext: buildRequestContext, workspaceContext: workspaceContext, retain: false), clientDelegate: delegate.clientDelegate, constructionDelegate: delegate)?.buildDescription {
                 buildDescription = retrievedBuildDescription
             } else {
                 // If we don't receive a build description it means we were cancelled.

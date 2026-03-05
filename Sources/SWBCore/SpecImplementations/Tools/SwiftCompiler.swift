@@ -21,6 +21,11 @@ public import enum SWBProtocol.BuildAction
 import Foundation
 public import SWBMacro
 
+#if canImport(Darwin) && canImport(os.log)
+// For Previews logging
+import os.log
+#endif
+
 /// The minimal data we need to serialize to reconstruct `SwiftSourceFileIndexingInfo` from `generateIndexingInfoForTask`
 public struct SwiftIndexingPayload: Serializable, Sendable {
     // If `USE_SWIFT_RESPONSE_FILE` is enabled, we use `filePaths`, otherwise `range`.
@@ -95,7 +100,18 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
     let builtProductsDir: Path
     let assetSymbolIndexPath: Path
     let toolchains: [String]
-    let outputFile: Path
+    public let outputFile: Path
+    public var compilerArguments: [String]? {
+        var result = commandLine.map { $0.asString }
+        // commandLine does not contain the `-index-unit-output-path` but we want to return it from the
+        // `IndexBuildSettingsRequest`, so add it.
+        if !result.contains(where: { $0 == "-o" || $0 == "-index-unit-output-path" }), let indexOutputFile {
+            result += ["-index-unit-output-path", indexOutputFile]
+        }
+        return result
+     }
+    public var indexOutputFile: String? { outputFile.str }
+    public var language: IndexingInfoLanguage? { .swift }
 
     public init(task: any ExecutableTask, payload: SwiftIndexingPayload, outputFile: Path, enableIndexBuildArena: Bool, integratedDriver: Bool) {
         self.commandLine = Self.indexingCommandLine(commandLine: task.commandLine.map(\.asByteString), payload: payload, enableIndexBuildArena: enableIndexBuildArena, integratedDriver: integratedDriver)
@@ -144,9 +160,14 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-emit-package-module-interface-path",
         "-emit-objc-header-path"
     ]
-    private static let removeFrontendArgs: Set<ByteString> = [
+    private static let removeFrontendFlags: Set<ByteString> = [
         "-experimental-skip-non-inlinable-function-bodies",
-        "-experimental-skip-all-function-bodies"]
+        "-experimental-skip-all-function-bodies"
+    ]
+
+    private static let removeFrontendArgs: Set<ByteString> = [
+        "-const-gather-protocols-file"
+    ]
 
     // SourceKit uses the old driver to determine the frontend args. Remove all
     // new driver flags as a workaround for cases were corresponding no-op
@@ -166,12 +187,14 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         "-emit-digester-baseline"]
     private static let newDriverArgs: Set<ByteString> = [
         "-emit-module-serialize-diagnostics-path",
+        "-dependency-scan-serialize-diagnostics-path",
         "-emit-module-dependencies-path",
         "-emit-digester-baseline-path",
         "-compare-to-baseline-path",
         "-serialize-breaking-changes-path",
         "-digester-breakage-allowlist-path",
-        "-digester-mode"]
+        "-digester-mode",
+        "-const-gather-protocols-list"]
 
     private static func indexingCommandLine(commandLine: [ByteString], payload: SwiftIndexingPayload, enableIndexBuildArena: Bool, integratedDriver: Bool) -> [ByteString] {
         precondition(!commandLine.isEmpty)
@@ -204,8 +227,13 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
 
             if let nextArg = commandLine[safe: index] {
                 // Remove frontend args (including the -Xfrontend)
-                if removeFrontendArgs.contains(nextArg) {
+                if removeFrontendFlags.contains(nextArg) {
                     index += 1
+                    continue
+                }
+
+                if arg == "-Xfrontend", removeFrontendArgs.contains(nextArg), commandLine[safe: index + 1] == "-Xfrontend" {
+                    index += 3
                     continue
                 }
 
@@ -270,6 +298,16 @@ public struct SwiftSourceFileIndexingInfo: SourceFileIndexingInfo {
         dict["outputFilePath"] = PropertyListItem(outputFile.str)
 
         return .plDict(dict)
+    }
+}
+
+public struct SwiftDependencyValidationPayload: SerializableCodable, Encodable, Sendable {
+    public let dependencyValidationOutputPath: Path
+    public let moduleDependenciesContext: ModuleDependenciesContext
+
+    public init(dependencyValidationOutputPath: Path, moduleDependenciesContext: ModuleDependenciesContext) {
+        self.dependencyValidationOutputPath = dependencyValidationOutputPath
+        self.moduleDependenciesContext = moduleDependenciesContext
     }
 }
 
@@ -350,10 +388,12 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
     public let casOptions: CASOptions?
     public let reportRequiredTargetDependencies: BooleanWarningLevel
     public let linkerResponseFilePath: Path?
+    public let linkerResponseFileFormat: ResponseFileFormat
     public let dependencyFilteringRootPath: Path?
     public let verifyScannerDependencies: Bool
+    public let scannerDiagnosticsOutputPath: Path?
 
-    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool) {
+    internal init(uniqueID: String, compilerLocation: LibSwiftDriver.CompilerLocation, moduleName: String, outputPrefix: String, tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, architecture: String, eagerCompilationEnabled: Bool, explicitModulesEnabled: Bool, commandLine: [String], ruleInfo: [String], isUsingWholeModuleOptimization: Bool, casOptions: CASOptions?, reportRequiredTargetDependencies: BooleanWarningLevel, linkerResponseFilePath: Path?, linkerResponseFileFormat: ResponseFileFormat, dependencyFilteringRootPath: Path?, verifyScannerDependencies: Bool, scannerDiagnosticsOutputPath: Path?) {
         self.uniqueID = uniqueID
         self.compilerLocation = compilerLocation
         self.moduleName = moduleName
@@ -370,12 +410,14 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.casOptions = casOptions
         self.reportRequiredTargetDependencies = reportRequiredTargetDependencies
         self.linkerResponseFilePath = linkerResponseFilePath
+        self.linkerResponseFileFormat = linkerResponseFileFormat
         self.dependencyFilteringRootPath = dependencyFilteringRootPath
         self.verifyScannerDependencies = verifyScannerDependencies
+        self.scannerDiagnosticsOutputPath = scannerDiagnosticsOutputPath
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(18)
+        try deserializer.beginAggregate(20)
         self.uniqueID = try deserializer.deserialize()
         self.compilerLocation = try deserializer.deserialize()
         self.moduleName = try deserializer.deserialize()
@@ -392,12 +434,14 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
         self.casOptions = try deserializer.deserialize()
         self.reportRequiredTargetDependencies = try deserializer.deserialize()
         self.linkerResponseFilePath = try deserializer.deserialize()
+        self.linkerResponseFileFormat = try deserializer.deserialize()
         self.dependencyFilteringRootPath = try deserializer.deserialize()
         self.verifyScannerDependencies = try deserializer.deserialize()
+        self.scannerDiagnosticsOutputPath = try deserializer.deserialize()
     }
 
     public func serialize<T>(to serializer: T) where T : Serializer {
-        serializer.serializeAggregate(18) {
+        serializer.serializeAggregate(20) {
             serializer.serialize(self.uniqueID)
             serializer.serialize(self.compilerLocation)
             serializer.serialize(self.moduleName)
@@ -414,8 +458,10 @@ public struct SwiftDriverPayload: Serializable, TaskPayload, Encodable {
             serializer.serialize(self.casOptions)
             serializer.serialize(self.reportRequiredTargetDependencies)
             serializer.serialize(self.linkerResponseFilePath)
+            serializer.serialize(self.linkerResponseFileFormat)
             serializer.serialize(self.dependencyFilteringRootPath)
             serializer.serialize(self.verifyScannerDependencies)
+            serializer.serialize(self.scannerDiagnosticsOutputPath)
         }
     }
 }
@@ -446,9 +492,9 @@ public struct SwiftTaskPayload: ParentTaskPayload {
     /// The preview build style in effect (dynamic replacement or XOJIT), if any.
     public let previewStyle: PreviewStyleMessagePayload?
 
-    public let moduleDependenciesContext: ModuleDependenciesContext?
+    public let dependencyValidationPayload: SwiftDependencyValidationPayload?
 
-    init(moduleName: String, indexingPayload: SwiftIndexingPayload, previewPayload: SwiftPreviewPayload?, localizationPayload: SwiftLocalizationPayload?, numExpectedCompileSubtasks: Int, driverPayload: SwiftDriverPayload?, previewStyle: PreviewStyle?, moduleDependenciesContext: ModuleDependenciesContext?) {
+    init(moduleName: String, indexingPayload: SwiftIndexingPayload, previewPayload: SwiftPreviewPayload?, localizationPayload: SwiftLocalizationPayload?, numExpectedCompileSubtasks: Int, driverPayload: SwiftDriverPayload?, previewStyle: PreviewStyle?, dependencyValidationPayload: SwiftDependencyValidationPayload?) {
         self.moduleName = moduleName
         self.indexingPayload = indexingPayload
         self.previewPayload = previewPayload
@@ -463,7 +509,7 @@ public struct SwiftTaskPayload: ParentTaskPayload {
         case nil:
             self.previewStyle = nil
         }
-        self.moduleDependenciesContext = moduleDependenciesContext
+        self.dependencyValidationPayload = dependencyValidationPayload
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
@@ -475,7 +521,7 @@ public struct SwiftTaskPayload: ParentTaskPayload {
             serializer.serialize(numExpectedCompileSubtasks)
             serializer.serialize(driverPayload)
             serializer.serialize(previewStyle)
-            serializer.serialize(moduleDependenciesContext)
+            serializer.serialize(dependencyValidationPayload)
         }
     }
 
@@ -488,486 +534,7 @@ public struct SwiftTaskPayload: ParentTaskPayload {
         self.numExpectedCompileSubtasks = try deserializer.deserialize()
         self.driverPayload = try deserializer.deserialize()
         self.previewStyle = try deserializer.deserialize()
-        self.moduleDependenciesContext = try deserializer.deserialize()
-    }
-}
-
-/// A parser for Swift's parseable output.
-///
-/// See: https://github.com/apple/swift/blob/main/docs/DriverParseableOutput.rst
-public final class SwiftCommandOutputParser: TaskOutputParser {
-    // no such module 'Foo'
-    private static let noSuchModuleRegEx = (RegEx(patternLiteral: "^no such module '(.+)'$"), false)
-
-    /// The known message kinds.
-    enum MessageKind: String {
-        case began
-        case finished
-        case abnormal = "abnormal-exit" // Windows exceptions
-        case signalled // POSIX signals
-        case skipped
-    }
-
-    /// The subtask names reported by the Swift's parsable output.
-    enum SubtaskName: String {
-        case compile
-        case backend
-        case mergeModule = "merge-module"
-        case emitModule = "emit-module"
-        case verifyEmittedModuleInterface = "verify-module-interface"
-        case legacyVerifyEmittedModuleInterface = "verify-emitted-module-interface"
-        case link
-        case generatePCH = "generate-pch"
-        case generatePCM = "generate-pcm"
-        case compileModuleFromInterface = "compile-module-from-interface"
-        case generateDSYM = "generate-dsym"
-    }
-
-    /// An executing subtask.
-    struct Subtask {
-        let pid: Int
-
-        let serializedDiagnosticsPaths: [Path]
-
-        let delegate: any TaskOutputParserDelegate
-
-        func nonEmptyDiagnosticsPaths(fs: any FSProxy) -> [Path] {
-            serializedDiagnosticsPaths.filter { path in
-                // rdar://91295617 (Swift produces empty serialized diagnostics if there are none which is not parseable by clang_loadDiagnostics)
-                do {
-                    return try fs.exists(path) && fs.getFileInfo(path).size > 0
-                } catch {
-                    return false
-                }
-            }
-        }
-    }
-
-    public let delegate: any TaskOutputParserDelegate
-
-    var task: (any ExecutableTask)?
-
-    public let workspaceContext: WorkspaceContext
-
-    public let buildRequestContext: BuildRequestContext
-
-    /// The name of the target that this parser is working on.
-    let targetName: String?
-
-    /// The task working directory.
-    let workingDirectory: Path
-
-    /// The variant information, from the task.
-    let variant: String
-
-    /// The arch information, from the task.
-    let arch: String
-
-    /// The current buffered contents.
-    var buffer: [UInt8] = []
-
-    /// Whether or not there was a stream error, which cancels parsing.
-    var hasStreamError = false
-
-    /// The map of open subtasks.
-    var subtasks: [Int: Subtask] = [:]
-
-    /// The subtask progress reporter.
-    let progressReporter: (any SubtaskProgressReporter)?
-
-    let commandDecoder = LLVMStyleCommandCodec()
-
-    /// `true` if this task is using the Swift integrated driver.
-    let usingSwiftIntegratedDriver: Bool
-
-    /// Simplified initializer, for testing convenience.
-    @_spi(Testing) public init(targetName: String? = nil, workingDirectory: Path, variant: String, arch: String, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?, usingSwiftIntegratedDriver: Bool = false) {
-        self.targetName = targetName
-        self.workspaceContext = workspaceContext
-        self.buildRequestContext = buildRequestContext
-        self.delegate = delegate
-        self.workingDirectory = workingDirectory
-        self.variant = variant
-        self.arch = arch
-        self.progressReporter = progressReporter
-        self.usingSwiftIntegratedDriver = usingSwiftIntegratedDriver
-    }
-
-    convenience public init(for task: any ExecutableTask, workspaceContext: WorkspaceContext, buildRequestContext: BuildRequestContext, delegate: any TaskOutputParserDelegate, progressReporter: (any SubtaskProgressReporter)?) {
-        // Extract the variant and arch from the task.
-        precondition(task.ruleInfo.count >= 3, "unexpected rule info: \(task.ruleInfo)")
-
-        // Get a Settings object, and compute state which we know will be needed multiple times when processing output from this task.
-        // Due to rdar://53726633, the actual target instance needs to be re-fetched instead of used directly, when retrieving the settings.
-        var usingSwiftIntegratedDriver = false
-        if let configuredTarget = task.forTarget, let target = workspaceContext.workspace.target(for: configuredTarget.target.guid) {
-            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: target)
-            usingSwiftIntegratedDriver = settings.globalScope.evaluate(BuiltinMacros.SWIFT_USE_INTEGRATED_DRIVER)
-        }
-
-        self.init(targetName: task.forTarget?.target.name, workingDirectory: task.workingDirectory, variant: task.ruleInfo[1], arch: task.ruleInfo[2], workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, delegate: delegate, progressReporter: progressReporter, usingSwiftIntegratedDriver: usingSwiftIntegratedDriver)
-        self.task = task
-
-        // Report the number of compile subtasks as the scanning count.
-        // This is only done for tasks with a ParentTaskPayload type, for example SwiftTaskPayload for the original one-per-target Swift driver task.  The dynamic frontend tasks issued when using the integrated driver have a SwiftDriverJobDynamicTaskPayload, which is not of that type, and so the progress reported here for those tasks will be zero.
-        progressReporter?.subtasksScanning(count: (task.payload as? (any ParentTaskPayload))?.numExpectedCompileSubtasks ?? 0, forTargetName: targetName)
-    }
-
-    public func write(bytes: ByteString) {
-        guard !hasStreamError else {
-            return
-        }
-
-        // Append to the buffer.
-        buffer.append(contentsOf: bytes.bytes)
-
-        // Parse off each complete individual message.
-        //
-        // The encoding is an ASCII one:
-        // <length>\n
-        // <contents>\n
-        var slice = buffer[buffer.startIndex ..< buffer.endIndex]
-        while !slice.isEmpty {
-            // Get the end of the length.
-            guard let lengthTerminator = slice.firstIndex(of: UInt8(ascii: "\n")) else {
-                break
-            }
-
-            // We expect the slice to be a single integer length followed by a newline.
-            guard let lengthString = String(bytes: slice[slice.startIndex ..< lengthTerminator], encoding: .utf8),
-                  let length = Int(lengthString) else {
-                // Non-parseable chunks are *assumed* to be output, currently.
-                //
-                // This actually happens in practice in at least one case when the swiftc subprocess crashes.
-                let eol = slice.index(after: lengthTerminator)
-                delegate.emitOutput(ByteString(slice[slice.startIndex ..< eol]))
-                slice = slice[eol ..< slice.endIndex]
-                continue
-            }
-
-            // If the bytes are available, we have a message. The length does not including the trailing newline.
-            let dataStart = slice.index(after: lengthTerminator)
-            let dataEnd = slice.index(dataStart, offsetBy: length + 1)
-            guard dataEnd <= slice.endIndex else {
-                break
-            }
-
-            // We found a message.
-            handleMessage(Array(slice[dataStart ..< dataEnd]))
-
-            // Update the slice.
-            slice = slice[dataEnd ..< slice.endIndex]
-        }
-
-        // Update the buffer.
-        self.buffer = Array(slice)
-    }
-
-    public func close(result: TaskResult?) {
-        // If we have any open subtasks, then we report them as completed.  It's likely that the top-level Swift compiler task was cancelled and therefore its subtasks were never able to emit a 'finished' message for us to handle to report them as having completed.  We want to report them here so the client can clean up any state it has for the subtasks.
-        for subtask in subtasks.values {
-            // Reporting that the task was 'signalled' will indicate to the client that it should not read any diagnostics file for the incomplete subtask.  This is an awkward way to do this, but we don't want the client to try to read such a file, and I don't think we should rely at this level on the client silently ignoring the absence of a file, given that we're reporting an exit status of 0 (which is also a bit squirrelly).  I think we need a more robust API here to handle this case cleanly.
-            let exitStatus: Processes.ExitStatus
-            switch result {
-            case .exit(let status, _)?:
-                if status.isSuccess {
-                    exitStatus = status
-                } else {
-                    exitStatus = subtask.nonEmptyDiagnosticsPaths(fs: workspaceContext.fs).isEmpty ? .buildSystemCanceledTask : status
-                }
-            case .failedSetup?:
-                exitStatus = .buildSystemCanceledTask
-            case .skipped?:
-                exitStatus = .exit(0)
-            case nil:
-                exitStatus = .buildSystemCanceledTask
-            }
-            subtask.delegate.taskCompleted(exitStatus: exitStatus)
-            subtask.delegate.close()
-        }
-        subtasks.removeAll()
-        delegate.close()
-    }
-
-    /// Compute the title to use for this subtask.
-    private func computeSubtaskTitle(_ name: String, _ onlyInput: Path?, _ inputCount: Int) -> String {
-        if let name = SubtaskName(rawValue: name) {
-            let title: String
-            switch name {
-            case .compile:
-                title = onlyInput.map{ "Compile \($0.basename)" } ?? "Compile \(inputCount) Swift source files"
-            case .backend:
-                title = onlyInput.map{ "Code Generation \($0.basename)" } ?? "Code Generation for Swift source files"
-            case .mergeModule:
-                title = onlyInput.map{ "Merge \($0.basename)" } ?? "Merge swiftmodule"
-            case .emitModule:
-                title = "Emit Swift module"
-            case .compileModuleFromInterface:
-                title = "Compile Swift module interface"
-            case .verifyEmittedModuleInterface, .legacyVerifyEmittedModuleInterface:
-                title = onlyInput.map{ "Verify \($0.basename)" } ?? "Verify swiftinterface"
-            case .link:
-                title = "Link"
-            case .generatePCH:
-                title = onlyInput.map{ "Precompile Bridging Header \($0.basename)" } ?? "Precompile bridging header"
-            case .generatePCM:
-                title = onlyInput.map{ "Compile Clang module \($0.basename)" } ?? "Compile Clang module"
-            case .generateDSYM:
-                title = "Generate dSYM"
-            }
-            // Add the architecture so it's easy for users to distinguish tasks which are otherwise identical across architectures by their build log title.
-            return title + " (\(arch))"
-        } else {
-            delegate.diagnosticsEngine.emit(data: DiagnosticData("unknown Swift parseable message name: `\(name)`"), behavior: .warning)
-            return name
-        }
-    }
-
-    /// Compute the rule info signature to use for this subtask.
-    private func computeSubtaskSignatureName(_ name: String) -> String {
-       if let name = SubtaskName(rawValue: name) {
-            switch name {
-            case .compile:
-                return "CompileSwift"
-            case .backend:
-                return "SwiftCodeGeneration"
-            case .mergeModule:
-                return "MergeSwiftModule"
-            case .emitModule:
-                return "EmitSwiftModule"
-            case .compileModuleFromInterface:
-                return "CompileSwiftModuleInterface"
-            case .verifyEmittedModuleInterface, .legacyVerifyEmittedModuleInterface:
-                return "VerifyEmittedModuleInterface"
-            case .link:
-                return "Swift-Link"
-            case .generatePCH:
-                return "PrecompileSwiftBridgingHeader"
-            case .generatePCM:
-                return "CompileClangModule"
-            case .generateDSYM:
-                return "Swift-GenerateDSYM"
-            }
-        } else {
-            delegate.diagnosticsEngine.emit(data: DiagnosticData("unknown Swift parseable message name: `\(name)`"), behavior: .warning)
-            return "Swift-\(name)"
-        }
-    }
-
-    /// Finds all outputs in a message of the given type.
-    ///
-    /// - Returns: The output paths, or nil if the message could not be understood.
-    private func findOutputs(in contents: [String: PropertyListItem], ofType type: String) -> [Path]? {
-        guard case let .plArray(outputContents)? = contents["outputs"] else { return nil }
-
-        var result = [Path]()
-        for item in outputContents {
-            guard case let .plDict(contents) = item,
-                  case let .plString(itemType)? = contents["type"] else {
-                delegate.diagnosticsEngine.emit(data: DiagnosticData("invalid item in Swift parseable output message (\(item))"), behavior: .error)
-                return nil
-            }
-            if itemType == type {
-                guard case let .plString(path)? = contents["path"] else {
-                    delegate.diagnosticsEngine.emit(data: DiagnosticData("invalid item in Swift parseable output message (\(item))"), behavior: .error)
-                    return nil
-                }
-                result.append(Path(path))
-            }
-        }
-        return result
-    }
-
-    private func handleMessage(_ data: [UInt8]) {
-        func error(_ message: String) {
-            delegate.diagnosticsEngine.emit(data: DiagnosticData("invalid Swift parseable output message (\(message)): `\(data.asReadableString())`"), behavior: .error)
-        }
-
-        // Convert from JSON.
-        guard let json = try? PropertyList.fromJSONData(data), case let .plDict(contents) = json else {
-            return error("malformed JSON")
-        }
-
-        // Decode the message.
-        guard case let .plString(kindName)? = contents["kind"], let kind = MessageKind(rawValue: kindName) else {
-            return error("missing kind")
-        }
-        guard case let .plString(name)? = contents["name"] else {
-            return error("missing name")
-        }
-
-        // Extract the singleton input, if present.
-        var onlyInput: Path? = nil
-        var inputCount = 0
-        if case let .plArray(inputContents)? = contents["inputs"] {
-            var hadInput = false
-            for case let .plString(value) in inputContents {
-                if value.hasSuffix(".swift") ||
-                   value.hasSuffix(".swiftinterface") ||
-                   value.hasSuffix(".modulemap") {
-                    inputCount += 1
-                    if !hadInput {
-                        hadInput = true
-                        onlyInput = Path(value)
-                    } else {
-                        onlyInput = nil
-                    }
-                }
-            }
-        }
-
-        let subtaskName = SubtaskName(rawValue: name)
-
-        // Process the message.
-        switch kind {
-        case .began:
-            // Start a new subtask.
-            guard case let .plInt(pid)? = contents["pid"] else {
-                return error("missing pid")
-            }
-            if subtasks[pid] != nil {
-                    return error("invalid pid \(pid) (already in use)")
-            }
-
-            // Compute the title.
-            let title = computeSubtaskTitle(name, onlyInput, inputCount)
-
-            // Find the serialized diagnostics, if expected.
-            let serializedDiagnosticsPaths: [Path]
-            if let outputs = findOutputs(in: contents, ofType: "diagnostics") {
-                serializedDiagnosticsPaths = outputs
-            } else {
-                serializedDiagnosticsPaths = []
-            }
-
-            let (ruleInfo, signature) = computeRuleInfo(name: name, onlyInput: onlyInput)
-
-            // Start the subtask.
-            let subtaskDelegate = delegate.startSubtask(
-                // FIXME: This should really come from the spec definition, but we don't have enough information to get that here.
-                buildOperationIdentifier: self.delegate.buildOperationIdentifier,
-                taskName: "Swift Compiler",
-                id: ByteString(encodingAsUTF8: String(pid)),
-                signature: signature,
-                ruleInfo: ruleInfo,
-                executionDescription: title,
-                commandLine: [],
-                additionalOutput: [],
-                interestingPath: onlyInput,
-                workingDirectory: workingDirectory,
-                serializedDiagnosticsPaths: serializedDiagnosticsPaths)
-            subtasks[pid] = Subtask(pid: pid, serializedDiagnosticsPaths: serializedDiagnosticsPaths, delegate: subtaskDelegate)
-
-            if subtaskName == .compile, !usingSwiftIntegratedDriver {
-                progressReporter?.subtasksStarted(count: 1, forTargetName: self.targetName)
-            }
-
-        case .finished, .abnormal, .signalled:
-            // Find the subtask record.
-            guard case let .plInt(pid)? = contents["pid"] else {
-                return error("missing pid")
-            }
-            guard let subtask = subtasks.removeValue(forKey: pid) else {
-                return error("invalid pid (no subtask record)")
-            }
-
-            // Get the output, if present.
-            if case let .plString(output)? = contents["output"] {
-                subtask.delegate.emitOutput(ByteString(encodingAsUTF8: output))
-            }
-
-            // Report the completion.
-            let exitStatus: Processes.ExitStatus
-            if kind == .finished {
-                // Get the exit status.
-                if case let .plInt(exitStatusValue)? = contents["exit-status"] {
-                    exitStatus = .exit(Int32(exitStatusValue))
-                } else {
-                    error("missing exit-status")
-                    exitStatus = .exit(2)
-                }
-            } else {
-                let numericFailureCodeKey: String
-                let errorMessageKey: String?
-                let fallbackExitStatus: Int32
-                switch kind {
-                case .abnormal:
-                    numericFailureCodeKey = "exception"
-                    errorMessageKey = nil
-                    fallbackExitStatus = 0
-                case .signalled:
-                    numericFailureCodeKey = "signal"
-                    errorMessageKey = "error-message"
-                    fallbackExitStatus = SIGABRT
-                default:
-                    preconditionFailure("unreachable")
-                }
-
-                if case let .plInt(signalValue)? = contents[numericFailureCodeKey] {
-                    exitStatus = .uncaughtSignal(Int32(signalValue))
-                } else {
-                    exitStatus = .uncaughtSignal(fallbackExitStatus)
-                }
-
-                // Get the error message.
-                if let errorMessageKey, case let .plString(message)? = contents[errorMessageKey] {
-                    if exitStatus.wasCanceled {
-                        // Special case: some signals generated by users (SIGINT, SIGKILL) will be interpreted by the
-                        // delegate as "cancellation"; we honor that here by suppressing the diagnostic we'd otherwise
-                        // print. This also handles the case where a pseudo-task exits with SIGINT when running in batch
-                        // mode, which happens when it was cancelled due to being batched together with another
-                        // pseudo-task that emitted an error.
-                    } else {
-                        subtask.delegate.diagnosticsEngine.emit(data: DiagnosticData(message), behavior: .error)
-                    }
-                } else if let errorMessageKey {
-                    error("missing \(errorMessageKey)")
-                } else {
-                    subtask.delegate.diagnosticsEngine.emit(data: DiagnosticData("The Swift compiler exited abnormally."), behavior: .error)
-                }
-            }
-            if subtaskName == .compile, !usingSwiftIntegratedDriver {
-                progressReporter?.subtasksFinished(count: 1, forTargetName: self.targetName)
-            }
-
-            // Don't try to read diagnostics if the process exited with an uncaught signal as they were almost certainly not written in this case.
-            let serializedDiagnosticsPaths = subtask.nonEmptyDiagnosticsPaths(fs: workspaceContext.fs)
-            if !serializedDiagnosticsPaths.isEmpty {
-                for path in serializedDiagnosticsPaths {
-                    subtask.delegate.processSerializedDiagnostics(at: path, workingDirectory: workingDirectory, workspaceContext: workspaceContext)
-                }
-            }
-
-            subtask.delegate.taskCompleted(exitStatus: exitStatus.isSuccess ? exitStatus : (serializedDiagnosticsPaths.isEmpty ? .buildSystemCanceledTask : exitStatus))
-            subtask.delegate.close()
-
-        case .skipped:
-            if subtaskName == .compile, !usingSwiftIntegratedDriver {
-                progressReporter?.subtasksSkipped(count: 1, forTargetName: self.targetName)
-            }
-            delegate.skippedSubtask(signature: computeRuleInfo(name: name, onlyInput: onlyInput).signature)
-        }
-    }
-
-    /// Compute the `ruleInfo` and signature for a subtask.
-    func computeRuleInfo(name: String, onlyInput: Path?) -> (ruleInfo: String, signature: ByteString) {
-        if usingSwiftIntegratedDriver, let onlyInput {
-            // If using the Swift integrated driver, we must be parsing the output of a batch compile task. As a result, we should only receive messages about per-file compilation.
-            let (ruleInfo, signature) = SwiftCompilerSpec.computeRuleInfoAndSignatureForPerFileVirtualBatchSubtask(variant: self.variant, arch: self.arch, path: onlyInput)
-            return (ruleInfo.joined(separator: " "), signature)
-        } else {
-            let signatureName = computeSubtaskSignatureName(name)
-            var ruleInfo = "\(signatureName) \(self.variant) \(self.arch)"
-            if let path = onlyInput {
-                ruleInfo = "\(ruleInfo) \(path.str.quotedDescription)"
-            }
-            let signature: ByteString = {
-                let md5 = InsecureHashContext()
-                md5.add(string: ruleInfo)
-                return md5.signature
-            }()
-            return (ruleInfo, signature)
-        }
+        self.dependencyValidationPayload = try deserializer.deserialize()
     }
 }
 
@@ -1068,6 +635,7 @@ public struct DiscoveredSwiftCompilerToolSpecInfo: DiscoveredCommandLineToolSpec
         case emitPackageModuleInterfacePath = "emit-package-module-interface-path"
         case compilationCaching = "compilation-caching"
         case Isystem = "Isystem"
+        case apiDigesterXcc = "api-digester-Xcc"
     }
     public var toolFeatures: ToolFeatures<FeatureFlag>
     public func hasFeature(_ flag: String) -> Bool {
@@ -1183,14 +751,28 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         // like OTHER_SWIFT_FLAGS where the user can't possibly add this
         // metadata to the values, but those settings be handled on a
         // case-by-case basis.
-        return task.commandLine.indices.compactMap { index in
-            let arg = task.commandLine[index].asByteString
-            let prevArg = index > task.commandLine.startIndex ? task.commandLine[index - 1].asByteString : nil
+        let taskCommandLine = task.commandLine
+        return taskCommandLine.indices.compactMap { index in
+            let arg = taskCommandLine[index].asByteString
+            let prevArg = index > taskCommandLine.startIndex ? taskCommandLine[index - 1].asByteString : nil
             if isOutputAgnosticCommandLineArgument(arg, prevArgument: prevArg) {
                 return nil
             }
             return arg
         }
+    }
+
+    override public func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
+        var env: [(String, String)] = super.environmentFromSpec(cbc, delegate, lookup: lookup)
+
+        // Pass through SWIFT_DRIVER_SWIFT_FRONTEND_EXEC if set
+        // This is consumed by the driver to select which swift-frontend binary to use.
+        let frontendExecValue = cbc.scope.evaluate(cbc.scope.namespace.parseString("$(SWIFT_DRIVER_SWIFT_FRONTEND_EXEC)"))
+        if !frontendExecValue.isEmpty {
+            env.append(("SWIFT_DRIVER_SWIFT_FRONTEND_EXEC", frontendExecValue))
+        }
+
+        return env
     }
 
     // remove in rdar://53000820
@@ -1382,25 +964,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         let buildSettingEnabled = scope.evaluate(BuiltinMacros.SWIFT_ENABLE_EXPLICIT_MODULES) == .enabled ||
                                   scope.evaluate(BuiltinMacros._EXPERIMENTAL_SWIFT_EXPLICIT_MODULES) == .enabled
 
+        // If this project is on the blocklist, override the blocklist default enable for it
+        if let explicitModuleBlocklist = await getExplicitModuleBlocklist(producer, scope, delegate), explicitModuleBlocklist.isProjectListed(producer, scope) {
+            return false
+        }
+
         // rdar://122829880 (Turn off Swift explicit modules when c++ interop is enabled)
         guard scope.evaluate(BuiltinMacros.SWIFT_OBJC_INTEROP_MODE) != "objcxx" && !scope.evaluate(BuiltinMacros.OTHER_SWIFT_FLAGS).contains("-cxx-interoperability-mode=default") else {
-            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP)
+            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_CXX_INTEROP) && buildSettingEnabled
         }
 
         // Disable explicit modules in the pre-Swift-5 language modes to avoid versioned API notes confusion.
         guard let swiftVersion = try? Version(scope.evaluate(BuiltinMacros.SWIFT_VERSION)), swiftVersion >= Version(5) else {
-            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5)
+            return scope.evaluate(BuiltinMacros._SWIFT_EXPLICIT_MODULES_ALLOW_BEFORE_SWIFT_5) && buildSettingEnabled
         }
 
-        // If a blocklist is provided in the toolchain, use it to determine the default for the current project
-        guard let explicitModuleBlocklist = await getExplicitModuleBlocklist(producer, scope, delegate) else {
-            return buildSettingEnabled
-        }
-
-        // If this project is on the blocklist, override the blocklist default enable for it
-        if explicitModuleBlocklist.isProjectListed(scope) {
-            return false
-        }
         return buildSettingEnabled
     }
 
@@ -1442,7 +1020,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 if blocklist.Modules.contains(moduleName) {
                     return false
                 }
-                if blocklist.isProjectListed(cbc.scope) {
+                if blocklist.isProjectListed(cbc.producer, cbc.scope) {
                     return false
                 }
             }
@@ -1474,8 +1052,11 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let matchingBuildSetting = feature.buildSettings?.first(where: {
                 if let macro = try? cbc.scope.namespace.declareBooleanMacro($0) {
                     return cbc.scope.evaluate(macro)
+                } else if let macro = try? cbc.scope.namespace.declareStringMacro($0) {
+                    return cbc.scope.evaluate(macro) == "YES"
+                } else {
+                    return false
                 }
-                return false
             })
             if matchingBuildSetting != nil {
                 continue
@@ -1607,7 +1188,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // If there is only a single input, ensure we pass -parse-as-library as appropriate.
             if cbc.inputs.count == 1 {
                 let filename = cbc.inputs[0].absolutePath.basename
-                if filename != SwiftCompilerSpec.mainFileName && !cbc.scope.evaluate(BuiltinMacros.SWIFT_LIBRARIES_ONLY) {
+                if filename != SwiftCompilerSpec.mainFileName && !cbc.scope.evaluate(BuiltinMacros.SWIFT_LIBRARIES_ONLY) && !cbc.scope.evaluate(BuiltinMacros.SWIFT_DISABLE_PARSE_AS_LIBRARY) {
                     // Add -parse-as-library if the only input's file name isn't main.swift and if we didn't already add it due to SWIFT_LIBRARIES_ONLY.
                     args.append("-parse-as-library")
                 }
@@ -1648,14 +1229,15 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
 
             func addTBDEmissionIfRequired() {
-                let typeStr = cbc.scope.evaluate(BuiltinMacros.PRODUCT_TYPE)
-                let productType = ProductTypeIdentifier(typeStr)
-
                 // For some targets, a tbd can be emitted to allow downstream targets to begin linking earlier.
                 let supportsTBDEmissionForEagerLinking = cbc.producer.supportsEagerLinking(scope: cbc.scope)
 
                 // InstallAPI support requires explicit opt-in and a compatible product type.
-                let supportsInstallAPI = productType.supportsInstallAPI && cbc.scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API)
+                let supportsInstallAPI = if let productType = cbc.producer.productType, productType.supportsInstallAPI && cbc.scope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) {
+                    true
+                } else {
+                    false
+                }
 
                 guard supportsInstallAPI || supportsTBDEmissionForEagerLinking else {
                     return
@@ -1738,6 +1320,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let useParallelWholeModuleOptimization = cbc.scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION)
             if isUsingWholeModuleOptimization && useParallelWholeModuleOptimization {
                 args.append(contentsOf: ["-num-threads", "\(SwiftCompilerSpec.parallelismLevel)"])
+            } else if isUsingWholeModuleOptimization {
+                // Use -num-threads 1 to ensure the driver produces per-file object outputs
+                args.append(contentsOf: ["-num-threads", "1"])
             } else {
                 args.append(contentsOf: ["-j\(SwiftCompilerSpec.parallelismLevel)"])
             }
@@ -1801,9 +1386,6 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             extraInputPaths.append(outputFileMapPath)
 
             if useIntegratedDriver {
-                // Instruct the frontend to provide parseable output so we can construct the log of the individual file commands.
-                args.append("-use-frontend-parseable-output")
-
                 // -save-temps will give Swift Build the opportunity to hold temporary files over the life time of a Driver run.
                 // Temporary files will be stored in an intermediate dir.
                 args.append("-save-temps")
@@ -1812,7 +1394,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 // Instructs the driver to perform build planning with explicit module builds
                 if explicitModuleBuildEnabled {
                     args.append("-explicit-module-build")
-                    let explicitDependencyOutputPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH))
+                    let explicitDependencyOutputPath = cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)
                     args.append(contentsOf: ["-module-cache-path", explicitDependencyOutputPath.str])
                     let moduleCacheDir = cbc.scope.evaluate(BuiltinMacros.MODULE_CACHE_DIR)
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-clang-scanner-module-cache-path"),
@@ -1844,23 +1426,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     if let pluginPath = casOpts.pluginPath {
                         args += ["-cas-plugin-path", pluginPath.str]
                     }
-                    // If the integrated cache queries is enabled, the remote service is handled by build system and no need to pass to compiler
-                    if !casOpts.enableIntegratedCacheQueries && casOpts.hasRemoteCache,
-                       let remoteService = casOpts.remoteServicePath {
-                        args += ["-cas-plugin-option", "remote-service-path=" + remoteService.str]
-                    }
                 }
             } catch {
                 delegate.error(error.localizedDescription)
                 casOptions = nil
             }
 
-            // Instruct the compiler to serialize diagnostics.
-            args.append("-serialize-diagnostics")
-
             if await shouldEmitMakeStyleDependencies(cbc.producer, cbc.scope, delegate: delegate) {
                 // Instruct the compiler to emit dependencies information.
                 args.append("-emit-dependencies")
+            }
+
+            let codesizeProfileEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_CODESIZE_PROFILE)
+            let emitOptRecords = codesizeProfileEnabled || cbc.scope.evaluate(BuiltinMacros.SWIFT_EMIT_OPT_RECORDS)
+            if emitOptRecords {
+                args.append("-save-optimization-record")
             }
 
             // Generate the .swiftmodule from this compilation to a known location.
@@ -1877,6 +1457,20 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 moduleLinkerArgsPath = path
             } else {
                 moduleLinkerArgsPath = nil
+            }
+
+
+            // Instruct the compiler to serialize diagnostics.
+            args.append("-serialize-diagnostics")
+
+            let scannerDiagnosticsPath: Path?
+            if explicitModuleBuildEnabled {
+                let diagnosticsPath = Path(moduleFilePath.withoutSuffix + "-dependency-scan.dia")
+                scannerDiagnosticsPath = diagnosticsPath
+                args.append(contentsOf: ["-dependency-scan-serialize-diagnostics-path", diagnosticsPath.str])
+                moduleOutputPaths.append(diagnosticsPath)
+            } else {
+                scannerDiagnosticsPath = nil
             }
 
             if let baselinePath = getABIBaselinePath(cbc.scope, delegate, compilationMode) {
@@ -1967,6 +1561,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 args += ["-validate-clang-modules-once", "-clang-build-session-file", buildSessionFile]
             }
 
+            let modulePruneInterval = cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_INTERVAL)
+            let modulePruneAfter = cbc.scope.evaluate(BuiltinMacros.CLANG_MODULES_PRUNE_AFTER)
+            if !modulePruneInterval.isEmpty && !modulePruneAfter.isEmpty {
+                args.append(contentsOf: ["-Xcc", "-fmodules-prune-interval=\(modulePruneInterval)"])
+                args.append(contentsOf: ["-Xcc", "-fmodules-prune-after=\(modulePruneAfter)"])
+            }
+
             if toolSpecInfo.toolFeatures.has(.libraryLevel),
                let libraryLevel = cbc.scope.evaluateAsString(BuiltinMacros.SWIFT_LIBRARY_LEVEL).nilIfEmpty {
                 args += ["-library-level", libraryLevel]
@@ -2015,8 +1616,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
                 cbc.producer.writeFileSpec.constructFileTasks(CommandBuildContext(producer: cbc.producer, scope: cbc.scope, inputs: [], output: protocolListPath),
                                                               delegate, contents: protocolListContents, permissions: nil, preparesForIndexing: true, additionalTaskOrderingOptions: [.immediate, .ignorePhaseOrdering])
-                args += ["-Xfrontend", "-const-gather-protocols-file",
-                         "-Xfrontend", protocolListPath.str]
+                if integratedDriverEnabled(scope: cbc.scope) && LibSwiftDriver.supportsDriverFlag(spelled: "-const-gather-protocols-list") {
+                    // Use the driver option if supported.
+                    args += ["-const-gather-protocols-list", protocolListPath.str]
+                } else {
+                    args += ["-Xfrontend", "-const-gather-protocols-file",
+                             "-Xfrontend", protocolListPath.str]
+                }
                 extraInputPaths.append(protocolListPath)
             }
 
@@ -2073,7 +1679,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let objcBridgingHeaderPath = Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_OBJC_BRIDGING_HEADER))
             if !objcBridgingHeaderPath.isEmpty {
                 let objcBridgingHeaderNode = delegate.createNode(objcBridgingHeaderPath)
-                args += ["-import-objc-header", objcBridgingHeaderNode.path.normalize().str]
+                let flag = cbc.scope.evaluate(BuiltinMacros.SWIFT_BRIDGING_HEADER_IS_INTERNAL)
+                    ? "-internal-import-bridging-header"
+                    : "-import-objc-header"
+                args += [flag, objcBridgingHeaderNode.path.normalize().str]
                 extraInputPaths.append(objcBridgingHeaderPath)
                 let precompsPath = cbc.scope.evaluate(BuiltinMacros.SHARED_PRECOMPS_DIR)
                 if !precompsPath.isEmpty,
@@ -2213,7 +1822,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             var environment: [(String, String)] = environmentFromSpec(cbc, delegate)
             environment.append(("DEVELOPER_DIR", cbc.scope.evaluate(BuiltinMacros.DEVELOPER_DIR).str))
             let sdkroot = cbc.scope.evaluate(BuiltinMacros.SDKROOT)
-            if !sdkroot.isEmpty {
+            if !sdkroot.isEmpty && cbc.scope.evaluate(BuiltinMacros.SWIFTC_PASS_SDKROOT) {
                 environment.append(("SDKROOT", sdkroot.str))
             }
             let toolchains = cbc.scope.evaluateAsString(BuiltinMacros.TOOLCHAINS)
@@ -2280,7 +1889,23 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 cbc.scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) &&
                 emittingModuleSeparately {
                 let moduleWrapOutput = Path(moduleFilePath.withoutSuffix + ".o")
-                moduleOutputPaths.append(moduleWrapOutput)
+                // The modulewrap task depends on the module, but its outputs are linking requirements,
+                // not downstream compilation requirements track it as an extra output.
+                extraOutputPaths.append(moduleWrapOutput)
+            }
+
+            let dependencyValidationPayload: SwiftDependencyValidationPayload?
+            if explicitModuleBuildEnabled, let context = cbc.producer.moduleDependenciesContext, let outputPath = objectOutputPaths.first, context.validate != .no {
+                let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix + "-primary"
+                let dependencyValidationOutputPath = outputPath.dirname.join(primarySwiftBaseName + ".dependencies")
+                extraOutputPaths.append(dependencyValidationOutputPath)
+
+                dependencyValidationPayload = .init(
+                    dependencyValidationOutputPath: dependencyValidationOutputPath,
+                    moduleDependenciesContext: context
+                )
+            } else {
+                dependencyValidationPayload = nil
             }
 
             // The rule info.
@@ -2310,9 +1935,9 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 previewPayload: previewPayload,
                 localizationPayload: localizationPayload,
                 numExpectedCompileSubtasks: isUsingWholeModuleOptimization ? 1 : cbc.inputs.count,
-                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: Path(cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH)), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, linkerResponseFilePath: moduleLinkerArgsPath),
+                driverPayload: await driverPayload(uniqueID: String(args.hashValue), scope: cbc.scope, delegate: delegate, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, args: args, tempDirPath: objectFileDir, explicitModulesTempDirPath: cbc.scope.evaluate(BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH), variant: variant, arch: arch + compilationMode.moduleBaseNameSuffix, commandLine: ["builtin-SwiftDriver", "--"] + args, ruleInfo: ruleInfo(compilationMode.ruleNameIntegratedDriver, targetName), casOptions: casOptions, scannerDiagnosticsOutputPath: scannerDiagnosticsPath, linkerResponseFilePath: moduleLinkerArgsPath),
                 previewStyle: cbc.scope.previewStyle,
-                moduleDependenciesContext: cbc.producer.moduleDependenciesContext
+                dependencyValidationPayload: dependencyValidationPayload
             )
 
             // Finally, assemble the input and output paths and create the Swift compiler command.
@@ -2395,7 +2020,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 delegate.createTask(type: self, dependencyData: dependencyInfoPath.map(DependencyDataStyle.makefileIgnoringSubsequentOutputs), payload: payload, ruleInfo: ruleInfo(compilationMode.ruleName), additionalSignatureData: additionalSignatureData, commandLine: args, environment: environmentBindings, workingDirectory: compilerWorkingDirectory(cbc), inputs: allInputsNodes, outputs: (allNonModuleOutputs + moduleOutputPaths).map { delegate.createNode($0) }, action: nil, execDescription: execDescription, preparesForIndexing: true, enableSandboxing: enableSandboxing, additionalTaskOrderingOptions: [.compilation, .compilationRequirement, .blockedByTargetHeaders, .compilationForIndexableSourceFile], usesExecutionInputs: false)
             }
 
-            if cbc.scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT) {
+            if SwiftCompilerSpec.shouldPlanAutolinkExtractTask(scope: cbc.scope, producer: cbc.producer) {
                 let toolName = cbc.producer.hostOperatingSystem.imageFormat.executableName(basename: "swift-autolink-extract")
                 let toolPath = await resolveExecutablePath(cbc, toolSpecInfo.toolPath.dirname.join(toolName), delegate: delegate)
 
@@ -2503,7 +2128,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
         }
 
-        func driverPayload(uniqueID: String, scope: MacroEvaluationScope, delegate: any TaskGenerationDelegate, compilationMode: SwiftCompilationMode, isUsingWholeModuleOptimization: Bool, args: [String], tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, arch: String, commandLine: [String], ruleInfo: [String], casOptions: CASOptions?, linkerResponseFilePath: Path?) async -> SwiftDriverPayload? {
+        func driverPayload(uniqueID: String, scope: MacroEvaluationScope, delegate: any TaskGenerationDelegate, compilationMode: SwiftCompilationMode, isUsingWholeModuleOptimization: Bool, args: [String], tempDirPath: Path, explicitModulesTempDirPath: Path, variant: String, arch: String, commandLine: [String], ruleInfo: [String], casOptions: CASOptions?, scannerDiagnosticsOutputPath: Path?, linkerResponseFilePath: Path?) async -> SwiftDriverPayload? {
             guard integratedDriverEnabled(scope: scope) else {
                 return nil
             }
@@ -2522,7 +2147,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             let explicitModuleBuildEnabled = await swiftExplicitModuleBuildEnabled(cbc.producer, cbc.scope, delegate)
             let verifyScannerDependencies = explicitModuleBuildEnabled && cbc.scope.evaluate(BuiltinMacros.SWIFT_DEPENDENCY_REGISTRATION_MODE) == .verifySwiftDependencyScanner
 
-            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies)
+            return SwiftDriverPayload(uniqueID: uniqueID, compilerLocation: compilerLocation, moduleName: scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME), outputPrefix: scope.evaluate(BuiltinMacros.TARGET_NAME) + compilationMode.moduleBaseNameSuffix, tempDirPath: tempDirPath, explicitModulesTempDirPath: explicitModulesTempDirPath, variant: variant, architecture: arch, eagerCompilationEnabled: eagerCompilationEnabled(args: args, scope: scope, compilationMode: compilationMode, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization), explicitModulesEnabled: explicitModuleBuildEnabled, commandLine: commandLine, ruleInfo: ruleInfo, isUsingWholeModuleOptimization: isUsingWholeModuleOptimization, casOptions: casOptions, reportRequiredTargetDependencies: scope.evaluate(BuiltinMacros.DIAGNOSE_MISSING_TARGET_DEPENDENCIES), linkerResponseFilePath: linkerResponseFilePath, linkerResponseFileFormat: cbc.scope.evaluate(BuiltinMacros.LINKER_RESPONSE_FILE_FORMAT), dependencyFilteringRootPath: cbc.producer.sdk?.path, verifyScannerDependencies: verifyScannerDependencies, scannerDiagnosticsOutputPath: scannerDiagnosticsOutputPath)
         }
 
         func constructSwiftResponseFileTask(path: Path) {
@@ -2906,7 +2531,14 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         return (isEnabled, isExplicitlyEnabled)
     }
 
-    private func staticallyLinkSwiftStdlib(_ producer: any CommandProducer, scope: MacroEvaluationScope) -> Bool {
+    public static func shouldPlanAutolinkExtractTask(scope: MacroEvaluationScope, producer: any CommandProducer) -> Bool {
+        let containsSwiftSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(producer, producer, scope, producer.filePathResolver) == true
+        let platformRequiresAutolinkExtract = scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT)
+        let linkerOutputTypeRequiresAutolinkExtract = scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "mh_object"
+        return containsSwiftSources && platformRequiresAutolinkExtract && linkerOutputTypeRequiresAutolinkExtract
+    }
+
+    private func staticallyLinkSwiftStdlib(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?)) -> Bool {
         // Determine whether we should statically link the Swift stdlib, and determined
         // by the following logic in the following order:
         //
@@ -2919,17 +2551,17 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         //
         // NOTE: With Swift in the OS, static libs aren't being supplied by the toolchains
         //       so users of this flag will need to provide their own.
-        if scope.evaluate(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB) {
+        if scope.evaluate(BuiltinMacros.SWIFT_FORCE_STATIC_LINK_STDLIB, lookup: lookup) {
             return true
         }
         return false
     }
 
-    public override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
-        return await computeAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes, optionContext: optionContext, forTAPI: false, delegate: delegate)
+    public override func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
+        return await computeAdditionalLinkerArgs(producer, scope: scope, lookup: lookup, inputFileTypes: inputFileTypes, optionContext: optionContext, forTAPI: false, delegate: delegate)
     }
 
-    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, forTAPI: Bool = false, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
+    func computeAdditionalLinkerArgs(_ producer: any CommandProducer, scope: MacroEvaluationScope, lookup: @escaping ((MacroDeclaration) -> MacroStringExpression?), inputFileTypes: [FileTypeSpec], optionContext: (any BuildOptionGenerationContext)?, forTAPI: Bool = false, delegate: any TaskGenerationDelegate) async -> (args: [[String]], inputPaths: [Path]) {
         guard let swiftToolSpec = optionContext as? DiscoveredSwiftCompilerToolSpecInfo else {
             // An error message would have already been emitted by this point
             return (args: [[]], inputPaths: [])
@@ -2942,21 +2574,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         var inputPaths: [Path] = []
         if !forTAPI {
             // TAPI can't use all of the additional linker options, and its spec has all of the build setting/option arguments that it can use.
-            args = self.flattenedOrderedBuildOptions.map { $0.getAdditionalLinkerArgs(producer, scope: scope, inputFileTypes: inputFileTypes) }.filter { !$0.isEmpty }
+            args = producer.effectiveFlattenedOrderedBuildOptions(self).map { $0.getAdditionalLinkerArgs(producer, scope: scope, lookup: lookup, inputFileTypes: inputFileTypes) }.filter { !$0.isEmpty }
         }
 
         // Determine if we are forced to use the standard system location; this is currently only for OS adopters of Swift, not any client.
-        let useSystemSwift = scope.evaluate(BuiltinMacros.SWIFT_FORCE_SYSTEM_LINK_STDLIB)
+        let useSystemSwift = scope.evaluate(BuiltinMacros.SWIFT_FORCE_SYSTEM_LINK_STDLIB, lookup: lookup)
 
         // Determine whether we should statically link the Swift stdlib.
-        let shouldStaticLinkStdlib = staticallyLinkSwiftStdlib(producer, scope: scope)
+        let shouldStaticLinkStdlib = staticallyLinkSwiftStdlib(producer, scope: scope, lookup: lookup)
 
-        let swiftStdlibName = scope.evaluate(BuiltinMacros.SWIFT_STDLIB)
-        var swiftLibraryPath = scope.evaluate(BuiltinMacros.SWIFT_LIBRARY_PATH)
-        let dynamicLibraryExtension = scope.evaluate(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION)
+        let swiftStdlibName = scope.evaluate(BuiltinMacros.SWIFT_STDLIB, lookup: lookup)
+        var swiftLibraryPath = scope.evaluate(BuiltinMacros.SWIFT_LIBRARY_PATH, lookup: lookup)
+        let dynamicLibraryExtension = scope.evaluate(BuiltinMacros.DYNAMIC_LIBRARY_EXTENSION, lookup: lookup)
 
         // If we weren't given an explicit library path, compute one
-        let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME)
+        let platformName = scope.evaluate(BuiltinMacros.PLATFORM_NAME, lookup: lookup)
         if swiftLibraryPath.isEmpty {
             // Look next to the compiler and in the toolchains for one.
             if shouldStaticLinkStdlib {
@@ -2974,13 +2606,13 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             }
         }
 
-        let isMacCatalystUnzippered = producer.sdkVariant?.isMacCatalyst == true && !scope.evaluate(BuiltinMacros.IS_ZIPPERED)
+        let isMacCatalystUnzippered = producer.sdkVariant?.isMacCatalyst == true && !scope.evaluate(BuiltinMacros.IS_ZIPPERED, lookup: lookup)
 
         var sdkPathArgument: [String] = []
         var unzipperedSDKPathArgument: [String] = []
         if forTAPI {
             // TAPI requires absolute paths.
-            let sdkroot = scope.evaluate(BuiltinMacros.SDKROOT)
+            let sdkroot = scope.evaluate(BuiltinMacros.SDKROOT, lookup: lookup)
             if !sdkroot.isEmpty {
                 sdkPathArgument = ["-L" + sdkroot.join("usr/lib/swift").str]
                 unzipperedSDKPathArgument = ["-L" + sdkroot.join("System/iOSSupport/usr/lib/swift").str]
@@ -3020,9 +2652,28 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
         if !forTAPI {
             if shouldStaticLinkStdlib {
-                args += [["-Xlinker", "-force_load_swift_libs"]]
-                // The Swift runtime requires libc++ & Foundation.
-                args += [["-lc++", "-framework", "Foundation"]]
+                // Platform-specific static linking flags
+                if producer.isApplePlatform {
+                    // Darwin/Apple platforms use force_load_swift_libs and Framework linking
+                    args += [["-Xlinker", "-force_load_swift_libs"]]
+                    args += [["-lc++", "-framework", "Foundation"]]
+                } else {
+                    switch scope.evaluate(BuiltinMacros.LINKER_DRIVER, lookup: lookup) {
+                        case .swiftc:
+                            // Non-Apple platforms (Linux, etc.) use static library linking
+                            // Note: Foundation is not available as a framework on non-Apple platforms
+                            args += [["-static-stdlib"]]
+                        case .clang, .qcc:
+                            // TODO: functionality must be implemented
+                            break
+                        case .auto:
+                            precondition(
+                                false,
+                                "The auto case should already have been replace with a specific value.",
+                            )
+                            break
+                    }
+                }
             }
 
             // Add the AST, if debugging.
@@ -3031,24 +2682,23 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             // be a source-less target which just contains object files in it's framework phase.
             let currentPlatformFilter = PlatformFilter(scope)
             let containsSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.filter { currentPlatformFilter.matches($0.platformFilters) }.isEmpty == false
-            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP) {
-                let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME)
-                let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR)
+            if containsSources && inputFileTypes.contains(where: { $0.conformsTo(identifier: "sourcecode.swift") }) && scope.evaluate(BuiltinMacros.GCC_GENERATE_DEBUGGING_SYMBOLS, lookup: lookup) && !scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_MODULEWRAP, lookup: lookup) {
+                let moduleName = scope.evaluate(BuiltinMacros.SWIFT_MODULE_NAME, lookup: lookup)
+                let moduleFileDir = scope.evaluate(BuiltinMacros.PER_ARCH_MODULE_FILE_DIR, lookup: lookup)
                 let moduleFilePath = moduleFileDir.join(moduleName + ".swiftmodule")
                 args += [["-Xlinker", "-add_ast_path", "-Xlinker", moduleFilePath.str]]
-                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS) {
+                if scope.evaluate(BuiltinMacros.SWIFT_GENERATE_ADDITIONAL_LINKER_ARGS, lookup: lookup) {
                     args += [["@\(Path(moduleFilePath.appendingFileNameSuffix("-linker-args").withoutSuffix + ".resp").str)"]]
                 }
             }
         }
 
-        if scope.evaluate(BuiltinMacros.SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS) {
+        if scope.evaluate(BuiltinMacros.SWIFT_ADD_TOOLCHAIN_SWIFTSYNTAX_SEARCH_PATHS, lookup: lookup) {
             args += [["-L\(swiftToolSpec.hostLibraryDirectory.str)"]]
         }
 
-        let containsSwiftSources = (producer.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.containsSwiftSources(producer, producer, scope, producer.filePathResolver) == true
-        if scope.evaluate(BuiltinMacros.PLATFORM_REQUIRES_SWIFT_AUTOLINK_EXTRACT) && containsSwiftSources {
-            let inputPath = scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH)
+        if SwiftCompilerSpec.shouldPlanAutolinkExtractTask(scope: scope, producer: producer) {
+            let inputPath = scope.evaluate(BuiltinMacros.SWIFT_AUTOLINK_EXTRACT_OUTPUT_PATH, lookup: lookup)
             args += [["@\(inputPath.str)"]]
             inputPaths.append(inputPath)
         }
@@ -3076,6 +2726,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         let primarySwiftBaseName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME) + moduleBaseNameSuffix + "-primary"
         let emitConstSideCarValues = await supportConstSupplementaryMetadata(cbc, delegate, compilationMode: compilationMode)
 
+        let codesizeProfileEnabled = cbc.scope.evaluate(BuiltinMacros.ENABLE_CODESIZE_PROFILE)
+
+        let emitSIL = codesizeProfileEnabled || cbc.scope.evaluate(BuiltinMacros.SWIFT_EMIT_SIL_FILES)
+        let emitIR = codesizeProfileEnabled || cbc.scope.evaluate(BuiltinMacros.SWIFT_EMIT_IR_FILES)
+        let emitOptRecords = codesizeProfileEnabled || cbc.scope.evaluate(BuiltinMacros.SWIFT_EMIT_OPT_RECORDS)
+
+        let codesizeProfileOutputDir: Path? = codesizeProfileEnabled
+            ? cbc.scope.evaluate(BuiltinMacros.CODESIZE_PROFILE_OUTPUT_DIR).nilIfEmpty
+            : nil
+
+        let silOutputDir: Path? = codesizeProfileOutputDir ?? cbc.scope.evaluate(BuiltinMacros.SWIFT_SIL_OUTPUT_DIR).nilIfEmpty
+        let irOutputDir: Path? = codesizeProfileOutputDir ?? cbc.scope.evaluate(BuiltinMacros.SWIFT_IR_OUTPUT_DIR).nilIfEmpty
+        let optRecordOutputDir: Path? = codesizeProfileOutputDir ?? cbc.scope.evaluate(BuiltinMacros.SWIFT_OPT_RECORD_OUTPUT_DIR).nilIfEmpty
+
+
         func createCommonFileEntry(input: FileToBuild) -> (objectFilePath: Path, fileMapEntry: SwiftOutputFileMap.Entry) {
             var fileMapEntry = SwiftOutputFileMap.Entry()
             // The object file.
@@ -3093,6 +2758,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 let bitcodeFilePath = objectFileDir.join(objectFilePrefix + ".bc")
                 fileMapEntry.llvmBitcode = bitcodeFilePath.str
             }
+
             return (objectFilePath, fileMapEntry)
         }
 
@@ -3125,6 +2791,21 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 // The requested compile-time values
                 if emitConstSideCarValues {
                     fileMapEntry.constValues = objectFileDir.join(objectFilePrefix + ".swiftconstvalues").str
+                }
+
+                if emitSIL {
+                    let silFilePath = (silOutputDir ?? objectFileDir).join(objectFilePrefix + ".sil")
+                    fileMapEntry.sil = silFilePath.str
+                }
+
+                if emitIR {
+                    let irFilePath = (irOutputDir ?? objectFileDir).join(objectFilePrefix + ".ll")
+                    fileMapEntry.llvmIR = irFilePath.str
+                }
+
+                if emitOptRecords {
+                    let optRecordFilePath = (optRecordOutputDir ?? objectFileDir).join(objectFilePrefix + ".opt.yaml")
+                    fileMapEntry.yamlOptRecord = optRecordFilePath.str
                 }
 
                 // Finally add an entry for this file to the map.
@@ -3163,8 +2844,22 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         }
         else {
             // If we are using WMO, then we still generate entries for each file, but several files move to the global map since the source files aren't processed individually.
+            let useParallelWMO = cbc.scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION)
             for input in cbc.inputs {
-                mapDict[input.absolutePath.str] = createCommonFileEntry(input: input).fileMapEntry
+                var (objectFilePath, fileMapEntry) = createCommonFileEntry(input: input)
+                let objectFilePrefix = objectFilePath.basenameWithoutSuffix
+                // In parallel WMO, IR and opt-records are per-file; SIL is always module-level.
+                if useParallelWMO {
+                    if emitIR {
+                        let irFilePath = (irOutputDir ?? objectFileDir).join(objectFilePrefix + ".ll")
+                        fileMapEntry.llvmIR = irFilePath.str
+                    }
+                    if emitOptRecords {
+                        let optRecordFilePath = (optRecordOutputDir ?? objectFileDir).join(objectFilePrefix + ".opt.yaml")
+                        fileMapEntry.yamlOptRecord = optRecordFilePath.str
+                    }
+                }
+                mapDict[input.absolutePath.str] = fileMapEntry
             }
 
             // Add global entries to the output file map, keyed under a pseudo-filename of "".
@@ -3202,6 +2897,25 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 // The PCH file path for generatePCH job.
                 let bridgingHeaderPCHPath = objectFileDir.join(primarySwiftBaseName + "-Bridging-header.pch")
                 fileMapEntry.pch = bridgingHeaderPCHPath.str
+
+                let targetName = cbc.scope.evaluate(BuiltinMacros.TARGET_NAME)
+
+                if emitSIL {
+                    let silFilePath = (silOutputDir ?? objectFileDir).join(targetName + ".sil")
+                    fileMapEntry.sil = silFilePath.str
+                }
+
+                if !useParallelWMO {
+                    if emitIR {
+                        let irFilePath = (irOutputDir ?? objectFileDir).join(targetName + ".ll")
+                        fileMapEntry.llvmIR = irFilePath.str
+                    }
+
+                    if emitOptRecords {
+                        let optRecordFilePath = (optRecordOutputDir ?? objectFileDir).join(targetName + ".opt.yaml")
+                        fileMapEntry.yamlOptRecord = optRecordFilePath.str
+                    }
+                }
 
                 // Add the global entry to the map.
                 mapDict[""] = fileMapEntry
@@ -3243,7 +2957,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                                                                    objectFileDir: payload.indexingPayload.objectFileDir, fileExtension: ".o")
             let indexingInfo: any SourceFileIndexingInfo
             if input.outputPathOnly {
-                indexingInfo = OutputPathIndexingInfo(outputFile: outputFile)
+                indexingInfo = OutputPathIndexingInfo(outputFile: outputFile, language: .swift)
             } else {
                 indexingInfo = SwiftSourceFileIndexingInfo(task: task, payload: payload.indexingPayload, outputFile: outputFile, enableIndexBuildArena: input.enableIndexBuildArena, integratedDriver: payload.driverPayload != nil)
             }
@@ -3413,6 +3127,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             "-emit-package-module-interface-path",
             "-emit-localized-strings-path",
             "-pch-output-dir",
+            "-const-gather-protocols-list",
+            "-dependency-scan-serialize-diagnostics-path"
         ] {
             removeWithParameter(arg)
         }
@@ -3438,6 +3154,8 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
             for arg in [
                 // We want the objc header in XOJIT mode so ignore in dynamic replacement mode
                 "-import-objc-header",
+
+                "-internal-import-bridging-header",
 
                 // Old setting only stripped in dynamic replacement mode for backward compatibility
                 "-clang-build-session-file",
@@ -3486,6 +3204,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                     let overlay = try vfs.toVFSOverlay().propertyListItem.asJSONFragment().asString
                     try fs.write(newVFSOverlayPath!, contents: ByteString(encodingAsUTF8: overlay))
                 } catch {
+                    logErrorForPreviews("Failed to generate vfsoverlay for \(inputPath.basename), error: \(error)")
                     return []
                 }
             } else {
@@ -3528,8 +3247,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 }
             }
             let outputDelegate = Delegate()
-            if let newCommandLine = LibSwiftDriver.frontendCommandLine(
-                outputDelegate: outputDelegate,
+            let result = LibSwiftDriver.frontendCommandLine(
                 compilerLocation: driverPayload.compilerLocation,
                 inputPath: selectedInputPath,
                 workingDirectory: task.workingDirectory,
@@ -3539,17 +3257,27 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
                 environment: task.environment.bindingsDictionary,
                 eagerCompilationEnabled: driverPayload.eagerCompilationEnabled,
                 casOptions: driverPayload.casOptions
-            ) {
+            )
+
+            for diagnostic in result.diagnostics {
+                outputDelegate.emit(diagnostic)
+            }
+
+            if let newCommandLine = result.commandLine {
                 commandLine = newCommandLine
                 // For swift caching jobs, add extra flags.
-                if commandLine.contains("-cache-compile-job") {
+                if driverPayload.casOptions != nil {
                     // Ideally, we should ask if swift-frontend supports the flag but we can only ask driver for an approximation.
                     if LibSwiftDriver.supportsDriverFlag(spelled: "-module-import-from-cas") {
                         commandLine.append("-module-import-from-cas")
                     }
                     // Then drop the cache build flag to do uncached preview compilation.
-                    commandLine.removeAll {
-                        $0 == "-cache-compile-job"
+                    if LibSwiftDriver.supportsDriverFlag(spelled: "-no-cache-compile-job") {
+                        commandLine.append("-no-cache-compile-job")
+                    } else {
+                        commandLine.removeAll {
+                            $0 == "-cache-compile-job"
+                        }
                     }
                 }
                 // Add vfsoverlay after the driver invocation as it can affect the module dependencies, causing modules from regular builds not being reused here.
@@ -3562,11 +3290,10 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
 
             // The driver may have emitted an error even if it returned us a command line. In this case, don't return the command line since it likely won't work.
             if commandLine.isEmpty || outputDelegate.engine.hasErrors {
-                #if canImport(os)
+                logErrorForPreviews("Swift driver failed to compute command line for preview info.")
                 for diagnostic in outputDelegate.engine.diagnostics.filter({ $0.behavior == .error }) {
-                    OSLog.log("Swift driver preview info error: \(diagnostic.data.description)")
+                    logErrorForPreviews("Swift driver preview info error: \(diagnostic.data.description)")
                 }
-                #endif
                 return []
             }
         }
@@ -3606,7 +3333,7 @@ public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDi
         switch task.ruleInfo.first {
         case "CompileSwiftSources",
              "GenerateSwiftModule":
-                return SwiftCommandOutputParser.self
+                return LegacySwiftCommandOutputParser.self
         default:
                 return nil
         }
@@ -3808,6 +3535,20 @@ public extension BuildPhaseWithBuildFiles {
         }
         return containsFiles(ofType: swiftFileType, referenceLookupContext, specLookupContext, scope, filePathResolver)
     }
+
+    /// Checks if the build phase contains any ObjC/ObjC++ source files.
+    func containsObjCSources(_ referenceLookupContext: any ReferenceLookupContext, _ specLookupContext: any SpecLookupContext, _ scope: MacroEvaluationScope, _ filePathResolver: FilePathResolver) -> Bool {
+        let objCFileType = specLookupContext.lookupFileType(identifier: "sourcecode.c.objc")
+        let objCPlusPlusFileType = specLookupContext.lookupFileType(identifier: "sourcecode.cpp.objcpp")
+
+        for fileType in [objCFileType, objCPlusPlusFileType] {
+            guard let fileType else { continue }
+            if containsFiles(ofType: fileType, referenceLookupContext, specLookupContext, scope, filePathResolver) {
+                return true
+            }
+        }
+        return false
+    }
 }
 
 struct SwiftOutputFileMap: Codable {
@@ -3824,6 +3565,9 @@ struct SwiftOutputFileMap: Codable {
         var swiftmodule: String?
         var constValues: String?
         var pch: String?
+        var sil: String?
+        var llvmIR: String?
+        var yamlOptRecord: String?
 
         enum CodingKeys: String, CodingKey {
             case object
@@ -3838,6 +3582,9 @@ struct SwiftOutputFileMap: Codable {
             case swiftmodule
             case constValues = "const-values"
             case pch
+            case sil
+            case llvmIR = "llvm-ir"
+            case yamlOptRecord = "yaml-opt-record"
         }
     }
 
@@ -3878,4 +3625,15 @@ extension SwiftDiscoveredCommandLineToolSpecInfo {
         // Get the info from the global cache.
         return try await discoveredSwiftCompilerInfo(producer, delegate, at: toolPath, blocklistsPathOverride: userSpecifiedBlocklists)
     }
+}
+
+#if canImport(Darwin) && canImport(os.log)
+let previewsLogger = Logger(subsystem: "com.apple.dt.Previews", category: "swift-build")
+#endif
+
+private func logErrorForPreviews(_ message: @autoclosure () -> String) {
+#if canImport(Darwin) && canImport(os.log)
+    let resolved = message()
+    previewsLogger.error("\(resolved, privacy: .private)")
+#endif
 }

@@ -117,7 +117,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                 if overrides["ENABLE_XOJIT_PREVIEWS"] != "YES" {
                     // Checking dynamic replacement.
                     #expect(try await testSession.session.generatePreviewInfo(for: request, targetID: appTarget.guid, sourceFile: tmpDir.join("TestFile4.swift").str, thunkVariantSuffix: "canary", delegate: delegate) == [SWBPreviewInfo(sdkRoot: "iphoneos\(sdkVersion)", sdkVariant: "iphoneos", buildVariant: "normal", architecture: activeRunDestination.targetArchitecture, compileCommandLine: [
-                        "\(developerDir)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-enforce-exclusivity=checked", "-enable-bare-slash-regex", "-enable-experimental-feature", "DebugDescriptionMacro", "-sdk", sdkroot, "-target", "\(activeRunDestination.targetArchitecture)-apple-ios\(deploymentTarget)", "-Xfrontend", "-serialize-debugging-options", "-swift-version", "5", "-I", "\(tmpDir.str)/Test/build/Debug-iphoneos", "-F", "\(tmpDir.str)/Test/build/Debug-iphoneos", "-c", "-j\(compilerParallelismLevel)", "-no-color-diagnostics", "-serialize-diagnostics", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-generated-files.hmap", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-own-target-headers.hmap", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-project-headers.hmap", "-Xcc", "-I\(tmpDir.str)/Test/build/Debug-iphoneos/include", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources-normal/\(activeRunDestination.targetArchitecture)", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources/\(activeRunDestination.targetArchitecture)", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources", "-working-directory", "\(tmpDir.str)/Test", "-experimental-emit-module-separately", "-disable-cmo", "-disable-bridging-pch", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.swift", "-o", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.o", "-module-name", "App_PreviewReplacement_TestFile4_canary", "-parse-as-library", "-Onone", "-Xfrontend", "-disable-modules-validate-system-headers"
+                        "\(developerDir)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc", "-enable-bare-slash-regex", "-enable-experimental-feature", "DebugDescriptionMacro", "-sdk", sdkroot, "-target", "\(activeRunDestination.targetArchitecture)-apple-ios\(deploymentTarget)", "-Xfrontend", "-serialize-debugging-options", "-swift-version", "5", "-I", "\(tmpDir.str)/Test/build/Debug-iphoneos", "-F", "\(tmpDir.str)/Test/build/Debug-iphoneos", "-c", "-j\(compilerParallelismLevel)", "-no-color-diagnostics", "-serialize-diagnostics", "-Xcc", "-fmodules-prune-interval=86400", "-Xcc", "-fmodules-prune-after=345600" ,"-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/swift-overrides.hmap", "-Xcc", "-iquote", "-Xcc", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-generated-files.hmap", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-own-target-headers.hmap", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-all-target-headers.hmap", "-Xcc", "-iquote", "-Xcc", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/App-project-headers.hmap", "-Xcc", "-I\(tmpDir.str)/Test/build/Debug-iphoneos/include", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources-normal/\(activeRunDestination.targetArchitecture)", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources/\(activeRunDestination.targetArchitecture)", "-Xcc", "-I\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources", "-working-directory", "\(tmpDir.str)/Test", "-experimental-emit-module-separately", "-disable-cmo", "-disable-bridging-pch", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.swift", "-o", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.o", "-module-name", "App_PreviewReplacement_TestFile4_canary", "-parse-as-library", "-Onone", "-Xfrontend", "-disable-modules-validate-system-headers"
                     ], linkCommandLine: [
                         "\(developerDir)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "-Xlinker", "-reproducible", "-target", "\(activeRunDestination.targetArchitecture)-apple-ios\(deploymentTarget)", "-isysroot", sdkroot, "-Os", "-L\(tmpDir.str)/Test/build/EagerLinkingTBDs/Debug-iphoneos", "-L\(tmpDir.str)/Test/build/Debug-iphoneos", "-F\(tmpDir.str)/Test/build/EagerLinkingTBDs/Debug-iphoneos", "-F\(tmpDir.str)/Test/build/Debug-iphoneos", "-fobjc-link-runtime", "-L\(developerDir)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos", "-L/usr/lib/swift", "-bundle", "-bundle_loader", "\(tmpDir.str)/Test/build/Debug-iphoneos/App.app/App", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.o", "-o", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.dylib"
                     ], thunkSourceFile: "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.swift", thunkObjectFile: "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.o", thunkLibrary: "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.canary.preview-thunk.dylib", pifGUID: appTarget.guid)])
@@ -206,6 +206,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             buildVariant: "normal",
                             architecture: activeRunDestination.targetArchitecture,
                             pifGUID: appTarget.guid,
+                            productModuleName: "App",
                             objectFileInputMap: [
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/TestFile4.o": Set(["\(tmpDir.str)/Test/TestFile4.swift"]),
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/GeneratedAssetSymbols.o": Set(["\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/DerivedSources/GeneratedAssetSymbols.swift"])
@@ -228,6 +229,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/App.build/Objects-normal/\(activeRunDestination.targetArchitecture)/App.LinkFileList",
                                 "-install_name",
                                 "@rpath/App.debug.dylib",
+                                "-Xlinker",
                                 "-dead_strip",
                                 "-Xlinker",
                                 "-object_path_lto",
@@ -261,7 +263,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             enableDebugDylib: true,
                             enableAddressSanitizer: false,
                             enableThreadSanitizer: false,
-                            enableUndefinedBehaviorSanitizer: false
+                            enableUndefinedBehaviorSanitizer: false,
+                            enableMemoryTaggingAddressSanitizer: false
                         )
                     ])
 
@@ -380,6 +383,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             buildVariant: "normal",
                             architecture: activeRunDestination.targetArchitecture,
                             pifGUID: libTarget.guid,
+                            productModuleName: "StaticLib",
                             objectFileInputMap: [
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/StaticLib.build/Objects-normal/arm64/TestFile4.o": Set(["\(tmpDir.str)/Test/TestFile4.swift"])
                             ],
@@ -406,7 +410,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             enableDebugDylib: false,
                             enableAddressSanitizer: false,
                             enableThreadSanitizer: false,
-                            enableUndefinedBehaviorSanitizer: false
+                            enableUndefinedBehaviorSanitizer: false,
+                            enableMemoryTaggingAddressSanitizer: false
                         )
                     ]
                 )
@@ -504,6 +509,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             buildVariant: "normal",
                             architecture: activeRunDestination.targetArchitecture,
                             pifGUID: target.guid,
+                            productModuleName: "CApplication",
                             objectFileInputMap: [:],
                             linkCommandLine: [
                                 "\(developerDir)/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
@@ -518,6 +524,7 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                                 "-F\(tmpDir.str)/Test/build/Debug-iphoneos",
                                 "-filelist",
                                 "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/CApplication.build/Objects-normal/arm64/CApplication.LinkFileList",
+                                "-Xlinker",
                                 "-dead_strip",
                                 "-Xlinker", "-object_path_lto", "-Xlinker", "\(tmpDir.str)/Test/build/Test.build/Debug-iphoneos/CApplication.build/Objects-normal/arm64/CApplication_lto.o",
                                 "-Xlinker", "-dependency_info",
@@ -532,7 +539,8 @@ fileprivate struct GeneratePreviewInfoTests: CoreBasedTests {
                             enableDebugDylib: false,
                             enableAddressSanitizer: false,
                             enableThreadSanitizer: false,
-                            enableUndefinedBehaviorSanitizer: false
+                            enableUndefinedBehaviorSanitizer: false,
+                            enableMemoryTaggingAddressSanitizer: false
                         )
                     ]
                 )

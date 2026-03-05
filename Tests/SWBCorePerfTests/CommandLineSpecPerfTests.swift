@@ -13,12 +13,13 @@
 import Testing
 
 import SWBTestSupport
-import SWBCore
+@_spi(Testing) import SWBCore
 import SWBUtil
 import enum SWBProtocol.ExternalToolResult
 import struct SWBProtocol.BuildOperationTaskEnded
 import SWBTaskExecution
 import SWBMacro
+import Synchronization
 
 private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
     private let _diagnosticsEngine = DiagnosticsEngine()
@@ -37,7 +38,7 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
         .init(_diagnosticsEngine)
     }
 
-    var shellTasks: [PlannedTaskBuilder] = []
+    let shellTasksCount = SWBMutex<Int>(0)
 
     func beginActivity(ruleInfo: String, executionDescription: String, signature: ByteString, target: ConfiguredTarget?, parentActivity: ActivityID?) -> ActivityID {
         .init(rawValue: -1)
@@ -86,7 +87,7 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
 
     func createTask(_ builder: inout PlannedTaskBuilder)
     {
-        shellTasks.append((builder))
+        shellTasksCount.withLock { $0 += 1 }
     }
     func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, name: String?, mustPrecede: [any PlannedTask], taskConfiguration: (inout PlannedTaskBuilder) -> Void) {
         // Store somewhere if a test needs it.
@@ -108,6 +109,10 @@ private final class CapturingTaskGenerationDelegate: TaskGenerationDelegate {
 extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     public func createAuxiliaryFileTaskAction(_ context: AuxiliaryFileTaskActionContext) -> any PlannedTaskAction {
         return AuxiliaryFileTaskAction(context)
+    }
+
+    public func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
+        return BuildDependencyInfoTaskAction()
     }
 
     public func createCodeSignTaskAction() -> any PlannedTaskAction {
@@ -170,8 +175,8 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
         return LSRegisterURLTaskAction()
     }
 
-    public func createProcessProductEntitlementsTaskAction(scope: MacroEvaluationScope, mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
-        return ProcessProductEntitlementsTaskAction(scope: scope, fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
+    public func createProcessProductEntitlementsTaskAction(mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
+        return ProcessProductEntitlementsTaskAction(fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, allowEntitlementsModification: allowEntitlementsModification, entitlementsDestination: entitlementsDestination, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
     }
 
     public func createProcessProductProvisioningProfileTaskAction() -> any PlannedTaskAction {
@@ -196,6 +201,10 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
 
     public func createClangCompileTaskAction() -> any PlannedTaskAction {
         return ClangCompileTaskAction()
+    }
+
+    public func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
     }
 
     public func createClangScanTaskAction() -> any PlannedTaskAction {
@@ -233,6 +242,18 @@ extension CapturingTaskGenerationDelegate: TaskActionCreationDelegate {
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
     }
+
+    func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateProductTaskAction()
+    }
+
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
+    }
 }
 
 extension CapturingTaskGenerationDelegate: CoreClientDelegate {
@@ -249,7 +270,7 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
     func clangCompileTaskConstruction_X1000() async throws {
         let core = try await getCore()
 
-        let clangSpec: CommandLineToolSpec = try core.specRegistry.getSpec() as ClangCompilerSpec
+        let clangSpec: CommandLineToolSpec = try core.specRegistry.getSpec(ofType: ClangCompilerSpec.self)
 
         // Create the mock table.  We include all the defaults for the tool specification.
         var (table, namespace) = clangSpec.macroTableForBuildOptionDefaults(core)
@@ -287,7 +308,7 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
         // Create the delegate, scope, file type, etc.
         let delegate = try CapturingTaskGenerationDelegate(producer: producer, userPreferences: .defaultForTesting)
         let mockScope = MacroEvaluationScope(table: table)
-        let mockFileType = try core.specRegistry.getSpec("file") as FileTypeSpec
+        let mockFileType = try core.specRegistry.getSpec("file", ofType: FileTypeSpec.self)
 
         // Create the build context for the command.
         let cbc = CommandBuildContext(producer: producer, scope: mockScope, inputs: [FileToBuild(absolutePath: Path("/tmp/input.c"), fileType: mockFileType)], output: nil)
@@ -304,6 +325,6 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
         }
 
         // There should be 10x as many shell tasks as we had iterations, since performance testing runs the measureBlock 10 times.
-        #expect(delegate.shellTasks.count == count * (getEnvironmentVariable("CI")?.boolValue == true ? 1 : 10))
+        #expect(delegate.shellTasksCount.withLock { $0 } == count * (getEnvironmentVariable("CI")?.boolValue == true ? 1 : 10))
     }
 }

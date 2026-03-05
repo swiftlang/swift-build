@@ -106,7 +106,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanFramework() async throws {
         try await withTestHarness { tester, tmpDirPath, _ in
-            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug")]
+            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
@@ -136,7 +136,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanFrameworkInstall() async throws {
         try await withTestHarness(install: true) { tester, tmpDirPath, dstRoot in
-            let buildFolderPaths = [ dstRoot, tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug")]
+            let buildFolderPaths = [ dstRoot, tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
 
             try await tester.checkBuild(runDestination: .macOS, persistent: true) { results in
                 // Check if build folder tasks have run as expected.
@@ -212,7 +212,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
             let buildRequest = BuildRequest(parameters: parameters, buildTargets: buildTargets, continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
             try await tester.checkBuild(runDestination: .macOS, buildRequest: buildRequest, persistent: true) { results in
                 results.checkTasks(.matchRuleType("CreateBuildDirectory")) { tasks in
-                    #expect(tasks.count == 6)
+                    #expect(tasks.count == 10)
                 }
 
                 results.checkNoTask(.matchRuleType("CreateBuildDirectory"))
@@ -234,7 +234,7 @@ fileprivate struct CleanOperationTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func cleanDoesNotDeleteManuallyCreatedFolders() async throws {
         try await withTestHarness { tester, tmpDirPath, _ in
-            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug")]
+            let buildFolderPaths = [ tmpDirPath.join("Test/aProject/build"), tmpDirPath.join("Test/aProject/build/Debug"), tmpDirPath.join("Test/aProject/build/EagerLinkingTBDs/Debug"), tmpDirPath.join("Test/aProject/build/ExplicitPrecompiledModules"), tmpDirPath.join("Test/aProject/build/SwiftExplicitPrecompiledModules")]
 
             for folder in buildFolderPaths {
                 try tester.fs.createDirectory(folder, recursive: true)

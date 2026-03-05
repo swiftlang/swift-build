@@ -22,6 +22,7 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
     let casOptions: CASOptions?
     let verifyingModule: String?
     let fileNameMapPath: Path?
+    let reproducerOutputPath: Path?
 
     init(
         dependencyInfoPath: Path,
@@ -29,7 +30,8 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         libclangPath: Path,
         casOptions: CASOptions?,
         verifyingModule: String?,
-        fileNameMapPath: Path?
+        fileNameMapPath: Path?,
+        reproducerOutputPath: Path?
     ) {
         self.dependencyInfoPath = dependencyInfoPath
         self.usesSerializedDiagnostics = usesSerializedDiagnostics
@@ -37,27 +39,30 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         self.casOptions = casOptions
         self.verifyingModule = verifyingModule
         self.fileNameMapPath = fileNameMapPath
+        self.reproducerOutputPath = reproducerOutputPath
     }
 
     public func serialize<T: Serializer>(to serializer: T) {
-        serializer.serializeAggregate(6) {
+        serializer.serializeAggregate(7) {
             serializer.serialize(dependencyInfoPath)
             serializer.serialize(usesSerializedDiagnostics)
             serializer.serialize(libclangPath)
             serializer.serialize(casOptions)
             serializer.serialize(verifyingModule)
             serializer.serialize(fileNameMapPath)
+            serializer.serialize(reproducerOutputPath)
         }
     }
 
     public init(from deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(6)
+        try deserializer.beginAggregate(7)
         self.dependencyInfoPath = try deserializer.deserialize()
         self.usesSerializedDiagnostics = try deserializer.deserialize()
         self.libclangPath = try deserializer.deserialize()
         self.casOptions = try deserializer.deserialize()
         self.verifyingModule = try deserializer.deserialize()
         self.fileNameMapPath = try deserializer.deserialize()
+        self.reproducerOutputPath = try deserializer.deserialize()
     }
 
     public var debugDescription: String {
@@ -67,6 +72,9 @@ public struct PrecompileClangModuleTaskKey: Serializable, CustomDebugStringConve
         }
         if let fileNameMapPath {
             result += " fileNameMap=\(fileNameMapPath)"
+        }
+        if let reproducerOutputPath {
+            result += " reproducerOutputPath=\(reproducerOutputPath)"
         }
         result += ">"
         return result
@@ -102,7 +110,7 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
         return Payload.self
     }
 
-    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> any ExecutableTask {
+    package func buildExecutableTask(dynamicTask: DynamicTask, context: DynamicTaskOperationContext) -> Task {
         guard case let .precompileClangModule(PrecompileClangModuleTaskKey) = dynamicTask.taskKey else {
             fatalError("Unexpected dynamic task key \(dynamicTask.taskKey)")
         }
@@ -163,11 +171,11 @@ final class PrecompileClangModuleDynamicTaskSpec: DynamicTaskSpec {
         return SerializedDiagnosticsOutputParser.self
     }
 
-    package func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] {
+    package func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] {
         guard let path = (task.payload as? Payload)?.serializedDiagnosticsPath else {
             return []
         }
-        return [path]
+        return [SerializedDiagnosticInfo(serializedDiagnosticsPath: path, sourceFilePath: nil)]
     }
 
     package func shouldStart(_ task: any ExecutableTask, buildCommand: BuildCommand) -> Bool {

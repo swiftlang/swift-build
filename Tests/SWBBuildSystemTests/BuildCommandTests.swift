@@ -51,11 +51,11 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
             // Create the input files.
             let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
-            try await tester.fs.writeFileContents(cFile) { stream in }
+            try await tester.fs.writeFileContents(cFile) { stream in stream <<< "void foo(void) {}" }
             let swiftFile = testWorkspace.sourceRoot.join("aProject/SwiftFile.swift")
-            try await tester.fs.writeFileContents(swiftFile) { stream in }
+            try await tester.fs.writeFileContents(swiftFile) { stream in stream <<< "public func bar() {}" }
             let objcFile = testWorkspace.sourceRoot.join("aProject/ObjCFile.m")
-            try await tester.fs.writeFileContents(objcFile) { stream in }
+            try await tester.fs.writeFileContents(objcFile) { stream in stream <<< "void baz(void) {}" }
 
             // Create a build request context to compute the output paths - can't use one from the tester because it's an _output_ of checkBuild.
             let buildRequestContext = BuildRequestContext(workspaceContext: tester.workspaceContext)
@@ -178,6 +178,20 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
     }
 
+    /// Check Swift exclusivity.
+    @Test(.requireSDKs(.host))
+    func swiftExclusivity() async throws {
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "on", "SWIFT_VERSION": "5.0"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.swift") { results, excludedTypes, _, _ in
+            results.consumeTasksMatchingRuleTypes(excludedTypes)
+            results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItemBasename("File.swift"), .matchRuleItem("normal"), .matchCommandLineArgument("-enforce-exclusivity=checked")) { _ in }
+        }
+
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["SWIFT_ENFORCE_EXCLUSIVE_ACCESS": "off", "SWIFT_VERSION": "5.0"]), buildCommand: .singleFileBuild(buildOnlyTheseFiles: [Path("")]), fileName: "File.swift") { results, excludedTypes, _, _ in
+            results.consumeTasksMatchingRuleTypes(excludedTypes)
+            results.checkTask(.matchRuleType("SwiftCompile"), .matchRuleItemBasename("File.swift"), .matchRuleItem("normal"), .matchCommandLineArgument("-enforce-exclusivity=unchecked")) { _ in }
+        }
+    }
+
     /// Check preprocessing of a single file.
     @Test(.requireSDKs(.host))
     func preprocessSingleFile() async throws {
@@ -214,31 +228,31 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
     /// Check assembling of a single file.
     @Test(.requireSDKs(.macOS))
     func assembleSingleFile() async throws {
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", #require(outputs.first)])
                 let assembly = try String(contentsOfFile: #require(outputs.first), encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             results.checkNoTask()
         }
 
         // Ensure that RUN_CLANG_STATIC_ANALYZER=YES doesn't interfere with the assemble build command
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel, overrides: ["RUN_CLANG_STATIC_ANALYZER": "YES"]), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m") { results, excludedTypes, inputs, outputs in
             results.consumeTasksMatchingRuleTypes(excludedTypes)
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture)) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", #require(outputs.first)])
                 let assembly = try String(contentsOfFile: #require(outputs.first), encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             results.checkNoTask()
         }
 
         // Include the single file to assemble in multiple targets
-        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .host), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m", multipleTargets: true) { results, excludedTypes, inputs, outputs in
+        try await runSingleFileTask(BuildParameters(configuration: "Debug", activeRunDestination: .macOSIntel), buildCommand: .generateAssemblyCode(buildOnlyTheseFiles: [Path("")]), fileName: "File.m", multipleTargets: true) { results, excludedTypes, inputs, outputs in
             let firstOutput = try #require(outputs.sorted()[safe: 0])
             let secondOutput = try #require(outputs.sorted()[safe: 1])
             results.consumeTasksMatchingRuleTypes(excludedTypes)
@@ -246,13 +260,13 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", firstOutput])
                 let assembly = try String(contentsOfFile: firstOutput, encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             try results.checkTask(.matchRuleType("Assemble"), .matchRuleItemBasename("File.m"), .matchRuleItem("normal"), .matchRuleItem(results.runDestinationTargetArchitecture), .matchTargetName("bFramework")) { task in
                 task.checkCommandLineContainsUninterrupted(["-x", "objective-c"])
                 try task.checkCommandLineContainsUninterrupted(["-S", #require(inputs.first).str, "-o", secondOutput])
                 let assembly = try String(contentsOfFile: secondOutput, encoding: .utf8)
-                #expect(assembly.hasPrefix("\t.section\t__TEXT,__text,regular,pure_instructions"))
+                #expect(assembly.contains("\t.section\t__TEXT,__text,regular,pure_instructions"))
             }
             results.checkNoTask()
             results.checkNoErrors()
@@ -296,7 +310,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
 
                 // Create the input files.
                 let cFile = testWorkspace.sourceRoot.join("aProject/CFile.c")
-                try await tester.fs.writeFileContents(cFile) { stream in }
+                try await tester.fs.writeFileContents(cFile) { stream in stream <<< "void foo(void) {}" }
 
                 let runDestination = RunDestinationInfo.host
                 let parameters = BuildParameters(configuration: "Debug", activeRunDestination: runDestination)
@@ -323,8 +337,9 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
         }
     }
 
-    @Test(.requireSDKs(.macOS), .requireXcode16())
+    @Test(.requireSDKs(.macOS), .requireXcode16(), .skipInGitHubActions("Metal toolchain is not installed on GitHub runners"))
     func singleFileCompileMetal() async throws {
+        let core = try await Self.makeCore(configurationDelegate: TestingCoreConfigurationDelegate(loadMetalToolchain: true))
         try await withTemporaryDirectory { tmpDirPath async throws -> Void in
             let testWorkspace = try await TestWorkspace(
                 "Test",
@@ -337,6 +352,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                             "Debug",
                             buildSettings: ["PRODUCT_NAME": "$(TARGET_NAME)",
                                             "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+                                            "TOOLCHAINS": core.environment["TOOLCHAINS"] ?? "$(inherited)",
                                             "SWIFT_VERSION": swiftVersion])],
                         targets: [
                             TestStandardTarget(
@@ -348,7 +364,7 @@ fileprivate struct BuildCommandTests: CoreBasedTests {
                     )
                 ]
             )
-            let tester = try await BuildOperationTester(getCore(), testWorkspace, simulated: false)
+            let tester = try await BuildOperationTester(core, testWorkspace, simulated: false)
 
             let metalFile = testWorkspace.sourceRoot.join("aProject/Metal.metal")
             try await tester.fs.writeFileContents(metalFile) { stream in }

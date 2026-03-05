@@ -158,7 +158,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     #expect(task.commandLine.contains(["-lBEGIN", "/tmp/aWorkspace/Package/build/Release/libA.a", "/tmp/aWorkspace/Package/build/Release/libB.a", "/tmp/aWorkspace/Package/build/Release/libC.a", "/tmp/aWorkspace/Package/build/Release/libC_Impl.a", "-lEND"]), "unexpected linker command line: \(task.commandLineAsStrings.quotedDescription)")
                 }
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("Tool.LinkFileList")) { task, contents in
-                    #expect(contents == "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-normal/x86_64/main.o\n/tmp/aWorkspace/Package/build/Release/E.o\n/tmp/aWorkspace/Package/build/Release/F.o\n")
+                    #expect(contents == "/tmp/aWorkspace/aProject/build/aProject.build/Release/Tool.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o\n/tmp/aWorkspace/Package/build/Release/E.o\n/tmp/aWorkspace/Package/build/Release/F.o\n")
                 }
             }
         }
@@ -254,9 +254,9 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             results.checkNoDiagnostics()
             results.checkTarget("DynamicJSON") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
-                    task.checkCommandLineContains(["-o", "/tmp/aWorkspace/aProject/build/Debug/DynamicJSON.dylib", "/tmp/aWorkspace/Package/build/Package.build/Debug/SwiftyJSON.build/Objects-normal/x86_64/SwiftyJSON.swiftmodule"])
+                    task.checkCommandLineContains(["-o", "/tmp/aWorkspace/aProject/build/Debug/DynamicJSON.dylib", "/tmp/aWorkspace/Package/build/Package.build/Debug/SwiftyJSON.build/Objects-normal/\(results.runDestinationTargetArchitecture)/SwiftyJSON.swiftmodule"])
 
-                    task.checkCommandLineNoMatch([.any, "-Xlinker", "-add_ast_path", "-Xlinker", "/tmp/aWorkspace/aProject/build/aProject.build/Debug/DynamicJSON.build/Objects-normal/x86_64/DynamicJSON.swiftmodule", .any])
+                    task.checkCommandLineNoMatch([.any, "-Xlinker", "-add_ast_path", "-Xlinker", "/tmp/aWorkspace/aProject/build/aProject.build/Debug/DynamicJSON.build/Objects-normal/\(results.runDestinationTargetArchitecture)/DynamicJSON.swiftmodule", .any])
                 }
 
                 results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("DynamicJSON.LinkFileList")) { task, contents in
@@ -673,7 +673,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
     @Test(.requireSDKs(.macOS))
     func packageProductReferences() async throws {
         let core = try await getCore()
-        let allPlatforms = core.platformRegistry.platforms.filter { !$0.isSimulator && core.sdkRegistry.lookup($0.name) != nil }
+        let allPlatforms = core.platformRegistry.platforms.filter { !$0.isSimulator && core.sdkRegistry.lookup($0.name) != nil && $0.name != "none" }
         #expect(allPlatforms.count > 0) // ensure we don't just pass this test because we somehow ended up with no platforms
         let targets = allPlatforms.map { $0.name }.map {
             commandLineDynamicLibraryTarget(name: "\($0)Lib", buildSettings: ["SDKROOT": $0])
@@ -932,6 +932,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                 children: [
                     TestFile("main.swift"),
                     TestFile("main.m"),
+                    TestFile("main.c"),
                     TestFile("Assets.xcassets"),
                 ]),
             buildConfigurations: [
@@ -947,7 +948,7 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
             targets: [
                 TestAggregateTarget(
                     "ALL",
-                    dependencies: ["tool", "objctool",
+                    dependencies: ["tool", "objctool", "ctool",
                                    "tool_without_resource_bundle_without_catalog",
                                    "tool_without_resource_bundle_with_catalog"]
                 ),
@@ -981,6 +982,21 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase(["main.m"]),
+                    ],
+                    dependencies: ["mallory"]
+                ),
+                TestStandardTarget(
+                    "ctool", type: .commandLineTool,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "PRODUCT_NAME": "$(TARGET_NAME)",
+                            "USE_HEADERMAP": "NO",
+                            "DEFINES_MODULE": "YES",
+                            "PACKAGE_RESOURCE_BUNDLE_NAME": "tool_resources",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"]),
                     ],
                     dependencies: ["mallory"]
                 ),
@@ -1075,6 +1091,15 @@ fileprivate struct PackageProductConstructionTests: CoreBasedTests {
 
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.m")) { task in
                     task.checkCommandLineContains(["-include", "/tmp/Test/aProject/build/aProject.build/Debug/objctool.build/DerivedSources/resource_bundle_accessor.h"])
+                }
+            }
+
+            results.checkTarget("ctool") { target in
+                results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.m"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("resource_bundle_accessor.h"))
+
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.c")) { task in
+                    task.checkCommandLineDoesNotContain("-include")
                 }
             }
 

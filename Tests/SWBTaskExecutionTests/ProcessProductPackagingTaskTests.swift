@@ -29,10 +29,7 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
     func diagnostics() async {
         func checkDiagnostics(_ commandLine: [String], errors: [String] = [], warnings: [String] = [], notes: [String] = [], sourceLocation: SourceLocation = #_sourceLocation) async
         {
-            let namespace = MacroNamespace(parent: BuiltinMacros.namespace, debugDescription: #function)
-            let table = MacroValueAssignmentTable(namespace: namespace)
-            let scope = MacroEvaluationScope(table: table)
-            let action = ProcessProductEntitlementsTaskAction(scope: scope, fs: PseudoFS(), entitlements: .plDict([:]), entitlementsVariant: .signed, destinationPlatformName: "iphoneos", entitlementsFilePath: nil)
+            let action = ProcessProductEntitlementsTaskAction(fs: PseudoFS(), entitlements: .plDict([:]), entitlementsVariant: .signed, allowEntitlementsModification: false, entitlementsDestination: .none, destinationPlatformName: "iphoneos", entitlementsFilePath: nil)
             let task = Task(forTarget: nil, ruleInfo: [], commandLine: commandLine, workingDirectory: Path(""), action: action)
             let executionDelegate = MockExecutionDelegate()
             let outputDelegate = MockTaskOutputDelegate()
@@ -87,17 +84,11 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
 
         let entitlements = PropertyListItem(entitlementsData)
 
-        // Create a MacroEvaluationScope for the tool to use to evaluate build settings.
-        let namespace = MacroNamespace(parent: BuiltinMacros.namespace, debugDescription: "testEntitlementsBasics()")
-        let table = MacroValueAssignmentTable(namespace: namespace)
-        // Any overrides desired should be pushed here.
-        let scope = MacroEvaluationScope(table: table)
-
         // Define the location of the output file.
         let output = Path.root.join("dst/iOSApp.app.xcent")
         try executionDelegate.fs.createDirectory(output.dirname)
 
-        let action = ProcessProductEntitlementsTaskAction(scope: scope, fs: PseudoFS(), entitlements: entitlements, entitlementsVariant: .signed, destinationPlatformName: "iphoneos", entitlementsFilePath: nil)
+        let action = ProcessProductEntitlementsTaskAction(fs: PseudoFS(), entitlements: entitlements, entitlementsVariant: .signed, allowEntitlementsModification: false, entitlementsDestination: .none, destinationPlatformName: "iphoneos", entitlementsFilePath: nil)
         var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: ["productPackagingUtility", "-entitlements", "-format", "xml", input.str, "-o", output.str].map{ .literal(ByteString(encodingAsUTF8: $0)) })
         let task = Task(&builder)
         let result = await action.performTaskAction(
@@ -181,16 +172,11 @@ fileprivate struct ProcessProductEntitlementsTaskTests {
                 ],
             ].merging(additionalEntitlements) { (_, new) in new }
 
-            // Create a MacroEvaluationScope for the tool to use to evaluate build settings.
-            let namespace = MacroNamespace(parent: BuiltinMacros.namespace, debugDescription: "testEntitlementsBasics()")
-            let table = MacroValueAssignmentTable(namespace: namespace)
-            let scope = MacroEvaluationScope(table: table)
-
             // Define the location of the output file.
             let output = Path.root.join("dst/macOSApp.app.xcent")
             try executionDelegate.fs.createDirectory(output.dirname)
 
-            let action = ProcessProductEntitlementsTaskAction(scope: scope, fs: PseudoFS(), entitlements: .plDict(entitlements), entitlementsVariant: .signed, destinationPlatformName: destinationPlatformName, entitlementsFilePath: nil)
+            let action = ProcessProductEntitlementsTaskAction(fs: PseudoFS(), entitlements: .plDict(entitlements), entitlementsVariant: .signed, allowEntitlementsModification: false, entitlementsDestination: .none, destinationPlatformName: destinationPlatformName, entitlementsFilePath: nil)
             var builder = PlannedTaskBuilder(type: mockTaskType, ruleInfo: [], commandLine: ["productPackagingUtility", "-entitlements", "-format", "xml", input.str, "-o", output.str].map{ .literal(ByteString(encodingAsUTF8: $0)) })
             let task = Task(&builder)
             let result = await action.performTaskAction(

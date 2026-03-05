@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 package import SWBCore
+package import SWBMacro
 import SWBUtil
 
 package struct TaskProducerExtensionPoint: ExtensionPoint, Sendable {
@@ -28,6 +29,10 @@ package protocol TaskProducerExtension: Sendable {
     var unorderedPostSetupTaskProducers: [any TaskProducerFactory] { get }
     var unorderedPostBuildPhasesTaskProducers: [any TaskProducerFactory] { get }
     var globalTaskProducers: [any GlobalTaskProducerFactory] { get }
+
+    func generateAdditionalTasks(_ tasks: inout [any PlannedTask], _ producer: any TaskProducer) async
+
+    func productPostprocessingSteps() -> [any ProductPostprocessingStep.Type]
 }
 
 package protocol TaskProducerFactory: Sendable {
@@ -38,4 +43,10 @@ package protocol TaskProducerFactory: Sendable {
 
 package protocol GlobalTaskProducerFactory: Sendable {
     func createGlobalTaskProducer(_ globalContext: TaskProducerContext, targetContexts: [TaskProducerContext]) -> any TaskProducer
+}
+
+package protocol ProductPostprocessingStep {
+    static var name: String { get }
+    static func shouldRunPerVariant(producer: ProductPostprocessingTaskProducer) -> Bool
+    static func generateTasks(scope: MacroEvaluationScope, tasks: inout [any PlannedTask], producer: ProductPostprocessingTaskProducer) async
 }

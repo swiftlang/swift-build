@@ -329,4 +329,41 @@ fileprivate struct DebugInformationTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func dsymutilEnvironment() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("main.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "NO",
+                        "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestSourcesBuildPhase(["main.c"])]),
+            ])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        let buildParameters = BuildParameters(configuration: "Debug")
+
+        await tester.checkBuild(buildParameters, runDestination: .macOS) { results in
+            results.checkTask(.matchRuleType("GenerateDSYMFile"), .matchRuleItemBasename("CoreFoo")) { task in
+                results.checkNoDiagnostics()
+                // Ensure PATH is set in the dsymutil environment.
+                task.checkEnvironment(["PATH": .any])
+            }
+        }
+    }
 }

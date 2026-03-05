@@ -199,7 +199,8 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
             return .deferred
         case "cat": // docc
             return .deferred
-        case "clang" where args.first == "-v":
+        case "clang" where args.first == "-v",
+             "clang++" where args.first == "-v":
             return .deferred
         case "distill" where args == ["--version"]:
             return .deferred
@@ -210,6 +211,8 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
         case "iig" where args == ["--version"]:
             return .deferred
         case "ld" where args == ["-version_details"]:
+            return .deferred
+        case "ld.lld" where args == ["-v"] || args == ["-version_details"]:
             return .deferred
         case "libtool" where args == ["-V"] || args == ["--version"]:
             return .deferred
@@ -224,7 +227,7 @@ open class MockTestTaskPlanningClientDelegate: TaskPlanningClientDelegate, @unch
         default:
             break
         }
-        throw StubError.error("Unit test should implement its own instance of TaskPlanningClientDelegate.")
+        throw StubError.error("Unit test should implement its own instance of TaskPlanningClientDelegate for external tool execution handling (\(commandLine).")
     }
 }
 
@@ -344,6 +347,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return AuxiliaryFileTaskAction(context)
     }
 
+    package func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction {
+        return BuildDependencyInfoTaskAction()
+    }
+
     package func createCodeSignTaskAction() -> any PlannedTaskAction {
         return CodeSignTaskAction()
     }
@@ -404,8 +411,8 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
         return LSRegisterURLTaskAction()
     }
 
-    package func createProcessProductEntitlementsTaskAction(scope: MacroEvaluationScope, mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
-        return ProcessProductEntitlementsTaskAction(scope: scope, fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
+    package func createProcessProductEntitlementsTaskAction(mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction {
+        return ProcessProductEntitlementsTaskAction(fs: fs, entitlements: mergedEntitlements, entitlementsVariant: entitlementsVariant, allowEntitlementsModification: allowEntitlementsModification, entitlementsDestination: entitlementsDestination, destinationPlatformName: destinationPlatformName, entitlementsFilePath: entitlementsFilePath)
     }
 
     package func createProcessProductProvisioningProfileTaskAction() -> any PlannedTaskAction {
@@ -430,6 +437,10 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
 
     package func createClangCompileTaskAction() -> any PlannedTaskAction {
         return ClangCompileTaskAction()
+    }
+
+    package func createClangNonModularCompileTaskAction() -> any PlannedTaskAction {
+        return ClangNonModularCompileTaskAction()
     }
 
     package func createClangScanTaskAction() -> any PlannedTaskAction {
@@ -466,6 +477,18 @@ extension TestTaskPlanningDelegate: TaskActionCreationDelegate {
 
     package func createProcessSDKImportsTaskAction() -> any PlannedTaskAction {
         return ProcessSDKImportsTaskAction()
+    }
+
+    package func createValidateDependenciesTaskAction() -> any PlannedTaskAction {
+        return ValidateProductTaskAction()
+    }
+
+    package func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction {
+        return ObjectLibraryAssemblerTaskAction()
+    }
+
+    package func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction {
+        return LinkerTaskAction(expandResponseFiles: expandResponseFiles, responseFileFormat: responseFileFormat)
     }
 }
 

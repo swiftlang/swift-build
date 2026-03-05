@@ -138,7 +138,9 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     "FwkTarget2",
                     type: .framework,
                     buildConfigurations: [
-                        TestBuildConfiguration("Config"),
+                        TestBuildConfiguration("Config", buildSettings: [
+                            "SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK": "YES"
+                        ]),
                     ],
                     buildPhases: [
                         TestSourcesBuildPhase([
@@ -204,22 +206,34 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                 for targetName in ["FwkTarget1", "FwkTarget2"] {
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     results.checkTarget(targetName) { target in
+                        let skipBundleHook = targetName == "FwkTarget2"
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                             task.checkCommandLineContains([
                                 ["clang"],
                                 supportsMergeableDebugHook ? ["-add_mergeable_debug_hook"] : [],      // Only passed in debug builds
+                                skipBundleHook ? ["-no_merged_libraries_hook"] : [],
                                 ["-o", "\(BUILT_PRODUCTS_DIR)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
                             ].reduce([], +))
                             task.checkCommandLineDoesNotContain("-make_mergeable")      // Not passed in debug builds
+                            if !skipBundleHook {
+                                task.checkCommandLineDoesNotContain("-no_merged_libraries_hook")
+                            }
                         }
                         results.checkTask(.matchTarget(target), .matchRuleType("GenerateTAPI")) { _ in }
 
                         // Even though we aren't building to be mergeable, the re-exporting dance still means we need our custom bundle lookup class.
-                        results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
-                            XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
-                        }
-                        results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                            task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                        if !skipBundleHook {
+                            results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                                XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                            }
+                            results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                                task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                            }
+                        } else {
+                            results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
+                            results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                                task.checkCommandLineContains(["-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"])
+                            }
                         }
 
                         results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })
@@ -402,13 +416,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                     let FULL_PRODUCT_NAME = "\(targetName).framework"
                     let INSTALL_PATH = "/Library/Frameworks"
                     results.checkTarget(targetName) { target in
+                        let skipBundleHook = targetName == "FwkTarget2"
                         results.checkTask(.matchTarget(target), .matchRuleType("Ld")) { task in
                             task.checkCommandLineContains([
                                 ["clang"],
                                 ["-Xlinker", "-make_mergeable"],
+                                skipBundleHook ? ["-no_merged_libraries_hook"] : [],
                                 ["-o", "\(DSTROOT)\(INSTALL_PATH)/\(FULL_PRODUCT_NAME)/\(FWK_CONTENTS_DIR_SUBPATH)\(targetName)"],
                             ].reduce([], +))
                             task.checkCommandLineDoesNotContain("-add_mergeable_debug_hook")    // Only passed in debug builds
+                            if !skipBundleHook {
+                                task.checkCommandLineDoesNotContain("-no_merged_libraries_hook")
+                            }
                         }
                         // Don't generate an intermediate .tbd file for eager linking when we're making the binary mergeable.
                         results.checkNoTask(.matchTarget(target), .matchRuleType("GenerateTAPI"))
@@ -416,11 +435,18 @@ fileprivate struct MergeableLibraryTests: CoreBasedTests {
                         results.checkNoTask(.matchTarget(target), .matchRuleType("Strip"))
 
                         // We need a custom bundle lookup class to support #bundle.
-                        results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
-                            XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
-                        }
-                        results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
-                            task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                        if !skipBundleHook {
+                            results.checkWriteAuxiliaryFileTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift")) { task, contents in
+                                XCTAssertMatch(contents.unsafeStringValue, .contains("internal class __BundleLookupHelper {}"))
+                            }
+                            results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                                task.checkCommandLineContains(["-DSWIFT_BUNDLE_LOOKUP_HELPER_AVAILABLE"])
+                            }
+                        } else {
+                            results.checkNoTask(.matchTarget(target), .matchRuleType("WriteAuxiliaryFile"), .matchRuleItemBasename("bundle_lookup_helper.swift"))
+                            results.checkTask(.matchTarget(target), .matchRuleType("SwiftDriver Compilation")) { task in
+                                task.checkCommandLineContains(["-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE"])
+                            }
                         }
 
                         results.checkTasks(.matchTarget(target), body: { (tasks) -> Void in #expect(tasks.count > 0) })

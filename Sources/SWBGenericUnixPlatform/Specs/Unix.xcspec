@@ -80,4 +80,15 @@
         Identifier = com.apple.product-type.framework.static;
         BasedOn = com.apple.product-type.framework;
     },
+
+    {
+        Domain = generic-unix;
+        Type = FileType;
+        Identifier = compiled.mach-o.dylib;
+        BasedOn = compiled.mach-o;
+        Prefix = lib;
+        Extensions = (so);
+        IsLibrary = YES;
+        IsDynamicLibrary = YES;
+    }
 )

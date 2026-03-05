@@ -68,6 +68,11 @@
                 Type = Boolean;
                 DefaultValue = YES;
             },
+            {   Name = ALL_OTHER_LIBTOOLFLAGS;
+                Type = StringList;
+                DefaultValue = "$(OTHER_LIBTOOLFLAGS) $(OTHER_LIBTOOLFLAGS_$(variant)) $(OTHER_LIBTOOLFLAGS_$(arch)) $(OTHER_LIBTOOLFLAGS_$(variant)_$(arch)) $(PRODUCT_SPECIFIC_LIBTOOLFLAGS)";
+                CommandLinePrefixFlag = "";
+            },
         );
     },
 )

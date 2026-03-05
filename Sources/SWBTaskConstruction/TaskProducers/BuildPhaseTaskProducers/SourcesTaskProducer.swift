@@ -15,6 +15,7 @@ package import SWBUtil
 import struct SWBProtocol.BuildOperationTaskEnded
 import Foundation
 package import SWBMacro
+import SwiftDriver
 
 // Some things that should probably live in this task producer that might not be immediately obvious:
 //      Emitting an error if PGO is turned on for a target containing Swift files.
@@ -196,7 +197,7 @@ private final class SourcesPhaseBasedTaskGenerationDelegate: TaskGenerationDeleg
     }
 }
 
-final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBuildPhaseTaskProducer {
+package final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBasedBuildPhaseTaskProducer {
     typealias ManagedBuildPhase = SourcesBuildPhase
 
     /// A virtual node representing the (conservative) construction of all non-Swift-generated headers.
@@ -249,58 +250,25 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         super.init(context, buildPhase: sourcesBuildPhase, phaseStartNodes: phaseStartNodes, phaseEndNode: phaseEndNode, phaseEndTask: phaseEndTask)
     }
 
-    override func additionalBuildFiles(_ scope: MacroEvaluationScope) -> [BuildFile] {
-        var additionalBuildFiles = [BuildFile]()
-
-        // Both Asset Catalogs and String Catalogs need moved to the Sources phase to enable codegen.
-        // This isn't great but can be removed once we eliminate build phases.
+    override func additionalBuildFiles(_ scope: MacroEvaluationScope) async -> [BuildFile] {
+        // Some files might generate sources (e.g. generating symbols) and thus need to be in the Sources phase.
 
         let standardTarget = targetContext.configuredTarget?.target as? StandardTarget
-        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles.count ?? 0
+        let sourceFiles = standardTarget?.sourcesBuildPhase?.buildFiles ?? []
+        let resourceFiles = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
 
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && (sourceFiles > 0) {
-            // Add xcassets to Compile Sources phase to enable codegen.
-            let catalogs = standardTarget?.resourcesBuildPhase?.buildFiles.filter { buildFile in
-                isAssetCatalog(scope: scope, buildFile: buildFile, context: targetContext, includeGenerated: true)
-            } ?? []
-            additionalBuildFiles.append(contentsOf: catalogs)
+        guard !sourceFiles.isEmpty && !resourceFiles.isEmpty else {
+            return []
         }
 
-        if scope.evaluate(BuiltinMacros.STRING_CATALOG_GENERATE_SYMBOLS) && (sourceFiles > 0) {
-            let allResources = standardTarget?.resourcesBuildPhase?.buildFiles ?? []
-            var stringCatalogs = [BuildFile]()
-            var stringTableNames = Set<String>()
-            var extraFiles = [BuildFile]()
-
-            // Add xcstrings to Compile Sources phase to enable codegen.
-            for buildFile in allResources {
-                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile), fileRef.fileType.conformsTo(identifier: "text.json.xcstrings") {
-                    stringTableNames.insert(fileRef.absolutePath.basenameWithoutSuffix)
-                    stringCatalogs.append(buildFile)
-                }
-            }
-
-            // The xcstrings file grouping strategy also subsumes same-named .strings and .stringsdict files.
-            let stringsFileTypes = ["text.plist.strings", "text.plist.stringsdict"].map { context.lookupFileType(identifier: $0)! }
-            for buildFile in allResources {
-                if let fileRef = try? targetContext.resolveBuildFileReference(buildFile),
-                   fileRef.fileType.conformsToAny(stringsFileTypes),
-                   stringTableNames.contains(fileRef.absolutePath.basenameWithoutSuffix) {
-                    extraFiles.append(buildFile)
-                }
-            }
-
-            additionalBuildFiles.append(contentsOf: stringCatalogs + extraFiles)
-        }
-
-        return additionalBuildFiles
+        return await sourceGenerationInputFiles(from: resourceFiles, scope: scope)
     }
 
     override func additionalFilesToBuild(_ scope: MacroEvaluationScope) -> [FileToBuild] {
         var additionalFilesToBuild: [FileToBuild] = []
         let sourceFiles = (self.targetContext.configuredTarget?.target as? StandardTarget)?.sourcesBuildPhase?.buildFiles.count ?? 0
-        if scope.evaluate(BuiltinMacros.ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS) && sourceFiles > 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
-            // Add the generated xcassets if we're generating asset symbols since we'll be handling the other xcassets here as well.
+        if sourceFiles > 0 && scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATE_ASSET_CATALOG) {
+            // Add the generated xcassets since we'll be handling the other xcassets here as well.
             let assetCatalogToBeGenerated = scope.evaluate(BuiltinMacros.APP_PLAYGROUND_GENERATED_ASSET_CATALOG_FILE)
             additionalFilesToBuild.append(
                 FileToBuild(absolutePath: assetCatalogToBeGenerated, inferringTypeUsing: context)
@@ -312,7 +280,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// The default `TaskOrderingOptions` are used for the compile tasks in the architecture-variant loop, as the default options are primarily concerned with compilation. Other tasks set up by this producer use the `nonCompilationTaskOrderingOptions` below.  But be mindful of which options are being used when adding new tasks to this producer.
     ///
     /// The rule of thumb is that using the default options imposes _more_ ordering constraints on a task.
-    override var defaultTaskOrderingOptions: TaskOrderingOptions {
+    package override var defaultTaskOrderingOptions: TaskOrderingOptions {
         let scope = self.context.settings.globalScope
 
         var options = [TaskOrderingOptions]()
@@ -340,7 +308,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     ///
     /// We override this to auto-attach tasks to the generated headers completion ordering gate.
     @discardableResult
-    override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
+    package override func appendGeneratedTasks( _ tasks: inout [any PlannedTask], options: TaskOrderingOptions? = nil, body: (any TaskGenerationDelegate) async -> Void) async -> (tasks: [any PlannedTask], outputs: [FileToBuild]) {
         return await super.appendGeneratedTasks(&tasks, options: options) { delegate in
             await body(SourcesPhaseBasedTaskGenerationDelegate(producer: self, userPreferences: context.workspaceContext.userPreferences, delegate: delegate))
         }
@@ -356,7 +324,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         // When emitting remarks, for now, a dSYM is required (<rdar://problem/45458590>)
         let dSYMForRemarks = scope.evaluate(BuiltinMacros.CLANG_GENERATE_OPTIMIZATION_REMARKS)
         let dSYM = dSYMForDebugInfo || dSYMForRemarks
-        return dSYM && scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "staticlib" && scope.evaluate(BuiltinMacros.MACH_O_TYPE) != "mh_object"
+        return dSYM && !["staticlib", "mh_object", "objectlib"].contains(scope.evaluate(BuiltinMacros.MACH_O_TYPE))
     }
 
     /// Computes and returns a list of libraries to include when linking.
@@ -441,7 +409,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                                 continue
                             }
                             processedArchitectures.insert(originalArch)
-                            let scope = settings.globalScope.subscope(binding: BuiltinMacros.archCondition, to: originalArch)
+                            let scope = settings.globalScope.subscopeBindingArchAndTriple(arch: originalArch)
                             // Binding the architecture may change how we evaluate $(ARCHS). Ensure we process any new architectures.
                             for potentiallyNewArch in scope.evaluate(BuiltinMacros.ARCHS) {
                                 if !processedArchitectures.contains(potentiallyNewArch) {
@@ -539,16 +507,25 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: swiftModulePaths,
                     swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
+                    prefix: fileType.prefix,
                     privacyFile: privacyFile
                 )
             } else if fileType.conformsTo(context.lookupFileType(identifier: "compiled.mach-o.dylib")!) {
+                let adjustedAbsolutePath: Path
+                // On Windows, ensure import libraries (.lib) are used instead of DLLs.
+                if context.sdkVariant?.llvmTargetTripleSys == "windows" && absolutePath.fileSuffix.lowercased() == ".dll" {
+                    adjustedAbsolutePath = Path(absolutePath.withoutSuffix + ".lib")
+                } else {
+                    adjustedAbsolutePath = absolutePath
+                }
                 return LinkerSpec.LibrarySpecifier(
                     kind: .dynamic,
-                    path: absolutePath,
+                    path: adjustedAbsolutePath,
                     mode: linkageModeForDylib(),
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: fileType.prefix,
                     privacyFile: privacyFile
                 )
             } else if fileType.conformsTo(context.lookupFileType(identifier: "sourcecode.text-based-dylib-definition")!) {
@@ -559,17 +536,18 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: fileType.prefix,
                     privacyFile: privacyFile
                 )
             } else if fileType.conformsTo(context.lookupFileType(identifier: "wrapper.framework")!) {
-                func kindFromSettings(_ settings: Settings) -> LinkerSpec.LibrarySpecifier.Kind? {
+                func kindFromSettings(_ settings: Settings) -> (kind: LinkerSpec.LibrarySpecifier.Kind, prefix: String?)? {
                     switch settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) {
                     case "staticlib":
-                        return .static
+                        return (.static, context.lookupFileType(identifier: "archive.ar")?.prefix)
                     case "mh_dylib":
-                        return .dynamic
+                        return (.dynamic, context.lookupFileType(identifier: "compiled.mach-o.dylib")?.prefix)
                     case "mh_object":
-                        return .object
+                        return (.object, nil)
                     default:
                         return nil
                     }
@@ -579,9 +557,11 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 let path: Path
                 let dsymPath: Path?
                 let topLevelItemPath: Path?
+                let prefix: String?
                 if let settingsForRef, let presumedKind = kindFromSettings(settingsForRef), !useSearchPaths {
                     // If we have a Settings from a cross-project reference, use the _actual_ library path. This prevents downstream code from reconstituting the framework path by joining the framework path with the basename of the framework, which won't be correct for deep frameworks which also need the Versions/A path component.
-                    kind = presumedKind
+                    kind = presumedKind.kind
+                    prefix = presumedKind.prefix
                     path = settingsForRef.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(settingsForRef.globalScope.evaluate(BuiltinMacros.EXECUTABLE_PATH)).normalize()
                     topLevelItemPath = absolutePath
                     if shouldGenerateDSYM(settingsForRef.globalScope) {
@@ -595,6 +575,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     path = absolutePath
                     topLevelItemPath = nil
                     dsymPath = nil
+                    prefix = nil
                 }
 
                 return LinkerSpec.LibrarySpecifier(
@@ -604,6 +585,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: prefix,
                     topLevelItemPath: topLevelItemPath,
                     dsymPath: dsymPath,
                     privacyFile: privacyFile
@@ -613,7 +595,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     kind: .object,
                     path: absolutePath,
                     mode: buildFile.shouldLinkWeakly ? .weak : .normal,
-                    useSearchPaths: useSearchPaths,
+                    useSearchPaths: false,
                     swiftModulePaths: swiftModulePaths,
                     swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
                     privacyFile: privacyFile
@@ -653,10 +635,16 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 }
 
                 let libraryKind: LinkerSpec.LibrarySpecifier.Kind
+                let prefix: String?
                 switch library.libraryType {
-                case .framework: libraryKind = .framework; break
-                case .dynamicLibrary: libraryKind = .dynamic; break
-                case .staticLibrary: libraryKind = .static; break
+                case .framework: libraryKind = .framework; prefix = nil
+                case .dynamicLibrary:
+                    libraryKind = .dynamic;
+                    prefix = context.lookupFileType(identifier: "compiled.mach-o.dylib")?.prefix
+                case .staticLibrary:
+                    libraryKind = .static
+                    prefix = context.lookupFileType(identifier: "archive.ar")?.prefix
+                break
                 case let .unknown(fileExtension):
                     // An error of type this type should have already been manifested.
                     assertionFailure("unknown xcframework type: \(fileExtension)")
@@ -683,9 +671,62 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                     useSearchPaths: useSearchPaths,
                     swiftModulePaths: [:],
                     swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                    prefix: prefix,
                     explicitDependencies: outputFilePaths,
                     xcframeworkSourcePath: xcframeworkPath,
                     privacyFile: nil
+                )
+            } else if fileType.conformsTo(identifier: "wrapper.artifactbundle") {
+                let metadata: ArtifactBundleMetadata
+                do {
+                    metadata = try context.globalProductPlan.artifactBundleMetadataCache.getOrInsert(absolutePath) {
+                       try ArtifactBundleMetadata.parse(at: absolutePath, fileSystem: context.fs)
+                   }
+                } catch {
+                    context.error("failed to parse artifact bundle metadata for '\(absolutePath)': \(error.localizedDescription)")
+                    return nil
+                }
+                for (name, artifact) in metadata.artifacts {
+                    switch artifact.type {
+                    case .crossCompilationDestination, .swiftSDK:
+                        context.warning("ignoring artifact '\(name)' of type '\(artifact.type)' because it cannot be linked", location: .path(absolutePath))
+                        continue
+                    case .executable, .experimentalWindowsDLL:
+                        // Just ignore, these are used by SwiftPM
+                        continue
+                    case .staticLibrary:
+                        var foundMatch = false
+                        let currentTripleString = scope.evaluate(BuiltinMacros.SWIFT_TARGET_TRIPLE)
+                        for variant in artifact.variants {
+                            if variant.supportedTriples == nil || variant.supportedTriples?.contains(where: {
+                                normalizedTriplesCompareDisregardingOSVersions($0, currentTripleString)
+                            }) == true {
+                                foundMatch = true
+                                return LinkerSpec.LibrarySpecifier(
+                                    kind: .static,
+                                    path: absolutePath.join(variant.path),
+                                    mode: .normal,
+                                    useSearchPaths: false,
+                                    swiftModulePaths: [:],
+                                    swiftModuleAdditionalLinkerArgResponseFilePaths: [:],
+                                    privacyFile: privacyFile
+                                )
+                            }
+                        }
+                        if !foundMatch {
+                            context.warning("ignoring '\(name)' because the artifact bundle did not contain a matching variant", location: .path(absolutePath))
+                        }
+                    }
+                }
+                return nil
+            } else if fileType.conformsTo(identifier: "compiled.object-library") {
+                return LinkerSpec.LibrarySpecifier(
+                    kind: .objectLibrary,
+                    path: absolutePath,
+                    mode: .normal,
+                    useSearchPaths: false,
+                    swiftModulePaths: swiftModulePaths,
+                    swiftModuleAdditionalLinkerArgResponseFilePaths: swiftModuleAdditionalLinkerArgResponseFilePaths,
                 )
             } else {
                 // FIXME: Error handling.
@@ -703,7 +744,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         prepareTargetForIndexInputsObjectSet.formUnion(newInputs.map{ ObjectIdentifier($0) })
     }
 
-    func prepare() {
+    package func prepare() {
         // CodeSigning in a monster... really, it is. Further, we don't actually have a model where we can perform proper pre-planning to determine what inputs will cause downstream outputs to end up in a particular location. Every source file has the potential to contribute some type of output that ends up in the wrapper.
         // For example, every metal file creates a library that is embedded into the product wrapper. However, the build system doesn't actually *know* that, as the outputs aren't really tracked in a way that the CodeSign task itself can depend on it.
         // What the build system does _know_, is that _all_ source files run tools that can potentially end up invalidating the code signature. Until we have a proper pre-planning (e.g. or dry-run) model (or a model that allows us to have dependencies on task producers), we need to be more conservative in our tracking of inputs, even if they can result in additional codesign work.
@@ -722,7 +763,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     }
 
     /// Compute a flattened list of build files to use
-    func generateTasks() async -> [any PlannedTask] {
+    package func generateTasks() async -> [any PlannedTask] {
         // NOTE: The sources build phase uses its own generateTasks() to deal with the per-variant and per-arch nature.
         let scope = context.settings.globalScope
 
@@ -758,6 +799,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         }
 
         var tasks: [any PlannedTask] = []
+        var dependencyDataFiles: [PlannedPathNode] = []
 
         // Generate any auxiliary files whose content is not per-arch or per-variant.
         // For the index build arena it is important to avoid adding this because it forces creation of the Swift module due to the generated ObjC header being an input dependency. This is unnecessary work since we don't need to generate the Swift module of the target to be able to successfully create a compiler AST for the Swift files of the target.
@@ -771,8 +813,10 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
             tasks.append(generateKernelExtensionModuleInfoFileTask)
         }
 
-        let packageTargetBundleAccessorResult = await generatePackageTargetBundleAccessorResult(scope)
-        tasks += packageTargetBundleAccessorResult?.tasks ?? []
+        let packageTargetBundleAccessorResults = await generatePackageTargetBundleAccessorResult(scope)
+        for result in packageTargetBundleAccessorResults {
+            tasks += result.tasks
+        }
 
         let bundleLookupHelperResult = await generateBundleLookupHelper(scope)
         tasks += bundleLookupHelperResult?.tasks ?? []
@@ -810,7 +854,6 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         let buildVariants = scope.evaluate(BuiltinMacros.BUILD_VARIANTS)
         var dsymBundle: Path!
         var dsymutilOutputs = [Path]()
-        var perVariantOutputPaths: [String:Set<Path>] = [:]
         var allLinkedLibraries = [LinkerSpec.LibrarySpecifier]()
         for variant in buildVariants {
             // Enter the per-variant scope.
@@ -848,7 +891,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
             for arch in archs {
                 // Enter the per-arch scope.
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                 let currentArchSpec = context.getSpec(arch) as! ArchitectureSpec?
 
                 // Reset the set of used tools.
@@ -870,7 +913,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                         result.append((generateKernelExtensionModuleInfoFileTask.outputs.first!.path, context.lookupFileType(languageDialect: .c)!, /* shouldUsePrefixHeader */ false))
                     }
 
-                    if let packageTargetBundleAccessorResult {
+                    for packageTargetBundleAccessorResult in packageTargetBundleAccessorResults {
                         result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
@@ -903,6 +946,8 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                         case "swiftmodule":
                             dsymutilInputNodes.append(object)
                             break
+                        case "dependencies":
+                            dependencyDataFiles.append(MakePlannedPathNode(object.path))
                         default:
                             break
                         }
@@ -928,8 +973,10 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 allLinkedLibraries.append(contentsOf: librariesToLink)
 
                 // Insert the object files present in the framework build phase to the linker inputs.
-                let objectsInFrameworkPhase = librariesToLink.filter{ $0.kind == .object }
-                linkerInputNodes.append(contentsOf: objectsInFrameworkPhase.map{ $0.path }.map(context.createNode))
+                let staticallyLinkedItemsInFrameworkPhase = librariesToLink.filter{ [.object, .static, .objectLibrary].contains($0.kind) }
+                // Only add the object files as explicit input nodes here because libraries found via search paths will be tracked using dependency info files.
+                let objectsInFrameworksPhase = librariesToLink.filter{ $0.kind == .object }
+                linkerInputNodes.append(contentsOf: objectsInFrameworksPhase.map{ $0.path }.map(context.createNode))
 
                 if !SWBFeatureFlag.enableLinkerInputsFromLibrarySpecifiers.value {
                     // If this flag isn't enabled we still want the dylib to be a dependency for this task.
@@ -943,21 +990,38 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 let additionalLinkerOrderingInputs = librariesToLink.flatMap { $0.explicitDependencies.map(context.createNode) }
 
                 // If there is at least one object file that was built using Swift, ensure the Swift tool is present in the used tools to allow linker spec to add swift specific linker arguments.
-                if objectsInFrameworkPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
+                if objectsInFrameworksPhase.contains(where: { !$0.swiftModulePaths.isEmpty }), !usedTools.keys.contains(context.swiftCompilerSpec) {
                     usedTools[context.swiftCompilerSpec] = [context.lookupFileType(identifier: "compiled.mach-o.objfile")!]
                 }
 
-                // If this is an API build, or there are no tasks and object files, don't link, so we don't produce a binary if we're not compiling any code.
-                // Except that we do want to run the linker when creating a merged library, because the binary needs to either reexport or merge its mergeable libraries.
-                //
-                // FIXME: This is a crude approximation of the actual logic, but works for now.
-                if isForAPI || (perArchTasks.isEmpty && objectsInFrameworkPhase.isEmpty), !scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
-                    tasks.append(contentsOf: perArchTasks)
-                    continue
+                // Decide if a link task should be constructed. This is unfortunately very complicated.
+                let createLinkerTask: Bool
+                // First check if we are merging libraries because the binary needs to either reexport or merge its mergeable libraries. If so, we may need to link even in the installAPI action.
+                if scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
+                    if components.contains("build") {
+                        createLinkerTask = true
+                    } else {
+                        // This checks only `linkerInputNodes` and ignores `staticallyLinkedItemsInFrameworkPhase` largely for historical compatibility.
+                        createLinkerTask = !linkerInputNodes.isEmpty
+                    }
+                // Otherwise, we should not link in installAPI.
+                } else if isForAPI {
+                    createLinkerTask = false
+                // If we're not merging libraries and this isn't installAPI, link if we have inputs.
+                } else if !linkerInputNodes.isEmpty || !staticallyLinkedItemsInFrameworkPhase.isEmpty {
+                    if linkerInputNodes.isEmpty && objectsInFrameworksPhase.isEmpty && context.project?.isPackage != true {
+                        // Compatibility hack for existing Xcode projects
+                        context.warning("Target '\(context.configuredTarget?.target.name ?? "<unknown>")' contains a non-empty linked libraries phase, but it contains no object files, and no sources are being compiled. For compatibility, no binary will be produced. Remove unused entries in the linked libraries phase to suppress this warning.")
+                        createLinkerTask = false
+                    } else {
+                        createLinkerTask = true
+                    }
+                } else {
+                    createLinkerTask = false
                 }
 
                 // Create the linker task.  If we have no input files but decide to create the task anyway, then this task will rely on gate tasks to be properly ordered (which is what happens for the prelinked object file task above if there are no input files).
-                if !linkerInputNodes.isEmpty || (components.contains("build") && scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES)) {
+                if createLinkerTask {
                     // Compute the output path.
                     let output: Path
                     let commandOrderingOutputs: [any PlannedNode]
@@ -1180,17 +1244,12 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
                 // Add all the collected per-arch tasks.
                 tasks.append(contentsOf: perArchTasks)
-
-                // Add the output paths for all tasks of this variant to the map of output paths, in order to filter out
-                // tasks of other variants which produce the same outputs.
-                let thisVariantOutputPaths = perVariantOutputPaths[variant] ?? []
-                perVariantOutputPaths[variant] = thisVariantOutputPaths.union(perArchTasks.flatMap { task in task.outputs.map({ $0.path }) })
             }
 
             // Generate tasks for the module-only architectures.
             for arch in moduleOnlyArchs {
                 // Enter the per-arch scope.
-                let scope = scope.subscope(binding: BuiltinMacros.archCondition, to: arch)
+                let scope = scope.subscopeBindingArchAndTriple(arch: arch)
                 let currentArchSpec = context.getSpec(arch) as! ArchitectureSpec?
 
                 // Reset the set of used tools.
@@ -1204,7 +1263,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                 await groupAndAddTasksForFiles(self, buildFilesContext, scope, filterToAPIRules: isForAPI, filterToHeaderRules: isForHeaders, &perArchTasks, extraResolvedBuildFiles: {
                     var result: [(Path, FileTypeSpec, Bool)] = []
 
-                    if let packageTargetBundleAccessorResult {
+                    for packageTargetBundleAccessorResult in packageTargetBundleAccessorResults {
                         result.append((packageTargetBundleAccessorResult.fileToBuild, packageTargetBundleAccessorResult.fileToBuildFileType, /* shouldUsePrefixHeader */ false))
                     }
 
@@ -1358,7 +1417,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
             let dependencies = context.globalProductPlan.planRequest.buildGraph.dependencies(of: configuredTarget)
             let moduleInputs = dependencies.compactMap { dependency -> (any PlannedNode)? in
                 guard dependency !== configuredTarget else { return nil }
-                let taskInfo = context.globalProductPlan.targetTaskInfos[dependency]!
+                let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
                 if context.globalProductPlan.targetsRequiredToBuildForIndexing.contains(dependency) {
                     return taskInfo.endNode
                 } else {
@@ -1461,7 +1520,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
                         // Compute the subpaths of the linked item we want to copy.  This means we need to get the scope for the producing target.
                         // FIXME: We should unify this as much as possible with the logic in CopyFilesTaskProducer.
                         if let producingTarget = context.globalProductPlan.productPathsToProducingTargets[libraryPath] {
-                            let copiedFileSettings = context.globalProductPlan.planRequest.buildRequestContext.getCachedSettings(producingTarget.parameters, target: producingTarget.target)
+                            let copiedFileSettings = context.globalProductPlan.getTargetSettings(producingTarget)
 
                             if let productType = copiedFileSettings.productType {
                                 // If this is a standalone binary product then we just copy it.  Otherwise PBXCp will include the subpaths we assemble here.
@@ -1591,7 +1650,43 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
         if isForInstallLoc {
             // For installLoc, we really only care about valid localized content from the sources task producer
-            tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContent(scope) || $0.path.fileExtension == "xcstrings" }) }
+            tasks = tasks.filter { $0.inputs.contains(where: { $0.path.isValidLocalizedContentForInstallloc(scope, in: context.project) || $0.path.fileExtension == "xcstrings" }) }
+        } else if scope.evaluate(BuiltinMacros.BUILD_ONLY_KNOWN_LOCALIZATIONS) {
+            // For non-installLoc builds, filter based on BUILD_ONLY_KNOWN_LOCALIZATIONS:
+            tasks = tasks.filter { task in
+                task.inputs.allSatisfy { input in
+                    input.path.buildSettingAllowsBuildingLocale(
+                        scope,
+                        in: context.project,
+                        inputFileAbsolutePath: input.path,
+                        nil
+                    )
+                }
+            }
+        }
+
+        // Create a task to validate dependencies if that feature is enabled.
+        let validateModuleDeps = (context.moduleDependenciesContext?.validate ?? .no) != .no
+        let validateHeaderDeps = (context.headerDependenciesContext?.validate ?? .no) != .no
+        if validateModuleDeps || validateHeaderDeps, let target = targetContext.configuredTarget?.target {
+            var validateDepsTasks = [any PlannedTask]()
+            await appendGeneratedTasks(&validateDepsTasks, usePhasedOrdering: true) { delegate in
+                await context.validateDependenciesSpec.createTasks(
+                    CommandBuildContext(producer: context, scope: scope, inputs: []),
+                    delegate,
+                    dependencyInfos: dependencyDataFiles,
+                    payload: .init(
+                        moduleDependenciesContext: context.moduleDependenciesContext,
+                        headerDependenciesContext: context.headerDependenciesContext,
+                        dumpDependencies: scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES),
+                        dumpDependenciesOutputPath: scope.evaluate(BuiltinMacros.DUMP_DEPENDENCIES_OUTPUT_PATH).str,
+                        platformName: context.settings.platform?.name,
+                        projectName: context.settings.project?.name,
+                        targetName: target.name
+                    )
+                )
+            }
+            tasks.append(contentsOf: validateDepsTasks)
         }
 
         return tasks
@@ -1623,21 +1718,33 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
 
     /// Compute the linker to use in the given scope.
     private func getLinkerToUse(_ scope: MacroEvaluationScope) -> LinkerSpec {
-        let isStaticLib = scope.evaluate(BuiltinMacros.MACH_O_TYPE) == "staticlib"
+        let identifier: String
+        switch scope.evaluate(BuiltinMacros.MACH_O_TYPE) {
+        case "objectlib":
+            identifier = ObjectLibraryAssemblerSpec.identifier
+        case "staticlib":
+            let override = scope.evaluate(BuiltinMacros.LIBRARIAN)
+            if !override.isEmpty {
+                let spec = context.getSpec(override)
+                if let linker = spec as? LinkerSpec {
+                    return linker
+                }
 
-        // Return the custom linker, if specified.
-        var identifier = scope.evaluate(isStaticLib ? BuiltinMacros.LIBRARIAN : BuiltinMacros.LINKER)
-        if !identifier.isEmpty {
-            let spec = context.getSpec(identifier)
-            if let linker = spec as? LinkerSpec {
-                return linker
+                // FIXME: Emit a warning here.
             }
+            identifier = LibtoolLinkerSpec.identifier
+        default:
+            let override = scope.evaluate(BuiltinMacros.LINKER)
+            if !override.isEmpty {
+                let spec = context.getSpec(override)
+                if let linker = spec as? LinkerSpec {
+                    return linker
+                }
 
-            // FIXME: Emit a warning here.
+                // FIXME: Emit a warning here.
+            }
+            identifier = LdLinkerSpec.identifier
         }
-
-        // Return the default linker.
-        identifier = isStaticLib ? LibtoolLinkerSpec.identifier : LdLinkerSpec.identifier
         return context.getSpec(identifier) as! LinkerSpec
     }
 
@@ -1647,13 +1754,27 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         // An exception is xcstrings files, which can be in the Sources phase for symbol generation.
         if scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc") {
             let isXCStrings = group.files.contains(where: { $0.fileType.conformsTo(identifier: "text.json.xcstrings") })
-            guard isXCStrings || group.isValidLocalizedContent(scope) else { return }
+            guard isXCStrings || group.isValidLocalizedContentForInstallloc(scope, in: context.project) else { return }
+        }
+
+        var inputFiles = group.files
+
+        inputFiles = inputFiles.filter { file in
+            return file.buildSettingAllowsBuildingLocale(
+                scope,
+                in: context.project,
+                inputFileAbsolutePath: file.absolutePath,
+                delegate
+            )
+        }
+        guard !inputFiles.isEmpty else {
+            return
         }
 
         // Compute the resources directory.
         let resourcesDir = buildFilesContext.resourcesDir.join(group.regionVariantPathComponent)
 
-        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: group.files, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
+        let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputFiles, isPreferredArch: buildFilesContext.belongsToPreferredArch, currentArchSpec: buildFilesContext.currentArchSpec, buildPhaseInfo: buildFilesContext.buildPhaseInfo(for: rule), resourcesDir: resourcesDir, tmpResourcesDir: buildFilesContext.tmpResourcesDir, unlocalizedResourcesDir: buildFilesContext.resourcesDir)
         await constructTasksForRule(rule, cbc, delegate)
     }
 
@@ -1750,7 +1871,7 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
         // Package targets do something similar but they generate the Bundle.module extensions and #bundle calls that.
 
         // We need to do this for all mergeable libraries, even if it will just be re-exported in this build.
-        guard scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) else {
+        guard scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) && !scope.evaluate(BuiltinMacros.SKIP_MERGEABLE_LIBRARY_BUNDLE_HOOK) else {
             return nil
         }
 
@@ -1778,32 +1899,31 @@ final class SourcesTaskProducer: FilesBasedBuildPhaseTaskProducerBase, FilesBase
     /// Generates a task for creating the resource bundle accessor for package targets.
     ///
     /// This produces the `Bundle.module` accessor.
-    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> GeneratedResourceAccessorResult? {
+    private func generatePackageTargetBundleAccessorResult(_ scope: MacroEvaluationScope) async -> [GeneratedResourceAccessorResult] {
         let bundleName = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_BUNDLE_NAME)
         let isRegularPackage = scope.evaluate(BuiltinMacros.PACKAGE_RESOURCE_TARGET_KIND) == .regular
         let targetHasAssetCatalog = targetContext.configuredTarget?.target.hasAssetCatalog(scope: scope, context: context, includeGenerated: false) ?? false
 
         let needsPackageTargetBundleAccessor = !bundleName.isEmpty || (isRegularPackage && targetHasAssetCatalog)
-        guard needsPackageTargetBundleAccessor else { return nil }
+        guard needsPackageTargetBundleAccessor else { return [] }
 
         if !scope.evaluate(BuiltinMacros.GENERATE_RESOURCE_ACCESSORS) {
-            return nil
+            return []
         }
 
         let workspace = self.context.workspaceContext.workspace
 
-        // Swift package target can only contain either Swift or C-family languages so
-        // we don't need to worry about targets with mixed languages.
+        var results: [GeneratedResourceAccessorResult] = []
         if buildPhase.containsSwiftSources(workspace, context, scope, context.filePathResolver) {
-            return await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName)
-        } else {
-            return await generatePackageTargetBundleAccessorForObjC(scope, bundleName: bundleName)
+            results.append(await generatePackageTargetBundleAccessorForSwift(scope, bundleName: bundleName))
         }
+        if buildPhase.containsObjCSources(workspace, context, scope, context.filePathResolver) {
+            results.append(await generatePackageTargetBundleAccessorForObjC(scope, bundleName: bundleName))
+        }
+        return results
     }
 
-    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult? {
-        guard !bundleName.isEmpty else { return nil }
-
+    private func generatePackageTargetBundleAccessorForObjC(_ scope: MacroEvaluationScope, bundleName: String) async -> GeneratedResourceAccessorResult {
         let headerFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.h")
         let implFile = scope.evaluate(BuiltinMacros.DERIVED_SOURCES_DIR).join("resource_bundle_accessor.m")
 

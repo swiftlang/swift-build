@@ -177,6 +177,17 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
                     return [base, region, path].joined(separator: ":")
                 }))
 
+            case BuiltinMacros.ASSETCATALOG_COMPILER_INCLUDED_LANGUAGES:
+                if var restrictedLocalizations = cbc.scope.restrictedLocRegionsToBuild(in: cbc.producer.project) {
+                    restrictedLocalizations.remove("Base") // Base is not a valid Asset Catalog locale
+                    let restrictedLocalizations = restrictedLocalizations.sorted()
+                    if !restrictedLocalizations.isEmpty {
+                        delegate.note("Asset Catalog will compile languages for known regions: \(restrictedLocalizations.joined(separator: ", "))", location: .path(cbc.input.absolutePath))
+                    }
+                    return cbc.scope.namespace.parseLiteralStringList(restrictedLocalizations)
+                }
+                return nil
+
             default:
                 return nil
             }
@@ -239,7 +250,12 @@ public final class ActoolCompilerSpec : GenericCompilerSpec, SpecIdentifierType,
         // which it currently receives a listing of via the assetcatalog_dependencies file produced by actool.
         let carFiles = [cbc.resourcesDir?.join("Assets.car")].compactMap { $0 }.map(delegate.createNode)
 
-        let outputs = evaluatedOutputsResult + (additionalEvaluatedOutputsResult.outputs ).map(delegate.createNode)
+        let outputs = evaluatedOutputsResult + (additionalEvaluatedOutputsResult.outputs).map { output in
+            if let fileTypeIdentifier = output.fileType, let fileType = cbc.producer.lookupFileType(identifier: fileTypeIdentifier) {
+                delegate.declareOutput(FileToBuild(absolutePath: output.path, fileType: fileType))
+            }
+            return delegate.createNode(output.path)
+        }
         guard !outputs.isEmpty else { preconditionFailure("ActoolCompilerSpec.constructTasks() invoked with no outputs defined") }
 
         let assetSymbolInputs = cbc.inputs

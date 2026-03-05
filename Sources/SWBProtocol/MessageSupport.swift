@@ -166,9 +166,10 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
     public var containerPath: Path?
     public var buildDescriptionID: String?
     public var qos: BuildQoSMessagePayload?
+    public var schedulerLaneWidthOverride: UInt32?
     public var jsonRepresentation: Foundation.Data?
 
-    public init(parameters: BuildParametersMessagePayload, configuredTargets: [ConfiguredTargetMessagePayload], dependencyScope: DependencyScopeMessagePayload, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, showNonLoggedProgress: Bool, recordBuildBacktraces: Bool?, generatePrecompiledModulesReport: Bool?, buildPlanDiagnosticsDirPath: Path?, buildCommand: BuildCommandMessagePayload, schemeCommand: SchemeCommandMessagePayload?, containerPath: Path?, buildDescriptionID: String?, qos: BuildQoSMessagePayload?, jsonRepresentation: Foundation.Data?) {
+    public init(parameters: BuildParametersMessagePayload, configuredTargets: [ConfiguredTargetMessagePayload], dependencyScope: DependencyScopeMessagePayload, continueBuildingAfterErrors: Bool, hideShellScriptEnvironment: Bool, useParallelTargets: Bool, useImplicitDependencies: Bool, useDryRun: Bool, showNonLoggedProgress: Bool, recordBuildBacktraces: Bool?, generatePrecompiledModulesReport: Bool?, buildPlanDiagnosticsDirPath: Path?, buildCommand: BuildCommandMessagePayload, schemeCommand: SchemeCommandMessagePayload?, containerPath: Path?, buildDescriptionID: String?, qos: BuildQoSMessagePayload?, schedulerLaneWidthOverride: UInt32?, jsonRepresentation: Foundation.Data?) {
         self.parameters = parameters
         self.configuredTargets = configuredTargets
         self.dependencyScope = dependencyScope
@@ -186,6 +187,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         self.containerPath = containerPath
         self.buildDescriptionID = buildDescriptionID
         self.qos = qos
+        self.schedulerLaneWidthOverride = schedulerLaneWidthOverride
         self.jsonRepresentation = jsonRepresentation
     }
 
@@ -207,6 +209,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         case containerPath
         case buildDescriptionID
         case qos
+        case schedulerLaneWidthOverride
         case jsonRepresentation
     }
 
@@ -230,6 +233,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         self.containerPath = try container.decodeIfPresent(Path.self, forKey: BuildRequestMessagePayload.CodingKeys.containerPath)
         self.buildDescriptionID = try container.decodeIfPresent(String.self, forKey: BuildRequestMessagePayload.CodingKeys.buildDescriptionID)
         self.qos = try container.decodeIfPresent(BuildQoSMessagePayload.self, forKey: BuildRequestMessagePayload.CodingKeys.qos)
+        self.schedulerLaneWidthOverride = try container.decodeIfPresent(UInt32.self, forKey: BuildRequestMessagePayload.CodingKeys.schedulerLaneWidthOverride)
         self.jsonRepresentation = try container.decodeIfPresent(Data.self, forKey: BuildRequestMessagePayload.CodingKeys.jsonRepresentation)
 
     }
@@ -254,6 +258,7 @@ public struct BuildRequestMessagePayload: SerializableCodable, Equatable, Sendab
         try container.encodeIfPresent(self.containerPath, forKey: BuildRequestMessagePayload.CodingKeys.containerPath)
         try container.encodeIfPresent(self.buildDescriptionID, forKey: BuildRequestMessagePayload.CodingKeys.buildDescriptionID)
         try container.encodeIfPresent(self.qos, forKey: BuildRequestMessagePayload.CodingKeys.qos)
+        try container.encodeIfPresent(self.schedulerLaneWidthOverride, forKey: BuildRequestMessagePayload.CodingKeys.schedulerLaneWidthOverride)
         try container.encodeIfPresent(self.jsonRepresentation, forKey: BuildRequestMessagePayload.CodingKeys.jsonRepresentation)
     }
 }
@@ -313,23 +318,75 @@ public struct BuildParametersMessagePayload: SerializableCodable, Equatable, Sen
 }
 
 public struct RunDestinationInfo: SerializableCodable, Hashable, Sendable {
-    public var platform: String
-    public var sdk: String
-    public var sdkVariant: String?
+    public var buildTarget: BuildTarget
+
     public var targetArchitecture: String
     public var supportedArchitectures: OrderedSet<String>
     public var disableOnlyActiveArch: Bool
     public var hostTargetedPlatform: String?
 
-    public init(platform: String, sdk: String, sdkVariant: String?, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, hostTargetedPlatform: String?) {
-        self.platform = platform
-        self.sdk = sdk
-        self.sdkVariant = sdkVariant
+    public init(buildTarget: BuildTarget, targetArchitecture: String, supportedArchitectures: OrderedSet<String>, disableOnlyActiveArch: Bool, hostTargetedPlatform: String? = nil) {
+        self.buildTarget = buildTarget
         self.targetArchitecture = targetArchitecture
         self.supportedArchitectures = supportedArchitectures
         self.disableOnlyActiveArch = disableOnlyActiveArch
         self.hostTargetedPlatform = hostTargetedPlatform
     }
+
+    public enum CodingKeys: CodingKey {
+        case buildTarget
+        case targetArchitecture
+        case supportedArchitectures
+        case disableOnlyActiveArch
+        case hostTargetedPlatform
+
+        // These are the old coding keys that were previously associated with toolchain SDK's
+        case platform
+        case sdk
+        case sdkVariant
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        if let buildTarget = try container.decodeIfPresent(BuildTarget.self, forKey: .buildTarget) {
+            self.buildTarget = buildTarget
+        } else {
+            // Handle the message payload from earlier versions that didn't have the buildTarget enumeration
+            let platform = try container.decode(String.self, forKey: .platform)
+            let sdk: String = try container.decode(String.self, forKey: .sdk)
+            let sdkVariant: String? = try container.decode(String?.self, forKey: .sdkVariant)
+            self.buildTarget = .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant)
+        }
+
+        self.targetArchitecture = try container.decode(String.self, forKey: .targetArchitecture)
+        self.supportedArchitectures = try container.decode(OrderedSet.self, forKey: .supportedArchitectures)
+        self.disableOnlyActiveArch = try container.decode(Bool.self, forKey: .disableOnlyActiveArch)
+        self.hostTargetedPlatform = try container.decodeIfPresent(String.self, forKey: .hostTargetedPlatform)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self.buildTarget {
+        case let .toolchainSDK(platform: platform, sdk: sdk, sdkVariant: sdkVariant):
+            try container.encode(platform, forKey: .platform)
+            try container.encode(sdk, forKey: .sdk)
+            try container.encode(sdkVariant, forKey: .sdkVariant)
+        case .swiftSDK:
+            try container.encode(buildTarget, forKey: .buildTarget)
+        }
+
+        try container.encode(self.targetArchitecture, forKey: .targetArchitecture)
+        try container.encode(self.supportedArchitectures, forKey: .supportedArchitectures)
+        try container.encode(self.disableOnlyActiveArch, forKey: .disableOnlyActiveArch)
+        try container.encode(self.hostTargetedPlatform, forKey: .hostTargetedPlatform)
+    }
+}
+
+public enum BuildTarget: SerializableCodable, Hashable, Sendable {
+    case toolchainSDK(platform: String, sdk: String, sdkVariant: String?)
+    case swiftSDK(sdkManifestPath: String, triple: String)
 }
 
 /// The arena info being sent in a Message.
@@ -438,6 +495,7 @@ public struct PreviewInfoThunkInfo: Codable, Equatable, Sendable {
 }
 
 public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
+    public let productModuleName: String
     public let objectFileInputMap: [String: Set<String>]
     public let linkCommandLine: [String]
     public let linkerWorkingDirectory: String?
@@ -448,8 +506,10 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
     public let enableAddressSanitizer: Bool
     public let enableThreadSanitizer: Bool
     public let enableUndefinedBehaviorSanitizer: Bool
+    public let enableMemoryTaggingAddressSanitizer: Bool
 
     public init(
+        productModuleName: String,
         objectFileInputMap: [String : Set<String>],
         linkCommandLine: [String],
         linkerWorkingDirectory: String?,
@@ -459,8 +519,10 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
         enableDebugDylib: Bool,
         enableAddressSanitizer: Bool,
         enableThreadSanitizer: Bool,
-        enableUndefinedBehaviorSanitizer: Bool
+        enableUndefinedBehaviorSanitizer: Bool,
+        enableMemoryTaggingAddressSanitizer: Bool,
     ) {
+        self.productModuleName = productModuleName
         self.objectFileInputMap = objectFileInputMap
         self.linkCommandLine = linkCommandLine
         self.linkerWorkingDirectory = linkerWorkingDirectory
@@ -471,6 +533,7 @@ public struct PreviewInfoTargetDependencyInfo: Codable, Equatable, Sendable {
         self.enableAddressSanitizer = enableAddressSanitizer
         self.enableThreadSanitizer = enableThreadSanitizer
         self.enableUndefinedBehaviorSanitizer = enableUndefinedBehaviorSanitizer
+        self.enableMemoryTaggingAddressSanitizer = enableMemoryTaggingAddressSanitizer
     }
 }
 

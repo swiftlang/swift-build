@@ -32,9 +32,6 @@ enum TaskProducerPhase {
 /// A TaskProducer embodies a set of work which needs to be done create the tasks which, when run, will generate all or part of the product of a ProductPlan.
 package protocol TaskProducer
 {
-    /// Generate the provisional tasks for this task producer.
-    static func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask]
-
     /// Immutable data available to the task producer.
     var context: TaskProducerContext { get }
 
@@ -50,15 +47,11 @@ package protocol TaskProducer
 
 extension TaskProducer
 {
-    package static func provisionalTasks(_ settings: Settings) -> [String: ProvisionalTask] { return [:] }
-
     /// By default, most task producers should not need to make use of this functionality.
     package func prepare() async {}
 }
 
 /// Context of immutable data available to a task producer.
-///
-/// This class configures the provisional tasks used by the producers.
 public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 {
     /// The workspace context.
@@ -71,7 +64,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     var phase: TaskProducerPhase = .none
 
     /// The project this context is for.
-    let project: Project?
+    public let project: Project?
 
     /// The high-level global build information.
     package let globalProductPlan: GlobalProductPlan
@@ -99,11 +92,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     /// The build settings the task producer should use.
     public let settings: Settings
 
-    /// Provisional tasks indexed by their identifying string.  This context is the owner of these provisional tasks.
-    let provisionalTasks: [String: ProvisionalTask]
-
     /// The build rule set for file references (includes system rules as well as any custom rules).
-    let buildRuleSet: any BuildRuleSet
+    package let buildRuleSet: any BuildRuleSet
 
     /// The default working directory path to use.
     ///
@@ -122,6 +112,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     var emitFrontendCommandLines: Bool
 
     public let moduleDependenciesContext: ModuleDependenciesContext?
+    public let headerDependenciesContext: HeaderDependenciesContext?
 
     private struct State: Sendable {
         fileprivate var onDemandResourcesAssetPacks: [ODRTagSet: ODRAssetPackInfo] = [:]
@@ -133,7 +124,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         /// The list of generated info plist additions produced in this target.
         fileprivate var _generatedInfoPlistContents: [Path] = []
 
-        fileprivate var _generatedPrivacyContentFilePaths: [Path] = []
+        fileprivate var _generatedPrivacyContentFilePaths: Set<Path> = []
 
         /// The list of generated TBD files produced in this target.
         ///
@@ -227,8 +218,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    public let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec
-    let appleScriptCompilerSpec: CommandLineToolSpec
+    public let appShortcutStringsMetadataCompilerSpec: AppShortcutStringsMetadataCompilerSpec?
+    let appleScriptCompilerSpec: CommandLineToolSpec?
+    let buildDependencyInfoSpec: BuildDependencyInfoSpec
     public let clangSpec: ClangCompilerSpec
     public let clangAssemblerSpec: ClangCompilerSpec
     public let clangPreprocessorSpec: ClangCompilerSpec
@@ -241,8 +233,8 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     var concatenateSpec: ConcatenateToolSpec? { return specForResult(_concatenateSpec) }
     public let copySpec: CopyToolSpec
     let copyPlistSpec: CommandLineToolSpec
-    public let copyPngSpec: CommandLineToolSpec
-    public let copyTiffSpec: CommandLineToolSpec
+    public let copyPngSpec: CommandLineToolSpec?
+    public let copyTiffSpec: CommandLineToolSpec?
     let cppSpec: CommandLineToolSpec
     let createAssetPackManifestSpec: CreateAssetPackManifestToolSpec
     public let createBuildDirectorySpec: CreateBuildDirectorySpec
@@ -250,7 +242,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let dsymutilSpec: DsymutilToolSpec
     let infoPlistSpec: InfoPlistToolSpec
     let mergeInfoPlistSpec: MergeInfoPlistSpec
-    let launchServicesRegisterSpec: CommandLineToolSpec
+    let launchServicesRegisterSpec: CommandLineToolSpec?
     public let ldLinkerSpec: LdLinkerSpec
     public let libtoolLinkerSpec: LibtoolLinkerSpec
     public let lipoSpec: LipoToolSpec
@@ -259,8 +251,6 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let modulesVerifierSpec: ModulesVerifierToolSpec
     let clangModuleVerifierInputGeneratorSpec: ClangModuleVerifierInputGeneratorSpec
     let productPackagingSpec: ProductPackagingToolSpec
-    public let _registerExecutionPolicyExceptionSpec: Result<RegisterExecutionPolicyExceptionToolSpec, any Error>
-    var registerExecutionPolicyExceptionSpec: RegisterExecutionPolicyExceptionToolSpec? { return specForResult(_registerExecutionPolicyExceptionSpec) }
     let setAttributesSpec: SetAttributesSpec
     let shellScriptSpec: ShellScriptToolSpec
     let signatureCollectionSpec: SignatureCollectionSpec
@@ -278,10 +268,11 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     let tapiStubifySpec: CommandLineToolSpec
     let touchSpec: CommandLineToolSpec
     public let unifdefSpec: UnifdefToolSpec
-    let validateEmbeddedBinarySpec: ValidateEmbeddedBinaryToolSpec
-    let validateProductSpec: ValidateProductToolSpec
+    let validateEmbeddedBinarySpec: ValidateEmbeddedBinaryToolSpec?
+    let validateProductSpec: ValidateProductToolSpec?
     let processXCFrameworkLibrarySpec: ProcessXCFrameworkLibrarySpec
     public let processSDKImportsSpec: ProcessSDKImportsSpec
+    public let validateDependenciesSpec: ValidateDependenciesSpec
     public let writeFileSpec: WriteFileSpec
     private let _documentationCompilerSpec: Result<CommandLineToolSpec, any Error>
     var documentationCompilerSpec: CommandLineToolSpec? { return specForResult(_documentationCompilerSpec) }
@@ -346,71 +337,68 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         self.onDemandResourcesEnabled = settings.globalScope.evaluate(BuiltinMacros.ENABLE_ON_DEMAND_RESOURCES)
         self.onDemandResourcesInitialInstallTags = Set(settings.globalScope.evaluate(BuiltinMacros.ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS))
         self.onDemandResourcesPrefetchOrder = settings.globalScope.evaluate(BuiltinMacros.ON_DEMAND_RESOURCES_PREFETCH_ORDER)
-
-        // Populate the provisional tasks dictionary.
-        self.provisionalTasks = configuredTarget?.target.provisionalTasks(settings) ?? [:]
-
         // Bind known tool specs.
         //
         // FIXME: These should really be bound even earlier, like in the spec cache. Or at least, we should throw here and just produce a dep graph error if any are missing.
         let domain = settings.platform?.name ?? ""
-        self.appShortcutStringsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appshortcutstringsmetadata", domain: domain) as! AppShortcutStringsMetadataCompilerSpec
-        self.appleScriptCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.osacompile", domain: domain) as! CommandLineToolSpec
-        self.clangSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangCompilerSpec
-        self.clangAssemblerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangAssemblerSpec
-        self.clangPreprocessorSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangPreprocessorSpec
-        self.clangStaticAnalyzerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangStaticAnalyzerSpec
-        self.clangModuleVerifierSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ClangModuleVerifierSpec
-        self._clangStatCacheSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.clang-stat-cache") as ClangStatCacheSpec }
-        self.codesignSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.codesign", domain: domain) as! CodesignToolSpec
-        self._concatenateSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.concatenate") as ConcatenateToolSpec }
-        self.copySpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as CopyToolSpec
-        self.copyPlistSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-plist-file", domain: domain) as! CommandLineToolSpec
-        self.copyPngSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file", domain: domain) as! CommandLineToolSpec
-        self.copyTiffSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-tiff-file", domain: domain) as! CommandLineToolSpec
-        self.cppSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.cpp", domain: domain) as! CommandLineToolSpec
-        self.createAssetPackManifestSpec = workspaceContext.core.specRegistry.getSpec(CreateAssetPackManifestToolSpec.identifier, domain: domain) as! CreateAssetPackManifestToolSpec
-        self.createBuildDirectorySpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.create-build-directory", domain: domain) as! CreateBuildDirectorySpec
-        self.diffSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.diff", domain: domain) as! CommandLineToolSpec
-        self.dsymutilSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.dsymutil", domain: domain) as! DsymutilToolSpec
-        self.infoPlistSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.info-plist-utility", domain: domain) as! InfoPlistToolSpec
-        self.mergeInfoPlistSpec = workspaceContext.core.specRegistry.getSpec(MergeInfoPlistSpec.identifier, domain: domain) as! MergeInfoPlistSpec
-        self.launchServicesRegisterSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.ls-register-url", domain: domain) as! CommandLineToolSpec
-        self.ldLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as LdLinkerSpec
-        self.libtoolLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as LibtoolLinkerSpec
-        self.lipoSpec = workspaceContext.core.specRegistry.getSpec("com.apple.xcode.linkers.lipo", domain: domain) as! LipoToolSpec
-        self.prelinkedObjectLinkSpec = workspaceContext.core.specRegistry.getSpec(PrelinkedObjectLinkSpec.identifier, domain: domain) as! CommandLineToolSpec
-        self.mkdirSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.mkdir", domain: domain) as! MkdirToolSpec
-        self.modulesVerifierSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.modules-verifier", domain: domain) as! ModulesVerifierToolSpec
-        self.clangModuleVerifierInputGeneratorSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.module-verifier-input-generator", domain: domain) as! ClangModuleVerifierInputGeneratorSpec
-        self.productPackagingSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as ProductPackagingToolSpec
-        self._registerExecutionPolicyExceptionSpec = .init(workspaceContext, settings)
-        self.setAttributesSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.set-attributes", domain: domain) as! SetAttributesSpec
-        self.shellScriptSpec = workspaceContext.core.specRegistry.getSpec("com.apple.commands.shell-script", domain: domain) as! ShellScriptToolSpec
-        self.signatureCollectionSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.signature-collection", domain: domain) as! SignatureCollectionSpec
+        self.appShortcutStringsMetadataCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.appshortcutstringsmetadata", domain: domain) as? AppShortcutStringsMetadataCompilerSpec
+        self.appleScriptCompilerSpec = workspaceContext.core.specRegistry.getSpec("com.apple.compilers.osacompile", domain: domain) as? CommandLineToolSpec
+        self.buildDependencyInfoSpec = workspaceContext.core.specRegistry.getSpec(BuildDependencyInfoSpec.identifier, domain: domain) as! BuildDependencyInfoSpec
+        self.clangSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangCompilerSpec.self)
+        self.clangAssemblerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangAssemblerSpec.self)
+        self.clangPreprocessorSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangPreprocessorSpec.self)
+        self.clangStaticAnalyzerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangStaticAnalyzerSpec.self)
+        self.clangModuleVerifierSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ClangModuleVerifierSpec.self)
+        self._clangStatCacheSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.clang-stat-cache", ofType: ClangStatCacheSpec.self) }
+        self.codesignSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.codesign", domain: domain, ofType: CodesignToolSpec.self)
+        self._concatenateSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.concatenate", ofType: ConcatenateToolSpec.self) }
+        self.copySpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: CopyToolSpec.self)
+        self.copyPlistSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-plist-file", domain: domain, ofType: CommandLineToolSpec.self)
+        self.copyPngSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-png-file", domain: domain, ofType: CommandLineToolSpec.self)
+        self.copyTiffSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.copy-tiff-file", domain: domain, ofType: CommandLineToolSpec.self)
+        self.cppSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.compilers.cpp", domain: domain, ofType: CommandLineToolSpec.self)
+        self.createAssetPackManifestSpec = try! workspaceContext.core.specRegistry.getSpec(CreateAssetPackManifestToolSpec.identifier, domain: domain, ofType: CreateAssetPackManifestToolSpec.self)
+        self.createBuildDirectorySpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.create-build-directory", domain: domain, ofType: CreateBuildDirectorySpec.self)
+        self.diffSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.diff", domain: domain, ofType: CommandLineToolSpec.self)
+        self.dsymutilSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.dsymutil", domain: domain, ofType: DsymutilToolSpec.self)
+        self.infoPlistSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.info-plist-utility", domain: domain, ofType: InfoPlistToolSpec.self)
+        self.mergeInfoPlistSpec = try! workspaceContext.core.specRegistry.getSpec(MergeInfoPlistSpec.identifier, domain: domain, ofType: MergeInfoPlistSpec.self)
+        self.launchServicesRegisterSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.ls-register-url", domain: domain, ofType: CommandLineToolSpec.self)
+        self.ldLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: LdLinkerSpec.self)
+        self.libtoolLinkerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: LibtoolLinkerSpec.self)
+        self.lipoSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.xcode.linkers.lipo", domain: domain, ofType: LipoToolSpec.self)
+        self.prelinkedObjectLinkSpec = try! workspaceContext.core.specRegistry.getSpec(PrelinkedObjectLinkSpec.identifier, domain: domain, ofType: CommandLineToolSpec.self)
+        self.mkdirSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.mkdir", domain: domain, ofType: MkdirToolSpec.self)
+        self.modulesVerifierSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.modules-verifier", domain: domain, ofType: ModulesVerifierToolSpec.self)
+        self.clangModuleVerifierInputGeneratorSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.module-verifier-input-generator", domain: domain, ofType: ClangModuleVerifierInputGeneratorSpec.self)
+        self.productPackagingSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: ProductPackagingToolSpec.self)
+        self.setAttributesSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.set-attributes", domain: domain, ofType: SetAttributesSpec.self)
+        self.shellScriptSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.commands.shell-script", domain: domain, ofType: ShellScriptToolSpec.self)
+        self.signatureCollectionSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.signature-collection", domain: domain, ofType: SignatureCollectionSpec.self)
         self.stripSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.strip", domain: domain) as! StripToolSpec
-        self.swiftCompilerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain) as SwiftCompilerSpec
-        self.swiftHeaderToolSpec = workspaceContext.core.specRegistry.getSpec(SwiftHeaderToolSpec.identifier, domain: domain) as! SwiftHeaderToolSpec
-        self.swiftStdlibToolSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-stdlib-tool", domain: domain) as! SwiftStdLibToolSpec
-        self._swiftABICheckerToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-checker", domain: domain) as SwiftABICheckerToolSpec }
-        self._swiftABIGenerationToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-generation", domain: domain) as SwiftABIGenerationToolSpec }
-        self.symlinkSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.symlink", domain: domain) as! SymlinkToolSpec
-        self.tapiSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.installapi", domain: domain) as! TAPIToolSpec
-        self.tapiMergeSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.merge", domain: domain) as! CommandLineToolSpec
-        self.tapiStubifySpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.stubify", domain: domain) as! CommandLineToolSpec
-        self.touchSpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.touch", domain: domain) as! CommandLineToolSpec
-        self.unifdefSpec = workspaceContext.core.specRegistry.getSpec("public.build-task.unifdef", domain: domain) as! UnifdefToolSpec
-        self.validateEmbeddedBinarySpec = workspaceContext.core.specRegistry.getSpec("com.apple.tools.validate-embedded-binary-utility", domain: domain) as! ValidateEmbeddedBinaryToolSpec
-        self.validateProductSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.platform.validate", domain: domain) as! ValidateProductToolSpec
-        self.processXCFrameworkLibrarySpec = workspaceContext.core.specRegistry.getSpec(ProcessXCFrameworkLibrarySpec.identifier, domain: domain) as! ProcessXCFrameworkLibrarySpec
-        self.processSDKImportsSpec = workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain) as! ProcessSDKImportsSpec
-        self.writeFileSpec = workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain) as! WriteFileSpec
-        self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain) as CommandLineToolSpec }
-        self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain) as TAPISymbolExtractor }
-        self._swiftSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.swift-symbol-extract", domain: domain) as CommandLineToolSpec }
-        self._developmentAssetsSpec = Result { try workspaceContext.core.specRegistry.getSpec(ValidateDevelopmentAssets.identifier, domain: domain) as CommandLineToolSpec }
-        self._generateAppPlaygroundAssetCatalogSpec = Result { try workspaceContext.core.specRegistry.getSpec(GenerateAppPlaygroundAssetCatalog.identifier, domain: domain) as CommandLineToolSpec }
-        self._realityAssetsCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.compile-rk-assets.xcplugin", domain: domain) as CommandLineToolSpec }
+        self.swiftCompilerSpec = try! workspaceContext.core.specRegistry.getSpec(domain: domain, ofType: SwiftCompilerSpec.self)
+        self.swiftHeaderToolSpec = try! workspaceContext.core.specRegistry.getSpec(SwiftHeaderToolSpec.identifier, domain: domain, ofType: SwiftHeaderToolSpec.self)
+        self.swiftStdlibToolSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-stdlib-tool", domain: domain, ofType: SwiftStdLibToolSpec.self)
+        self._swiftABICheckerToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-checker", domain: domain, ofType: SwiftABICheckerToolSpec.self) }
+        self._swiftABIGenerationToolSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.swift-abi-generation", domain: domain, ofType: SwiftABIGenerationToolSpec.self) }
+        self.symlinkSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.symlink", domain: domain, ofType: SymlinkToolSpec.self)
+        self.tapiSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.installapi", domain: domain, ofType: TAPIToolSpec.self)
+        self.tapiMergeSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.merge", domain: domain, ofType: CommandLineToolSpec.self)
+        self.tapiStubifySpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.tapi.stubify", domain: domain, ofType: CommandLineToolSpec.self)
+        self.touchSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.tools.touch", domain: domain, ofType: CommandLineToolSpec.self)
+        self.unifdefSpec = try! workspaceContext.core.specRegistry.getSpec("public.build-task.unifdef", domain: domain, ofType: UnifdefToolSpec.self)
+        self.validateEmbeddedBinarySpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.tools.validate-embedded-binary-utility", domain: domain, ofType: ValidateEmbeddedBinaryToolSpec.self)
+        self.validateProductSpec = try? workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.platform.validate", domain: domain, ofType: ValidateProductToolSpec.self)
+        self.processXCFrameworkLibrarySpec = try! workspaceContext.core.specRegistry.getSpec(ProcessXCFrameworkLibrarySpec.identifier, domain: domain, ofType: ProcessXCFrameworkLibrarySpec.self)
+        self.processSDKImportsSpec = try! workspaceContext.core.specRegistry.getSpec(ProcessSDKImportsSpec.identifier, domain: domain, ofType: ProcessSDKImportsSpec.self)
+        self.validateDependenciesSpec = try! workspaceContext.core.specRegistry.getSpec(ValidateDependenciesSpec.identifier, domain: domain, ofType: ValidateDependenciesSpec.self)
+        self.writeFileSpec = try! workspaceContext.core.specRegistry.getSpec("com.apple.build-tools.write-file", domain: domain, ofType: WriteFileSpec.self)
+        self._documentationCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation", domain: domain, ofType: CommandLineToolSpec.self) }
+        self._tapiSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.objc-symbol-extract", domain: domain, ofType: TAPISymbolExtractor.self) }
+        self._swiftSymbolExtractorSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.compilers.documentation.swift-symbol-extract", domain: domain, ofType: CommandLineToolSpec.self) }
+        self._developmentAssetsSpec = Result { try workspaceContext.core.specRegistry.getSpec(ValidateDevelopmentAssets.identifier, domain: domain, ofType: CommandLineToolSpec.self) }
+        self._generateAppPlaygroundAssetCatalogSpec = Result { try workspaceContext.core.specRegistry.getSpec(GenerateAppPlaygroundAssetCatalog.identifier, domain: domain, ofType: CommandLineToolSpec.self) }
+        self._realityAssetsCompilerSpec = Result { try workspaceContext.core.specRegistry.getSpec("com.apple.build-tasks.compile-rk-assets.xcplugin", domain: domain, ofType: CommandLineToolSpec.self) }
 
         self.compilationRequirementOutputFileTypes = (SpecRegistry.headerFileTypeIdentifiers + [SpecRegistry.modulemapFileTypeIdentifier]).compactMap { workspaceContext.core.specRegistry.lookupFileType(identifier: $0, domain: domain) }
         self.emitFrontendCommandLines = settings.globalScope.evaluate(BuiltinMacros.EMIT_FRONTEND_COMMAND_LINES)
@@ -437,6 +425,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
 
         self.moduleDependenciesContext = ModuleDependenciesContext(settings: settings)
+        self.headerDependenciesContext = HeaderDependenciesContext(settings: settings)
     }
 
     /// The set of all known deployment target macro names, even if the platforms that use those settings are not installed.
@@ -477,7 +466,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    var generatedPrivacyContentFilePaths: [Path] {
+    var generatedPrivacyContentFilePaths: Set<Path> {
         return state.withLock { state in
             assert(state._inDeferredMode)
             return state._generatedPrivacyContentFilePaths
@@ -485,7 +474,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Add an info plist addition generated by this target.
-    func addGeneratedInfoPlistContent(_ path: Path) {
+    public func addGeneratedInfoPlistContent(_ path: Path) {
         state.withLock { state in
             assert(!state._inDeferredMode)
             state._generatedInfoPlistContents.append(path)
@@ -495,7 +484,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     func addPrivacyContentPlistContent(_ path: Path) {
         state.withLock { state in
             assert(!state._inDeferredMode)
-            state._generatedPrivacyContentFilePaths.append(path)
+            state._generatedPrivacyContentFilePaths.insert(path)
         }
     }
 
@@ -718,7 +707,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         }
     }
 
-    // FIXME: <rdar://problem/30298464> This is something of a hack.  Uses in the ProductPostprocessingTaskProducer say this should be expressed instead on a check against a provisional task of the product, but as of this writing the future of provisional tasks is unclear.
+    // FIXME: <rdar://problem/30298464> This is something of a hack.  Uses in the ProductPostprocessingTaskProducer say this should be expressed instead on a check against task validation criteria of the product.
     //
     /// Returns whether the product of the target is going to be produced.
     ///
@@ -745,7 +734,9 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         assert((scope.values(for: BuiltinMacros.archCondition) != nil) == forArch)
 
         if !forArch {
-            return scope.evaluate(BuiltinMacros.ARCHS).contains(where: { arch in willProduceBinary(scope.subscope(binding: BuiltinMacros.archCondition, to: arch), forArch: true) })
+            return scope.evaluate(BuiltinMacros.ARCHS).contains(where: { arch in
+                willProduceBinary(scope.subscopeBindingArchAndTriple(arch: arch), forArch: true)
+            })
         }
 
         // If we're copying a stub binary for this target, then we have a binary.
@@ -814,6 +805,35 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
         return false
     }
 
+    public func availableMatchingArchitecturesInStubBinary(at stubBinary: Path, requestedArchs: [String]) async -> [String] {
+        let stubArchs: Set<String>
+        let stubPlatforms: [any PlatformInfoProvider]
+        do {
+            let stubInfo = try globalProductPlan.planRequest.buildRequestContext.getCachedMachOInfo(at: stubBinary)
+            stubArchs = stubInfo.architectures
+            stubPlatforms = stubInfo.platforms.compactMap { lookupPlatformInfo(platform: $0) }
+        } catch {
+            delegate.error("unable to create tasks to copy stub binary: can't determine architectures of binary: \(stubBinary.str): \(error)")
+            return []
+        }
+        var archsToExtract: Set<String> = []
+        for arch in requestedArchs {
+            if stubArchs.contains(arch) {
+                archsToExtract.insert(arch)
+            } else {
+                let compatibilityArchs: [String] = stubPlatforms.flatMap { platform in
+                    (workspaceContext.core.specRegistry.getSpec(arch, domain: platform.name) as? ArchitectureSpec)?.compatibilityArchs ?? []
+                }
+                if let compatibleArch = compatibilityArchs.first(where: { stubArchs.contains($0) }) {
+                    archsToExtract.insert(compatibleArch)
+                } else {
+                    delegate.warning("stub binary at '\(stubBinary.str)' does not contain a slice for '\(arch)' or a compatible architecture. Stub architectures: \(stubArchs.joined(separator: ", ")). Compatibility architectures for \(arch): \(compatibilityArchs.joined(separator: ", "))")
+                }
+            }
+        }
+        return archsToExtract.sorted()
+    }
+
     /// Returns true if we should emit errors when there are tasks that delay eager compilation.
     func requiresEagerCompilation(_ scope: MacroEvaluationScope) -> Bool {
         return scope.evaluate(BuiltinMacros.EAGER_COMPILATION_REQUIRE)
@@ -863,7 +883,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a note from task construction.
-    func note(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func note(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.note(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -872,7 +892,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a warning from task construction.
-    func warning(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func warning(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.warning(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -890,7 +910,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
     }
 
     /// Report a remark from task construction.
-    func remark(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
+    public func remark(_ message: String, location: Diagnostic.Location = .unknown, component: Component = .default) {
         if let configuredTarget {
             delegate.remark(.overrideTarget(configuredTarget), message, location: location, component: component)
         } else {
@@ -1008,7 +1028,7 @@ public class TaskProducerContext: StaleFileRemovalContext, BuildFileResolution
 }
 
 public final class TargetTaskProducerContext: TaskProducerContext {
-    private let targetTaskInfo: TargetTaskInfo
+    private let targetTaskInfo: TargetGateNodes
 
     /// A path node representing the tasks necessary to 'prepare-for-index' a target, before any compilation can occur.
     /// This is only set for an index build.
@@ -1048,7 +1068,7 @@ public final class TargetTaskProducerContext: TaskProducerContext {
     /// - parameter targetTaskInfo: The high-level target task information.
     /// - parameter globalProductPlan: The high-level global build information.
     /// - parameter delegate: The delegate to use for task construction.
-    init(configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, targetTaskInfo: TargetTaskInfo, globalProductPlan: GlobalProductPlan, delegate: any TaskPlanningDelegate) {
+    init(configuredTarget: ConfiguredTarget, workspaceContext: WorkspaceContext, targetTaskInfo: TargetGateNodes, globalProductPlan: GlobalProductPlan, delegate: any TaskPlanningDelegate) {
         self.targetTaskInfo = targetTaskInfo
 
         // Create the target end gate task, which connects the target's start node to its end node.
@@ -1082,7 +1102,7 @@ public final class TargetTaskProducerContext: TaskProducerContext {
 
         // Create the will-sign gate task.
         // This depends on the unsigned-products-ready node, and also on the end nodes of all the targets whose products this target is hosting.
-        let willSignTaskInputs = [targetTaskInfo.unsignedProductReadyNode] + (globalProductPlan.hostedTargetsForTargets[configuredTarget]?.compactMap({ globalProductPlan.targetTaskInfos[$0]?.endNode }) ?? [])
+        let willSignTaskInputs = [targetTaskInfo.unsignedProductReadyNode] + (globalProductPlan.hostedTargetsForTargets[configuredTarget]?.compactMap({ globalProductPlan.targetGateNodes[$0]?.endNode }) ?? [])
         self.willSignTask = delegate.createGateTask(willSignTaskInputs, output: targetTaskInfo.willSignNode, name: targetTaskInfo.willSignNode.name, mustPrecede: []) {
             $0.forTarget = configuredTarget
             $0.makeGate()
@@ -1194,7 +1214,7 @@ extension TaskProducerContext: CommandProducer {
     public func lookupPlatformInfo(platform: BuildVersion.Platform) -> (any PlatformInfoProvider)? {
         workspaceContext.core.lookupPlatformInfo(platform: platform)
     }
-    
+
     public var preferredArch: String? {
         return settings.preferredArch
     }
@@ -1310,7 +1330,7 @@ extension TaskProducerContext: CommandProducer {
             // arch is a VALID_ARCHS of the dependency but it's not building for that arch, we need to find a compatible one
             let dependencyArchs = dependencyScope.evaluate(BuiltinMacros.ARCHS)
             if false == dependencyArchs.contains(arch) {
-                guard let archSpec: ArchitectureSpec = try? workspaceContext.core.specRegistry.getSpec(arch) else {
+                guard let archSpec = try? workspaceContext.core.specRegistry.getSpec(arch, ofType: ArchitectureSpec.self) else {
                     return nil
                 }
                 // Currently there is no more than one compatibility arch; first might not be correct otherwise
@@ -1325,7 +1345,7 @@ extension TaskProducerContext: CommandProducer {
 
             return dependencyScope
                 .subscope(binding: BuiltinMacros.variantCondition, to: variant)
-                .subscope(binding: BuiltinMacros.archCondition, to: arch)
+                .subscopeBindingArchAndTriple(arch: arch)
         }
     }
 
@@ -1349,6 +1369,10 @@ extension TaskProducerContext: CommandProducer {
 
     public func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo? {
         return await workspaceContext.headerIndex.projectHeaderInfo[workspaceContext.workspace.project(for: target)]
+    }
+
+    public var projectLocation: Diagnostic.Location {
+        return Workspace.projectLocation(for: self.configuredTarget?.target, workspace: self.workspaceContext.workspace)
     }
 
     public var canConstructAppIntentsMetadataTask: Bool {
@@ -1401,6 +1425,10 @@ extension TaskProducerContext: CommandProducer {
     public func lookupLibclang(path: SWBUtil.Path) -> (libclang: SWBCore.Libclang?, version: Version?) {
         workspaceContext.core.lookupLibclang(path: path)
     }
+
+    public func matchesAnyProjectIdentities(scope: SWBMacro.MacroEvaluationScope, projectIdentities: Set<String>) -> Bool {
+        workspaceContext.core.pluginManager.extensions(of: SettingsBuilderExtensionPoint.self).contains(where: { ext in ext.matchesAnyProjectIdentities(scope: scope, projectIdentities: projectIdentities) })
+    }
 }
 
 extension TaskProducerContext {
@@ -1413,7 +1441,9 @@ extension TaskProducerContext {
         guard let swiftFileType = lookupFileType(identifier: "sourcecode.swift") else { return false }
         guard let applescriptFileType = lookupFileType(identifier: "sourcecode.applescript") else { return false }
         guard let doccFileType = lookupFileType(identifier: "folder.documentationcatalog") else { return false }
-        for archSpecificSubscope in scope.evaluate(BuiltinMacros.ARCHS).map({ arch in scope.subscope(binding: BuiltinMacros.archCondition, to: arch) }) {
+        for archSpecificSubscope in scope.evaluate(BuiltinMacros.ARCHS).map({ arch in
+            scope.subscopeBindingArchAndTriple(arch: arch)
+        }) {
             let context = BuildFilesProcessingContext(archSpecificSubscope)
             guard !sourcesBuildPhase.buildFiles.contains(where: { buildFile in
                 guard let resolvedBuildFileInfo = try? resolveBuildFileReference(buildFile),
@@ -1722,6 +1752,6 @@ class PhasedProducerBasedTaskGenerationDelegate: ProducerBasedTaskGenerationDele
 
 fileprivate extension Result where Success: Spec & IdentifiedSpecType, Failure == any Error {
     init(_ workspaceContext: WorkspaceContext, _ settings: Settings) {
-        self = Result { try workspaceContext.core.specRegistry.getSpec(domain: settings.platform?.name ?? "") }
+        self = Result { try workspaceContext.core.specRegistry.getSpec(domain: settings.platform?.name ?? "", ofType: Success.self) }
     }
 }

@@ -19,16 +19,18 @@ import SWBTestSupport
     @Test(.skipHostOS(.freebsd, "Currently hangs on FreeBSD"))
     func time() async throws {
         do {
-            let delta = try await ElapsedTimer.measure {
-                try await Task.sleep(for: .microseconds(1000))
+            let clock = MockClock()
+            let delta = try await ElapsedTimer.measure(clock: clock) {
+                try await clock.sleep(for: .microseconds(1001))
                 return ()
             }
             #expect(delta.seconds > 1.0 / 1000.0)
         }
 
         do {
-            let (delta, result) = try await ElapsedTimer.measure { () -> Int in
-                try await Task.sleep(for: .microseconds(1000))
+            let clock = MockClock()
+            let (delta, result) = try await ElapsedTimer.measure(clock: clock) { () -> Int in
+                try await clock.sleep(for: .microseconds(1001))
                 return 22
             }
             #expect(delta.seconds > 1.0 / 1000.0)

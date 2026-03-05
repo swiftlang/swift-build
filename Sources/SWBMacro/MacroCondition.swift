@@ -12,6 +12,7 @@
 
 import SWBLibc
 public import SWBUtil
+import SwiftDriver
 
 /// A condition for whether or not to use a particular macro value assignment, consisting of a parameter and a `fnmatch()`-style pattern against which a candidate parameter value should be compared.  The condition parameter is not a string, but rather a MacroConditionParameter, which is created using API in MacroNamespace.  Multiple macro conditions can be associated with a given
 public final class MacroCondition: Serializable, Hashable, CustomStringConvertible, Sendable {
@@ -39,6 +40,10 @@ public final class MacroCondition: Serializable, Hashable, CustomStringConvertib
 
     /// Evaluates the condition against an arbitrary parameter value, returning `true` if there’s a match and `false` if not.
     public func evaluate(_ value: String) -> Bool {
+        if parameter.name == "__normalized_unversioned_triple" {
+            return normalizedTriplesCompareDisregardingOSVersions(valuePattern, value)
+        }
+
         do {
             return try fnmatch(pattern: valuePattern, input: value)
         } catch {
@@ -50,6 +55,16 @@ public final class MacroCondition: Serializable, Hashable, CustomStringConvertib
     public func evaluate(_ paramValues: [MacroConditionParameter: [String]]) -> Bool {
         // Look up the values for the parameter.  If it’s missing, we evaluate to true iff the pattern is `*` (the “match anything” pattern).
         guard let values = paramValues[parameter], values.count > 0 else { return valuePattern == "*" }
+
+        if parameter.name == "__normalized_unversioned_triple" {
+            for value in values {
+                if normalizedTriplesCompareDisregardingOSVersions(valuePattern, value) {
+                    return true
+                }
+            }
+            return false
+        }
+
         // Iterate through the values.  For each, we invoke fnmatch() until we find a match or we reach the end of the list.
         for value in values {
             do {

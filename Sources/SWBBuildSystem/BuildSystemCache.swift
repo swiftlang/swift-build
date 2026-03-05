@@ -40,6 +40,9 @@ package final class SystemCacheEntry: CacheableValue {
     /// The QoS to use for the llbuild invocation.
     var llbQoS: SWBLLBuild.BuildSystem.QualityOfService? = nil
 
+    /// Overrides the number of llbuild scheduler lanes.
+    var laneWidth: UInt32 = 0
+
     /// The system to use.
     var system: SWBLLBuild.BuildSystem? = nil
 

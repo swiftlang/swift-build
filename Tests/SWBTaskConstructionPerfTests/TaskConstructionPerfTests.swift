@@ -54,7 +54,7 @@ fileprivate struct TaskConstructionPerfTests: CoreBasedTests, PerfTests {
             await measure {
                 await tester.checkBuild(runDestination: .macOS, checkTaskGraphIntegrity: false) { tester in
                     tester.checkTasks(.matchRuleType("CreateBuildDirectory")) { tasks in
-                        #expect(tasks.count == 1503)
+                        #expect(tasks.count == 2505)
                     }
                 }
             }

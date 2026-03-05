@@ -23,7 +23,7 @@ public final class ModulesVerifierToolSpec : GenericCommandLineToolSpec, SpecIde
     public func constructModuleVerifierTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate, alwaysExecuteTask: Bool, fileNameMapPath: Path) async {
         let ruleInfo = defaultRuleInfo(cbc, delegate)
 
-        let clangSpec = try! cbc.producer.getSpec() as ClangCompilerSpec
+        let clangSpec = try! cbc.producer.getSpec(ofType: ClangCompilerSpec.self)
         let clangPath = await clangSpec.resolveExecutablePath(cbc, Path("clang"), delegate: delegate)
         let specialArguments = ["--clang", clangPath.str, "--diagnostic-filename-map", fileNameMapPath.str]
 

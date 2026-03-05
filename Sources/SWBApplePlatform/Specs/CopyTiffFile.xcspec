@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 (
-    {   Identifier = com.apple.build-tasks.copy-tiff-file;
+    {
+        _Domain = darwin;
+        Identifier = com.apple.build-tasks.copy-tiff-file;
         Type = Compiler;
         Name = "Copy Tiff File";
         Description = "Copies a .tiff file resource with optional compression of the destination file";

@@ -73,7 +73,7 @@ public final class SWBBuildOperation: Sendable {
     private var activeTasks = Set<Int>()
 #endif
 
-    init(session: SWBBuildServiceSession, delegate: (any SWBPlanningOperationDelegate)?, request: SWBBuildRequest, onlyCreateBuildDescription: Bool) async throws {
+    init(session: SWBBuildServiceSession, delegate: (any SWBPlanningOperationDelegate)?, request: SWBBuildRequest, onlyCreateBuildDescription: Bool, retainBuildDescription: Bool) async throws {
         self.session = session
         self.delegate = delegate
         self.lockedState = .init(.requested)
@@ -91,7 +91,7 @@ public final class SWBBuildOperation: Sendable {
         }
 
         // Send an asynchronous message to add the build request.  This will cause it to start running at any point.
-        let msg = try await session.service.send(request: CreateBuildRequest(sessionHandle: session.uid, responseChannel: channel, request: request.messagePayloadRepresentation, onlyCreateBuildDescription: onlyCreateBuildDescription))
+        let msg = try await session.service.send(request: CreateBuildRequest(sessionHandle: session.uid, responseChannel: channel, request: request.messagePayloadRepresentation, onlyCreateBuildDescription: onlyCreateBuildDescription, retainBuildDescription: retainBuildDescription))
 
         // At the moment, by setting this here we guarantee the client can never cause any communication with the SWBBuildOperation before the ID is set.
         assert(state == .requested, "invalid state: \(state)")

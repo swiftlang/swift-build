@@ -51,7 +51,7 @@ extension BuildDescriptionManager {
         // Get the complete build description.
         let buildDescription: BuildDescription
         do {
-            if let retrievedBuildDescription = try await getBuildDescription(planRequest, clientDelegate: delegate.clientDelegate, constructionDelegate: delegate) {
+            if let retrievedBuildDescription = try await getBuildDescription(planRequest, retained: false, clientDelegate: delegate.clientDelegate, constructionDelegate: delegate) {
                 buildDescription = retrievedBuildDescription
             } else {
                 // If we don't receive a build description it means we were cancelled.

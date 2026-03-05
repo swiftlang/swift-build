@@ -17,7 +17,7 @@ public import SWBUtil
 /// For a description of how this feature works, see the `SWBBuildServiceSession.generateDocumentationInfo` documentation.
 public struct DocumentationInfoRequest: SessionChannelBuildMessage, RequestMessage, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "DOCUMENTATION_INFO_REQUESTED"
 
     /// The identifier for the session to initiate the request in.

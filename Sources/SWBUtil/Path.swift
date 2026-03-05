@@ -69,17 +69,44 @@ public struct Path: Serializable, Sendable {
     /// The system path separator.
     #if os(Windows)
     public static let pathSeparator = Character("\\")
-    public static let pathSeparatorUTF8 = UInt8(ascii: "\\")
-    public static let pathSeparatorsUTF8 = Set([UInt8(ascii: "\\"), UInt8(ascii: "/")])
+    @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "\\") }
     public static let pathEnvironmentSeparator = Character(";")
-    public static let pathSeparators = Set("\\/")
+    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
+        guard let separators else {
+            return char == pathSeparatorUTF8 || char == UInt8(ascii: "/")
+        }
+        // This is a bit inefficient, but separators should always be nil outside of tests
+        return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
+    }
+    @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
+        guard let separators else {
+            return str.utf8.firstIndex(where: { Path.isUTF8PathSeparator($0, separators: separators) })
+        }
+        return str.firstIndex(where: { separators.contains($0) })
+    }
     #else
     public static let pathSeparator = Character("/")
-    public static let pathSeparatorUTF8 = UInt8(ascii: "/")
-    public static let pathSeparatorsUTF8 = Set([UInt8(ascii: "/")])
+    @inline(__always) public static var pathSeparatorUTF8: UInt8 { UInt8(ascii: "/") }
     public static let pathEnvironmentSeparator = Character(":")
-    public static let pathSeparators = Set([Character("/")])
+    @inline(__always) public static func isUTF8PathSeparator(_ char: UInt8, separators: (some Collection<Character>)? = ([Character]?).none) -> Bool {
+        guard let separators else  {
+            return char == pathSeparatorUTF8
+        }
+        // This is a bit inefficient, but separators should always be nil outside of tests
+        return separators.contains(String(decoding: CollectionOfOne(char), as: UTF8.self))
+    }
+    @inline(__always) public static func firstPathSeparatorIndex(in str: some StringProtocol, separators: (some Collection<Character>)?) -> String.Index? {
+        guard let separators else {
+            return str.utf8.firstIndex(of: pathSeparatorUTF8)
+        }
+        return str.firstIndex(where: { separators.contains($0) })
+    }
     #endif
+
+    @inline(__always) public static func isPathSeparator(_ char: Character, separators: (some Collection<Character>)?) -> Bool {
+        guard let c = char.utf8.first else { return false }
+        return isUTF8PathSeparator(c, separators: separators)
+    }
 
     /// The system path separator, as a string.
     public static let pathSeparatorString = String(pathSeparator)
@@ -404,6 +431,24 @@ public struct Path: Serializable, Sendable {
         return nil
     }
 
+    /// `true` if the path contains any .lproj directories as path components.
+    public var containsRegionVariantPathComponent: Bool {
+        var path = self.join("File.strings") // since regionVariantName looks at parent dir
+        while !path.isRoot && !path.isEmpty {
+            if path.regionVariantName != nil {
+                return true
+            } else {
+                let parent = path.dirname
+                if parent == path {
+                    break
+                } else {
+                    path = parent
+                }
+            }
+        }
+        return false
+    }
+
     /// Return true if the pathname is conformant to path restrictions on the platform.
     ///
     /// Check the Unicode string representation of the path for reserved characters that cannot be represented as a path.
@@ -717,9 +762,10 @@ public struct Path: Serializable, Sendable {
             var numComponents = 0
             var isInPathComponent = false
             var nextCharacterIsEscaped = false
-            for idx in pattern.indices {
+            for byte in pattern.utf8 {
                 // Skip over path separators, unless they're escaped.
-                if pattern[idx] == Path.pathSeparator {
+                //TODO: should this (and other similar uses) be Path.isUTF8PathSeparator(byte) instead for Windows?
+                if byte == Path.pathSeparatorUTF8 {
                     if !nextCharacterIsEscaped {
                         isInPathComponent = false
                     }
@@ -736,7 +782,7 @@ public struct Path: Serializable, Sendable {
                     nextCharacterIsEscaped = false
                 }
                 else {
-                    nextCharacterIsEscaped = (pattern[idx] == Character("\\"))
+                    nextCharacterIsEscaped = (byte == UInt8(ascii: "\\"))
                 }
             }
             return numComponents
@@ -746,19 +792,20 @@ public struct Path: Serializable, Sendable {
         var numPathComponentsInPath = 0
         var isInPathComponent = false
         var firstIdx: String.Index?
-        for idx in self.str.indices.reversed() {
+        let utf8Str = self.str.utf8
+        for idx in utf8Str.indices.reversed() {
             // Skip over path separators.  We ignore backslashes here, since paths don't have escape characters.
-            if self.str[idx] == Path.pathSeparator {
+            if utf8Str[idx] == Path.pathSeparatorUTF8 {
                 isInPathComponent = false
                 // If we've found the expected number of path components, then we stop, and record the index of the first character we want to match against.
                 if numPathComponentsInPath == numPathComponentsInPattern {
-                    if idx != self.str.endIndex {
-                        firstIdx = self.str.index(after: idx)
+                    if idx != utf8Str.endIndex {
+                        firstIdx = utf8Str.index(after: idx)
                     }
                     break
                 }
             }
-            else if idx == self.str.startIndex {
+            else if idx == utf8Str.startIndex {
                 // If we didn't encounter a path separator, then the full string is the trailing subpath.
                 firstIdx = idx
                 break
@@ -781,7 +828,7 @@ public struct Path: Serializable, Sendable {
         }
 
         // Create a string from the first index we found to the end of the path.
-        let trailingSubpath = String(self.str[first..<self.str.endIndex])
+        let trailingSubpath = self.str[first..<self.str.endIndex]
 
         // Match the pattern against the requisite number of trailing path components.
         do {
@@ -896,7 +943,7 @@ extension Path {
     }
 }
 
-extension Path {
+extension AbsolutePath {
     /// Prepends `/private` to the path if it begins with one of the known symlinks of `/etc`, `/tmp`, or `/var`, _and_ the path specified by `otherPath` begins with `/private`.
     ///
     /// On macOS, `/{etc,tmp,var}` is a symlink to `/private/{etc,tmp,var}`. Some Apple build tools distributed with Xcode aggressively strip /private from the beginning of file paths, effectively de-canonicalizing them back to including a symlink component. Paths in the dependency graph are expected to be pre-normalized and not contain symlinks.
@@ -904,17 +951,19 @@ extension Path {
     /// The "if needed" part of the name of this function reflects its usage intent: this function should be called on paths retrieved from the output of build tools like `momc` and `intentbuilderc`, passing the in output directory which the build task originally passed to the tool as `otherPath`. This will result in the behavior where if the build task passes `/private/tmp` and receives paths beginning with `/tmp`, they'll be canonicalized back to beginning with `/private/tmp` by this function. However if the build task merely passed `/tmp`, this function would _not_ add `/private` to the returned paths. Thus, this function is intended to ensure that tools produce paths with the same prefix as the build task requested for the output directory.
     ///
     /// Note that this is mostly only relevant in unit tests, as most real builds don't have a build output directory under `/etc`, `/tmp`, or `/var`.
-    public func prependingPrivatePrefixIfNeeded(otherPath: Path) -> Path {
+    public func prependingPrivatePrefixIfNeeded(otherPath: AbsolutePath) -> AbsolutePath {
         struct Static {
-            static let `private` = Path("/private")
-            static let prefixes = [Path("/etc"), Path("/tmp"), Path("/var")]
+            static let `private` = AbsolutePath("/private")!
+            static let prefixes = [AbsolutePath("/etc")!, AbsolutePath("/tmp")!, AbsolutePath("/var")!]
         }
         if Static.private.isAncestor(of: otherPath) && Static.prefixes.contains(where: { $0.isAncestor(of: self) }) {
-            return Static.private.join(self, preserveRoot: true)
+            return AbsolutePath(Static.private.path.join(self.path, preserveRoot: true))!
         }
         return self
     }
+}
 
+extension Path {
     /// Returns a string representation of the path which uses POSIX slashes even on Windows.
     ///
     /// This is necessary for some cases where tools may treat the `\` character as part of an escape sequence rather than a path separator even on Windows. Use sparingly.
@@ -926,6 +975,39 @@ extension Path {
         #endif
     }
 }
+
+extension String {
+    @_spi(Testing) public var canonicalPathRepresentation: String {
+        get throws {
+            #if os(Windows)
+            return try withCString(encodedAs: UTF16.self) { platformPath in
+                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
+                    return String(decodingCString: canonicalPath, as: UTF16.self)
+                }
+            }
+            #else
+            return self
+            #endif
+        }
+    }
+}
+
+extension Path {
+     @_spi(Testing) public var canonicalPathRepresentation: String {
+        get throws {
+            #if os(Windows)
+            return try withPlatformString { platformPath in
+                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
+                    return String(decodingCString: canonicalPath, as: UTF16.self)
+                }
+            }
+            #else
+            return str
+            #endif
+        }
+    }
+}
+
 
 /// A wrapper for a string which is used to identify an absolute path on the file system.
 public struct AbsolutePath: Hashable, Equatable, Serializable, Sendable {
@@ -1006,6 +1088,10 @@ public struct RelativePath: Hashable, Equatable, Serializable, Sendable {
 }
 
 extension AbsolutePath {
+    public static var root: AbsolutePath {
+        AbsolutePath(.root)!
+    }
+
     public var dirname: AbsolutePath {
         AbsolutePath(path.dirname)!
     }

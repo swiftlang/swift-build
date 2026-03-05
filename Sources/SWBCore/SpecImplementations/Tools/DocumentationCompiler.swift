@@ -77,20 +77,50 @@ final public class DocumentationCompilerSpec: GenericCompilerSpec, SpecIdentifie
     ) -> [String] {
         var additionalFlags = [String]()
 
+        // Check if pretty print is requested
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_PRETTY_PRINT) {
+            additionalFlags.append("-symbol-graph-pretty-print")
+        }
+
         // Check if extension symbol documentation is requested
         if cbc.scope.evaluate(BuiltinMacros.DOCC_EXTRACT_EXTENSION_SYMBOLS) && swiftCompilerInfo.toolFeatures.has(.emitExtensionBlockSymbols) {
             additionalFlags.append("-emit-extension-block-symbols")
         }
 
-        switch DocumentationType(from: cbc) {
-        case .executable:
-            // When building executable types (like applications and command-line tools), include
-            // internal symbols in the generated symbol graph.
+        // Check if synthesized members should be skipped
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_SKIP_SYNTHESIZED_MEMBERS) {
+            additionalFlags.append("-symbol-graph-skip-synthesized-members")
+        }
+
+        // Check if inherited docs should be skipped
+        if cbc.scope.evaluate(BuiltinMacros.DOCC_SKIP_INHERITED_DOCS) {
+            additionalFlags.append("-symbol-graph-skip-inherited-docs")
+        }
+
+        switch cbc.scope.evaluate(BuiltinMacros.DOCC_MINIMUM_ACCESS_LEVEL) {
+        case .none:
+            switch DocumentationType(from: cbc) {
+            case .executable:
+                // When building executable types (like applications and command-line tools), include
+                // internal symbols in the generated symbol graph.
+                return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "internal"])
+            case .framework, .none:
+                // For frameworks (and non-documentable types), just use the default behavior
+                // of the symbol graph tool.
+                return additionalFlags
+            }
+        case .private:
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "private"])
+        case .fileprivate:
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "fileprivate"])
+        case .internal:
             return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "internal"])
-        case .framework, .none:
-            // For frameworks (and non-documentable types), just use the default behavior
-            // of the symbol graph tool.
-            return additionalFlags
+        case .package:
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "package"])
+        case .public:
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "public"])
+        case .open:
+            return additionalFlags.appending(contentsOf: ["-symbol-graph-minimum-access-level", "open"])
         }
     }
 

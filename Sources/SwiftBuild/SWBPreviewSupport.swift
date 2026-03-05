@@ -60,6 +60,8 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
 
     public let pifGUID: String
 
+    public let productModuleName: String
+
     /// Mapping of object files to the source file inputs they came from.
     public let objectFileInputMap: [String: Set<String>]
 
@@ -104,12 +106,17 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
     /// user to disable the sanitizer in some cases where it is known to fail.
     public let enableUndefinedBehaviorSanitizer: Bool
 
+    /// Reads from `ENABLE_MEMORY_TAGGING_ADDRESS_SANITIZER`. Previews currently uses this to ask the
+    /// user to disable the sanitizer in some cases where it is known to fail.
+    public let enableMemoryTaggingAddressSanitizer: Bool
+
     @_spi(Testing) public init(
         sdkRoot: String,
         sdkVariant: String? = nil,
         buildVariant: String,
         architecture: String,
         pifGUID: String,
+        productModuleName: String,
         objectFileInputMap: [String : Set<String>],
         linkCommandLine: [String],
         linkerWorkingDirectory: String?,
@@ -119,13 +126,15 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         enableDebugDylib: Bool,
         enableAddressSanitizer: Bool,
         enableThreadSanitizer: Bool,
-        enableUndefinedBehaviorSanitizer: Bool
+        enableUndefinedBehaviorSanitizer: Bool,
+        enableMemoryTaggingAddressSanitizer: Bool
     ) {
         self.sdkRoot = sdkRoot
         self.sdkVariant = sdkVariant
         self.buildVariant = buildVariant
         self.architecture = architecture
         self.pifGUID = pifGUID
+        self.productModuleName = productModuleName
         self.objectFileInputMap = objectFileInputMap
         self.linkCommandLine = linkCommandLine
         self.linkerWorkingDirectory = linkerWorkingDirectory
@@ -136,5 +145,6 @@ public struct SWBPreviewTargetDependencyInfo: SWBPreviewInfoContext, Hashable, S
         self.enableAddressSanitizer = enableAddressSanitizer
         self.enableThreadSanitizer = enableThreadSanitizer
         self.enableUndefinedBehaviorSanitizer = enableUndefinedBehaviorSanitizer
+        self.enableMemoryTaggingAddressSanitizer = enableMemoryTaggingAddressSanitizer
     }
 }

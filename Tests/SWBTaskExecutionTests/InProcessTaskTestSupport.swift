@@ -36,6 +36,7 @@ struct MockExecutionDelegate: TaskExecutionDelegate {
     let environment: [String: String]?
     let userPreferences: UserPreferences
     let infoLookup: any PlatformInfoLookup
+    var hostOperatingSystem: OperatingSystem { core!.hostOperatingSystem }
     var sdkRegistry: SDKRegistry { core!.sdkRegistry }
     var specRegistry: SpecRegistry { core!.specRegistry }
     var platformRegistry: PlatformRegistry { core!.platformRegistry }
@@ -71,33 +72,15 @@ final class MockTaskOutputDelegate: TaskOutputDelegate {
 
     private let _diagnosticsEngine = DiagnosticsEngine()
 
-    func incrementClangCacheHit() {
+    func incrementCounter(_ counter: BuildOperationMetrics.Counter, by amount: Int) {
         state.state.withLock { state in
-            state.counters[.clangCacheHits, default: 0] += 1
+            state.counters[counter, default: 0] += amount
         }
     }
 
-    func incrementClangCacheMiss() {
+    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter, by amount: Int) {
         state.state.withLock { state in
-            state.counters[.clangCacheMisses, default: 0] += 1
-        }
-    }
-
-    func incrementSwiftCacheHit() {
-        state.state.withLock { state in
-            state.counters[.swiftCacheHits, default: 0] += 1
-        }
-    }
-
-    func incrementSwiftCacheMiss() {
-        state.state.withLock { state in
-            state.counters[.swiftCacheMisses, default: 0] += 1
-        }
-    }
-
-    func incrementTaskCounter(_ counter: BuildOperationMetrics.TaskCounter) {
-        state.state.withLock { state in
-            state.taskCounters[counter, default: 0] += 1
+            state.taskCounters[counter, default: 0] += amount
         }
     }
 
@@ -247,7 +230,7 @@ final class MockTaskTypeDescription: TaskTypeDescription {
     let payloadType: (any TaskPayload.Type)? = nil
     var toolBasenameAliases: [String] { return [] }
     func commandLineForSignature(for task: any ExecutableTask) -> [ByteString]? { return nil }
-    func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path] { return [] }
+    func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo] { return [] }
     func generateIndexingInfo(for task: any ExecutableTask, input: TaskGenerateIndexingInfoInput) -> [TaskGenerateIndexingInfoOutput] { return [] }
     func generatePreviewInfo(for task: any ExecutableTask, input: TaskGeneratePreviewInfoInput, fs: any FSProxy) -> [TaskGeneratePreviewInfoOutput] { return [] }
     func generateDocumentationInfo(for task: any ExecutableTask, input: TaskGenerateDocumentationInfoInput) -> [TaskGenerateDocumentationInfoOutput] { return [] }

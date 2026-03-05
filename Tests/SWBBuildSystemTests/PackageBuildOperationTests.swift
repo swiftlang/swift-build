@@ -592,11 +592,15 @@ fileprivate struct PackageBuildOperationTests: CoreBasedTests {
                 packageBuildDirectory.join(configurationToBuild).str,
                 packageBuildDirectory.join(configurationToBuild).join("PackageFrameworks").str,
                 packageBuildDirectory.join("EagerLinkingTBDs").join(configurationToBuild).str,
+                packageBuildDirectory.join("ExplicitPrecompiledModules").str,
+                packageBuildDirectory.join("SwiftExplicitPrecompiledModules").str,
 
                 projectBuildDirectory.str,
                 projectBuildDirectory.join(configurationToBuild).str,
                 projectBuildDirectory.join(configurationToBuild).join("PackageFrameworks").str,
                 projectBuildDirectory.join("EagerLinkingTBDs").join(configurationToBuild).str,
+                projectBuildDirectory.join("ExplicitPrecompiledModules").str,
+                projectBuildDirectory.join("SwiftExplicitPrecompiledModules").str,
             ].sorted()
 
             let tester = try await testerForBasicPackageProject(tmpDirPath: tmpDirPath, configurationToBuild: configurationToBuild)

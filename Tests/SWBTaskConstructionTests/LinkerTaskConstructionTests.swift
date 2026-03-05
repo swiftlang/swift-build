@@ -94,4 +94,273 @@ fileprivate struct LinkerTaskConstructionTests: CoreBasedTests {
             }
         }
     }
+
+    @Test(.requireSDKs(.macOS))
+    func stdlibRpathSuppression() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": try await swiftCompilerPath.str,
+                    "SWIFT_VERSION": try await swiftVersion,
+                    "MACOSX_DEPLOYMENT_TARGET": "10.13"
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["s.swift"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["LINKER_DRIVER": "swiftc"]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContains(["-no-stdlib-rpath"])
+            }
+        }
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: ["LINKER_DRIVER": "clang"]), runDestination: .macOS) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineDoesNotContain("-no-stdlib-rpath")
+            }
+        }
+    }
+
+    @Test(
+        .requireSDKs(.host),
+        arguments: [
+            (
+                buildSettingNameUT: "ENABLE_ADDRESS_SANITIZER",
+                linkerDriverUT: "clang",
+                expectedArgument: "-fsanitize=address",
+            ),
+            (
+                buildSettingNameUT: "ENABLE_ADDRESS_SANITIZER",
+                linkerDriverUT: "swiftc",
+                expectedArgument: "-sanitize=address",
+            ),
+            (
+                buildSettingNameUT: "ENABLE_THREAD_SANITIZER",
+                linkerDriverUT: "clang",
+                expectedArgument: "-fsanitize=thread",
+            ),
+            (
+                buildSettingNameUT: "ENABLE_THREAD_SANITIZER",
+                linkerDriverUT: "swiftc",
+                expectedArgument: "-sanitize=thread",
+            ),
+        ],
+    )
+    func ldSanitizerArgumentsAppearsOnCommandLine(
+        buildSettingNameUT: String,
+        linkerDriverUT: String,
+        expectedArgument: String,
+    ) async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("c.c"),
+                    TestFile("cxx.cpp"),
+                    TestFile("s.swift"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "SWIFT_EXEC": try await swiftCompilerPath.str,
+                    "SWIFT_VERSION": try await swiftVersion
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["c.c", "cxx.cpp", "s.swift"]),
+                    ],
+                ),
+            ],
+        )
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(
+            BuildParameters(
+                configuration: "Debug",
+                overrides: [
+                    "LINKER_DRIVER": linkerDriverUT,
+                    buildSettingNameUT: "YES",
+                ],
+            ),
+            runDestination: .host,
+        ) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContains([expectedArgument])
+            }
+        }
+
+    }
+
+    @Test(.requireSDKs(.host))
+    func dynamicLibraryWithNoSourcesButStaticLibrariesInFrameworksPhase_Xcode() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("source.c"),
+                    TestFile("libStaticLib.a"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "LIBTOOL": libtoolPath.str,
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "DynamicLib",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([]),
+                        TestFrameworksBuildPhase(["libStaticLib.a"]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
+                TestStandardTarget(
+                    "StaticLib",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["source.c"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host) { results in
+            results.checkWarning("Target 'DynamicLib' contains a non-empty linked libraries phase, but it contains no object files, and no sources are being compiled. For compatibility, no binary will be produced. Remove unused entries in the linked libraries phase to suppress this warning. (in target 'DynamicLib' from project 'aProject')")
+            results.checkNoDiagnostics()
+            results.checkTarget("DynamicLib") { target in
+                results.checkNoTask(.matchTarget(target), .matchRuleType("Ld"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host))
+    func dynamicLibraryWithNoSourcesButStaticLibrariesInFrameworksPhase_Package() async throws {
+        let testProject = try await TestPackageProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("source.c"),
+                    TestFile("libStaticLib.a"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                    "LIBTOOL": libtoolPath.str,
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "DynamicLib",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase([]),
+                        TestFrameworksBuildPhase(["libStaticLib.a"]),
+                    ],
+                    dependencies: ["StaticLib"]
+                ),
+                TestStandardTarget(
+                    "StaticLib",
+                    type: .staticLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [:]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["source.c"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host) { results in
+            results.checkNoDiagnostics()
+            results.checkTarget("DynamicLib") { target in
+                results.checkTaskExists(.matchTarget(target), .matchRuleType("Ld"))
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.host), .requireHostOS(.linux))
+    func linuxSoname() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles",
+                children: [
+                    TestFile("c.c"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration("Debug", buildSettings: [
+                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "Library",
+                    type: .dynamicLibrary,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug", buildSettings: [
+                            "EXECUTABLE_PREFIX": "lib",
+                        ]),
+                    ],
+                    buildPhases: [
+                        TestSourcesBuildPhase(["c.c"]),
+                    ]
+                ),
+            ])
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+
+        await tester.checkBuild(BuildParameters(configuration: "Debug", overrides: [:]), runDestination: .host) { results in
+            results.checkNoDiagnostics()
+            results.checkTask(.matchRuleType("Ld")) { task in
+                task.checkCommandLineContains(["-Xlinker", "-soname", "-Xlinker", "libLibrary.so"])
+            }
+        }
+    }
 }

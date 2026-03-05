@@ -830,7 +830,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                     if let task = results.getTask(.matchTargetName("AppTarget"), .matchRuleType("Ld")) {
                         results.check(notContains: .taskHadEvent(task, event: .started))
                     }
-                    
+
                     // Check that the test target's compile and link tasks ran.
                     if let task = results.getTask(.matchTargetName("UnitTestTarget"), .matchRuleType("SwiftDriver")) {
                         results.check(contains: .taskHadEvent(task, event: .started))
@@ -838,7 +838,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                     if let task = results.getTask(.matchTargetName("UnitTestTarget"), .matchRuleType("Ld")) {
                         results.check(contains: .taskHadEvent(task, event: .started))
                     }
-                    
+
                     // Check that the test and app's code sign tasks both ran.
                     if let task = results.getTask(.matchTargetName("UnitTestTarget"), .matchRuleType("CodeSign")) {
                         results.check(contains: .taskHadEvent(task, event: .started))
@@ -846,7 +846,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
                     if let task = results.getTask(.matchTargetName("AppTarget"), .matchRuleType("CodeSign"), .matchRuleItemBasename("AppTarget.app")) {
                         results.check(contains: .taskHadEvent(task, event: .started))
                     }
-                    
+
                     // Check that there are no errors.
                     results.checkNoDiagnostics()
                 }
@@ -1045,7 +1045,7 @@ fileprivate struct UnitTestBuildOperationTests: CoreBasedTests {
 
     /// Test building an application and a UI test target for iOS for both the device and the simulator.
     @Test(.requireSDKs(.iOS))
-    func uITestTarget_iOS() async throws {
+    func uiTestTarget_iOS() async throws {
         // Creates and returns a tester for a given test.
         func makeTester(_ tmpDir: Path) async throws -> BuildOperationTester {
             let testWorkspace = try await TestWorkspace(

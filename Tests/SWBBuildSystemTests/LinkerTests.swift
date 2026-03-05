@@ -25,8 +25,9 @@ fileprivate struct LinkerTests: CoreBasedTests {
     func linkerDriverDiagnosticsParsing() async throws {
 
         try await withTemporaryDirectory { tmpDir in
+            let projectName = "TestProject"
             let testProject = try await TestProject(
-                "TestProject",
+                projectName,
                 sourceRoot: tmpDir,
                 groupTree: TestGroup(
                     "SomeFiles",
@@ -61,7 +62,7 @@ fileprivate struct LinkerTests: CoreBasedTests {
             }
 
             try await tester.checkBuild(runDestination: .macOS) { results in
-                results.checkError(.prefix("Unknown argument: '-not-a-real-flag'"))
+                results.checkError(.prefix("\(tmpDir.str)/\(projectName).xcodeproj: Unknown argument: '-not-a-real-flag'"))
                 results.checkError(.prefix("Command Ld failed."))
             }
         }
@@ -222,7 +223,8 @@ fileprivate struct LinkerTests: CoreBasedTests {
                             TestSourcesBuildPhase([
                                 "library.swift"
                             ])
-                        ]
+                        ],
+                        productReferenceName: "$(EXECUTABLE_NAME)"
                     ),
                 ])
             let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
@@ -356,6 +358,74 @@ fileprivate struct LinkerTests: CoreBasedTests {
                          }
                     }
                     results.checkNoDiagnostics()
+                }
+            }
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func prelinkingPropagatesPlatformVersion() async throws {
+        func createProject(_ tmpDir: Path, enableInterop: Bool) -> TestProject {
+            TestProject(
+                "TestProject",
+                sourceRoot: tmpDir,
+                groupTree: TestGroup(
+                    "SomeFiles",
+                    children: [
+                        TestFile("main.c"),
+                        TestFile("lib.c"),
+                    ]),
+                targets: [
+                    TestStandardTarget(
+                        "cli", type: .commandLineTool,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "CODE_SIGNING_ALLOWED": "NO",
+                                    "GENERATE_PRELINK_OBJECT_FILE": "YES",
+                                    "GCC_SYMBOLS_PRIVATE_EXTERN": "NO",
+                                    "MACOSX_DEPLOYMENT_TARGET": "13.0",
+                                ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["main.c"]),
+                            TestFrameworksBuildPhase([TestBuildFile(.target("lib"))])
+                        ],
+                        dependencies: [TestTargetDependency("lib")]
+                    ),
+                    TestStandardTarget(
+                        "lib", type: .staticLibrary,
+                        buildConfigurations: [
+                            TestBuildConfiguration(
+                                "Debug",
+                                buildSettings: [
+                                    "PRODUCT_NAME": "$(TARGET_NAME)",
+                                    "MACOSX_DEPLOYMENT_TARGET": "13.0",
+                                ])
+                        ],
+                        buildPhases: [
+                            TestSourcesBuildPhase(["lib.c"])
+                        ]
+                    ),
+                ])
+        }
+
+        try await withTemporaryDirectory { tmpDir in
+            let testProject = createProject(tmpDir, enableInterop: true)
+            let tester = try await BuildOperationTester(getCore(), testProject, simulated: false)
+            let projectDir = tester.workspace.projects[0].sourceRoot
+            try await tester.fs.writeFileContents(projectDir.join("main.c")) { stream in
+                stream <<< "int foo(void); int main(void) { foo(); }"
+            }
+            try await tester.fs.writeFileContents(projectDir.join("lib.c")) { stream in
+                stream <<< "int foo(void) { return 42; }"
+            }
+            try await tester.checkBuild(runDestination: .macOS) { results in
+                results.checkNoDiagnostics()
+                results.checkTask(.matchRuleType("PrelinkedObjectLink")) { task in
+                    task.checkCommandLineContainsUninterrupted(["-platform_version", "1", "13.0"])
                 }
             }
         }

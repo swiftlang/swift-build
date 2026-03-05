@@ -16,7 +16,8 @@ SwiftBuild_Bundle(MODULE SWBWindowsPlatform FILES
   Specs/Windows.xcspec
   Specs/WindowsCompile.xcspec
   Specs/WindowsLd.xcspec
-  Specs/WindowsLibtool.xcspec)
+  Specs/WindowsLibtool.xcspec
+  Specs/WindowsStripSymbols.xcspec)
 target_link_libraries(SWBWindowsPlatform PUBLIC
   SWBCore
   SWBMacro

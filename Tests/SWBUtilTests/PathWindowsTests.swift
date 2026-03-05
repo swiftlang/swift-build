@@ -12,7 +12,7 @@
 
 import Testing
 import SWBTestSupport
-import SWBUtil
+@_spi(Testing) import SWBUtil
 
 @Suite(.requireHostOS(.windows))
 fileprivate struct PathWindowsTests {
@@ -56,37 +56,5 @@ fileprivate struct PathWindowsTests {
 
         #expect(try Path(current.str.prefix(2) + String(repeating: "foo/bar/baz/", count: chunks)).canonicalPathRepresentation == current.join(String(repeating: "\\foo\\bar\\baz", count: chunks)).str)
         #expect(try Path(current.str.prefix(2) + String(repeating: "foo/bar/baz/", count: 22)).canonicalPathRepresentation == "\\\\?\\" + current.join(String(repeating: "\\foo\\bar\\baz", count: 22)).str)
-    }
-}
-
-fileprivate extension String {
-    var canonicalPathRepresentation: String {
-        get throws {
-            #if os(Windows)
-            return try withCString(encodedAs: UTF16.self) { platformPath in
-                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
-                    return String(decodingCString: canonicalPath, as: UTF16.self)
-                }
-            }
-            #else
-            return self
-            #endif
-        }
-    }
-}
-
-fileprivate extension Path {
-    var canonicalPathRepresentation: String {
-        get throws {
-            #if os(Windows)
-            return try withPlatformString { platformPath in
-                return try platformPath.withCanonicalPathRepresentation { canonicalPath in
-                    return String(decodingCString: canonicalPath, as: UTF16.self)
-                }
-            }
-            #else
-            return str
-            #endif
-        }
     }
 }

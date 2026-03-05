@@ -15,7 +15,7 @@ public import SWBProtocol
 public import SWBMacro
 
 /// Represents a file to be passed as input to some part of the build machinery.  May be a source file originally sent down with the PIF, or might be a temporary file.  Once a build rule action has been determined, it is assigned to the FileToBuild so it doesn’t have to be looked up again.  Note that the term “file” here is used in the loosest sense — the path can refer to any file system entity.
-public struct FileToBuild : Hashable {
+public struct FileToBuild : Hashable, Sendable {
     /// Absolute path of the referenced file.
     public let absolutePath: Path
 
@@ -174,9 +174,75 @@ public extension RegionVariable {
     }
 
     /// This is only relevant for the installloc action for Localization projects.
-    func isValidLocalizedContent(_ scope: MacroEvaluationScope) -> Bool {
-        guard let regionVariantName else { return false }
-        let installLocLanguages = Set(scope.evaluate(BuiltinMacros.INSTALLLOC_LANGUAGE))
-        return installLocLanguages.isEmpty || installLocLanguages.contains(regionVariantName)
+    ///
+    /// `xcstrings` files are not generally allowable according to this method, but each call-site should make its own decision about those.
+    /// For example Copy Files phases usually don't want xcstrings, but Resources phase does.
+    func isValidLocalizedContentForInstallloc(_ scope: MacroEvaluationScope, in project: Project?) -> Bool {
+        guard let regionVariantName else {
+            // This file isn't in an lproj, and only lproj'd content is allowed to build in installloc.
+            return false
+        }
+
+        let allowableLanguages = scope.restrictedLocRegionsToBuild(in: project)
+        if let allowableLanguages {
+            // If allowableLanguages is empty, we really do want to return false for every file.
+            return allowableLanguages.contains(regionVariantName)
+        } else {
+            // No restrictions on locales, so let it build.
+            return true
+        }
+    }
+
+    /// When the build setting `BUILD_ONLY_KNOWN_LOCALIZATIONS` is active,
+    /// this region must be present in the project's known localizations
+    /// or else the file should not be built.
+    ///
+    /// `delegate` is used to emit a note about skipping this file if the
+    /// method returns `false`.
+    ///
+    /// - Returns: `true` if this file can be built because
+    /// `BUILD_ONLY_KNOWN_LOCALIZATIONS` is disabled, or the file's region
+    /// is present in the project's supported localizations.
+    /// If this file should not be built, `false` is returned.
+    func buildSettingAllowsBuildingLocale(
+        _ scope: MacroEvaluationScope,
+        in project: Project?,
+        inputFileAbsolutePath: Path,
+        _ delegate: (any DiagnosticProducingDelegate)?
+    ) -> Bool {
+
+        let isInstallloc = scope.evaluate(BuiltinMacros.BUILD_COMPONENTS).contains("installLoc")
+        guard !isInstallloc else {
+            // We're in the installloc build phase, and we're not interested in changing its behavior.
+            // Client is responsible for having previously called isValidLocalizedContentForInstallloc(…) if needed.
+            // Allow the flow to continue:
+            return true
+        }
+
+        guard let regionVariantName else {
+            // This isn't a localized file, so let it through.
+            // If it is an xcstrings then XCStringsCompiler will do its own filtering.
+            return true
+        }
+
+        if regionVariantName == "mul" {
+            // Allow mul.lproj (multi-lingual) which is used when xcstrings are paired with IB files.
+            // XCStringsCompiler will do its own filtering.
+            return true
+        }
+
+        guard let knownLocalizations = scope.restrictedLocRegionsToBuild(in: project) else {
+            // No restrictions. Allow it to build:
+            return true
+        }
+
+        if knownLocalizations.contains(regionVariantName) {
+            // This is a known locale, allow it to build:
+            return true
+        }
+
+        // This region is not supported, so it shouldn't build.
+        delegate?.note("Skipping file in .lproj directory '\(regionVariantName).lproj' because '\(regionVariantName)' is not in project's known localizations (BUILD_ONLY_KNOWN_LOCALIZATIONS is enabled)", location: .path(inputFileAbsolutePath))
+        return false
     }
 }

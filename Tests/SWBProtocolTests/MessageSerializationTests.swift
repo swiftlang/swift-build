@@ -24,9 +24,11 @@ import Testing
             action: "build",
             configuration: "Debug",
             activeRunDestination: RunDestinationInfo(
-                platform: "osOS",
-                sdk: "osos",
-                sdkVariant: "x",
+                buildTarget: .toolchainSDK(
+                    platform: "osOS",
+                    sdk: "osos",
+                    sdkVariant: "x",
+                ),
                 targetArchitecture: "arm128",
                 supportedArchitectures: ["arm128"],
                 disableOnlyActiveArch: true,
@@ -55,7 +57,7 @@ import Testing
             )
         )
 
-        payload = BuildRequestMessagePayload(parameters: params, configuredTargets: [ConfiguredTargetMessagePayload(guid: "some other guid", parameters: params)], dependencyScope: .workspace, continueBuildingAfterErrors: true, hideShellScriptEnvironment: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: true, showNonLoggedProgress: false, recordBuildBacktraces: nil, generatePrecompiledModulesReport: nil, buildPlanDiagnosticsDirPath: Path("/tmp/foobar"), buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false), schemeCommand: .profile, containerPath: Path("/tmp/foobar.xcodeproj"), buildDescriptionID: nil, qos: nil, jsonRepresentation: Data())
+        payload = BuildRequestMessagePayload(parameters: params, configuredTargets: [ConfiguredTargetMessagePayload(guid: "some other guid", parameters: params)], dependencyScope: .workspace, continueBuildingAfterErrors: true, hideShellScriptEnvironment: false, useParallelTargets: true, useImplicitDependencies: false, useDryRun: true, showNonLoggedProgress: false, recordBuildBacktraces: nil, generatePrecompiledModulesReport: nil, buildPlanDiagnosticsDirPath: Path("/tmp/foobar"), buildCommand: .prepareForIndexing(buildOnlyTheseTargets: nil, enableIndexBuildArena: false), schemeCommand: .profile, containerPath: Path("/tmp/foobar.xcodeproj"), buildDescriptionID: nil, qos: nil, schedulerLaneWidthOverride: nil, jsonRepresentation: Data())
     }
 
     @Test func basicMessagesRoundTrip() throws {
@@ -94,7 +96,7 @@ import Testing
         assertMsgPackMessageRoundTrip(AuditSessionPIFRequest(sessionHandle: "theSession", pifContents: [4, 7, 9, 13]))
         assertMsgPackMessageRoundTrip(IncrementalPIFLookupFailureRequest(sessionHandle: "theSession", diagnostic: "everything went wrong"))
         assertMsgPackMessageRoundTrip(WorkspaceInfoRequest(sessionHandle: "theSession"))
-        assertMsgPackMessageRoundTrip(WorkspaceInfoResponse(sessionHandle: "theSession", workspaceInfo: .init(targetInfos: [.init(guid: "theGuid", targetName: "aTarget", projectName: "aProject")])))
+        assertMsgPackMessageRoundTrip(WorkspaceInfoResponse(sessionHandle: "theSession", workspaceInfo: .init(targetInfos: [.init(guid: "theGuid", targetName: "aTarget", projectName: "aProject", dynamicTargetVariantGuid: nil)])))
 
         assertMsgPackMessageRoundTrip(ErrorResponse("everything went wrong"))
         assertMsgPackMessageRoundTrip(BoolResponse(true))

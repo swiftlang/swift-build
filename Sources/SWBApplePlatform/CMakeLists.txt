@@ -17,7 +17,9 @@ add_library(SWBApplePlatform
   CoreDataCompiler.swift
   CoreMLCompiler.swift
   DittoTool.swift
+  ExtensionPointExtractorTaskProducer.swift
   ExtensionPointsCompiler.swift
+  EXUtil.swift
   IIGCompiler.swift
   InstrumentsPackageBuilderSpec.swift
   IntentsCompiler.swift
@@ -41,13 +43,16 @@ add_library(SWBApplePlatform
   LocalizationInputFileGroupingStrategy.swift
   MacCatalystInfoExtension.swift
   Plugin.swift
+  PluginDCLT.swift
   RealityAssetsTaskProducer.swift
+  RegisterExecutionPolicyException.swift
   StringCatalogCompilerOutputParser.swift
   StubBinaryTaskProducer.swift
   XCStringsInputFileGroupingStrategy.swift)
 SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/AppIntentsMetadata.xcspec
   Specs/AppIntentsNLTraining.xcspec
+  Specs/AppleFileTypes.xcspec
   Specs/AppShortcutStringsMetadata.xcspec
   Specs/AssetCatalogCompiler.xcspec
   Specs/CompileSkybox.xcspec
@@ -63,6 +68,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/Embedded-Shared.xcspec
   Specs/Embedded-Simulator.xcspec
   Specs/EmbeddedBinaryValidationUtility.xcspec
+  Specs/EXUtil.xcspec
   Specs/GenerateAppPlaygroundAssetCatalog.xcspec
   Specs/GenerateTextureAtlas.xcspec
   Specs/IBCompiler.xcspec
@@ -103,6 +109,7 @@ SwiftBuild_Bundle(MODULE SWBApplePlatform FILES
   Specs/SceneKitFileTypes.xcspec
   Specs/SceneKitTools.xcspec
   Specs/SpriteKitFileTypes.xcspec
+  Specs/StripSymbolsDarwin.xcspec
   Specs/TiffUtil.xcspec
   Specs/tvOSDevice.xcspec
   Specs/tvOSShared.xcspec

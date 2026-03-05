@@ -80,6 +80,7 @@ public final class FileCopyTaskAction: TaskAction
                     if !symlinkDestinationPath.isAbsolute {
                         symlinkDestinationPath = inputPath.dirname.join(symlinkDestinationPath)
                     }
+                    symlinkDestinationPath = symlinkDestinationPath.normalize()
                     dynamicExecutionDelegate.discoveredDependencyDirectoryTree(symlinkDestinationPath)
                 }
             }

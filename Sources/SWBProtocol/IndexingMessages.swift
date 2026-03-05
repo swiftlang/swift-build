@@ -94,7 +94,7 @@ public struct IndexingFileSettingsResponse: IndexingInfoResponse, Message, Equat
 
 public struct IndexingHeaderInfoRequest: IndexingInfoRequest, RequestMessage, SessionChannelBuildMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "INDEXING_HEADER_INFO_REQUESTED"
 
     /// The identifier for the session to initiate the request in.
@@ -143,7 +143,7 @@ let indexingMessageTypes: [any Message.Type] = [
 
 public struct BuildDescriptionTargetInfoRequest: SessionChannelBuildMessage, RequestMessage, SerializableCodable, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "BUILD_DESCRIPTION_TARGET_INFO"
 
     /// The identifier for the session to initiate the request in.

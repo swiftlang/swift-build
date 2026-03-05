@@ -122,7 +122,7 @@
         _Domain = watchos-shared;
         Type = Compiler;
         Identifier = "com.apple.compilers.assetcatalog";
-        BasedOn = "default:com.apple.compilers.assetcatalog";
+        BasedOn = "darwin:com.apple.compilers.assetcatalog";
         Options = (
             {
                 Name = "ASSETCATALOG_COMPILER_COMPLICATION_NAME";

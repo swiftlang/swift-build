@@ -249,11 +249,15 @@ public struct FileCopyTaskActionContext {
             targetTripleOSVersion = llvmTargetTripleOSVersion
         }
 
+        // Compute a proper install name for the stub binary based on the framework path.
+        // Use @rpath-based install name to avoid embedding temporary paths (rdar://154514099).
+        let stubInstallName = "@rpath/\(frameworkPath.basename)/\(frameworkPath.basenameWithoutSuffix)"
+
         return (
             compileAndLink: partialTargetValues.map { partialTargetValue in
                     (
                         compile: stubPartialCompilerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue).o").str],
-                        link: stubPartialLinkerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-o", tempDir.join("\(partialTargetValue)").str, tempDir.join("\(partialTargetValue).o").str]
+                        link: stubPartialLinkerCommandLine + ["-target", "\(partialTargetValue)-\(targetTripleOSVersion)\(llvmTargetTripleSuffix)", "-install_name", stubInstallName, "-o", tempDir.join("\(partialTargetValue)").str, tempDir.join("\(partialTargetValue).o").str]
                     )
                 },
             lipo: stubPartialLipoCommandLine + ["-output", frameworkPath.join(isDeepBundle ? "Versions/A" : nil).join(frameworkPath.basenameWithoutSuffix).str] + partialTargetValues.map { partialTargetValue in tempDir.join("\(partialTargetValue)").str }
@@ -315,6 +319,7 @@ extension FileCopyTaskActionContext {
 public protocol TaskActionCreationDelegate
 {
     func createAuxiliaryFileTaskAction(_ context: AuxiliaryFileTaskActionContext) -> any PlannedTaskAction
+    func createBuildDependencyInfoTaskAction() -> any PlannedTaskAction
     func createBuildDirectoryTaskAction() -> any PlannedTaskAction
     func createCodeSignTaskAction() -> any PlannedTaskAction
     func createConcatenateTaskAction() -> any PlannedTaskAction
@@ -330,13 +335,14 @@ public protocol TaskActionCreationDelegate
     func createLinkAssetCatalogTaskAction() -> any PlannedTaskAction
     func createLSRegisterURLTaskAction() -> any PlannedTaskAction
     func createODRAssetPackManifestTaskAction() -> any PlannedTaskAction
-    func createProcessProductEntitlementsTaskAction(scope: MacroEvaluationScope, mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction
+    func createProcessProductEntitlementsTaskAction(mergedEntitlements: PropertyListItem, entitlementsVariant: EntitlementsVariant, allowEntitlementsModification: Bool, entitlementsDestination: EntitlementsDestination, destinationPlatformName: String, entitlementsFilePath: Path?, fs: any FSProxy) -> any PlannedTaskAction
     func createProcessProductProvisioningProfileTaskAction() -> any PlannedTaskAction
     func createRegisterExecutionPolicyExceptionTaskAction() -> any PlannedTaskAction
     func createSwiftHeaderToolTaskAction() -> any PlannedTaskAction
     func createValidateProductTaskAction() -> any PlannedTaskAction
     func createConstructStubExecutorInputFileListTaskAction() -> any PlannedTaskAction
     func createClangCompileTaskAction() -> any PlannedTaskAction
+    func createClangNonModularCompileTaskAction() -> any PlannedTaskAction
     func createClangScanTaskAction() -> any PlannedTaskAction
     func createSwiftDriverTaskAction() -> any PlannedTaskAction
     func createSwiftCompilationRequirementTaskAction() -> any PlannedTaskAction
@@ -346,6 +352,9 @@ public protocol TaskActionCreationDelegate
     func createSignatureCollectionTaskAction() -> any PlannedTaskAction
     func createClangModuleVerifierInputGeneratorTaskAction() -> any PlannedTaskAction
     func createProcessSDKImportsTaskAction() -> any PlannedTaskAction
+    func createValidateDependenciesTaskAction() -> any PlannedTaskAction
+    func createObjectLibraryAssemblerTaskAction() -> any PlannedTaskAction
+    func createLinkerTaskAction(expandResponseFiles: Bool, responseFileFormat: ResponseFileFormat) -> any PlannedTaskAction
 }
 
 extension TaskActionCreationDelegate {

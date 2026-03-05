@@ -25,6 +25,8 @@ fileprivate struct BuildSettingsTests {
         try testCodable(obj) { $0[.BUILT_PRODUCTS_DIR] = "/tmp" }
         try testCodable(obj) { $0[.HEADER_SEARCH_PATHS] = ["/foo", "/bar"] }
         try testCodable(obj) { $0.platformSpecificSettings[.macOS, default: [:]][.FRAMEWORK_SEARCH_PATHS] = ["/baz", "/qux"] }
+        try testCodable(obj) { $0[.CLANG_ENABLE_MODULES, .macOS] = "NO" }
+        try testCodable(obj) { $0[.SWIFT_MODULE_ALIASES, .macOS] = ["A=B", "C=D"] }
     }
 
     @Test func unknownBuildSettings() throws {

@@ -23,25 +23,25 @@ public struct SpecificationsExtensionPoint: ExtensionPoint {
 
     // MARK: - actual extension point
 
-    public static func specificationTypes(pluginManager: PluginManager) -> [any SpecType.Type] {
+    public static func specificationTypes(pluginManager: any PluginManager) -> [any SpecType.Type] {
         return pluginManager.extensions(of: Self.self).reduce([]) { specs, ext in
             specs.appending(contentsOf: ext.specificationTypes())
         }
     }
 
-    public static func specificationClasses(pluginManager: PluginManager) -> [any SpecIdentifierType.Type] {
+    public static func specificationClasses(pluginManager: any PluginManager) -> [any SpecIdentifierType.Type] {
         return pluginManager.extensions(of: Self.self).reduce([]) { specs, ext in
             specs.appending(contentsOf: ext.specificationClasses())
         }
     }
 
-    public static func specificationClassesClassic(pluginManager: PluginManager) -> [any SpecClassType.Type] {
+    public static func specificationClassesClassic(pluginManager: any PluginManager) -> [any SpecClassType.Type] {
         return pluginManager.extensions(of: Self.self).reduce([]) { specs, ext in
             specs.appending(contentsOf: ext.specificationClassesClassic())
         }
     }
 
-    public static func specificationImplementations(pluginManager: PluginManager) -> [any SpecImplementationType.Type] {
+    public static func specificationImplementations(pluginManager: any PluginManager) -> [any SpecImplementationType.Type] {
         return pluginManager.extensions(of: Self.self).reduce([]) { specs, ext in
             specs.appending(contentsOf: ext.specificationImplementations())
         }

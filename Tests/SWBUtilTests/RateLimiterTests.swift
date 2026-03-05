@@ -19,8 +19,9 @@ import SWBTestSupport
 fileprivate struct RateLimiterTests {
     @Test
     func rateLimiterSeconds() async throws {
-        let timer = ElapsedTimer()
-        var limiter = RateLimiter(interval: .seconds(1))
+        let clock = MockClock()
+        let timer = ElapsedTimer(clock: clock)
+        var limiter = RateLimiter(interval: .seconds(1), clock: clock)
         #expect(limiter.interval == .nanoseconds(1_000_000_000))
 
         var count = 0
@@ -28,7 +29,7 @@ fileprivate struct RateLimiterTests {
             if limiter.hasNextIntervalPassed() {
                 count += 1
             }
-            try await Task.sleep(for: .seconds(1))
+            try await clock.sleep(for: .seconds(1))
         }
 
         #expect(count > 1)
@@ -37,8 +38,9 @@ fileprivate struct RateLimiterTests {
 
     @Test
     func rateLimiterTwoSeconds() async throws {
-        let timer = ElapsedTimer()
-        var limiter = RateLimiter(interval: .seconds(2))
+        let clock = MockClock()
+        let timer = ElapsedTimer(clock: clock)
+        var limiter = RateLimiter(interval: .seconds(2), clock: clock)
         #expect(limiter.interval == .nanoseconds(2_000_000_000))
 
         var count = 0
@@ -46,7 +48,7 @@ fileprivate struct RateLimiterTests {
             if limiter.hasNextIntervalPassed() {
                 count += 1
             }
-            try await Task.sleep(for: .seconds(1))
+            try await clock.sleep(for: .seconds(1))
         }
 
         #expect(count > 0)
@@ -55,16 +57,17 @@ fileprivate struct RateLimiterTests {
 
     @Test
     func rateLimiterMilliseconds() async throws {
-        let timer = ElapsedTimer()
-        var limiter = RateLimiter(interval: .milliseconds(100))
+        let clock = MockClock()
+        let timer = ElapsedTimer(clock: clock)
+        var limiter = RateLimiter(interval: .milliseconds(100), clock: clock)
         #expect(limiter.interval == .nanoseconds(100_000_000))
 
         var count = 0
-        for _ in 0..<100 {
+        for _ in 0..<101 {
             if limiter.hasNextIntervalPassed() {
                 count += 1
             }
-            try await Task.sleep(for: .microseconds(2001))
+            try await clock.sleep(for: .microseconds(2001))
         }
 
         #expect(count > 1)
@@ -73,16 +76,17 @@ fileprivate struct RateLimiterTests {
 
     @Test
     func rateLimiterMicroseconds() async throws {
-        let timer = ElapsedTimer()
-        var limiter = RateLimiter(interval: .microseconds(100000))
+        let clock = MockClock()
+        let timer = ElapsedTimer(clock: clock)
+        var limiter = RateLimiter(interval: .microseconds(100000), clock: clock)
         #expect(limiter.interval == .nanoseconds(100_000_000))
 
         var count = 0
-        for _ in 0..<100 {
+        for _ in 0..<101 {
             if limiter.hasNextIntervalPassed() {
                 count += 1
             }
-            try await Task.sleep(for: .microseconds(1001))
+            try await clock.sleep(for: .microseconds(1001))
         }
 
         #expect(count > 0)
@@ -91,16 +95,17 @@ fileprivate struct RateLimiterTests {
 
     @Test
     func rateLimiterNanoseconds() async throws {
-        let timer = ElapsedTimer()
-        var limiter = RateLimiter(interval: .nanoseconds(100_000_000))
+        let clock = MockClock()
+        let timer = ElapsedTimer(clock: clock)
+        var limiter = RateLimiter(interval: .nanoseconds(100_000_000), clock: clock)
         #expect(limiter.interval == .nanoseconds(100_000_000))
 
         var count = 0
-        for _ in 0..<100 {
+        for _ in 0..<101 {
             if limiter.hasNextIntervalPassed() {
                 count += 1
             }
-            try await Task.sleep(for: .microseconds(1001))
+            try await clock.sleep(for: .microseconds(1001))
         }
 
         #expect(count > 0)
@@ -109,12 +114,13 @@ fileprivate struct RateLimiterTests {
 
     @Test
     func rateLimiterNoCrashNever() async throws {
-        var limiter = RateLimiter(interval: .nanoseconds(UInt64.max))
+        let clock = MockClock()
+        var limiter = RateLimiter(interval: .nanoseconds(UInt64.max), clock: clock)
 
         for _ in 0..<2 {
             let nextIntervalPassed = limiter.hasNextIntervalPassed()
             #expect(!nextIntervalPassed)
-            try await Task.sleep(for: .seconds(1))
+            try await clock.sleep(for: .seconds(1))
         }
     }
 }

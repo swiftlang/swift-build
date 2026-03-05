@@ -11,7 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 public import SWBUtil
-import SWBMacro
+public import SWBMacro
 
 public final class DsymutilToolSpec : GenericCommandLineToolSpec, SpecIdentifierType, @unchecked Sendable {
     public static let identifier = "com.apple.tools.dsymutil"
@@ -19,6 +19,13 @@ public final class DsymutilToolSpec : GenericCommandLineToolSpec, SpecIdentifier
     public override func constructTasks(_ cbc: CommandBuildContext, _ delegate: any TaskGenerationDelegate) async {
         // FIXME: We should ensure this cannot happen.
         fatalError("unexpected direct invocation")
+    }
+
+    public override func environmentFromSpec(_ cbc: CommandBuildContext, _ delegate: any DiagnosticProducingDelegate, lookup: ((MacroDeclaration) -> MacroExpression?)? = nil) -> [(String, String)] {
+        var env: [(String, String)] = super.environmentFromSpec(cbc, delegate, lookup: lookup)
+        // dsymutil may need to lookup lipo, which is not necessarily in the same toolchain.
+        env.append(("PATH", cbc.producer.executableSearchPaths.environmentRepresentation))
+        return env
     }
 
     /// Override construction to patch the inputs.
@@ -51,6 +58,6 @@ public final class DsymutilToolSpec : GenericCommandLineToolSpec, SpecIdentifier
 
         let inputs: [any PlannedNode] = cbc.inputs.map({ delegate.createNode($0.absolutePath) }) + cbc.commandOrderingInputs
         let outputs: [any PlannedNode] = [delegate.createNode(output), orderingOutputNode] + cbc.commandOrderingOutputs
-        delegate.createTask(type: self, ruleInfo: ruleInfo, commandLine: commandLine, environment: EnvironmentBindings(), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(templateBuildContext, delegate), enableSandboxing: enableSandboxing)
+        delegate.createTask(type: self, ruleInfo: ruleInfo, commandLine: commandLine, environment: environmentFromSpec(cbc, delegate), workingDirectory: cbc.producer.defaultWorkingDirectory, inputs: inputs, outputs: outputs, action: nil, execDescription: resolveExecutionDescription(templateBuildContext, delegate), enableSandboxing: enableSandboxing)
     }
 }

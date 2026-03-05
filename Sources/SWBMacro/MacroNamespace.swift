@@ -41,11 +41,17 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     /// Descriptive label, for diagnostic purposes.
     public let debugDescription: String
 
-    /// Looks up and returns the macro declaration that's associated with ‘name’, if any.  The name is not allowed to be the empty string.
+    /// Looks up and returns the macro declaration that's associated with 'name', if any.  The name is not allowed to be the empty string.
     public func lookupMacroDeclaration(_ name: String) -> MacroDeclaration? {
-        return macroRegistry.withLock { macroRegistry in
-            return _lookupMacroDeclarationUnlocked(name, in: macroRegistry)
+        precondition(name != "")
+        var currentNamespace: MacroNamespace? = self
+        while let namespace = currentNamespace {
+            if let macroDecl = namespace.macroRegistry.withLock({ $0[name] }) {
+                return macroDecl
+            }
+            currentNamespace = namespace.parentNamespace
         }
+        return nil
     }
 
     /// Perform an unlocked macro lookup.
@@ -114,6 +120,11 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
         return try declareMacro(name)
     }
 
+    @discardableResult
+    public func declarePathOrderedSetMacro(_ name: String) throws -> PathOrderedSetMacroDeclaration {
+        return try declareMacro(name)
+    }
+
     public func lookupOrDeclareMacro<MacroDeclarationType: MacroDeclaration>(_ type: MacroDeclarationType.Type, _ name: String) -> MacroDeclaration {
         return macroRegistry.withLock { macroRegistry in
             // Return the macro, if declared.
@@ -137,11 +148,17 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
     /// Maps condition parameter names to condition parameters.  Each declaration is an instance of MacroConditionParameter.
     private let conditionParameters = LockedValue<Dictionary<String,MacroConditionParameter>>([:])
 
-    /// Looks up and returns the macro condition parameter that's associated with ‘name’, if any.  The name is not allowed to be the empty string.
+    /// Looks up and returns the macro condition parameter that's associated with 'name', if any.  The name is not allowed to be the empty string.
     public func lookupConditionParameter(_ name: String) -> MacroConditionParameter? {
-        conditionParameters.withLock { conditionParameters in
-            _lookupConditionParameterUnlocked(name, in: conditionParameters)
+        precondition(name != "")
+        var currentNamespace: MacroNamespace? = self
+        while let namespace = currentNamespace {
+            if let condParam = namespace.conditionParameters.withLock({ $0[name] }) {
+                return condParam
+            }
+            currentNamespace = namespace.parentNamespace
         }
+        return nil
     }
 
     private func _lookupConditionParameterUnlocked(_ name: String, in conditionParameters: [String: MacroConditionParameter]) -> MacroConditionParameter? {
@@ -345,7 +362,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
         switch macro.type {
         case .boolean, .string, .path:
             return parseString(value, diagnosticsHandler: diagnosticsHandler)
-        case .stringList, .userDefined, .pathList:
+        case .stringList, .userDefined, .pathList, .pathOrderedSet:
             return parseStringList(value, diagnosticsHandler: diagnosticsHandler)
         }
     }
@@ -356,7 +373,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
         case .boolean, .string, .path:
             // FIXME: It isn't clear what the right behavior is here. We are parsing a string typed macro and were given a list. For now, we just use the quoted string representation.
             return parseString(value.quotedStringListRepresentation, diagnosticsHandler: diagnosticsHandler)
-        case .stringList, .userDefined, .pathList:
+        case .stringList, .userDefined, .pathList, .pathOrderedSet:
             return parseStringList(value, diagnosticsHandler: diagnosticsHandler)
         }
     }
@@ -410,6 +427,7 @@ public final class MacroNamespace: CustomDebugStringConvertible, Encodable, Send
                         case .userDefined: return lookupOrDeclareMacro(UserDefinedMacroDeclaration.self, macroName)
                         case .path: return lookupOrDeclareMacro(PathMacroDeclaration.self, macroName)
                         case .pathList: return lookupOrDeclareMacro(PathListMacroDeclaration.self, macroName)
+                        case .pathOrderedSet: return lookupOrDeclareMacro(PathOrderedSetMacroDeclaration.self, macroName)
                     }
                 // If this is a user defined table, unknown settings should be treated as user defined.
                 } else if allowUserDefined {

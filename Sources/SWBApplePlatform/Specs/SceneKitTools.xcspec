@@ -12,6 +12,7 @@
 
 (
     {
+        _Domain = darwin;
         Identifier = "com.apple.compilers.scntool";
         Type = Compiler;
         Name = "Process SceneKit Document";
@@ -73,6 +74,7 @@
         );
     },
     {
+        _Domain = darwin;
         Identifier = "com.apple.build-tasks.copy-scenekit-assets";
         Type = Compiler;
         Name = "Copy SceneKit Assets";
@@ -138,6 +140,7 @@
     },
 
     {
+        _Domain = darwin;
         Identifier = "com.apple.build-tasks.compile-scenekit-shadercache";
         Type = Compiler;
         Name = "Compile SceneKit Shaders";

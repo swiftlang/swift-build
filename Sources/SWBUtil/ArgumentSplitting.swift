@@ -280,3 +280,39 @@ public final class LLVMStyleCommandCodec: CommandSequenceEncodable, CommandSeque
     private static let space = Character(" ")
     private static let dollarSign = Character("$")
 }
+
+/// Suitable for escaping Windows process arguments, but NOT command lines which will be interpreted by a shell
+public final class WindowsProcessArgumentsCodec: CommandSequenceEncodable, Sendable {
+    public init() {}
+
+    // Adapted from swift-testing's process spawning code.
+    public func encode(_ sequence: [String]) -> String {
+        return sequence.lazy
+            .map { arg in
+                if !arg.contains(where: {" \t\n\"".contains($0)}) {
+                    return arg
+                }
+
+                var quoted = "\""
+                var unquoted = arg.unicodeScalars
+                while !unquoted.isEmpty {
+                    guard let firstNonBackslash = unquoted.firstIndex(where: { $0 != "\\" }) else {
+                        let backslashCount = unquoted.count
+                        quoted.append(String(repeating: "\\", count: backslashCount * 2))
+                        break
+                    }
+                    let backslashCount = unquoted.distance(from: unquoted.startIndex, to: firstNonBackslash)
+                    if (unquoted[firstNonBackslash] == "\"") {
+                        quoted.append(String(repeating: "\\", count: backslashCount * 2 + 1))
+                        quoted.append(String(unquoted[firstNonBackslash]))
+                    } else {
+                        quoted.append(String(repeating: "\\", count: backslashCount))
+                        quoted.append(String(unquoted[firstNonBackslash]))
+                    }
+                    unquoted.removeFirst(backslashCount + 1)
+                }
+                quoted.append("\"")
+                return quoted
+            }.joined(separator: " ")
+    }
+}

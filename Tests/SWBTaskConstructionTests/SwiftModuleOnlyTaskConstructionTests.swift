@@ -604,11 +604,11 @@ fileprivate struct SwiftModuleOnlyTaskConstructionTests: CoreBasedTests {
 
                                             "-output-file-map",
                                             archBuildDir.join("\(tpc.targetName)\(platformSuffix)-OutputFileMap.json").str,
-                                            "-serialize-diagnostics",
                                             "-emit-dependencies",
                                             "-emit-module",
                                             "-emit-module-path",
                                             archBuildDir.join("\(tpc.targetName)\(platformSuffix).swiftmodule").str,
+                                            "-serialize-diagnostics",
                                             "-emit-module-interface-path",
                                             archBuildDir.join("\(tpc.targetName)\(platformSuffix).swiftinterface").str,
                                             "-emit-private-module-interface-path",

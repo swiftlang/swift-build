@@ -63,28 +63,24 @@ public enum Library: Sendable {
         return unsafeBitCast(ptr, to: T.self)
     }
 
-    public static func locate<T>(_ pointer: T.Type) -> Path {
+    public static func locate<T>(_ pointer: T.Type) throws -> Path {
         #if os(Windows)
         var handle: HMODULE?
         guard GetModuleHandleExW(DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT), unsafeBitCast(pointer, to: LPCWSTR?.self), &handle) else {
-            return Path("")
+            throw SymbolLookupError(underlyingError: Win32Error(GetLastError()))
         }
-        do {
-            return try Path(SWB_GetModuleFileNameW(handle))
-        } catch {
-            return Path("")
-        }
+        return try Path(SWB_GetModuleFileNameW(handle))
         #else
-        let outPointer: UnsafeMutablePointer<CInterop.PlatformChar>
         var info = Dl_info()
         #if os(Android)
         dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer.self), &info)
-        outPointer = UnsafeMutablePointer(mutating: info.dli_fname!)
         #else
         dladdr(unsafeBitCast(pointer, to: UnsafeMutableRawPointer?.self), &info)
-        outPointer = UnsafeMutablePointer(mutating: info.dli_fname)
         #endif
-        return Path(platformString: outPointer)
+        guard let dli_fname = info.dli_fname else {
+            throw SymbolLookupError(underlyingError: nil)
+        }
+        return Path(platformString: UnsafeMutablePointer(mutating: dli_fname))
         #endif
     }
 }
@@ -99,6 +95,23 @@ public struct LibraryOpenError: Error, CustomStringConvertible, Sendable {
     @usableFromInline
     internal init(message: String) {
         self.message = message
+    }
+}
+
+public struct SymbolLookupError: Error, CustomStringConvertible, Sendable {
+    private let underlyingError: (any Error)?
+
+    public var description: String {
+        let message = "Could not locate shared object for pointer"
+        if let underlyingError {
+            return "\(message): \(underlyingError)"
+        }
+        return message
+    }
+
+    @usableFromInline
+    internal init(underlyingError: (any Error)?) {
+        self.underlyingError = underlyingError
     }
 }
 

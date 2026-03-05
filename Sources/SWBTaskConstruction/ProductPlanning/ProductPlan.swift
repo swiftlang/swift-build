@@ -34,7 +34,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     package let planRequest: BuildPlanRequest
 
     /// The target task info for each configured target.
-    private(set) var targetTaskInfos: [ConfiguredTarget: TargetTaskInfo]
+    private(set) var targetGateNodes: [ConfiguredTarget: TargetGateNodes]
 
     /// The imparted build properties for each configured target.
     ///
@@ -62,6 +62,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// The mapping of user-module info for targets.
     private let moduleInfo = Registry<ConfiguredTarget, ModuleInfo?>()
 
+    /// Cache of parsed artifact bundle metadata.
+    package let artifactBundleMetadataCache = Registry<Path, ArtifactBundleMetadata>()
+
     /// The information about XCFrameworks used throughout the task planning process.
     let xcframeworkContext: XCFrameworkContext
 
@@ -74,7 +77,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     var needsVFS: Bool { return needsVFSCache.getValue(self) }
     private var needsVFSCache = LazyCache { (plan: GlobalProductPlan) -> Bool in
         // We enable the VFS iff some target provides a user-defined module.
-        for ct in plan.targetTaskInfos.keys {
+        for ct in plan.targetGateNodes.keys {
             if plan.getTargetSettings(ct).globalScope.evaluate(BuiltinMacros.DEFINES_MODULE) {
                 return true
             }
@@ -90,6 +93,9 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
     /// The set of targets which need to build a swiftmodule during installAPI
     package private(set) var targetsWhichShouldBuildModulesDuringInstallAPI: Set<ConfiguredTarget>?
+
+    /// Maps each target to its artifactbundles (direct and transitive).
+    package private(set) var artifactBundlesByTarget: [ConfiguredTarget: [ArtifactBundleInfo]]
 
     /// All targets in the product plan.
     /// - remark: This property is preferred over the `TargetBuildGraph` in the `BuildPlanRequest` as it performs additional computations for Swift packages.
@@ -202,95 +208,75 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         self.xcframeworkContext = XCFrameworkContext(workspaceContext: planRequest.workspaceContext, buildRequestContext: planRequest.buildRequestContext)
         self.buildDirectories = BuildDirectoryContext()
 
+        enum LinkageGraphCacheKey: Hashable { case only }
+        let linkageGraphCache = AsyncCache<LinkageGraphCacheKey, TargetLinkageGraph>()
+        let getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph = {
+            try await linkageGraphCache.value(forKey: LinkageGraphCacheKey.only) {
+                await TargetLinkageGraph(workspaceContext: planRequest.workspaceContext, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, delegate: WrappingDelegate(delegate: delegate))
+            }
+        }
+
+        // Perform post-processing analysis of the build graph
+        self.clientsOfBundlesByTarget = Self.computeBundleClients(buildGraph: planRequest.buildGraph, buildRequestContext: planRequest.buildRequestContext)
+        self.artifactBundlesByTarget = await Self.computeArtifactBundleInfo(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, workspaceContext: planRequest.workspaceContext, getLinkageGraph: getLinkageGraph, metadataCache: self.artifactBundleMetadataCache, delegate: delegate)
+        let directlyLinkedDependenciesByTarget: [ConfiguredTarget: OrderedSet<LinkedDependency>]
+        (self.impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget) = await Self.computeImpartedBuildProperties(planRequest: planRequest, getLinkageGraph: getLinkageGraph, delegate: delegate)
+        self.mergeableTargetsToMergingTargets = Self.computeMergeableLibraries(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+        self.productPathsToProducingTargets = Self.computeProducingTargetsForProducts(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+        self.targetGateNodes = Self.constructTargetGateNodes(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, impartedBuildPropertiesByTarget: impartedBuildPropertiesByTarget, enableIndexBuildArena: planRequest.buildRequest.enableIndexBuildArena, nodeCreationDelegate: nodeCreationDelegate)
+        (self.hostedTargetsForTargets, self.hostTargetForTargets) = Self.computeHostingRelationships(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, delegate: delegate)
+        self.duplicatedProductNames = Self.computeDuplicateProductNames(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+        self.targetToProducingTargetForNearestEnclosingProduct = Self.computeTargetsProducingEnclosingProducts(buildGraph: planRequest.buildGraph, productPathsToProducingTargets: productPathsToProducingTargets, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+        self.swiftMacroImplementationDescriptorsByTarget = Self.computeSwiftMacroImplementationDescriptors(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, delegate: delegate)
+        self.targetsRequiredToBuildForIndexing = Self.computeTargetsRequiredToBuildForIndexing(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+        self.targetsWhichShouldBuildModulesDuringInstallAPI = Self.computeTargetsWhichShouldBuildModulesInInstallAPI(buildRequest: planRequest.buildRequest, buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext)
+
+        // Diagnostics reporting
+        diagnoseInvalidDeploymentTargets(diagnosticDelegate: delegate)
+        diagnoseSwiftPMUnsafeFlags(diagnosticDelegate: delegate)
+        Self.diagnoseValidArchsEnforcementStatus(buildGraph: planRequest.buildGraph, provisioningInputs: planRequest.provisioningInputs, buildRequestContext: planRequest.buildRequestContext, delegate: delegate)
+
+        if UserDefaults.enableDiagnosingDiamondProblemsWhenUsingPackages && !planRequest.buildRequest.enableIndexBuildArena {
+            resolveDiamondProblemsInPackages(dependenciesByTarget: directlyLinkedDependenciesByTarget, diagnosticDelegate: delegate)
+        }
+
+        // Sort based on order from build graph to preserve any fixed ordering from the scheme.
+        self.allTargets = Array(self.targetGateNodes.keys).sorted { (a, b) -> Bool in
+            guard let first = planRequest.buildGraph.allTargets.firstIndex(of: a) else {
+                return false
+            }
+
+            guard let second = planRequest.buildGraph.allTargets.firstIndex(of: b) else {
+                return true
+            }
+
+            return first < second
+        }
+    }
+
+    // Compute the dependents of targets producing bundles. This information is used later to propagate Info.plist entries from codeless bundles to their clients.
+    private static func computeBundleClients(buildGraph: TargetBuildGraph, buildRequestContext: BuildRequestContext) -> [ConfiguredTarget:[ConfiguredTarget]] {
         var clientsOfBundlesByTarget = [ConfiguredTarget:[ConfiguredTarget]]()
-        let bundleTargets = Set(planRequest.buildGraph.allTargets.filter {
-            let settings = planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
+        let bundleTargets = Set(buildGraph.allTargets.filter {
+            let settings = buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
             return settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE) == "mh_bundle"
         })
-        for configuredTarget in planRequest.buildGraph.allTargets {
-            for match in bundleTargets.intersection(planRequest.buildGraph.dependencies(of: configuredTarget)) {
+        for configuredTarget in buildGraph.allTargets {
+            for match in bundleTargets.intersection(buildGraph.dependencies(of: configuredTarget)) {
                 clientsOfBundlesByTarget[match, default: []].append(configuredTarget)
             }
         }
-        self.clientsOfBundlesByTarget = clientsOfBundlesByTarget
+        return clientsOfBundlesByTarget
+    }
 
-        var directlyLinkedDependenciesByTarget = [ConfiguredTarget:OrderedSet<LinkedDependency>]()
-        var impartedBuildPropertiesByTarget = [ConfiguredTarget:[SWBCore.ImpartedBuildProperties]]()
-
-        // We can skip computing contributing properties entirely if no target declares any and if there are no package products in the graph.
-        let targetsContributingProperties = planRequest.buildGraph.allTargets.filter { !$0.target.hasImpartedBuildProperties || $0.target.type == .packageProduct }
-        if !targetsContributingProperties.isEmpty {
-            let linkageGraph = await TargetLinkageGraph(workspaceContext: planRequest.workspaceContext, buildRequest: planRequest.buildRequest, buildRequestContext: planRequest.buildRequestContext, delegate: WrappingDelegate(delegate: delegate))
-
-            let configuredTargets = planRequest.buildGraph.allTargets
-            let targetsByBundleLoader = Self.computeBundleLoaderDependencies(
-                planRequest: planRequest,
-                configuredTargets: AnyCollection(configuredTargets),
-                diagnosticDelegate: delegate
-            )
-            var bundleLoaderByTarget = [ConfiguredTarget:ConfiguredTarget]()
-            for (bundleLoaderTarget, targetsUsingThatBundleLoader) in targetsByBundleLoader {
-                for targetUsingBundleLoader in targetsUsingThatBundleLoader {
-                    bundleLoaderByTarget[targetUsingBundleLoader] = bundleLoaderTarget
-                }
-            }
-
-            for configuredTarget in configuredTargets {
-                // Compute the transitive dependencies of the configured target.
-                let dependencies: OrderedSet<ConfiguredTarget>
-                if UserDefaults.useTargetDependenciesForImpartedBuildSettings {
-                    dependencies = transitiveClosure([configuredTarget], successors: planRequest.buildGraph.dependencies(of:)).0
-                } else {
-                    dependencies = transitiveClosure([configuredTarget], successors: linkageGraph.dependencies(of:)).0
-                }
-
-                let linkedDependencies: [LinkedDependency] = linkageGraph.dependencies(of: configuredTarget).map { .direct($0) }
-                let transitiveStaticDependencies: [LinkedDependency] = linkedDependencies.flatMap { origin in
-                    transitiveClosure([origin.target]) {
-                        let settings = planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
-                        guard !Self.dynamicMachOTypes.contains(settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE)) else {
-                            return []
-                        }
-                        return linkageGraph.dependencies(of: $0)
-                    }.0.map { .staticTransitive($0, origin: origin.target) }
-                }
-
-                directlyLinkedDependenciesByTarget[configuredTarget] = OrderedSet(linkedDependencies + transitiveStaticDependencies + (bundleLoaderByTarget[configuredTarget].map { [.bundleLoader($0)] } ?? []))
-                impartedBuildPropertiesByTarget[configuredTarget] = dependencies.compactMap { $0.getImpartedBuildProperties(using: planRequest) }
-            }
-
-            for (targetToImpart, bundleLoaderTargets) in targetsByBundleLoader {
-                for bundleLoaderTarget in bundleLoaderTargets {
-                    // Bundle loader target gets all of the build settings that are imparted to the target it is referencing _and_ the build settings that are being imparted by that referenced target.
-                    let currentImpartedBuildProperties = targetToImpart.getImpartedBuildProperties(using: planRequest).map { [$0] } ?? []
-                    impartedBuildPropertiesByTarget[bundleLoaderTarget, default: []] += currentImpartedBuildProperties + (impartedBuildPropertiesByTarget[targetToImpart] ?? [])
-                }
-            }
-        }
-
-        self.impartedBuildPropertiesByTarget = impartedBuildPropertiesByTarget
-
-
-        // Iterate through the targets to compute the following:
-        //  - The TargetTaskInfo for each target.  This is done in multiple passes to account for one target's product being embedded in another ('host') target.
-        //  - The map of paths of hosting targets' product paths to the targets whose products they are hosting.
-        //  - The map of product paths to their producing targets.
-        //    (We ignore the case where multiple targets produce the same path, because that's going to be a problem in many other places.)
-        //  - The map of targets being built as mergeable to targets which are merging them.
-        var targetTaskInfos = [ConfiguredTarget: TargetTaskInfo]()
-        var productPathsToProducingTargets = [Path: ConfiguredTarget]()
+    /// Compute target hosting relationships. This information is used to correctly order postprocessing tasks, and to plan tasks needed by test bundle targets, like copying the testing frameworks.
+    private static func computeHostingRelationships(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext, delegate: any GlobalProductPlanDelegate) -> ([ConfiguredTarget: OrderedSet<ConfiguredTarget>], [ConfiguredTarget: ConfiguredTarget]) {
         var targetsForProductPaths = [Path: ConfiguredTarget]()
         var targetsForTestHostPaths = [Path: OrderedSet<ConfiguredTarget>]()
-        var mergeableTargetsToMergingTargets = [ConfiguredTarget: Set<ConfiguredTarget>]()
-        var shouldEmitValidArchsEnforcementNote = false
-        for configuredTarget in planRequest.buildGraph.allTargets {
-            let settings = planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: planRequest.provisioningInputs[configuredTarget])
+
+        for configuredTarget in buildGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
             let scope = settings.globalScope
-
-            if !scope.evaluate(BuiltinMacros.ENFORCE_VALID_ARCHS) {
-                shouldEmitValidArchsEnforcementNote = true
-            }
-
             // Compute various interesting paths to the product for this target and save them for use below to match them with targets whose product they are hosting.
             for buildDirSetting in [BuiltinMacros.BUILT_PRODUCTS_DIR, BuiltinMacros.TARGET_BUILD_DIR] {
                 let buildDirPath = scope.evaluate(buildDirSetting)
@@ -304,23 +290,6 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 }
             }
 
-            // Record the target's products using both TARGET_BUILD_DIR and BUILT_PRODUCTS_DIR.
-            if let standardTarget = configuredTarget.target as? SWBCore.StandardTarget {
-                productPathsToProducingTargets[settings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(standardTarget.productReference.name).normalize()] = configuredTarget
-                productPathsToProducingTargets[settings.globalScope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(standardTarget.productReference.name).normalize()] = configuredTarget
-            }
-
-            // If this target is a merged binary target, then record its dependencies which are being built as mergeable libraries.
-            if scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
-                for dependency in planRequest.buildGraph.dependencies(of: configuredTarget) {
-                    let settings = planRequest.buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target, provisioningTaskInputs: planRequest.provisioningInputs[dependency])
-                    let scope = settings.globalScope
-                    if scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) {
-                        mergeableTargetsToMergingTargets[dependency, default: Set<ConfiguredTarget>()].insert(configuredTarget)
-                    }
-                }
-            }
-
             // If this is a target whose product will be embedded by that target inside another target, then capture information about the target it will embed into.
             // Note that we don't invoke XCTestBundleProductTypeSpec.usesTestHost() here because it returns false when doing a deployment build.
             let hostProductPath = Path(scope.evaluate(BuiltinMacros.TEST_HOST)).normalize()
@@ -330,43 +299,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                     targetsForTestHostPaths[hostProductPath, default: OrderedSet<ConfiguredTarget>()].append(configuredTarget)
                 }
             }
-
-            // If we have a delegate to do so, then create virtual nodes for the target used to order this target's tasks with respect to other target's tasks - both fundamental target ordering, and orderings for eager compilation.
-            if let nodeCreationDelegate {
-                let targetNodeBase = configuredTarget.guid.stringValue
-                let targetStartNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-entry")
-                let targetEndNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-end")
-                let targetStartCompilingNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-begin-compiling")
-                let targetStartLinkingNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-begin-linking")
-                let targetStartScanningNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-begin-scanning")
-                let targetModulesReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-modules-ready")
-                let targetLinkerInputsReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-linker-inputs-ready")
-                let targetScanInputsReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-scan-inputs-ready")
-                let targetStartImmediateNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-immediate")
-
-                var preparedForIndexPreCompilationNode: (any PlannedNode)?
-                var preparedForIndexModuleContentNode: (any PlannedNode)?
-                if planRequest.buildRequest.enableIndexBuildArena, configuredTarget.target.type == .standard {
-                    let settings = planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget])
-                    let scope = settings.globalScope
-                    preparedForIndexPreCompilationNode = nodeCreationDelegate.createNode(absolutePath: Path(scope.evaluate(BuiltinMacros.INDEX_PREPARED_TARGET_MARKER_PATH)))
-                    preparedForIndexModuleContentNode = nodeCreationDelegate.createNode(absolutePath: Path(scope.evaluate(BuiltinMacros.INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH)))
-                }
-                let targetUnsignedProductReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-unsigned-product-ready")
-                let targetWillSignNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-will-sign")
-
-                // Create the target task info collector.
-                targetTaskInfos[configuredTarget] = TargetTaskInfo(startNode: targetStartNode, endNode: targetEndNode, startCompilingNode: targetStartCompilingNode, startLinkingNode: targetStartLinkingNode, startScanningNode: targetStartScanningNode, modulesReadyNode: targetModulesReadyNode, linkerInputsReadyNode: targetLinkerInputsReadyNode, scanInputsReadyNode: targetScanInputsReadyNode, startImmediateNode: targetStartImmediateNode, unsignedProductReadyNode: targetUnsignedProductReadyNode, willSignNode: targetWillSignNode, preparedForIndexPreCompilationNode: preparedForIndexPreCompilationNode, preparedForIndexModuleContentNode: preparedForIndexModuleContentNode)
-            }
         }
-
-        if shouldEmitValidArchsEnforcementNote {
-            delegate.note("Not enforcing VALID_ARCHS because ENFORCE_VALID_ARCHS = NO")
-        }
-
-        self.targetTaskInfos = targetTaskInfos
-        self.productPathsToProducingTargets = productPathsToProducingTargets
-        self.mergeableTargetsToMergingTargets = mergeableTargetsToMergingTargets
 
         // Compute the map of targets to the list of targets they host, and vice versa.
         var hostedTargetsForTarget = [ConfiguredTarget: OrderedSet<ConfiguredTarget>]()
@@ -383,19 +316,21 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 }
             }
             else {
-                // Emit a warning for a target which defines a TEST_HOST which can't be mapped to a target.  Brian Croom says, "we have a fairly hard requirement [in IDEFoundation] that your TEST_HOST value be something that we can trace back to a buildable in the current workspace, which we then use to query the bundle identifier. Years ago it was possible to select arbitrary other pre-built apps to use as the host, but we unintentionally broke that at some point".  He suggested adding this warning.
+                // Emit a warning for a target which defines a TEST_HOST which can't be mapped to a target.
                 for hostedTarget in hostedTargets {
                     delegate.warning(.overrideTarget(hostedTarget), "Unable to find a target which creates the host product for value of $(TEST_HOST) '\(hostPath.str)'", location: .buildSetting(BuiltinMacros.TEST_HOST), component: .targetIntegrity)
                 }
             }
         }
-        self.hostedTargetsForTargets = hostedTargetsForTarget
-        self.hostTargetForTargets = hostTargetForTargets
+        return (hostedTargetsForTarget, hostTargetForTargets)
+    }
 
+    /// Find duplicated target names across the build graph which force us to be more conservative in applying some build performance optimizations.
+    private static func computeDuplicateProductNames(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> Set<String> {
         var productNames: Set<String> = []
         var duplicatedNames: Set<String> = []
-        for configuredTarget in planRequest.buildGraph.allTargets {
-            let settings = planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: planRequest.provisioningInputs[configuredTarget])
+        for configuredTarget in buildGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
             let targetProductName = settings.globalScope.evaluate(BuiltinMacros.PRODUCT_NAME)
             if productNames.contains(targetProductName) {
                 duplicatedNames.insert(targetProductName)
@@ -403,12 +338,15 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 productNames.insert(targetProductName)
             }
         }
-        self.duplicatedProductNames = duplicatedNames
+        return duplicatedNames
+    }
 
+    /// Track targets whose products enclose the products of other targets. This is used to correctly order codesigning and disable certain build performance optimizations.
+    private static func computeTargetsProducingEnclosingProducts(buildGraph: TargetBuildGraph, productPathsToProducingTargets: [Path: ConfiguredTarget], provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> [ConfiguredTarget: ConfiguredTarget] {
         // Record targets with nested build directories.
         var targetToProducingTargetForNearestEnclosingProduct: [ConfiguredTarget: ConfiguredTarget] = [:]
-        for configuredTarget in planRequest.buildGraph.allTargets {
-            let settings = planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: planRequest.provisioningInputs[configuredTarget])
+        for configuredTarget in buildGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
             var dir = settings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).normalize()
             while !dir.isRoot && !dir.isEmpty {
                 if let enclosingTarget = productPathsToProducingTargets[dir] {
@@ -418,15 +356,16 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 dir = dir.dirname
             }
         }
-        self.targetToProducingTargetForNearestEnclosingProduct = targetToProducingTargetForNearestEnclosingProduct
+        return targetToProducingTargetForNearestEnclosingProduct
+    }
 
-
+    // Compute the description of Swift macro implemenbtations required by targets in the build graph.
+    private static func computeSwiftMacroImplementationDescriptors(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext, delegate: any GlobalProductPlanDelegate) -> [ConfiguredTarget: Set<SwiftMacroImplementationDescriptor>] {
         var swiftMacroImplementationDescriptorsByTarget: [ConfiguredTarget: Set<SwiftMacroImplementationDescriptor>] = [:]
-        var targetsRequiredToBuildForIndexing: Set<ConfiguredTarget> = []
         // Consider the targets in topological order, collecting information about host tool usage.
-        for configuredTarget in planRequest.buildGraph.allTargets {
+        for configuredTarget in buildGraph.allTargets {
             // If this target loads binary macros, add a descriptor for this target
-            let settings = planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: planRequest.provisioningInputs[configuredTarget])
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
             let macros = settings.globalScope.evaluate(BuiltinMacros.SWIFT_LOAD_BINARY_MACROS)
             if !macros.isEmpty {
                 for macro in macros {
@@ -438,29 +377,33 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 }
             }
             // Because macro implementations are host tools, we consider all dependencies rather than restricting ourselves to only linkage dependencies like imparted build properties. As a result, we do not require special handling of bundle loader targets here.
-            for dependency in planRequest.buildGraph.dependencies(of: configuredTarget) {
+            for dependency in buildGraph.dependencies(of: configuredTarget) {
                 // Add any macro implementation targets of the dependency to the dependent. The dependency is guaranteed to have its descriptors (if any) populated because the targets are being processed in topological order.
                 swiftMacroImplementationDescriptorsByTarget[configuredTarget, default: []].formUnion(swiftMacroImplementationDescriptorsByTarget[dependency, default: []])
                 // If the dependency vends a macro, add a descriptor for this target.
-                let dependencySettings = planRequest.buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target, provisioningTaskInputs: planRequest.provisioningInputs[dependency])
+                let dependencySettings = buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target, provisioningTaskInputs: provisioningInputs[dependency])
                 let declaringModules = dependencySettings.globalScope.evaluate(BuiltinMacros.SWIFT_IMPLEMENTS_MACROS_FOR_MODULE_NAMES)
                 if !declaringModules.isEmpty {
                     swiftMacroImplementationDescriptorsByTarget[configuredTarget, default: []].insert(.init(declaringModuleNames: declaringModules, path: dependencySettings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(dependencySettings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_PATH)).normalize()))
                 }
             }
-            // If this target is a host tool, it and its dependencies must build as part of prepare-for-indexing.
-            if settings.productType?.conformsTo(identifier: "com.apple.product-type.tool.host-build") == true {
-                targetsRequiredToBuildForIndexing.insert(configuredTarget)
-                targetsRequiredToBuildForIndexing.formUnion(transitiveClosure([configuredTarget], successors: planRequest.buildGraph.dependencies(of:)).0)
-            }
         }
-        self.swiftMacroImplementationDescriptorsByTarget = swiftMacroImplementationDescriptorsByTarget
+        return swiftMacroImplementationDescriptorsByTarget
+    }
 
+    /// Determine which targets in the build are required to correctly prepare indexing functionality (e.g. because they're host tools which produce sources contributing to a module).
+    private static func computeTargetsRequiredToBuildForIndexing(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> Set<ConfiguredTarget> {
         // Collect information about tools produced by the build which may be run by script phases or custom tasks (including those derived from package build tool plugins.
         // Consider the targets in topological order
+        var targetsRequiredToBuildForIndexing: Set<ConfiguredTarget> = []
         var targetsByCommandLineToolProductPath: [Path: ConfiguredTarget] = [:]
-        for configuredTarget in planRequest.buildGraph.allTargets {
-            let targetSettings = planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: planRequest.provisioningInputs[configuredTarget])
+        for configuredTarget in buildGraph.allTargets {
+            let targetSettings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+            // If this target is a host tool, it and its dependencies must build as part of prepare-for-indexing.
+            if targetSettings.productType?.conformsTo(identifier: "com.apple.product-type.tool.host-build") == true {
+                targetsRequiredToBuildForIndexing.insert(configuredTarget)
+                targetsRequiredToBuildForIndexing.formUnion(transitiveClosure([configuredTarget], successors: buildGraph.dependencies(of:)).0)
+            }
             if targetSettings.platform?.name == targetSettings.globalScope.evaluate(BuiltinMacros.HOST_PLATFORM),
                targetSettings.productType?.conformsTo(identifier: "com.apple.product-type.tool") == true {
                 let executablePath = targetSettings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(targetSettings.globalScope.evaluate(BuiltinMacros.EXECUTABLE_PATH)).normalize()
@@ -471,7 +414,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 for scriptPhaseInput in scriptPhase.inputFilePaths.map({ Path(targetSettings.globalScope.evaluate($0)).normalize() }) {
                     if let producingTarget = targetsByCommandLineToolProductPath[scriptPhaseInput] {
                         targetsRequiredToBuildForIndexing.insert(producingTarget)
-                        targetsRequiredToBuildForIndexing.formUnion(transitiveClosure([producingTarget], successors: planRequest.buildGraph.dependencies(of:)).0)
+                        targetsRequiredToBuildForIndexing.formUnion(transitiveClosure([producingTarget], successors: buildGraph.dependencies(of:)).0)
                     }
                 }
             }
@@ -481,54 +424,231 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
                 for input in customTask.inputFilePaths.map({ Path(targetSettings.globalScope.evaluate($0)).normalize() }) {
                     if let producingTarget = targetsByCommandLineToolProductPath[input] {
                         targetsRequiredToBuildForIndexing.insert(producingTarget)
-                        targetsRequiredToBuildForIndexing.formUnion(transitiveClosure([producingTarget], successors: planRequest.buildGraph.dependencies(of:)).0)
+                        targetsRequiredToBuildForIndexing.formUnion(transitiveClosure([producingTarget], successors: buildGraph.dependencies(of:)).0)
                     }
                 }
             }
         }
+        return targetsRequiredToBuildForIndexing
+    }
 
-        self.targetsRequiredToBuildForIndexing = targetsRequiredToBuildForIndexing
-
-        if planRequest.buildRequest.parameters.action == .installAPI {
+    /// Determine which targets in the build graph should build modules during installAPI.
+    private static func computeTargetsWhichShouldBuildModulesInInstallAPI(buildRequest: BuildRequest, buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> Set<ConfiguredTarget> {
+        if buildRequest.parameters.action == .installAPI {
             var targetsWhichShouldEmitModulesDuringInstallAPI: Set<ConfiguredTarget> = []
             // Consider all targets in topological order, visiting dependents before dependencies to ensure all transitive dependencies of a target which emits a module also emit modules.
-            for configuredTarget in planRequest.buildGraph.allTargets.reversed() {
-                let settings = planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: planRequest.provisioningInputs[configuredTarget])
+            for configuredTarget in buildGraph.allTargets.reversed() {
+                let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
                 // If this target will emit a TBD during installAPI, it must emit a module
                 if settings.globalScope.evaluate(BuiltinMacros.SUPPORTS_TEXT_BASED_API) && settings.allowInstallAPIForTargetsSkippedInInstall(in: settings.globalScope) && settings.productType?.supportsInstallAPI == true {
                     targetsWhichShouldEmitModulesDuringInstallAPI.insert(configuredTarget)
                 }
                 // If this target should emit a module during installAPI, its dependencies should as well because this target's module may depend on them.
                 if targetsWhichShouldEmitModulesDuringInstallAPI.contains(configuredTarget) {
-                    for dependency in planRequest.buildGraph.dependencies(of: configuredTarget) {
+                    for dependency in buildGraph.dependencies(of: configuredTarget) {
                         targetsWhichShouldEmitModulesDuringInstallAPI.insert(dependency)
                     }
                 }
             }
-            self.targetsWhichShouldBuildModulesDuringInstallAPI = targetsWhichShouldEmitModulesDuringInstallAPI
+            return targetsWhichShouldEmitModulesDuringInstallAPI
         } else {
-            self.targetsWhichShouldBuildModulesDuringInstallAPI = nil
+            return []
         }
+    }
 
-        diagnoseInvalidDeploymentTargets(diagnosticDelegate: delegate)
-        diagnoseSwiftPMUnsafeFlags(diagnosticDelegate: delegate)
+    /// Compute artifactbundle metadata for each target in the build graph.
+    private static func computeArtifactBundleInfo(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequest: BuildRequest, buildRequestContext: BuildRequestContext, workspaceContext: WorkspaceContext, getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph, metadataCache: Registry<Path, ArtifactBundleMetadata>, delegate: any GlobalProductPlanDelegate) async -> [ConfiguredTarget: [ArtifactBundleInfo]] {
+        var artifactBundlesInfoByTarget: [ConfiguredTarget: Set<ArtifactBundleInfo>] = [:]
 
-        if UserDefaults.enableDiagnosingDiamondProblemsWhenUsingPackages && !planRequest.buildRequest.enableIndexBuildArena {
-            resolveDiamondProblemsInPackages(dependenciesByTarget: directlyLinkedDependenciesByTarget, diagnosticDelegate: delegate)
-        }
-
-        // Sort based on order from build graph to preserve any fixed ordering from the scheme.
-        self.allTargets = Array(self.targetTaskInfos.keys).sorted { (a, b) -> Bool in
-            guard let first = planRequest.buildGraph.allTargets.firstIndex(of: a) else {
-                return false
+        // Process targets in topological order
+        for configuredTarget in buildGraph.allTargets {
+            guard let standardTarget = configuredTarget.target as? SWBCore.StandardTarget else {
+                continue
+            }
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+            let scope = settings.globalScope
+            let specLookupContext = SpecLookupCtxt(specRegistry: workspaceContext.core.specRegistry, platform: settings.platform)
+            guard let artifactBundleFileType = specLookupContext.lookupFileType(identifier: "wrapper.artifactbundle") else {
+                continue
             }
 
-            guard let second = planRequest.buildGraph.allTargets.firstIndex(of: b) else {
-                return true
+            // Parse artifact bundle info from any bundles this target directly depends upon.
+            //
+            // We consider both the frameworks phase and resources phase because when building a relocatable object, SwiftPM PIF generation
+            // adds binary targets to the resources phase so their static content isn't pulled into the object. This model
+            // is confusing and we should reconsider it.
+            for phase in [standardTarget.frameworksBuildPhase, standardTarget.resourcesBuildPhase].compactMap(\.self) {
+                for buildFile in phase.buildFiles {
+                    let currentPlatformFilter = PlatformFilter(scope)
+                    guard currentPlatformFilter.matches(buildFile.platformFilters) else { continue }
+                    guard case .reference(let referenceGUID) = buildFile.buildableItem else { continue }
+                    guard let reference = workspaceContext.workspace.lookupReference(for: referenceGUID) else { continue }
+                    let resolvedPath = settings.filePathResolver.resolveAbsolutePath(reference)
+                    // TODO: Remove the fileExtension check once SwiftPM has been updated to consistently set the file type on artifact bundle references in PIF
+                    if resolvedPath.fileExtension == "artifactbundle" || specLookupContext.lookupFileType(reference: reference)?.conformsTo(artifactBundleFileType) == true {
+                        do {
+                            let metadata = try metadataCache.getOrInsert(resolvedPath) {
+                                try ArtifactBundleMetadata.parse(at: resolvedPath, fileSystem: buildRequestContext.fs)
+                            }
+                            let info = ArtifactBundleInfo(bundlePath: resolvedPath, metadata: metadata)
+                            artifactBundlesInfoByTarget[configuredTarget, default: []].insert(info)
+                        } catch {
+                            delegate.error("Failed to parse artifactbundle at '\(resolvedPath.str)': \(error.localizedDescription)")
+                        }
+                    }
+                }
             }
 
-            return first < second
+            // Propagate artifact bundle info from dependencies to dependents. Because we're considering targets in topological order, the info recorded for direct dependencies is already complete.
+            if !artifactBundlesInfoByTarget.isEmpty {
+                do {
+                    let linkageGraph = try await getLinkageGraph()
+                    for dependency in linkageGraph.dependencies(of: configuredTarget) {
+                        if let dependencyArtifactInfo = artifactBundlesInfoByTarget[dependency] {
+                            artifactBundlesInfoByTarget[configuredTarget, default: []].formUnion(dependencyArtifactInfo)
+                        }
+                    }
+                } catch {
+                    delegate.error("failed to determine linkage dependencies of '\(configuredTarget.target.name)' when computing artifact bundle usage: \(error.localizedDescription)")
+                }
+            }
         }
+
+        return artifactBundlesInfoByTarget.mapValues {
+            $0.sorted(by: \.bundlePath.str)
+        }
+    }
+
+    /// Compute the build properties imparted on each target in the graph.
+    private static func computeImpartedBuildProperties(planRequest: BuildPlanRequest, getLinkageGraph: @Sendable () async throws -> TargetLinkageGraph, delegate: any GlobalProductPlanDelegate) async -> ([ConfiguredTarget:[SWBCore.ImpartedBuildProperties]], [ConfiguredTarget:OrderedSet<LinkedDependency>]) {
+        var impartedBuildPropertiesByTarget = [ConfiguredTarget:[SWBCore.ImpartedBuildProperties]]()
+        var directlyLinkedDependenciesByTarget = [ConfiguredTarget:OrderedSet<LinkedDependency>]()
+
+        // We can skip computing contributing properties entirely if no target declares any and if there are no package products in the graph.
+        let targetsContributingProperties = planRequest.buildGraph.allTargets.filter { !$0.target.hasImpartedBuildProperties || $0.target.type == .packageProduct }
+        if !targetsContributingProperties.isEmpty {
+            do {
+                let linkageGraph = try await getLinkageGraph()
+
+                let configuredTargets = planRequest.buildGraph.allTargets
+                let targetsByBundleLoader = Self.computeBundleLoaderDependencies(
+                    planRequest: planRequest,
+                    configuredTargets: AnyCollection(configuredTargets),
+                    diagnosticDelegate: delegate
+                )
+                var bundleLoaderByTarget = [ConfiguredTarget:ConfiguredTarget]()
+                for (bundleLoaderTarget, targetsUsingThatBundleLoader) in targetsByBundleLoader {
+                    for targetUsingBundleLoader in targetsUsingThatBundleLoader {
+                        bundleLoaderByTarget[targetUsingBundleLoader] = bundleLoaderTarget
+                    }
+                }
+
+                for configuredTarget in configuredTargets {
+                    // Compute the transitive dependencies of the configured target.
+                    let dependencies: OrderedSet<ConfiguredTarget>
+                    if UserDefaults.useTargetDependenciesForImpartedBuildSettings {
+                        dependencies = transitiveClosure([configuredTarget], successors: planRequest.buildGraph.dependencies(of:)).0
+                    } else {
+                        dependencies = transitiveClosure([configuredTarget], successors: linkageGraph.dependencies(of:)).0
+                    }
+
+                    let linkedDependencies: [LinkedDependency] = linkageGraph.dependencies(of: configuredTarget).map { .direct($0) }
+                    let transitiveStaticDependencies: [LinkedDependency] = linkedDependencies.flatMap { origin in
+                        transitiveClosure([origin.target]) {
+                            let settings = planRequest.buildRequestContext.getCachedSettings($0.parameters, target: $0.target)
+                            guard !Self.dynamicMachOTypes.contains(settings.globalScope.evaluate(BuiltinMacros.MACH_O_TYPE)) else {
+                                return []
+                            }
+                            return linkageGraph.dependencies(of: $0)
+                        }.0.map { .staticTransitive($0, origin: origin.target) }
+                    }
+
+                    directlyLinkedDependenciesByTarget[configuredTarget] = OrderedSet(linkedDependencies + transitiveStaticDependencies + (bundleLoaderByTarget[configuredTarget].map { [.bundleLoader($0)] } ?? []))
+                    impartedBuildPropertiesByTarget[configuredTarget] = dependencies.compactMap { $0.getImpartedBuildProperties(using: planRequest) }
+                }
+
+                for (targetToImpart, bundleLoaderTargets) in targetsByBundleLoader {
+                    for bundleLoaderTarget in bundleLoaderTargets {
+                        // Bundle loader target gets all of the build settings that are imparted to the target it is referencing _and_ the build settings that are being imparted by that referenced target.
+                        let currentImpartedBuildProperties = targetToImpart.getImpartedBuildProperties(using: planRequest).map { [$0] } ?? []
+                        impartedBuildPropertiesByTarget[bundleLoaderTarget, default: []] += currentImpartedBuildProperties + (impartedBuildPropertiesByTarget[targetToImpart] ?? [])
+                    }
+                }
+            } catch {
+                delegate.error("failed to compute imparted build properties: \(error.localizedDescription)")
+            }
+        }
+        return (impartedBuildPropertiesByTarget, directlyLinkedDependenciesByTarget)
+    }
+
+    /// Determine which target produced each product in the build.
+    private static func computeProducingTargetsForProducts(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> [Path: ConfiguredTarget] {
+        var productPathsToProducingTargets = [Path: ConfiguredTarget]()
+        for configuredTarget in buildGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+
+            // Record the target's products using both TARGET_BUILD_DIR and BUILT_PRODUCTS_DIR.
+            if let standardTarget = configuredTarget.target as? SWBCore.StandardTarget {
+                productPathsToProducingTargets[settings.globalScope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(standardTarget.productReference.name).normalize()] = configuredTarget
+                productPathsToProducingTargets[settings.globalScope.evaluate(BuiltinMacros.BUILT_PRODUCTS_DIR).join(standardTarget.productReference.name).normalize()] = configuredTarget
+            }
+        }
+        return productPathsToProducingTargets
+    }
+
+    /// Construct the semantic gate nodes used to order work across targets.
+    private static func constructTargetGateNodes(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext, impartedBuildPropertiesByTarget: [ConfiguredTarget:[SWBCore.ImpartedBuildProperties]], enableIndexBuildArena: Bool, nodeCreationDelegate: (any TaskPlanningNodeCreationDelegate)?) -> [ConfiguredTarget: TargetGateNodes] {
+        var targetGateNodes = [ConfiguredTarget: TargetGateNodes]()
+        for configuredTarget in buildGraph.allTargets {
+            // If we have a delegate to do so, then create virtual nodes for the target used to order this target's tasks with respect to other target's tasks - both fundamental target ordering, and orderings for eager compilation.
+            if let nodeCreationDelegate {
+                let targetNodeBase = configuredTarget.guid.stringValue
+                let targetStartNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-entry")
+                let targetEndNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-end")
+                let targetStartCompilingNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-begin-compiling")
+                let targetStartLinkingNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-begin-linking")
+                let targetStartScanningNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-begin-scanning")
+                let targetModulesReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-modules-ready")
+                let targetLinkerInputsReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-linker-inputs-ready")
+                let targetScanInputsReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-scan-inputs-ready")
+                let targetStartImmediateNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-immediate")
+
+                var preparedForIndexPreCompilationNode: (any PlannedNode)?
+                var preparedForIndexModuleContentNode: (any PlannedNode)?
+                if enableIndexBuildArena, configuredTarget.target.type == .standard {
+                    let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget])
+                    let scope = settings.globalScope
+                    preparedForIndexPreCompilationNode = nodeCreationDelegate.createNode(absolutePath: Path(scope.evaluate(BuiltinMacros.INDEX_PREPARED_TARGET_MARKER_PATH)))
+                    preparedForIndexModuleContentNode = nodeCreationDelegate.createNode(absolutePath: Path(scope.evaluate(BuiltinMacros.INDEX_PREPARED_MODULE_CONTENT_MARKER_PATH)))
+                }
+                let targetUnsignedProductReadyNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-unsigned-product-ready")
+                let targetWillSignNode = nodeCreationDelegate.createVirtualNode(targetNodeBase + "-will-sign")
+
+                // Create the target task info collector.
+                targetGateNodes[configuredTarget] = TargetGateNodes(startNode: targetStartNode, endNode: targetEndNode, startCompilingNode: targetStartCompilingNode, startLinkingNode: targetStartLinkingNode, startScanningNode: targetStartScanningNode, modulesReadyNode: targetModulesReadyNode, linkerInputsReadyNode: targetLinkerInputsReadyNode, scanInputsReadyNode: targetScanInputsReadyNode, startImmediateNode: targetStartImmediateNode, unsignedProductReadyNode: targetUnsignedProductReadyNode, willSignNode: targetWillSignNode, preparedForIndexPreCompilationNode: preparedForIndexPreCompilationNode, preparedForIndexModuleContentNode: preparedForIndexModuleContentNode)
+            }
+        }
+        return targetGateNodes
+    }
+
+    /// Determine which mergeable libraries will be merged into their dependents.
+    private static func computeMergeableLibraries(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext) -> [ConfiguredTarget: Set<ConfiguredTarget>] {
+        var mergeableTargetsToMergingTargets = [ConfiguredTarget: Set<ConfiguredTarget>]()
+        for configuredTarget in buildGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+            let scope = settings.globalScope
+            // If this target is a merged binary target, then record its dependencies which are being built as mergeable libraries.
+            if scope.evaluate(BuiltinMacros.MERGE_LINKED_LIBRARIES) {
+                for dependency in buildGraph.dependencies(of: configuredTarget) {
+                    let settings = buildRequestContext.getCachedSettings(dependency.parameters, target: dependency.target, provisioningTaskInputs: provisioningInputs[dependency])
+                    let scope = settings.globalScope
+                    if scope.evaluate(BuiltinMacros.MERGEABLE_LIBRARY) {
+                        mergeableTargetsToMergingTargets[dependency, default: Set<ConfiguredTarget>()].insert(configuredTarget)
+                    }
+                }
+            }
+        }
+        return mergeableTargetsToMergingTargets
     }
 
     private static func computeBundleLoaderDependencies(
@@ -599,6 +719,21 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
         }
     }
 
+    private static func diagnoseValidArchsEnforcementStatus(buildGraph: TargetBuildGraph, provisioningInputs: [ConfiguredTarget: ProvisioningTaskInputs], buildRequestContext: BuildRequestContext, delegate: any GlobalProductPlanDelegate) {
+        var shouldEmitValidArchsEnforcementNote = false
+        for configuredTarget in buildGraph.allTargets {
+            let settings = buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningInputs[configuredTarget])
+            let scope = settings.globalScope
+
+            if !scope.evaluate(BuiltinMacros.ENFORCE_VALID_ARCHS) {
+                shouldEmitValidArchsEnforcementNote = true
+            }
+        }
+        if shouldEmitValidArchsEnforcementNote {
+            delegate.note("Not enforcing VALID_ARCHS because ENFORCE_VALID_ARCHS = NO")
+        }
+    }
+
     func diagnoseInvalidDeploymentTargets(diagnosticDelegate: any TargetDiagnosticProducingDelegate) {
         for target in planRequest.buildGraph.allTargets.filter({
             planRequest.workspaceContext.workspace.project(for: $0.target).isPackage && $0.target.type != .packageProduct
@@ -644,7 +779,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             guard staticTarget.type == .packageProduct else { continue }
 
             let packageTargetDependencies = staticTarget.dependencies.compactMap { targetDependency in
-                planRequest.buildGraph.workspaceContext.workspace.target(for: targetDependency.guid)
+                planRequest.workspaceContext.workspace.target(for: targetDependency.guid)
             }.filter {
                 $0.type != .packageProduct
             }
@@ -659,14 +794,14 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
             guard staticallyLinkedTargets.isEmpty else { continue }
 
             guard let guid = dynamicallyBuildingTargetsWithDiamondLinkage[staticTarget]?.guid else { continue }
-            for configuredTarget in self.targetTaskInfos.keys {
+            for configuredTarget in self.targetGateNodes.keys {
                 guard configuredTarget.target.guid == guid else { continue }
                 let dynamicConfiguredTarget = configuredTarget
                 let staticConfiguredTarget = dynamicConfiguredTarget.replacingTarget(staticTarget)
 
-                guard let taskInfo = self.targetTaskInfos[dynamicConfiguredTarget] else { continue }
-                self.targetTaskInfos.removeValue(forKey: dynamicConfiguredTarget)
-                self.targetTaskInfos[staticConfiguredTarget] = taskInfo
+                guard let taskInfo = self.targetGateNodes[dynamicConfiguredTarget] else { continue }
+                self.targetGateNodes.removeValue(forKey: dynamicConfiguredTarget)
+                self.targetGateNodes[staticConfiguredTarget] = taskInfo
 
                 let impartedBuildProperties = self.impartedBuildPropertiesByTarget[dynamicConfiguredTarget]
                 self.impartedBuildPropertiesByTarget.removeValue(forKey: dynamicConfiguredTarget)
@@ -789,17 +924,17 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
             let updateConfiguration = { (configuredTarget: ConfiguredTarget, dynamicTarget: SWBCore.Target) in
                 // If the `targetTaskInfo` for the static target isn't present, we already made the decision to make this target dynamic.
-                if self.targetTaskInfos[configuredTarget] == nil { return }
+                if self.targetGateNodes[configuredTarget] == nil { return }
 
                 // There can be multiple configured targets for the dynamic target, we have to update all of them.
-                let matchingConfiguredTargets = self.targetTaskInfos.keys.filter { $0.target.guid == configuredTarget.target.guid }
+                let matchingConfiguredTargets = self.targetGateNodes.keys.filter { $0.target.guid == configuredTarget.target.guid }
 
                 for matchingTarget in matchingConfiguredTargets {
-                    guard let taskInfo = self.targetTaskInfos[matchingTarget] else { return }
+                    guard let taskInfo = self.targetGateNodes[matchingTarget] else { return }
                     let dynamicConfiguredTarget = matchingTarget.replacingTarget(dynamicTarget)
 
-                    self.targetTaskInfos.removeValue(forKey: matchingTarget)
-                    self.targetTaskInfos[dynamicConfiguredTarget] = taskInfo
+                    self.targetGateNodes.removeValue(forKey: matchingTarget)
+                    self.targetGateNodes[dynamicConfiguredTarget] = taskInfo
 
                     let impartedBuildProperties = self.impartedBuildPropertiesByTarget[matchingTarget]
                     self.impartedBuildPropertiesByTarget.removeValue(forKey: matchingTarget)
@@ -870,7 +1005,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     package func getTargetSettings(_ configuredTarget: ConfiguredTarget) -> Settings {
         // FIXME: Reevaluate whether or not we should cache all of the things we compute here in the workspace context, that may lead to more memory use than it is worth.
         let provisioningTaskInputs: ProvisioningTaskInputs? = planRequest.buildRequest.enableIndexBuildArena ? nil : planRequest.provisioningInputs(for: configuredTarget)
-        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget])
+        return planRequest.buildRequestContext.getCachedSettings(configuredTarget.parameters, target: configuredTarget.target, provisioningTaskInputs: provisioningTaskInputs, impartedBuildProperties: impartedBuildPropertiesByTarget[configuredTarget], artifactBundleInfo: artifactBundlesByTarget[configuredTarget])
     }
 
     /// Get the settings to use for an unconfigured target.
@@ -1232,12 +1367,12 @@ package final class ProductPlan
     /// The target task info.
     //
     // FIXME: This does not belong here, but we currently need it to communicate the list of all actual tasks to the info.
-    let targetTaskInfo: TargetTaskInfo?
+    let targetTaskInfo: TargetGateNodes?
 
     /// The task producer context for this plan.
     let taskProducerContext: TaskProducerContext
 
-    init(path: Path, taskProducers: [any TaskProducer], forTarget: ConfiguredTarget?, targetTaskInfo: TargetTaskInfo?, taskProducerContext: TaskProducerContext)
+    init(path: Path, taskProducers: [any TaskProducer], forTarget: ConfiguredTarget?, targetTaskInfo: TargetGateNodes?, taskProducerContext: TaskProducerContext)
     {
         self.path = path
         self.taskProducers = taskProducers

@@ -20,7 +20,7 @@ public import SWBMacro
     /// The namespace to parse macros into.
     var namespace: MacroNamespace { get }
 
-    var pluginManager: PluginManager { get }
+    var pluginManager: any PluginManager { get }
 
     var platformRegistry: PlatformRegistry? { get }
 }
@@ -32,23 +32,20 @@ public final class SDK: Sendable {
         public let suffix: String?
     }
 
-    private static func supportedSDKCanonicalNameSuffixes(pluginManager: PluginManager) -> Set<String> {
-        @preconcurrency @PluginExtensionSystemActor func extensions() -> [any SDKRegistryExtensionPoint.ExtensionProtocol] {
-            pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
-        }
+    private static func supportedSDKCanonicalNameSuffixes(registry: SDKRegistry) -> Set<String> {
         var suffixes: Set<String> = []
-        for `extension` in extensions() {
+        for `extension` in registry.extensions {
             suffixes.formUnion(`extension`.supportedSDKCanonicalNameSuffixes)
         }
         return suffixes
     }
 
     /// Returns the component pieces of a given `canonicalName` for an SDK. Returns `nil` if the string is does not match the canonical name format.
-    @_spi(Testing) public static func parseSDKName(_ sdkCanonicalName: String, pluginManager: PluginManager) throws -> CanonicalNameComponents {
+    @_spi(Testing) public static func parseSDKName(_ sdkCanonicalName: String, registry: SDKRegistry) throws -> CanonicalNameComponents {
         // Remove the suffix, if there is one.
         var baseAndVersion = sdkCanonicalName
         var suffix: String? = nil
-        for supportedSuffix in Self.supportedSDKCanonicalNameSuffixes(pluginManager: pluginManager).sorted() {
+        for supportedSuffix in Self.supportedSDKCanonicalNameSuffixes(registry: registry).sorted() {
             // Some SDKs use the dot for suffixes and some do not, so both are supported.
             if sdkCanonicalName.hasSuffix(".\(supportedSuffix)") {
                 baseAndVersion = sdkCanonicalName.withoutSuffix(".\(supportedSuffix)")
@@ -109,13 +106,21 @@ public final class SDK: Sendable {
     public let defaultSettings: [String: PropertyListItem]
 
     /// The parsed default build settings table.
-    public private(set) var defaultSettingsTable: MacroValueAssignmentTable? = nil
+    /// Note: This is set post-initialization during late binding and is protected by an assertion.
+    fileprivate let _defaultSettingsTable = UnsafeDelayedInitializationSendableWrapper<MacroValueAssignmentTable?>()
+    public var defaultSettingsTable: MacroValueAssignmentTable? {
+        _defaultSettingsTable.value
+    }
 
     /// The overriding build settings.
     public let overrideSettings: [String: PropertyListItem]
 
-    /// The parsed default build settings table.
-    public private(set) var overrideSettingsTable: MacroValueAssignmentTable? = nil
+    /// The parsed override build settings table.
+    /// Note: This is set post-initialization during late binding and is protected by an assertion.
+    fileprivate let _overrideSettingsTable = UnsafeDelayedInitializationSendableWrapper<MacroValueAssignmentTable?>()
+    public var overrideSettingsTable: MacroValueAssignmentTable? {
+        _overrideSettingsTable.value
+    }
 
     /// SDK variants, mapped by their name.  Each variant can define a set of additional settings that a target can opt into by setting `SDK_VARIANT`.
     @_spi(Testing) public let variants: [String: SDKVariant]
@@ -208,17 +213,15 @@ public final class SDK: Sendable {
 
     /// Perform late binding of the SDK data.
     fileprivate func loadExtendedInfo(_ namespace: MacroNamespace) throws {
-        assert(defaultSettingsTable == nil && overrideSettingsTable == nil)
-
         do {
-            defaultSettingsTable = try namespace.parseTable(defaultSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
-            overrideSettingsTable = try namespace.parseTable(overrideSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
+            _defaultSettingsTable.initialize(to: try namespace.parseTable(defaultSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
+            _overrideSettingsTable.initialize(to: try namespace.parseTable(overrideSettings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
             for variant in self.variants.values {
                 try variant.parseSettingsTable(namespace, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
             }
         } catch {
-            defaultSettingsTable = nil
-            overrideSettingsTable = nil
+            _defaultSettingsTable.initialize(to: nil)
+            _overrideSettingsTable.initialize(to: nil)
             throw StubError.error("unexpected macro parsing failure loading SDK \(canonicalName): \(error)")
         }
     }
@@ -258,7 +261,11 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
     public let settings: [String: PropertyListItem]
 
     /// Parsed form of the `settings`.
-    public private(set) var settingsTable: MacroValueAssignmentTable?
+    /// Note: This is set post-initialization during late binding.
+    fileprivate let _settingsTable = UnsafeDelayedInitializationSendableWrapper<MacroValueAssignmentTable?>()
+    public var settingsTable: MacroValueAssignmentTable? {
+        _settingsTable.value
+    }
 
     // FIXME: Presently all of the keys from the 'SupportedTargets' dict are treated as optional.  We should improve this in the future.
 
@@ -376,7 +383,7 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
         self.validDeploymentTargets = validDeploymentTargets
 
         // The recommended deployment target is the default deployment target for the platform, unless we've overridden to a more specific value.
-        self.recommendedDeploymentTarget = (try? Version(supportedTargetDict["RecommendedDeploymentTarget"]?.stringValue ?? Self.fallbackRecommendedDeploymentTarget(variantName: name) ?? "")) ?? defaultDeploymentTarget
+        self.recommendedDeploymentTarget = (try? Version(supportedTargetDict["RecommendedDeploymentTarget"]?.stringValue ?? "")) ?? defaultDeploymentTarget
 
         self.llvmTargetTripleEnvironment = supportedTargetDict["LLVMTargetTripleEnvironment"]?.stringValue
         self.llvmTargetTripleSys = supportedTargetDict["LLVMTargetTripleSys"]?.stringValue
@@ -391,105 +398,27 @@ public final class SDKVariant: PlatformInfoProvider, Sendable {
             self.targetOSMacroName = nil
         }
 
-        self.deviceFamilies = try DeviceFamilies(families: PropertyList.decode([DeviceFamily].self, from: supportedTargetDict["DeviceFamilies"] ?? Self.fallbackDeviceFamiliesData(variantName: name)))
+        self.deviceFamilies = try DeviceFamilies(families: PropertyList.decode([DeviceFamily].self, from: supportedTargetDict["DeviceFamilies"] ?? []))
 
-        self.clangRuntimeLibraryPlatformName = supportedTargetDict["ClangRuntimeLibraryPlatformName"]?.stringValue ?? Self.fallbackClangRuntimeLibraryPlatformName(variantName: name)
+        self.clangRuntimeLibraryPlatformName = supportedTargetDict["ClangRuntimeLibraryPlatformName"]?.stringValue
 
-        let (os, concurrency, span) = Self.fallbackSwiftVersions(variantName: name)
-        self.minimumOSForSwiftInTheOS = try (supportedTargetDict["SwiftOSRuntimeMinimumDeploymentTarget"]?.stringValue ?? os).map { try Version($0) }
-        self.minimumOSForSwiftConcurrency = try (supportedTargetDict["SwiftConcurrencyMinimumDeploymentTarget"]?.stringValue ?? concurrency).map { try Version($0) }
-        self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue ?? span).map { try Version($0) }
+        self.minimumOSForSwiftInTheOS = try (supportedTargetDict["SwiftOSRuntimeMinimumDeploymentTarget"]?.stringValue).map { try Version($0) }
+        self.minimumOSForSwiftConcurrency = try (supportedTargetDict["SwiftConcurrencyMinimumDeploymentTarget"]?.stringValue).map { try Version($0) }
+        self.minimumOSForSwiftSpan = try (supportedTargetDict["SwiftSpanMinimumDeploymentTarget"]?.stringValue).map { try Version($0) }
 
-        self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? {
-            switch name {
-            case MacCatalystInfo.sdkVariantName:
-                return "/System/iOSSupport"
-            case "driverkit":
-                return "/System/DriverKit"
-            default:
-                return ""
-            }
-        }()
-    }
-
-    private static func fallbackDeviceFamiliesData(variantName name: String) throws -> PropertyListItem {
-        switch name {
-        case "macos", "macosx":
-            return .plArray([
-                .plDict([
-                    "Name": .plString("mac"),
-                    "DisplayName": .plString("Mac"),
-                ])
-            ])
-        case MacCatalystInfo.sdkVariantName:
-            return .plArray([
-                .plDict([
-                    "Identifier": .plInt(2),
-                    "Name": .plString("pad"),
-                    "DisplayName": .plString("iPad"),
-                ]),
-                .plDict([
-                    "Identifier": .plInt(6),
-                    "Name": .plString("mac"),
-                    "DisplayName": .plString("Mac"),
-                ])
-            ])
-        default:
-            // Other platforms don't have device families
-            return .plArray([])
-        }
-    }
-
-    private static func fallbackClangRuntimeLibraryPlatformName(variantName name: String) -> String? {
-        switch name {
-        case "macos", "macosx", MacCatalystInfo.sdkVariantName:
-            return "osx"
-        default:
-            return nil
-        }
-    }
-
-    private static func fallbackSwiftVersions(variantName name: String) -> (os: String?, concurrency: String?, span: String?) {
-        switch name {
-        case "macos", "macosx":
-            return ("10.14.4", "12.0", "26.0")
-        default:
-            return (nil, nil, "26.0")
-        }
-    }
-
-    private static func fallbackRecommendedDeploymentTarget(variantName name: String) -> String? {
-        switch name {
-            // Late Summer 2019 aligned, except iOS which got one final 12.x update in Winter 2020, making this version set the last minor update series of the Fall 2018 aligned releases.
-        case "macos", "macosx":
-            return "10.14.6"
-        case "iphoneos", "iphonesimulator":
-            return "12.5"
-        case "appletvos", "appletvsimulator":
-            return "12.4"
-        case "watchos", "watchsimulator":
-            return "5.3"
-
-            // No Summer 2019 aligned versions since these were first introduced on or after Fall 2019, so simply use the minimum versions.
-        case "driverkit":
-            return "19.0"
-        case MacCatalystInfo.sdkVariantName:
-            return "13.1"
-        case "xros", "xrsimulator":
-            return "1.0"
-
-            // Fall back to the default deployment target, which is equal to the SDK version.
-        default:
-            return nil
-        }
+        self.systemPrefix = supportedTargetDict["SystemPrefix"]?.stringValue ?? ""
     }
 
     /// Perform late binding of the build settings.  This is a private function that may only be invoked once for any given SDK variant.
     /// - Parameters:
     ///   - associatedTypesForKeysMatching: Passed to `MacroNamespace.parseTable` - refer there for more info.
     fileprivate func parseSettingsTable(_ namespace: MacroNamespace, associatedTypesForKeysMatching: [String: MacroType]? = nil) throws {
-        assert(settingsTable == nil)
-        settingsTable = try namespace.parseTable(settings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching)
+        do {
+            _settingsTable.initialize(to: try namespace.parseTable(settings, allowUserDefined: true, associatedTypesForKeysMatching: associatedTypesForKeysMatching))
+        } catch {
+            _settingsTable.initialize(to: nil)
+            throw error
+        }
     }
 }
 
@@ -512,6 +441,9 @@ public protocol SDKRegistryLookup: Sendable {
     /// - throws: `AmbiguousSDKLookupError` if there are multiple suitable matches and the run destination (if provided) was not able to disambiguate them.
     /// - returns: The found `SDK`, or `nil` if no SDK with the given name could be found or `name` was in an invalid format.
     func lookup(_ name: String, activeRunDestination: RunDestinationInfo?) throws -> SDK?
+
+    /// Synthesize an SDK for the given platform with the given manifest JSON file path
+    func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK?
 
     /// Look up the SDK with the given path.  If the registry is immutable, then this will only return the SDK if it was loaded when the registry was created; only mutable registries can discover and load new SDKs after that point.
     /// - parameter path: Absolute path of the SDK to look up.
@@ -591,9 +523,11 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
 
     private func parseSDKName(_ canonicalName: String) throws -> SDK.CanonicalNameComponents {
         try parsedSDKNames.getOrInsert(canonicalName) {
-            Result { try SDK.parseSDKName(canonicalName, pluginManager: delegate.pluginManager) }
+            Result { try SDK.parseSDKName(canonicalName, registry: self) }
         }.get()
     }
+
+    public let extensions: [any SDKRegistryExtension]
 
     /// The boot system SDK.
     //
@@ -606,6 +540,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         self.delegate = delegate
         self.type = type
         self.hostOperatingSystem = hostOperatingSystem
+
+        extensions = delegate.pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
 
         for (path, platform) in searchPaths {
             registerSDKsInDirectory(path, platform)
@@ -755,14 +691,12 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         var defaultSettings: [String: PropertyListItem] = [:]
         if case .plDict(let settingsItems)? = items["DefaultProperties"] {
             defaultSettings = filteredSettings(settingsItems)
-                .filter { $0.key != "TEST_FRAMEWORK_DEVELOPER_VARIANT_SUBPATH" } // rdar://107954685 (Remove watchOS special case for testing framework paths)
         }
 
         // Parse the custom properties settings.
         var overrideSettings: [String: PropertyListItem] = [:]
         if case .plDict(let settingsItems)? = items["CustomProperties"] {
             overrideSettings = filteredSettings(settingsItems)
-                .filter { !$0.key.hasPrefix("SWIFT_MODULE_ONLY_") } // Rev-lock: don't set SWIFT_MODULE_ONLY_ in SDKs
         }
 
         // Parse the Variants array and the SupportedTargets dictionary, then create the SDKVariant objects from them.  Note that it is not guaranteed that any variant will have both sets of data, so we don't the presence of either one.
@@ -989,10 +923,6 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             return nil
         }
 
-        @preconcurrency @PluginExtensionSystemActor func extensions() -> [any SDKRegistryExtensionPoint.ExtensionProtocol] {
-            delegate.pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
-        }
-
         // Construct the SDK and add it to the registry.
         let sdk = SDK(canonicalName, canonicalNameComponents: try? parseSDKName(canonicalName), aliases, cohortPlatforms, displayName, path, version, productBuildVersion, defaultSettings, overrideSettings, variants, defaultDeploymentTarget, defaultVariant, (headerSearchPaths, frameworkSearchPaths, librarySearchPaths), directoryMacros.elements, isBaseSDK, fallbackSettingConditionValues, toolchains, versionMap, maximumDeploymentTarget)
         if let duplicate = sdksByCanonicalName[canonicalName] {
@@ -1009,7 +939,7 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         sdksByPath[path] = sdk
         sdksByPath[pathResolved] = sdk
 
-        platform?.sdks.append(sdk)
+        platform?.registerSDK(sdk)
 
         return sdk
     }
@@ -1151,6 +1081,119 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
         return sdk
     }
 
+    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK? {
+        // Let's check the active run destination to see if there's an SDK path that we should be using
+        let versionedTriple = try LLVMTriple(triple)
+
+        let host = hostOperatingSystem
+
+        // Don't allow re-registering the same SDK
+        if let existing = sdksByPath[Path(sdkManifestPath)] {
+            return existing
+        }
+
+        guard let swiftSDK = try SwiftSDK(identifier: sdkManifestPath, version: "1.0.0", path: Path(sdkManifestPath), fs: localFS) else {
+            // No Swift SDK exists at path or it has an incompatible schema version
+            return nil
+        }
+
+        let defaultProperties: [String: PropertyListItem] = [
+            "SDK_STAT_CACHE_ENABLE": "NO",
+
+            "GENERATE_TEXT_BASED_STUBS": "NO",
+            "GENERATE_INTERMEDIATE_TEXT_BASED_STUBS": "NO",
+
+            "CHOWN": "/usr/bin/chown",
+
+            // TODO are these going to be appropriate for all kinds of SDK's?
+            // SwiftSDK _could_ have tool entries for these, so use them if they are available
+            "LIBTOOL": .plString(host.imageFormat.executableName(basename: "llvm-lib")),
+            "AR": .plString(host.imageFormat.executableName(basename: "llvm-ar")),
+        ]
+
+        for (sdkTriple, tripleProperties) in swiftSDK.targetTriples {
+            guard triple == sdkTriple else {
+                continue
+            }
+
+            let sdkroot = swiftSDK.path.join(tripleProperties.sdkRootPath)
+
+            let swiftResourceDir = swiftSDK.path.join(tripleProperties.swiftResourcesPath)
+            let swiftStaticResourceDir = swiftSDK.path.join(tripleProperties.swiftStaticResourcesPath)
+            let clangResourceDir = swiftSDK.path.join(tripleProperties.clangResourcesPath)
+            let clangStaticResourceDir = swiftSDK.path.join(tripleProperties.clangStaticResourcesPath)
+
+            let unversionedTriple = versionedTriple.unversioned
+
+            let targetProperties: [String: PropertyListItem] = try [
+                "Archs": .plArray([.plString(unversionedTriple.arch)]),
+                "LLVMTargetTripleEnvironment": .plString(unversionedTriple.environment ?? ""),
+                "LLVMTargetTripleSys": .plString(unversionedTriple.system),
+                "LLVMTargetTripleVendor": .plString(unversionedTriple.vendor),
+            ].merging(
+                versionedTriple.version.map { version in
+                    [
+                        "DefaultDeploymentTarget": .plString(version.canonicalDeploymentTargetForm.description),
+                        "MinimumDeploymentTarget": .plString(version.canonicalDeploymentTargetForm.description),
+                        "MaximumDeploymentTarget": .plString(version.canonicalDeploymentTargetForm.description),
+                    ]
+                } ?? [:], uniquingKeysWith: { _, new in new })
+
+            // TODO handle tripleProperties.toolSearchPaths
+
+            let headerSearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.includeSearchPaths ?? []).map( { PropertyListItem.plString($0) } )
+            let librarySearchPaths: [PropertyListItem] = ["$(inherited)"] + (tripleProperties.librarySearchPaths ?? []).map( { PropertyListItem.plString($0) } )
+
+            let toolsetAbsolutePaths: [PropertyListItem] = (tripleProperties.toolsetPaths ?? []).map { .plString(swiftSDK.path.join($0).str) }
+
+            let sdk = registerSDK(
+                sdkroot, sdkroot, platform, .plDict([
+                "Type": .plString("SDK"),
+                "Version": .plString(swiftSDK.version),
+                "CanonicalName": .plString(swiftSDK.identifier),
+                "Aliases": [],
+                "IsBaseSDK": .plBool(true),
+                "DefaultProperties": .plDict([
+                    "PLATFORM_NAME": .plString(platform.name),
+                    "SWIFT_SDK_TOOLSETS": .plArray(toolsetAbsolutePaths),
+                ].merging(defaultProperties, uniquingKeysWith: { _, new in new })),
+                "CustomProperties": .plDict([
+                    "SDKROOT": .plString(sdkroot.str),
+
+                    // Default search paths
+                    "LIBRARY_SEARCH_PATHS": .plArray(librarySearchPaths),
+                    "HEADER_SEARCH_PATHS": .plArray(headerSearchPaths),
+
+                    // Resource directory settings
+                    "SWIFT_RESOURCE_DIR_STATIC_STDLIB_NO": .plString(swiftResourceDir.str),
+                    "SWIFT_RESOURCE_DIR_STATIC_STDLIB_YES": .plString(swiftStaticResourceDir.str),
+                    "SWIFT_RESOURCE_DIR": .plString("$(SWIFT_RESOURCE_DIR_STATIC_STDLIB_$(SWIFT_FORCE_STATIC_LINK_STDLIB:default=NO))"),
+                    // The clang resource dir is also conditioned on SWIFT_FORCE_STATIC_LINK_STDLIB/-resource-dir
+                    // because it's ultimately determined by how the Swift SDK is being used.
+                    "CLANG_RESOURCE_DIR_STATIC_STDLIB_NO": .plString(clangResourceDir.str),
+                    "CLANG_RESOURCE_DIR_STATIC_STDLIB_YES": .plString(clangStaticResourceDir.str),
+                    "CLANG_RESOURCE_DIR": .plString("$(CLANG_RESOURCE_DIR_STATIC_STDLIB_$(SWIFT_FORCE_STATIC_LINK_STDLIB:default=NO))"),
+                ].merging(customProperties, uniquingKeysWith: { _, new in new})),
+                "SupportedTargets": .plDict([
+                    platform.name: .plDict(targetProperties)
+                ]),
+                // TODO: Leave compatible toolchain information in Swift SDKs
+                // "Toolchains": .plArray([])
+            ]))
+
+            if let sdk {
+                try sdk.loadExtendedInfo(delegate.namespace)
+                sdksByPath[Path(sdkManifestPath)] = sdk
+                return sdk
+            } else {
+                // registerSDK should have already emitted an error to the delegate if it returned nil
+            }
+        }
+
+        // Unsupported triple
+        return nil
+    }
+
     public func lookup(nameOrPath key: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
         #if !os(Windows)
         // TODO: Turn this validation back on once our path handling is cleaned up a bit more
@@ -1200,7 +1243,14 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
             // If we got here, we have DriverKit SDKs (the only ones which use cohort platforms) for multiple cohort platforms. Narrow down the list by disambiguating using the run destination.
 
             func selectSDKList() -> [SDK]? {
-                if let list = sdksByCohortPlatform[activeRunDestination?.platform] {
+                let platform: String?
+                if case let .toolchainSDK(platform: p, _, _) = activeRunDestination?.buildTarget {
+                    platform = p
+                } else {
+                    platform = nil
+                }
+
+                if let list = sdksByCohortPlatform[platform] {
                     return list
                 }
 
@@ -1208,7 +1258,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
                 // by the cohort platforms of the run destination's SDK's platform. This is necessary to resolve
                 // driverkit when we have a DriverKit run destination but with a platform-specific SDK.
                 if let runDestination = activeRunDestination,
-                   let cohortPlatforms = try? lookup(runDestination.sdk, activeRunDestination: nil)?.cohortPlatforms {
+                   case let .toolchainSDK(_, sdk: sdk, _) = runDestination.buildTarget,
+                   let cohortPlatforms = try? lookup(sdk, activeRunDestination: nil)?.cohortPlatforms {
                     for cohortPlatform in cohortPlatforms {
                         if let list = sdksByCohortPlatform[cohortPlatform] {
                             return list
@@ -1237,11 +1288,8 @@ public final class SDKRegistry: SDKRegistryLookup, CustomStringConvertible, Send
     }
 
     func supportedSDKCanonicalNameSuffixes() -> Set<String> {
-        @preconcurrency @PluginExtensionSystemActor func extensions() -> [any SDKRegistryExtensionPoint.ExtensionProtocol] {
-            delegate.pluginManager.extensions(of: SDKRegistryExtensionPoint.self)
-        }
         var suffixes: Set<String> = []
-        for `extension` in extensions() {
+        for `extension` in extensions {
             suffixes.formUnion(`extension`.supportedSDKCanonicalNameSuffixes)
         }
         return suffixes

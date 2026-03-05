@@ -110,7 +110,7 @@
             {
                 // Frameworks are Mac specific
                 Name = "FRAMEWORK_SEARCH_PATHS";
-                Type = PathList;
+                Type = PathOrderedSet;
                 Condition = "NO";
             },
             {
@@ -140,6 +140,11 @@
             {
                 // Unsupported
                 Name = "LD_WARN_DUPLICATE_LIBRARIES";
+                Type = Boolean;
+                Condition = "NO";
+            },
+            {
+                Name = "LD_DEBUG_VARIANT";
                 Type = Boolean;
                 Condition = "NO";
             },

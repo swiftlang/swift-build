@@ -48,7 +48,7 @@ open class Service: @unchecked Sendable {
 
     public let connectionMode: ServiceHostConnectionMode
 
-    public let pluginManager: PluginManager
+    public let pluginManager: MutablePluginManager
 
     /// The message handlers, operating on (channel, message) pairs.
     ///
@@ -64,7 +64,7 @@ open class Service: @unchecked Sendable {
     ///   - outputFD: The output file descriptor for outgoing messages.
     ///   - connectionMode: Whether the build service is being run in-process or out-of-process.
     ///   - tracer: The tracing support service, if enabled.
-    public init(inputFD: FileDescriptor, outputFD: FileDescriptor, connectionMode: ServiceHostConnectionMode, pluginManager: PluginManager) async {
+    public init(inputFD: FileDescriptor, outputFD: FileDescriptor, connectionMode: ServiceHostConnectionMode, pluginManager: MutablePluginManager) async {
         self.connectionMode = connectionMode
         self.pluginManager = pluginManager
 

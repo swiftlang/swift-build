@@ -15,8 +15,6 @@ import struct SWBProtocol.RunDestinationInfo
 import SWBMacro
 
 public protocol TargetGraph: Sendable {
-    var workspaceContext: WorkspaceContext { get }
-
     var allTargets: OrderedSet<ConfiguredTarget> { get }
 
     func dependencies(of target: ConfiguredTarget) -> [ConfiguredTarget]
@@ -96,10 +94,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             BuiltinMacros.TOOLCHAINS.name,
             BuiltinMacros.SWIFT_ENABLE_COMPILE_CACHE.name,
         ]
-        @preconcurrency @PluginExtensionSystemActor func sdkVariantInfoExtensions() -> [any SDKVariantInfoExtensionPoint.ExtensionProtocol] {
-            core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self)
-        }
-        for sdkVariantInfoExtension in sdkVariantInfoExtensions() {
+        for sdkVariantInfoExtension in core.pluginManager.extensions(of: SDKVariantInfoExtensionPoint.self) {
             macros.formUnion(sdkVariantInfoExtension.supportsMacCatalystMacroNames)
         }
         return macros
@@ -218,7 +213,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             overrides["SUPPORTS_MACCATALYST"] = sdkVariant.name == MacCatalystInfo.sdkVariantName ? "YES" : "NO"
         }
         if let supportedPlatforms {
-            if let platform = parameters.activeRunDestination?.platform {
+            if case let .toolchainSDK(platform: platform, _, _) = parameters.activeRunDestination?.buildTarget {
                 // If the specialization matches the platform of the active run destination, we do not need to impose it.
                 if !supportedPlatforms.contains(platform) {
                     overrides["SUPPORTED_PLATFORMS"] = supportedPlatforms.joined(separator: " ")
@@ -263,9 +258,12 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         // This seems like an unfortunate way to get from the SDK to its platform.  But SettingsBuilder.computeBoundProperties() creates a scope to evaluate the PLATFORM_NAME defined in the SDK's default properties, so maybe there isn't a clearly better way.
         if let overridingSdk, let overridingPlatform = workspaceContext.core.platformRegistry.platforms.filter({ $0.sdks.contains(where: { $0.canonicalName == overridingSdk.canonicalName }) }).first {
             platformName = overridingPlatform.name
+        } else if case let .toolchainSDK(platform: platform, _, _) = parameters.activeRunDestination?.buildTarget {
+            platformName = platform
         } else {
-            platformName = parameters.activeRunDestination?.platform
+            platformName = nil
         }
+
         if platformName == nil {
             if let overridingSdk = overridingSdk {
                 let platformNames = workspaceContext.core.platformRegistry.platforms.map { $0.name }
@@ -277,7 +275,7 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
             // Otherwise there was no overriding SDK provided, and there is no active run destination (or somehow there's a destination without a platform).  This is valid, but it's not clear to me what this means for specialization parameters.
         }
         let sdkSuffix: String?
-        if let sdk = parameters.activeRunDestination?.sdk {
+        if case let .toolchainSDK(_, sdk: sdk, _) = parameters.activeRunDestination?.buildTarget {
             if let suffix = try? workspaceContext.sdkRegistry.lookup(sdk, activeRunDestination: parameters.activeRunDestination)?.canonicalNameSuffix, !suffix.isEmpty {
                 sdkSuffix = suffix
             } else {
@@ -287,7 +285,13 @@ struct SpecializationParameters: Hashable, CustomStringConvertible {
         } else {
             sdkSuffix = nil
         }
-        self.init(workspaceContext: workspaceContext, platformName: platformName, sdkVariantName: parameters.activeRunDestination?.sdkVariant, canonicalNameSuffix: sdkSuffix, diagnostics: diagnostics)
+        let sdkVariantName: String?
+        if case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = parameters.activeRunDestination?.buildTarget {
+            sdkVariantName = sdkVariant
+        } else {
+            sdkVariantName = nil
+        }
+        self.init(workspaceContext: workspaceContext, platformName: platformName, sdkVariantName: sdkVariantName, canonicalNameSuffix: sdkSuffix, diagnostics: diagnostics)
     }
 
     fileprivate init(workspaceContext: WorkspaceContext, platformName: String?, sdkVariantName: String?, canonicalNameSuffix: String?, diagnostics: [Diagnostic] = []) {
@@ -537,12 +541,12 @@ extension SpecializationParameters {
                 let archName: String = platform.determineDefaultArchForIndexArena(preferredArch: workspaceContext.systemInfo?.nativeArchitecture, using: workspaceContext.core) ?? "unknown_arch"
 
                 for sdkVariant in matchingSDK.variants.keys.sorted() {
-                    let runDestination = RunDestinationInfo(platform: platform.name, sdk: matchingSDK.canonicalName, sdkVariant: sdkVariant, targetArchitecture: archName, supportedArchitectures: [archName], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
+                    let runDestination = RunDestinationInfo(buildTarget: .toolchainSDK(platform: platform.name, sdk: matchingSDK.canonicalName, sdkVariant: sdkVariant), targetArchitecture: archName, supportedArchitectures: [archName], disableOnlyActiveArch: false, hostTargetedPlatform: nil)
                     let buildParams = buildRequest.parameters.replacing(activeRunDestination: runDestination, activeArchitecture: archName)
                     let specializationParams = SpecializationParameters.default(workspaceContext: workspaceContext, buildRequestContext: buildRequestContext, parameters: buildParams)
                     platformBuildParameters.append(PlatformBuildParameters(buildParams: buildParams, specializationParams: specializationParams))
 
-                    if runDestination.platform == hostOS && runDestination.sdkVariant == matchingSDK.defaultVariant?.name  {
+                    if platform.name == hostOS && sdkVariant == matchingSDK.defaultVariant?.name  {
                         hostBuildParameters = platformBuildParameters.last
                     }
                 }
@@ -599,14 +603,14 @@ extension SpecializationParameters {
         for platformParams in platformBuildParametersForIndex {
             // Before forming all new settings for this platform, do a fast check using `SUPPORTED_PLATFORMS` of `unconfiguredSettings`.
             // This significantly cuts down the work that this function is doing.
-            if platformParams.buildParams.activeRunDestination?.sdkVariant == MacCatalystInfo.sdkVariantName {
+            if case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = platformParams.buildParams.activeRunDestination?.buildTarget, sdkVariant == MacCatalystInfo.sdkVariantName {
                 // macCatalyst has various special rules, check it by forming new settings normally, below.
                 // Carve out once small exception for host tools, which should never build for Catalyst.
                 if let standardTarget = target as? StandardTarget, ProductTypeIdentifier(standardTarget.productTypeIdentifier).isHostBuildTool {
                     continue
                 }
             } else {
-                if let platformName = platformParams.buildParams.activeRunDestination?.platform, unconfiguredSupportedPlatforms.count > 0 {
+                if case let .toolchainSDK(platform: platformName, _, _) = platformParams.buildParams.activeRunDestination?.buildTarget, unconfiguredSupportedPlatforms.count > 0 {
                     guard unconfiguredSupportedPlatforms.contains(platformName) else { continue }
                 }
             }
@@ -623,26 +627,20 @@ extension SpecializationParameters {
 
     /// Determines whether a target should be configured for the given platform in the index arena.
     ///
-    /// The arena is used for two purposes:
-    ///   1. To retrieve settings for a given target
-    ///   2. To produce products of source dependencies for compilation purposes (it does not produce binaries)
+    /// When building a workspace build description, we configure for all possible platforms. As such,
+    /// we want to avoid unnecessarily configuring targets for unsupported platforms. When building a
+    /// target or package description, we are only configuring for a single platform and can therefore
+    /// avoid this check since we assume any dependency will necessary.
     ///
-    /// Thus, in general if a target doesn't support a platform, we don't want to configure it for that platform. If a
-    /// dependency is not supported for the platform of the dependent, presumably the dependent will not be able
-    /// to use its products for compilation purposes, since the source products will be put in a different platform
-    /// directory and/or they will not be usable by the dependent (e.g. the module will not be importable from a
-    /// different platform). If the dependency was intended to be usable from that platform for compilation purposes,
-    /// it would be a supported platform.
-    ///
-    /// There's an exception for this for a dependent host tool, which are required for compilation and must therefore
-    /// be configured (and registered as a dependency) regardless.
-    nonisolated func isTargetSuitableForPlatformForIndex(_ target: Target, parameters: BuildParameters, imposedParameters: SpecializationParameters?, dependencies: OrderedSet<ConfiguredTarget>? = nil) -> Bool {
-        if !buildRequest.enableIndexBuildArena {
-            return true
-        }
+    /// Note there's an exception for this for host build tools, which are required for compilation
+    /// and must therefore be configured (and registered as a dependency) regardless
+    nonisolated func isTargetSuitableForPlatformForIndex(_ target: Target, parameters: BuildParameters, imposedParameters: SpecializationParameters?) -> Bool {
+        guard buildRequest.buildsIndexWorkspaceDescription else { return true }
 
-        // Host tools case, always supported we'll override the parameters with that of the host regardless.
-        if target.isHostBuildTool || dependencies?.contains(where: { $0.target.isHostBuildTool }) == true {
+        // Host tools case, always supported since we'll override the parameters with that of the
+        // host regardless. Any dependencies will have the host platform imposed on them through
+        // `imposedParameters`.
+        if target.isHostBuildTool {
             return true
         }
 
@@ -660,10 +658,10 @@ extension SpecializationParameters {
         guard let targetPlatform = settings.platform else {
             return false
         }
-        if targetPlatform.name != runDestination.platform {
+        if case let .toolchainSDK(platform: platform, _, _) = runDestination.buildTarget, targetPlatform.name != platform {
             return false
         }
-        if settings.sdkVariant?.name != runDestination.sdkVariant {
+        if case let .toolchainSDK(_, _, sdkVariant: sdkVariant) = runDestination.buildTarget, settings.sdkVariant?.name != sdkVariant {
             return false
         }
 
@@ -835,7 +833,7 @@ extension SpecializationParameters {
                 imposedSupportedPlatforms = supportedPlatforms
 
                 let hostPlatform = settings.globalScope.evaluate(BuiltinMacros.HOST_PLATFORM)
-                let runDestinationPlatform = buildRequest.parameters.activeRunDestination?.platform
+                let runDestinationPlatform = if case let .toolchainSDK(platform: platform, _, _) = buildRequest.parameters.activeRunDestination?.buildTarget { platform } else { Optional<String>.none }
                 let supportedPlatformsWithoutSimulators = Set(supportedPlatforms.compactMap { self.workspaceContext.core.platformRegistry.lookup(name: $0) }.filter { !$0.isSimulator }.map { $0.name })
 
                 // If the given specialization is unsupported, we still need to impose a platform.

@@ -271,8 +271,8 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
 
             results.checkTarget("AppTarget") { target in
                 results.checkTask(.matchTarget(target), .matchRuleType("CompileC"), .matchRuleItemBasename("main.m"), .matchRuleItem("x86_64")) { task in
-                    task.checkRuleInfo([.equal("CompileC"), .suffix("main.o"), .suffix("main.m"), .equal("normal"), .equal("x86_64"), .equal("objective-c"), .any])
-                    task.checkCommandLineLastArgumentEqual("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/x86_64/main.o")
+                    task.checkRuleInfo([.equal("CompileC"), .suffix("main.o"), .suffix("main.m"), .equal("normal"), .equal(results.runDestinationTargetArchitecture), .equal("objective-c"), .any])
+                    task.checkCommandLineLastArgumentEqual("\(SRCROOT)/build/aProject.build/Debug-iphonesimulator/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/main.o")
                 }
 
                 func checkLdEntitlements(_ task: any PlannedTask) {
@@ -551,9 +551,11 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
         try fs.write(Path("/Users/whoever/Library/MobileDevice/Provisioning Profiles/8db0e92c-592c-4f06-bfed-9d945841b78d.mobileprovision"), contents: "profile")
         try fs.createDirectory(Path("/tmp/Test/aProject/Stickers.xcstickers/Sticker Pack.stickerpack"), recursive: true)
         try fs.createDirectory(platformPath.join("Library/Application Support/MessagesApplicationStub"), recursive: true)
-        try fs.write(platformPath.join("Library/Application Support/MessagesApplicationStub/MessagesApplicationStub"), contents: "MessagesApplicationStub")
+        let stubPath = platformPath.join("Library/Application Support/MessagesApplicationStub/MessagesApplicationStub")
+        try fs.write(stubPath, contents: localFS.read(stubPath))
         try fs.createDirectory(platformPath.join("Library/Application Support/MessagesApplicationExtensionStub"), recursive: true)
-        try fs.write(platformPath.join("Library/Application Support/MessagesApplicationExtensionStub/MessagesApplicationExtensionStub"), contents: "MessagesApplicationExtensionStub")
+        let extensionStubPath = platformPath.join("Library/Application Support/MessagesApplicationExtensionStub/MessagesApplicationExtensionStub")
+        try fs.write(extensionStubPath, contents: localFS.read(extensionStubPath))
         try fs.createDirectory(tester.workspace.projects[0].sourceRoot, recursive: true)
         try fs.write(tester.workspace.projects[0].sourceRoot.join("Info.plist"), contents: "<dict/>")
 
@@ -730,9 +732,9 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                     "-Fsystem", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
                                                     "-c",
                                                     "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-OutputFileMap.json",
-                                                    "-serialize-diagnostics",
                                                     "-emit-dependencies",
                                                     "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget.swiftmodule",
+                                                    "-serialize-diagnostics",
                                                     "-Xcc", "-isystem", "-Xcc", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/usr/include",
                                                     "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(arch)/AppTarget-Swift.h",
                         ]
@@ -798,9 +800,9 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                 "-target", "arm64-apple-ios\(IPHONEOS_DEPLOYMENT_TARGET)",
                                                 "-c",
                                                 "-output-file-map", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-OutputFileMap.json",
-                                                "-serialize-diagnostics",
                                                 "-emit-dependencies",
                                                 "-emit-module", "-emit-module-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget.swiftmodule",
+                                                "-serialize-diagnostics",
                                                 "-emit-objc-header", "-emit-objc-header-path", "\(SRCROOT)/build/aProject.build/Debug-iphoneos/AppTarget.build/Objects-normal/arm64/AppTarget-Swift.h",
                     ]
                     task.checkCommandLineContains(expectedSwiftOptions)
@@ -897,7 +899,7 @@ fileprivate struct PlatformTaskConstructionTests: CoreBasedTests {
                                                 "-iframework", "/Library/Frameworks",
                                                 "-iframework", "\(core.loadSDK(.macOS).path.str)/System/iOSSupport/System/Library/Frameworks",
                                                 "-c", "\(SRCROOT)/Sources/ClassOne.m",
-                                                "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/x86_64/ClassOne.o",
+                                                "-o", "\(SRCROOT)/build/aProject.build/Debug\(MacCatalystInfo.publicSDKBuiltProductsDirSuffix)/AppTarget.build/Objects-normal/\(results.runDestinationTargetArchitecture)/ClassOne.o",
                     ]
                     task.checkCommandLineContains(expectedClangOptions)
                 }

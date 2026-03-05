@@ -15,6 +15,24 @@ import Foundation
 import SWBProtocol
 import SWBUtil
 
+typealias ExecuteOperation = (_ startInfo: SwiftBuildMessage.BuildStartedInfo, _ session: SWBBuildServiceSession, _ sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], _ request: SWBBuildRequest) async -> SWBCommandResult
+
+class SWBServiceConsoleCreateBuildDescriptionCommand: SWBServiceConsoleCommand {
+    static let name = "createBuildDescription"
+
+    static func usage() -> String {
+        return name + " [options] <container-path>"
+    }
+
+    static func validate(invocation: SWBServiceConsoleCommandInvocation) -> SWBServiceConsoleError? {
+        return nil
+    }
+
+    static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
+        return await SWBServiceConsoleBuildCommand.perform(invocation: invocation, operationFunc: generateBuildDescription)
+    }
+}
+
 class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
     static let name = "build"
 
@@ -27,6 +45,10 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
     }
 
     static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
+        return await Self.perform(invocation: invocation, operationFunc: doBuildOperation)
+    }
+
+    static func perform(invocation: SWBServiceConsoleCommandInvocation, operationFunc: ExecuteOperation) async -> SWBCommandResult {
         // Parse the arguments.
         var positionalArgs = [String]()
         var configuredTargetNames = [String]()
@@ -35,6 +57,7 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
         var buildRequestFile: Path? = nil
         var buildParametersFile: Path? = nil
         var derivedDataPath: Path? = nil
+        var buildAllTargets: Bool = false
 
         var iterator = invocation.commandLine.makeIterator()
         _ = iterator.next()
@@ -46,6 +69,9 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
                 }
 
                 actionName = name
+
+            case "--allTargets":
+                buildAllTargets = true
 
             case "--target":
                 guard let name = iterator.next() else {
@@ -98,6 +124,10 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
 
         let containerPath = Path(positionalArgs[0])
 
+        if !configuredTargetNames.isEmpty, buildAllTargets {
+            return .failure(.invalidCommandError(description: "error: pass either --allTargets or --target"))
+        }
+
         return await invocation.console.service.withSession(sessionName: containerPath.str) { session, diagnostics in
             let baseDirectory: AbsolutePath
             do {
@@ -143,7 +173,7 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
             let configuredTargets: [SWBConfiguredTarget]
             do {
                 let workspaceInfo = try await session.workspaceInfo()
-                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters)
+                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters, buildAllTargets: buildAllTargets)
             } catch {
                 return .failure(.failedCommandError(description: error.localizedDescription))
             }
@@ -187,7 +217,7 @@ class SWBServiceConsoleBuildCommand: SWBServiceConsoleCommand {
                 return .failure(.failedCommandError(description: error.localizedDescription))
             }
 
-            return await doBuildOperation(startInfo: .init(baseDirectory: baseDirectory, derivedDataPath: absoluteDerivedDataPath), session: session, sessionCreationDiagnostics: diagnostics, request: request)
+            return await operationFunc(.init(baseDirectory: baseDirectory, derivedDataPath: absoluteDerivedDataPath), session, diagnostics, request)
         }
     }
 }
@@ -281,11 +311,11 @@ class SWBServiceConsolePrepareForIndexCommand: SWBServiceConsoleCommand {
             var prepareTargets: [String]?
             do {
                 let workspaceInfo = try await session.workspaceInfo()
-                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters)
+                configuredTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters, buildAllTargets: false)
 
                 if !prepareTargetNames.isEmpty {
                     do {
-                        prepareTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters).map(\.guid)
+                        prepareTargets = try workspaceInfo.configuredTargets(targetNames: configuredTargetNames, parameters: parameters, buildAllTargets: false).map(\.guid)
                     } catch {
                         return .failure(.failedCommandError(description: error.localizedDescription))
                     }
@@ -323,8 +353,47 @@ class SWBServiceConsolePrepareForIndexCommand: SWBServiceConsoleCommand {
     }
 }
 
+class SWBServiceConsoleDependencyInfoCommand: SWBServiceConsoleCommand {
+    public static let name = "generateDependencyInfo"
+
+    static func usage() -> String {
+        return name + " [options] <container-path>"
+    }
+
+    static func validate(invocation: SWBServiceConsoleCommandInvocation) -> SWBServiceConsoleError? {
+        return nil
+    }
+
+    static func perform(invocation: SWBServiceConsoleCommandInvocation) async -> SWBCommandResult {
+        return await SWBServiceConsoleBuildCommand.perform(invocation: invocation, operationFunc: generateDependencyInfo)
+    }
+}
+
+fileprivate func generateDependencyInfo(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest) async -> SWBCommandResult {
+    do {
+        let output = try await withTemporaryDirectory(removeTreeOnDeinit: true) {
+            let outputPath = $0.join("dump.json")
+            try await session.dumpBuildDependencyInfo(for: request, to: outputPath.str)
+            return try String(contentsOf: URL(fileURLWithPath: outputPath.str))
+        }
+        return .success(.init(output: output))
+    } catch {
+        return .failure(.failedCommandError(description: "\(error)"))
+    }
+}
+
 extension SWBWorkspaceInfo {
-    func configuredTargets(targetNames: [String], parameters: SWBBuildParameters) throws -> [SWBConfiguredTarget] {
+    func configuredTargets(targetNames: [String], parameters: SWBBuildParameters, buildAllTargets: Bool) throws -> [SWBConfiguredTarget] {
+        if buildAllTargets {
+            // Filter all dynamic targets to avoid building the same content multiple times.
+            let dynamicTargetVariantGuids = targetInfos.compactMap { $0.dynamicTargetVariantGuid }
+            let targets = targetInfos.filter {
+                !dynamicTargetVariantGuids.contains($0.guid)
+            }.map {
+                SWBConfiguredTarget(guid: $0.guid, parameters: parameters)
+            }
+            return targets
+        }
         return try targetNames.map { targetName in
             let infos = targetInfos.filter { $0.targetName == targetName }
             switch infos.count {
@@ -370,7 +439,19 @@ extension SWBBuildService {
     }
 }
 
+fileprivate func generateBuildDescription(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest) async -> SWBCommandResult {
+    await runBuildOperation(startInfo: startInfo, session: session, sessionCreationDiagnostics: sessionCreationDiagnostics, request: request) {
+        return try await session.createBuildOperationForBuildDescriptionOnly(request: request, delegate: PlanningOperationDelegate())
+    }
+}
+
 fileprivate func doBuildOperation(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest) async -> SWBCommandResult {
+    await runBuildOperation(startInfo: startInfo, session: session, sessionCreationDiagnostics: sessionCreationDiagnostics, request: request) {
+        return try await session.createBuildOperation(request: request, delegate: PlanningOperationDelegate())
+    }
+}
+
+fileprivate func runBuildOperation(startInfo: SwiftBuildMessage.BuildStartedInfo, session: SWBBuildServiceSession, sessionCreationDiagnostics: [SwiftBuildMessage.DiagnosticInfo], request: SWBBuildRequest, createOperation: () async throws -> SWBBuildOperation) async -> SWBCommandResult {
     let systemInfo: SWBSystemInfo
     do {
         systemInfo = try .default()
@@ -409,7 +490,7 @@ fileprivate func doBuildOperation(startInfo: SwiftBuildMessage.BuildStartedInfo,
 
     // Start a build operation.  We set ourself as the delegate, so we will hear about output and completion.
     do {
-        let operation = try await session.createBuildOperation(request: request, delegate: PlanningOperationDelegate())
+        let operation = try await createOperation()
         for try await event in try await operation.start() {
             switch event {
             case .buildStarted:
@@ -463,7 +544,9 @@ private final class PlanningOperationDelegate: SWBPlanningOperationDelegate, Sen
 func registerBuildCommands() {
     for commandClass in ([
         SWBServiceConsoleBuildCommand.self,
-        SWBServiceConsolePrepareForIndexCommand.self
+        SWBServiceConsolePrepareForIndexCommand.self,
+        SWBServiceConsoleCreateBuildDescriptionCommand.self,
+        SWBServiceConsoleDependencyInfoCommand.self,
     ] as [any SWBServiceConsoleCommand.Type]) { SWBServiceConsoleCommandRegistry.registerCommandClass(commandClass) }
 }
 

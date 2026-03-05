@@ -17,6 +17,7 @@ import Testing
 func testCodable<T>(
     _ original: T,
     _ modify: ((inout T) -> Void)? = nil,
+    _ expectedOutput: String? = nil,
     _ fileID: String = #fileID,
     _ filePath: String = #filePath,
     _ line: Int = #line,
@@ -24,9 +25,16 @@ func testCodable<T>(
 ) throws where T: Codable & Equatable {
     var original = original
     if let modify { modify(&original) }
-    let data = try JSONEncoder().encode(original)
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+    let data = try encoder.encode(original)
     let obj = try JSONDecoder().decode(T.self, from: data)
     #expect(original == obj, sourceLocation: SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column))
+    let reencodedData = try encoder.encode(original)
+    #expect(data == reencodedData, sourceLocation: SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column))
+    if let expectedOutput {
+        #expect(String(decoding: data, as: UTF8.self) == expectedOutput, sourceLocation: SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column))
+    }
 }
 
 @Suite

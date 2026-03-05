@@ -17,7 +17,7 @@ import SWBMacro
 /// Wrapper for capturing the task information needed for the `TargetOrderTaskProducer`.
 ///
 /// The `GlobalProductPlan` contains a map of `ConfiguredTarget`s to `TargetTaskInfo`s.
-final class TargetTaskInfo {
+final class TargetGateNodes {
     /// A virtual node representing the start of the overall target.
     ///
     /// All tasks in the target depend on this node having been built.
@@ -100,18 +100,18 @@ final class TargetTaskInfo {
 
 /// Task producer for the gate tasks for a single target that are used to enforce the ordering of tasks within and across targets.
 final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
-    let targetTaskInfo: TargetTaskInfo
+    let targetGateNodes: TargetGateNodes
 
     let targetContext: TargetTaskProducerContext
 
-    init(_ context: TargetTaskProducerContext, targetTaskInfo: TargetTaskInfo) {
-        self.targetTaskInfo = targetTaskInfo
+    init(_ context: TargetTaskProducerContext, targetTaskInfo: TargetGateNodes) {
+        self.targetGateNodes = targetTaskInfo
         self.targetContext = context
         super.init(context)
     }
 
     func prepare() async {
-        if let preparedForIndexModuleNode = targetTaskInfo.preparedForIndexModuleContentNode {
+        if let preparedForIndexModuleNode = targetGateNodes.preparedForIndexModuleContentNode {
             precondition(context.preparedForIndexModuleContentTasks.isEmpty)
             await appendGeneratedTasks(&context.preparedForIndexModuleContentTasks) { delegate in
                 let outputPath = preparedForIndexModuleNode.path
@@ -140,7 +140,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     ///
     /// It depends on the exit nodes of all targets the target depends on, and has the target's own start node as its output.
     private func createTargetBeginTask() -> any PlannedTask {
-        return createStartTask(lookupTargetExitNode, output: targetTaskInfo.startNode)
+        return createStartTask(lookupTargetExitNode, output: targetGateNodes.startNode)
     }
 
     /// Creates the start-compiling task for the target, which all `compilation` tasks in the target are ordered after.
@@ -153,7 +153,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     /// It has the target's own start-compiling node as its output.
     private func createStartCompilingTask() -> any PlannedTask {
         let lookup = allowEagerCompilation ? lookupModulesReadyNode : lookupTargetExitNode
-        return createStartTask(lookup, output: targetTaskInfo.startCompilingNode)
+        return createStartTask(lookup, output: targetGateNodes.startCompilingNode)
     }
 
     /// Creates the start-linking task for the target, which all `linking` tasks in the target are ordered after.
@@ -166,11 +166,11 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     /// It has the target's own start-compiling node as its output.
     private func createStartLinkingTask() -> any PlannedTask {
         let lookup = allowEagerLinking ? lookupLinkerInputsReadyNode : lookupTargetExitNode
-        return createStartTask(lookup, output: targetTaskInfo.startLinkingNode)
+        return createStartTask(lookup, output: targetGateNodes.startLinkingNode)
     }
 
     private func createStartScanningTask() -> any PlannedTask {
-        createStartTask(lookupScanningInputsReadyNode, output: targetTaskInfo.startScanningNode)
+        createStartTask(lookupScanningInputsReadyNode, output: targetGateNodes.startScanningNode)
     }
 
     /// Creates the start-immediate task for the target.
@@ -183,7 +183,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     /// It has the target's own start-immediate node as its output.
     private func createStartImmediateTask() -> any PlannedTask {
         let lookup = allowEagerCompilation ? { (_, _) in nil } : lookupTargetExitNode
-        return createStartTask(lookup, output: targetTaskInfo.startImmediateNode)
+        return createStartTask(lookup, output: targetGateNodes.startImmediateNode)
     }
 
     /// Utility method to create one of several kinds of start tasks for the target.
@@ -361,7 +361,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
 
     /// Returns the end node for the given `dependency` which `target` depends on.  This is often used to order the tasks of one target after a specific set of tasks of an earlier target.
     private func lookupTargetExitNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetTaskInfos[dependency]!
+        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
         // If the dependency is the target which is hosting this target, then use its unsigned-product-ready node as the input.
         if let hostTarget = context.globalProductPlan.hostTargetForTargets[target], dependency === hostTarget {
             return taskInfo.unsignedProductReadyNode
@@ -372,7 +372,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
 
     /// Returns the node before which are ordered all of the tasks needed to finish building the modules for the given `dependency`.  This is used to order both the target's own compilation tasks after this node, and - when eager compilation are enabled - downstream targets' compilation tasks after this node, allowing them to run in parallel with this target's compilation tasks.
     private func lookupModulesReadyNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetTaskInfos[dependency]!
+        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
         let targetScope = context.globalProductPlan.getTargetSettings(dependency).globalScope
         if targetScope.evaluate(BuiltinMacros.EAGER_COMPILATION_DISABLE) {
             return taskInfo.endNode
@@ -381,7 +381,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     }
 
     private func lookupLinkerInputsReadyNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetTaskInfos[dependency]!
+        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
         let targetScope = context.globalProductPlan.getTargetSettings(dependency).globalScope
         if targetScope.evaluate(BuiltinMacros.EAGER_COMPILATION_DISABLE) {
             return taskInfo.endNode
@@ -390,7 +390,7 @@ final class TargetOrderTaskProducer: StandardTaskProducer, TaskProducer {
     }
 
     private func lookupScanningInputsReadyNode(_ dependency: ConfiguredTarget, _ target: ConfiguredTarget) -> any PlannedNode {
-        let taskInfo = context.globalProductPlan.targetTaskInfos[dependency]!
+        let taskInfo = context.globalProductPlan.targetGateNodes[dependency]!
         return taskInfo.scanInputsReadyNode
 
     }

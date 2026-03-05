@@ -12,11 +12,12 @@
 
 (
     {
+        _Domain = darwin;
         Type = Compiler;
         Identifier = "com.apple.compilers.appintentsmetadata";
         Name = "App Intents Metadata Extractor";
         Description = "Extracts app intents metadata";
-        CommandLine = "appintentsmetadataprocessor --toolchain-dir $(TOOLCHAIN_DIR) --module-name $(PRODUCT_MODULE_NAME) --sdk-root $(SDKROOT) --xcode-version $(XCODE_PRODUCT_BUILD_VERSION) --platform-family $(PLATFORM_FAMILY_NAME) --deployment-target $($(DEPLOYMENT_TARGET_SETTING_NAME)) [options]";
+        CommandLine = "appintentsmetadataprocessor --toolchain-dir $(TOOLCHAIN_DIR) --module-name $(SWIFT_MODULE_NAME) --sdk-root $(SDKROOT) --xcode-version $(XCODE_PRODUCT_BUILD_VERSION) --platform-family $(PLATFORM_FAMILY_NAME) --deployment-target $($(DEPLOYMENT_TARGET_SETTING_NAME)) [options]";
         RuleName = "ExtractAppIntentsMetadata";
         ExecDescription = "Extract app intents metadata";
         ProgressDescription = "Extracting app intents metadata";
@@ -114,15 +115,6 @@
                 IsInputDependency = Yes;
             },
             {
-                Name = LM_IGNORE_QUERY_GENERICS_ERRORS;
-                Type = Boolean;
-                DefaultValue = NO;
-                CommandLineArgs = {
-                    YES = ( "--ignore-query-generics-errors" );
-                    NO = ();
-                };
-            },
-            {
                 Name = LM_FORCE_LINK_GENERATION;
                 Type = Boolean;
                 DefaultValue = NO;
@@ -200,6 +192,15 @@
                 DefaultValue = YES;
                 CommandLineArgs = {
                     YES = ( "--no-app-shortcuts-localization" );
+                    NO = ();
+                };
+            },
+            {
+                Name = LM_ENABLE_APP_NAME_OVERRIDE;
+                Type = Boolean;
+                DefaultValue = NO;
+                CommandLineArgs = {
+                    YES = ( "--app-shortcuts-app-name-override" );
                     NO = ();
                 };
             },

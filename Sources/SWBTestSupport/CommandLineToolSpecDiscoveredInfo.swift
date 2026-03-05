@@ -23,7 +23,7 @@ extension CoreBasedTests {
 
     package func withSpec<T: DiscoveredCommandLineToolSpecInfo>(_ identifier: String, _ result: ExternalToolResult, platform: String? = nil, additionalTable: MacroValueAssignmentTable? = nil, _ block: (_ info: T) throws -> Void, sourceLocation: SourceLocation = #_sourceLocation) async throws {
         let core = try await getCore()
-        let spec = try core.specRegistry.getSpec(identifier) as CommandLineToolSpec
+        let spec = try core.specRegistry.getSpec(identifier, domain: platform ?? "", ofType: CommandLineToolSpec.self)
 
         // Create the context to use to discover the info.
         var table = MacroValueAssignmentTable(namespace: core.specRegistry.internalMacroNamespace)

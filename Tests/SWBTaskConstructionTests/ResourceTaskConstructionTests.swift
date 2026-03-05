@@ -83,7 +83,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             results.checkTarget("App") { target -> Void in
                 // Processing Bar.r
                 results.checkTask(.matchRule(["Rez", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/Bar.rsrc", "\(SRCROOT)/Bar.r"])) { task in
-                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/Bar.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", "x86_64", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/Bar.r"])
+                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/Bar.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", results.runDestinationTargetArchitecture, "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/Bar.r"])
                     task.checkInputs([
                         .path("\(SRCROOT)/Bar.r"),
                         .path("\(SRCROOT)/RezPrefixFile.r"),
@@ -95,7 +95,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
                 // Processing Foo.r
                 results.checkTask(.matchRule(["Rez", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/Foo.rsrc", "\(SRCROOT)/Foo.r"])) { task in
-                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/Foo.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", "x86_64", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/Foo.r"])
+                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/Foo.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", results.runDestinationTargetArchitecture, "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/Foo.r"])
                     task.checkInputs([
                         .path("\(SRCROOT)/Foo.r"),
                         .path("\(SRCROOT)/RezPrefixFile.r"),
@@ -107,7 +107,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
                 // Processing Baz.r (de)
                 results.checkTask(.matchRule(["Rez", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/de.lproj/Baz.rsrc", "\(SRCROOT)/de.lproj/Baz.r"])) { task in
-                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/de.lproj/Baz.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", "x86_64", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/de.lproj/Baz.r"])
+                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/de.lproj/Baz.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", results.runDestinationTargetArchitecture, "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/de.lproj/Baz.r"])
                     task.checkInputs([
                         .path("\(SRCROOT)/de.lproj/Baz.r"),
                         .path("\(SRCROOT)/RezPrefixFile.r"),
@@ -120,7 +120,7 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
 
                 // Processing Baz.r (en)
                 results.checkTask(.matchRule(["Rez", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/en.lproj/Baz.rsrc", "\(SRCROOT)/en.lproj/Baz.r"])) { task in
-                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/en.lproj/Baz.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", "x86_64", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/en.lproj/Baz.r"])
+                    task.checkCommandLine([rezPath.str, "-o", "\(SRCROOT)/build/aProject.build/\(configuration)/App.build/ResourceManagerResources/Objects/en.lproj/Baz.rsrc", "-d", "SystemSevenOrLater=1", "-useDF", "-script", "Roman", "other_rez_flags", "-arch", results.runDestinationTargetArchitecture, "-i", "\(SRCROOT)/build/\(configuration)", "-i", "rez_search_paths", "-i", "\(SRCROOT)/build/\(configuration)", "-i", "framework_search_paths", "-F", "system_framework_search_paths1", "-F", "system_framework_search_paths2", "-i", "\(SRCROOT)/build/\(configuration)/include", "-i", "header_search_paths", "-i", "system_header_search_paths1", "-i", "system_header_search_paths1", "\(SRCROOT)/RezPrefixFile.r", "-isysroot", core.loadSDK(.macOS).path.str, "\(SRCROOT)/en.lproj/Baz.r"])
                     task.checkInputs([
                         .path("\(SRCROOT)/en.lproj/Baz.r"),
                         .path("\(SRCROOT)/RezPrefixFile.r"),
@@ -1742,6 +1742,99 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
         }
     }
 
+    @Test(.requireSDKs(.macOS))
+    func copyLocalizedFilesWithKnownLocalizationsFilter() async throws {
+        // This tests BUILD_ONLY_KNOWN_LOCALIZATIONS for Copy Files phases.
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES"
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .resources, onlyForDeployment: false),
+                    ]
+                )
+            ],
+            developmentRegion: "en", knownLocalizations: ["en", "de"])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["Copy", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRuleType("Copy"))
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func copyLocalizedFilesWithBuildRulesAndKnownLocalizationsFilter() async throws {
+        // This tests BUILD_ONLY_KNOWN_LOCALIZATIONS for Copy Files phases with APPLY_RULES_IN_COPY_FILES.
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                        "APPLY_RULES_IN_COPY_FILES": "YES"
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "CoreFoo", type: .framework,
+                    buildPhases: [
+                        TestCopyFilesBuildPhase([
+                            "Localizable.strings",
+                        ], destinationSubfolder: .resources, onlyForDeployment: false),
+                    ]
+                )
+            ],
+            developmentRegion: "en", knownLocalizations: ["en", "de"])
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("CoreFoo") { target in
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/en.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/en.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "/tmp/Test/aProject/build/Debug/CoreFoo.framework/Versions/A/Resources/de.lproj/Localizable.strings", "/tmp/Test/aProject/Sources/de.lproj/Localizable.strings"]), .matchRuleItemBasename("Localizable.strings")) { _ in }
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CopyStringsFile"))
+            }
+            results.checkNoDiagnostics()
+        }
+    }
+
     /// Test permutations of the versioning stub file.
     @Test(.requireSDKs(.macOS))
     func versioningStub() async throws {
@@ -2868,6 +2961,219 @@ fileprivate struct ResourcesTaskConstructionTests: CoreBasedTests {
             }
 
             // Check there are no diagnostics.
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func interfaceBuilderCompilers_LegacyLocalization_WithKnownLocalizationsFilter() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Info.plist"),
+                    TestFile("en.lproj/Foo.xib", regionVariantName: "en"),
+                    TestFile("de.lproj/Foo.xib", regionVariantName: "de"),
+                    TestFile("ja.lproj/Foo.xib", regionVariantName: "ja"),
+                    TestFile("fr.lproj/Foo.xib", regionVariantName: "fr"),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "IBC_EXEC": ibtoolPath.str,
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SDKROOT": "macosx",
+                                                "INFOPLIST_FILE": "Sources/Info.plist",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "en.lproj/Foo.xib",
+                            "de.lproj/Foo.xib",
+                            "ja.lproj/Foo.xib",
+                            "fr.lproj/Foo.xib",
+                        ]),
+                    ])
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"] // only build for en and de
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        let ibtoolPath = try await self.ibtoolPath
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("App") { target in
+                // Check that en.lproj/Foo.xib is compiled:
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/en.lproj/Foo.xib"])) { task in
+                    task.checkCommandLineContains([ibtoolPath.str, "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/en.lproj/Foo.nib", "\(SRCROOT)/Sources/en.lproj/Foo.xib"])
+                }
+
+                // Check that de.lproj/Foo.xib is compiled:
+                results.checkTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/de.lproj/Foo.xib"])) { task in
+                    task.checkCommandLineContains([ibtoolPath.str, "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/de.lproj/Foo.nib", "\(SRCROOT)/Sources/de.lproj/Foo.xib"])
+                }
+
+                // Check that ja.lproj and fr.lproj are NOT compiled:
+                results.checkNoTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/ja.lproj/Foo.xib"]))
+                results.checkNoTask(.matchTarget(target), .matchRule(["CompileXIB", "\(SRCROOT)/Sources/fr.lproj/Foo.xib"]))
+            }
+
+            // Check for notes about skipped localizations:
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func interfaceBuilderCompilers_FullLocalization_WithKnownLocalizationsFilter() async throws {
+        let testProject = try await TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestVariantGroup("foo.xib",
+                                     children: [
+                                        TestFile("Base.lproj/foo.xib", regionVariantName: "Base"),
+                                        TestFile("fr.lproj/foo.xib", regionVariantName: "fr"),
+                                        TestFile("ja.lproj/foo.strings", regionVariantName: "ja"),
+                                        TestFile("en.lproj/foo.strings", regionVariantName: "en"),
+                                        TestFile("de.lproj/foo.strings", regionVariantName: "de"),
+                                     ]
+                                    ),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "CODE_SIGN_IDENTITY": "",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SDKROOT": "macosx",
+                                                "IBC_EXEC": ibtoolPath.str,
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "foo.xib",
+                        ]),
+                    ])
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"]
+        )
+        let core = try await getCore()
+        let tester = try TaskConstructionTester(core, testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        let ibtoolPath = try await self.ibtoolPath
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("App") { target in
+                // Base.lproj/foo.xib should compile with only en and de companion strings:
+                results.checkTask(.matchTarget(target), .matchRuleType("CompileXIB"), .matchRuleItem("\(SRCROOT)/Sources/Base.lproj/foo.xib")) { task in
+                    task.checkRuleInfo(["CompileXIB", "\(SRCROOT)/Sources/Base.lproj/foo.xib"])
+                    task.checkCommandLine([ibtoolPath.str, "--errors", "--warnings", "--notices", "--companion-strings-file", "en:\(SRCROOT)/Sources/en.lproj/foo.strings", "--companion-strings-file", "de:\(SRCROOT)/Sources/de.lproj/foo.strings", "--module", "App", "--output-partial-info-plist", "\(SRCROOT)/build/aProject.build/Debug/App.build/Base.lproj/foo-PartialInfo.plist", "--auto-activate-custom-fonts", "--target-device", "mac", "--minimum-deployment-target", "\(core.loadSDK(.macOS).defaultDeploymentTarget)", "--output-format", "human-readable-text", "--compile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/Base.lproj/foo.nib", "\(SRCROOT)/Sources/Base.lproj/foo.xib"])
+                }
+
+                // fr.lproj and ja.lproj should NOT be compiled:
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXIB"), .matchRuleItem("\(SRCROOT)/Sources/fr.lproj/foo.xib"))
+                results.checkNoTask(.matchTarget(target), .matchRuleType("CompileXIB"), .matchRuleItem("\(SRCROOT)/Sources/ja.lproj/foo.strings"))
+            }
+
+            // Check for notes about skipped localizations:
+            results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNoDiagnostics()
+        }
+    }
+
+    @Test(.requireSDKs(.macOS))
+    func variantGroupResourceCopyingWithKnownLocalizationsFilter() async throws {
+        let testProject = TestProject(
+            "aProject",
+            groupTree: TestGroup(
+                "SomeFiles", path: "Sources",
+                children: [
+                    TestFile("Info.plist"),
+                    TestVariantGroup("Localizable.strings", children: [
+                        TestFile("en.lproj/Localizable.strings", regionVariantName: "en"),
+                        TestFile("de.lproj/Localizable.strings", regionVariantName: "de"),
+                        TestFile("ja.lproj/Localizable.strings", regionVariantName: "ja"),
+                        TestFile("fr.lproj/Localizable.strings", regionVariantName: "fr"),
+                    ]),
+                ]),
+            buildConfigurations: [
+                TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "BUILD_ONLY_KNOWN_LOCALIZATIONS": "YES",
+                    ]),
+            ],
+            targets: [
+                TestStandardTarget(
+                    "App",
+                    type: .application,
+                    buildConfigurations: [
+                        TestBuildConfiguration("Debug",
+                                               buildSettings: [
+                                                "SDKROOT": "macosx",
+                                               ]),
+                    ],
+                    buildPhases: [
+                        TestResourcesBuildPhase([
+                            "Localizable.strings",
+                        ]),
+                    ])
+            ],
+            developmentRegion: "en",
+            knownLocalizations: ["en", "de", "Base"]
+        )
+        let tester = try await TaskConstructionTester(getCore(), testProject)
+        let SRCROOT = tester.workspace.projects[0].sourceRoot.str
+
+        await tester.checkBuild(runDestination: .macOS) { results in
+            results.checkTarget("App") { target in
+                // Check that en.lproj/Localizable.strings is copied:
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/en.lproj/Localizable.strings", "\(SRCROOT)/Sources/en.lproj/Localizable.strings"])) { _ in }
+
+                // Check that de.lproj/Localizable.strings is copied:
+                results.checkTask(.matchTarget(target), .matchRule(["CopyStringsFile", "\(SRCROOT)/build/Debug/App.app/Contents/Resources/de.lproj/Localizable.strings", "\(SRCROOT)/Sources/de.lproj/Localizable.strings"])) { _ in }
+
+                // Check that ja.lproj and fr.lproj are NOT copied:
+                results.checkNoTask(.matchTarget(target), .matchRuleItem("\(SRCROOT)/Sources/ja.lproj/Localizable.strings"))
+                results.checkNoTask(.matchTarget(target), .matchRuleItem("\(SRCROOT)/Sources/fr.lproj/Localizable.strings"))
+            }
+
+            // Check for notes about skipped localizations:
+            results.checkNote(.contains("Skipping file in .lproj directory 'ja.lproj' because 'ja' is not in project's known localizations"))
+            results.checkNote(.contains("Skipping file in .lproj directory 'fr.lproj' because 'fr' is not in project's known localizations"))
             results.checkNoDiagnostics()
         }
     }

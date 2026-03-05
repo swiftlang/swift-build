@@ -160,7 +160,6 @@ import Foundation
         // Configure the targets and create a BuildRequest.
         let buildParameters = BuildParameters(configuration: "Debug")
         let t1 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T1")))
-        let t2 = BuildRequest.BuildTargetInfo(parameters: buildParameters, target: try #require(workspace.target(named: "T2")))
         do {
             let buildRequest = BuildRequest(parameters: buildParameters, buildTargets: [t1], dependencyScope: .workspace, continueBuildingAfterErrors: true, useParallelTargets: false, useImplicitDependencies: true, useDryRun: false)
             let buildRequestContext = BuildRequestContext(workspaceContext: workspaceContext)

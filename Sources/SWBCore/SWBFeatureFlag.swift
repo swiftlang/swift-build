@@ -29,7 +29,7 @@ import SWBUtil
 /// "on" or "off" by default. For features whose configurability should be
 /// toggleable indefinitely, do not use a feature flag, and consider an
 /// alternative such as a build setting.
-public struct SWBFeatureFlagProperty {
+public struct SWBFeatureFlagProperty: Sendable {
     private let key: String
     private let defaultValue: Bool
 
@@ -52,7 +52,7 @@ public struct SWBFeatureFlagProperty {
     }
 }
 
-public struct SWBOptionalFeatureFlagProperty {
+public struct SWBOptionalFeatureFlagProperty: Sendable {
     private let key: String
 
     /// Indicates whether the feature flag is currently active in the calling environment.
@@ -140,9 +140,6 @@ public enum SWBFeatureFlag {
     /// Turn on llbuild's ownership analysis.
     /// Remove this feature flag after landing rdar://104894978 (Write "perform-ownership-analysis" = "yes" to build manifest by default)
     public static let performOwnershipAnalysis = SWBFeatureFlagProperty("PerformOwnershipAnalysis", defaultValue: false)
-
-    /// Enable clang explicit modules by default.
-    public static let enableClangExplicitModulesByDefault = SWBFeatureFlagProperty("EnableClangExplicitModulesByDefault", defaultValue: false)
 
     /// Enable Swift explicit modules by default.
     public static let enableSwiftExplicitModulesByDefault = SWBFeatureFlagProperty("EnableSwiftExplicitModulesByDefault", defaultValue: false)

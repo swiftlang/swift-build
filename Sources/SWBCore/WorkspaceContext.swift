@@ -213,6 +213,10 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
         public func lookup(nameOrPath: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
             return try lookupInEach { try $0.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination) }
         }
+
+        func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK? {
+            return try lookupInEach { try $0.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: customProperties) }
+        }
     }
 
     @_spi(Testing) public init(coreSDKRegistry: SDKRegistry, delegate: any SDKRegistryDelegate, userNamespace: MacroNamespace, overridingSDKsDir: Path?) {
@@ -245,6 +249,10 @@ public struct WorkspaceContextSDKRegistry: SDKRegistryLookup, Sendable {
 
     public func lookup(nameOrPath: String, basePath: Path, activeRunDestination: RunDestinationInfo?) throws -> SDK? {
         return try underlyingLookup.lookup(nameOrPath: nameOrPath, basePath: basePath, activeRunDestination: activeRunDestination)
+    }
+
+    public func synthesizedSDK(platform: Platform, sdkManifestPath: String, triple: String, customProperties: [String: PropertyListItem]) throws -> SDK? {
+        return try underlyingLookup.synthesizedSDK(platform: platform, sdkManifestPath: sdkManifestPath, triple: triple, customProperties: customProperties)
     }
 }
 
@@ -352,7 +360,7 @@ public final class WorkspaceContext: Sendable {
     private let headerIndexCache = AsyncSingleValueCache<WorkspaceHeaderIndex, Never>()
 
     public var buildDirectoryMacros: [PathMacroDeclaration] {
-        return [BuiltinMacros.DSTROOT, BuiltinMacros.OBJROOT, BuiltinMacros.SYMROOT, BuiltinMacros.BUILT_PRODUCTS_DIR, BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR]
+        return [BuiltinMacros.DSTROOT, BuiltinMacros.OBJROOT, BuiltinMacros.SYMROOT, BuiltinMacros.BUILT_PRODUCTS_DIR, BuiltinMacros.EAGER_LINKING_INTERMEDIATE_TBD_DIR, BuiltinMacros.SWIFT_EXPLICIT_MODULES_OUTPUT_PATH, BuiltinMacros.CLANG_EXPLICIT_MODULES_OUTPUT_PATH]
     }
 
     /// The path to the module session file for the workspace given a set of build parameters.
@@ -401,13 +409,21 @@ extension FSProxy {
         return try getExtendedAttribute(path, key: Self.CreatedByBuildSystemAttribute) == Self.CreatedByBuildSystemAttributeOnValue
     }
 
+    /// Sets the "CreatedByBuildSystem" extended attribute on the specified
+    /// path.
+    ///
+    /// - Important: The caller is responsible for catching and handling
+    ///   failures if the filesystem does not support extended attributes. Many
+    ///   filesystems (e.g. various non-ext4 temporary filesystems on Linux)
+    ///   don't support xattrs and will return `ENOTSUP`. In particular, tmpfs
+    ///   doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled
+    ///   in the kernel config.
+    ///
+    /// - Parameter path: The path on which to set the extended attribute.
+    /// - Throws: An error if the operation fails, including when the filesystem
+    ///   doesn't support extended attributes.
     public func setCreatedByBuildSystemAttribute(_ path: Path) throws {
-        // Many filesystems on other platforms (e.g. various non-ext4 temporary filesystems on Linux) don't support xattrs and will return ENOTSUP.
-        // In particular, tmpfs doesn't support xattrs on Linux unless `CONFIG_TMPFS_XATTR` is enabled in the kernel config.
-        // FIXME: Detect whether the FS supports xattrs at runtime
-        #if canImport(Darwin)
         try setExtendedAttribute(path, key: Self.CreatedByBuildSystemAttribute, value: Self.CreatedByBuildSystemAttributeOnValue)
-        #endif
     }
 
     public func commandLineArgumentsToApplyCreatedByBuildSystemAttribute(to path: Path) -> [String] {

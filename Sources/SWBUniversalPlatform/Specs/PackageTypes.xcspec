@@ -87,6 +87,25 @@
         };
     },
 
+    // Object Library
+    {
+        Type = PackageType;
+        Identifier = org.swift.package-type.object-library;
+        Name = "Object Library";
+        Description = "Object Library";
+        DefaultBuildSettings = {
+            EXECUTABLE_PREFIX = "";
+            EXECUTABLE_SUFFIX = "";
+            EXECUTABLE_NAME = "$(EXECUTABLE_PREFIX)$(PRODUCT_NAME)$(EXECUTABLE_VARIANT_SUFFIX)$(EXECUTABLE_SUFFIX)";
+            EXECUTABLE_PATH = "$(EXECUTABLE_NAME)";
+        };
+        ProductReference = {
+            FileType = compiled.object-library;
+            Name = "$(EXECUTABLE_NAME)";
+            IsLaunchable = NO;
+        };
+    },
+
     // CFBundle wrapper
     {
         Type = PackageType;

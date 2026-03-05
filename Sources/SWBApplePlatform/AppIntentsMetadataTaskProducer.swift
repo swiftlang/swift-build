@@ -49,6 +49,9 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
 
     func generateTasks() async -> [any PlannedTask] {
         let tasks: [any PlannedTask] = []
+        guard let compilerSpec = self.context.appShortcutStringsMetadataCompilerSpec else {
+            return []
+        }
         guard !context.settings.globalScope.evaluate(BuiltinMacros.LM_SKIP_METADATA_EXTRACTION) else {
             return []
         }
@@ -151,7 +154,7 @@ final class AppIntentsMetadataTaskProducer: PhasedTaskProducer, TaskProducer {
                 let inputs = appShortcutStringsSources + assistantIntentsStringsSources
                 if inputs.count > 0, appShortcutStringsSources.count < 2, assistantIntentsStringsSources.count < 2 {
                     let appShortcutsMetadataCbc = CommandBuildContext(producer: self.context, scope: scope, inputs: inputs, resourcesDir: buildFilesProcessingContext.resourcesDir)
-                    await self.context.appShortcutStringsMetadataCompilerSpec.constructTasks(appShortcutsMetadataCbc, delegate)
+                    await compilerSpec.constructTasks(appShortcutsMetadataCbc, delegate)
                 }
 
                 // Only construct SSU task by default for public SDK clients. Internal default behavior should skip SSU task construction.

@@ -53,17 +53,6 @@
                 Type = StringList;
                 CommandLinePrefixFlag = "";
             },
-            {
-                Name = "STRIP_SWIFT_SYMBOLS";
-                Type = Boolean;
-                Condition = "$(DEBUG_INFORMATION_FORMAT) == dwarf-with-dsym && $(STRIP_STYLE) != all";
-                CommandLineArgs = {
-                    YES = (
-                        "-T",
-                        );
-                    NO = ();
-                };
-            },
         );
     }
 )

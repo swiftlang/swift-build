@@ -42,7 +42,7 @@ fileprivate final class MockSpecType: SpecType {
         }
         let specRegistry: SpecRegistry
 
-        var internalMacroNamespace = MacroNamespace(debugDescription: "internal")
+        let internalMacroNamespace = MacroNamespace(debugDescription: "internal")
 
         private let _diagnosticsEngine = DiagnosticsEngine()
 
@@ -73,7 +73,7 @@ fileprivate final class MockSpecType: SpecType {
         }
 
         init() async {
-            specRegistry = await SpecRegistry(PluginManager(skipLoadingPluginIdentifiers: []), MockSpecRegistryDelegate(_diagnosticsEngine), [])
+            specRegistry = await SpecRegistry(MutablePluginManager(skipLoadingPluginIdentifiers: []).finalize(), MockSpecRegistryDelegate(_diagnosticsEngine), [])
         }
     }
 

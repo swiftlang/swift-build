@@ -263,25 +263,30 @@ public struct CreateBuildRequest: SessionChannelBuildMessage, RequestMessage, Se
     /// If true, the build operation will be completed after the build description is created and reported.
     public let onlyCreateBuildDescription: Bool
 
+    /// If true, the build description for this build wil be kept alive in memory, even if it would otherwise be evicted from caches.
+    public let retainBuildDescription: Bool?
+
+    @available(*, deprecated, renamed: "init(sessionHandle:responseChannel:request:onlyCreateBuildDescription:retainBuildDescription:)")
     public init(sessionHandle: String, responseChannel: UInt64, request: BuildRequestMessagePayload, onlyCreateBuildDescription: Bool) {
         self.sessionHandle = sessionHandle
         self.responseChannel = responseChannel
         self.request = request
         self.onlyCreateBuildDescription = onlyCreateBuildDescription
+        self.retainBuildDescription = nil
     }
 
-    public init(fromLegacy deserializer: any Deserializer) throws {
-        try deserializer.beginAggregate(4)
-        self.sessionHandle = try deserializer.deserialize()
-        self.responseChannel = try deserializer.deserialize()
-        self.request = try deserializer.deserialize()
-        self.onlyCreateBuildDescription = try deserializer.deserialize()
+    public init(sessionHandle: String, responseChannel: UInt64, request: BuildRequestMessagePayload, onlyCreateBuildDescription: Bool, retainBuildDescription: Bool) {
+        self.sessionHandle = sessionHandle
+        self.responseChannel = responseChannel
+        self.request = request
+        self.onlyCreateBuildDescription = onlyCreateBuildDescription
+        self.retainBuildDescription = retainBuildDescription
     }
 }
 
 public struct BuildStartRequest: SessionMessage, RequestMessage, Equatable {
     public typealias ResponseMessage = VoidResponse
-    
+
     public static let name = "BUILD_START"
 
     /// The identifier for the session to initiate the request in.
@@ -486,22 +491,80 @@ public struct TargetDependencyRelationship: Serializable, Codable, Equatable, Se
 }
 
 public struct BuildOperationMetrics: Equatable, Codable, Sendable {
+    /// These metrics are aggregated across an entire build operation
     public enum Counter: String, Equatable, Codable, Sendable {
         case clangCacheHits
         case clangCacheMisses
         case swiftCacheHits
         case swiftCacheMisses
+
+        /// How many dependencies did users declare?
+        case moduleDependenciesDeclared
+
+        /// How many dependencies were found to be missing?
+        case moduleDependenciesMissing
+
+        /// How many dependencies were found to be unused?
+        case moduleDependenciesUnused
+
+        /// How many dependencies warnings were emitted?
+        case moduleDependenciesWarningsEmitted
+
+        /// How many dependencies errors were emitted?
+        case moduleDependenciesErrorsEmitted
+
+        /// How many dependencies did users declare?
+        case headerDependenciesDeclared
+
+        /// How many dependencies were found to be missing?
+        case headerDependenciesMissing
+
+        /// How many dependencies were found to be unused?
+        case headerDependenciesUnused
+
+        /// How many dependencies warnings were emitted?
+        case headerDependenciesWarningsEmitted
+
+        /// How many dependencies errors were emitted?
+        case headerDependenciesErrorsEmitted
     }
 
+    /// These metrics are aggregated by task rule info type
     public enum TaskCounter: String, Equatable, Codable, Sendable {
         case cacheHits
         case cacheMisses
+
+        /// Number of tasks which could and did validate module dependencies
+        case moduleDependenciesValidatedTasks
+
+        /// Number of tasks which could but did not validate module dependencies. Together with `moduleDependenciesValidated`, this can be used to track progress towards complete validation.
+        case moduleDependenciesNotValidatedTasks
+
+        /// Number of unique dependencies scanned / discovered / found by an executing task
+        case moduleDependenciesScanned
+
+        /// Number of tasks which could and did validate header dependencies
+        case headerDependenciesValidatedTasks
+
+        /// Number of tasks which could but did not validate header dependencies. Together with `headerDependenciesValidated`, this can be used to track progress towards complete validation.
+        case headerDependenciesNotValidatedTasks
+
+        /// Number of unique dependencies scanned / discovered / found by an executing task
+        case headerDependenciesScanned
     }
 
     public let counters: [Counter: Int]
 
-    public init(counters: [Counter : Int]) {
+    /// The key is the first component of task rule info, a.k.a. the rule info type
+    public let taskCounters: [String: [TaskCounter: Int]]
+
+    public var isEmpty: Bool {
+        counters.isEmpty && taskCounters.isEmpty
+    }
+
+    public init(counters: [Counter : Int], taskCounters: [String: [TaskCounter: Int]]) {
         self.counters = counters
+        self.taskCounters = taskCounters
     }
 }
 

@@ -10,8 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SWBBuildSystem
+public import ArgumentParser
+import SWBUtil
 
-protocol ProjectDescriptorDelegate {
-    var clientDelegate: any ClientDelegate { get }
-}
+extension ResponseFileFormat: ExpressibleByArgument {}

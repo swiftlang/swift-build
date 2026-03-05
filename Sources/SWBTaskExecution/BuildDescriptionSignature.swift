@@ -84,13 +84,13 @@ package struct BuildDescriptionSignatureComponents: Codable, Hashable, Sendable 
                 signature: $0.target.signature,
                 buildParameters: $0.parameters,
                 provisioningInputs: request.provisioningInputs(for: $0),
-                macroConfigSignature: request.buildRequestContext.getCachedSettings($0.parameters, target: $0.target).macroConfigSignature,
+                macroConfigSignature: request.buildRequestContext.getCachedSettings($0.parameters, target: $0.target).inputPathsAffectingSettingsSignature,
                 specializeGuidForActiveRunDestination: $0.specializeGuidForActiveRunDestination)
         }
         projects = request.workspaceContext.workspace.projects.map {
             ProjectMetadata(
                 name: $0.name,
-                macroConfigSignature: request.buildRequestContext.getCachedSettings(request.buildRequest.parameters, project: $0).macroConfigSignature)
+                macroConfigSignature: request.buildRequestContext.getCachedSettings(request.buildRequest.parameters, project: $0).inputPathsAffectingSettingsSignature)
         }
         systemInfo = request.workspaceContext.systemInfo
         userInfo = request.workspaceContext.userInfo

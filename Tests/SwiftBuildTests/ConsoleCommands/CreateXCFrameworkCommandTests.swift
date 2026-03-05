@@ -17,7 +17,7 @@ import SWBTestSupport
 
 // Note: The functionality of this class is heavily unit tested in `XCFrameworkTests.swift`. These tests are only to ensure that the command is indeed hooked up and registered properly.
 
-@Suite(.skipInGitHubActions("failing in the GitHub actions runner environment"), .skipHostOS(.windows))
+@Suite(.skipHostOS(.windows))
 fileprivate struct CreateXCFrameworkCommandTests {
     @Test
     func commandInvocation() async throws {

@@ -337,18 +337,4 @@ import SWBTestSupport
         #expect(!range.contains(Version(1100, 0, 0, 1)))
         #expect(!range.contains(Version(1100, 2, 2, 0)))
     }
-
-    @Test(.requireHostOS(.macOS))
-    func kernelVersion() throws {
-        let userSpaceVersion = try Version(ProcessInfo.processInfo.operatingSystemVersion)
-        let kernelVersion = ProcessInfo.processInfo.operatingSystemKernelVersion
-        if try ProcessInfo.processInfo.hostOperatingSystem().isSimulator {
-            // on simulators, kernelVersion will be the macOS product version, not the iOS product version
-            #expect(userSpaceVersion == kernelVersion)
-        }
-
-        #expect(ProcessInfo.processInfo.isOperatingSystemKernelAtLeast(Version(10, 14, 0)))
-
-        #expect(!ProcessInfo.processInfo.isOperatingSystemKernelAtLeast(Version(99, 0, 0)))
-    }
 }

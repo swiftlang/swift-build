@@ -97,10 +97,17 @@ extension PlatformBuildContext {
     }
 }
 
+public protocol ProjectMatchLookup {
+    func matchesAnyProjectIdentities(scope: MacroEvaluationScope, projectIdentities: Set<String>) -> Bool
+}
+
 /// Protocol describing the interface producers use to communicate information to the command build context.
-public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup {
+public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, ReferenceLookupContext, PlatformInfoLookup, ProjectMatchLookup {
     /// The configured target the command is being produced for, if any.
     var configuredTarget: ConfiguredTarget? { get }
+
+    /// The project the command is being produced for, if any.
+    var project: Project? { get }
 
     /// The product type being built. (Only `StandardTarget`s have product types.)
     var productType: ProductTypeSpec? { get }
@@ -170,10 +177,10 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     var copySpec: CopyToolSpec { get }
 
     /// The copy-png spec to use.
-    var copyPngSpec: CommandLineToolSpec { get }
+    var copyPngSpec: CommandLineToolSpec? { get }
 
     /// The copy-tiff spec to use.
-    var copyTiffSpec: CommandLineToolSpec { get }
+    var copyTiffSpec: CommandLineToolSpec? { get }
 
     /// The unifdef spec to use.
     var unifdefSpec: UnifdefToolSpec { get }
@@ -188,6 +195,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     var createBuildDirectorySpec: CreateBuildDirectorySpec { get }
 
     var processSDKImportsSpec: ProcessSDKImportsSpec { get }
+
+    var validateDependenciesSpec: ValidateDependenciesSpec { get }
 
     /// The default working directory to use for a task, if it doesn't have a stronger preference.
     var defaultWorkingDirectory: Path { get }
@@ -249,6 +258,8 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     /// - Returns: Information on the headers referenced by the project that the given target is a part of.
     func projectHeaderInfo(for target: Target) async -> ProjectHeaderInfo?
 
+    var projectLocation: Diagnostic.Location { get }
+
     /// Whether or not an SDK stat cache should be used for the build of this target.
     func shouldUseSDKStatCache() async -> Bool
 
@@ -271,6 +282,7 @@ public protocol CommandProducer: PlatformBuildContext, SpecLookupContext, Refere
     var hostOperatingSystem: OperatingSystem { get }
 
     var moduleDependenciesContext: ModuleDependenciesContext? { get }
+    var headerDependenciesContext: HeaderDependenciesContext? { get }
 }
 
 extension CommandProducer {
@@ -309,9 +321,69 @@ extension CommandProducer {
         return cache as! T
     }
 
+    func effectiveBuildOptions(_ spec: PropertyDomainSpec) -> [BuildOption] {
+        specRegistry.effectiveBuildOptions(spec)
+    }
+
+    func effectiveFlattenedOrderedBuildOptions(_ spec: PropertyDomainSpec, filter: BuildOptionsFilter = .all) -> [BuildOption] {
+        specRegistry.effectiveFlattenedOrderedBuildOptions(spec, filter: filter)
+    }
+
     /// Compute the expanded search path list (i.e. with recursive entries expanded) for the given macro.
     func expandedSearchPaths(for macro: PathListMacroDeclaration, scope: MacroEvaluationScope) -> [String] {
         return expandedSearchPaths(for: scope.evaluate(macro), scope: scope)
+    }
+
+    /// Compute the expanded search path list (i.e. with recursive entries expanded) for the given macro.
+    func expandedSearchPaths(for macro: PathOrderedSetMacroDeclaration, scope: MacroEvaluationScope) -> [String] {
+        return expandedSearchPaths(for: scope.evaluate(macro), scope: scope)
+    }
+}
+
+/// Which build options to include when evaluating the command line of a spec. This primarily exists because the Clang spec wants to specially evaluate a bunch of options as "constant" (see `getStandardFlags`), which we can't guarantee to be the case for extended options.
+public enum BuildOptionsFilter {
+    /// Include only build options declared on the spec and its supertypes.
+    case specOnly
+
+    /// Include only extended build options declared via any `BuildSettingsExtension` specs.
+    case extendedOnly
+
+    /// Include build options declared by the spec itself and its supertypes, as well as via any `BuildSettingsExtension` specs.
+    case all
+}
+
+extension SpecRegistry {
+    func effectiveBuildOptions(_ spec: PropertyDomainSpec) -> [BuildOption] {
+        var options: [BuildOption] = []
+        options.append(contentsOf: spec.buildOptions)
+        for extensionSpec in findSpecs(BuildSettingsExtensionSpec.self) where spec.conformsTo(identifier: extensionSpec.extendsConformsTo) {
+            options.append(contentsOf: extensionSpec.buildOptions)
+        }
+        return options
+    }
+
+    func effectiveFlattenedBuildOptions(_ spec: PropertyDomainSpec) -> [String: BuildOption] {
+        var options = spec.flattenedBuildOptions
+        for extensionSpec in findSpecs(BuildSettingsExtensionSpec.self) where spec.conformsTo(identifier: extensionSpec.extendsConformsTo) {
+            options.merge(extensionSpec.flattenedBuildOptions, uniquingKeysWith: { _, new in
+                // Should duplicates be an error?
+                return new
+            })
+        }
+        return options
+    }
+
+    func effectiveFlattenedOrderedBuildOptions(_ spec: PropertyDomainSpec, filter: BuildOptionsFilter) -> [BuildOption] {
+        var options: [BuildOption] = []
+        if filter == .all || filter == .specOnly {
+            options.append(contentsOf: spec.flattenedOrderedBuildOptions)
+        }
+        if filter == .all || filter == .extendedOnly {
+            for extensionSpec in findSpecs(BuildSettingsExtensionSpec.self) where spec.conformsTo(identifier: extensionSpec.extendsConformsTo) {
+                options.append(contentsOf: extensionSpec.flattenedOrderedBuildOptions)
+            }
+        }
+        return options
     }
 }
 
@@ -374,6 +446,10 @@ public struct CommandBuildContext {
     /// The spec of the current arch in a per-arch task
     public let currentArchSpec: ArchitectureSpec?
 
+    /// Optional validity criteria for the task being constructed.
+    /// If set, the task will only be included in the build if the criteria validates.
+    public let validityCriteria: (any TaskValidityCriteria)?
+
     public init(
         producer: any CommandProducer, scope: MacroEvaluationScope,
         inputs: [FileToBuild], isPreferredArch: Bool = true,
@@ -384,7 +460,8 @@ public struct CommandBuildContext {
         buildPhaseInfo: (any BuildPhaseInfoForToolSpec)? = nil,
         resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil,
         unlocalizedResourcesDir: Path? = nil,
-        preparesForIndexing: Bool = false
+        preparesForIndexing: Bool = false,
+        validityCriteria: (any TaskValidityCriteria)? = nil
     ) {
         self.init(
             producer: producer, scope: scope, inputs: inputs,
@@ -396,7 +473,8 @@ public struct CommandBuildContext {
             buildPhaseInfo: buildPhaseInfo, resourcesDir: resourcesDir,
             tmpResourcesDir: tmpResourcesDir,
             unlocalizedResourcesDir: unlocalizedResourcesDir,
-            preparesForIndexing: preparesForIndexing
+            preparesForIndexing: preparesForIndexing,
+            validityCriteria: validityCriteria
         )
     }
 
@@ -410,7 +488,8 @@ public struct CommandBuildContext {
         buildPhaseInfo: (any BuildPhaseInfoForToolSpec)? = nil,
         resourcesDir: Path? = nil, tmpResourcesDir: Path? = nil,
         unlocalizedResourcesDir: Path? = nil,
-        preparesForIndexing: Bool = false
+        preparesForIndexing: Bool = false,
+        validityCriteria: (any TaskValidityCriteria)? = nil
     ) {
         // We normalize paths here so their normalized forms are consistently available to CommandLineToolSpec instances.  The old build system normalized paths in almost all cases.
         self.producer = producer
@@ -426,6 +505,7 @@ public struct CommandBuildContext {
         self.resourcesDir = resourcesDir?.normalize()
         self.tmpResourcesDir = tmpResourcesDir?.normalize()
         self.unlocalizedResourcesDir = unlocalizedResourcesDir?.normalize()
+        self.validityCriteria = validityCriteria
     }
 }
 
@@ -618,7 +698,9 @@ public struct PlannedTaskBuilder {
 
     public var repairViaOwnershipAnalysis: Bool
 
-    public init(type: any TaskTypeDescription, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [CommandLineArgument], additionalOutput: [String] = [], environment: EnvironmentBindings = EnvironmentBindings(), inputs: [any PlannedNode] = [], outputs: [any PlannedNode] = [], mustPrecede: [any PlannedTask] = [], deps: DependencyDataStyle? = nil, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, priority: TaskPriority = .unspecified, enableSandboxing: Bool = false, repairViaOwnershipAnalysis: Bool = false) {
+    public var validityCriteria: (any TaskValidityCriteria)?
+
+    public init(type: any TaskTypeDescription, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [CommandLineArgument], additionalOutput: [String] = [], environment: EnvironmentBindings = EnvironmentBindings(), inputs: [any PlannedNode] = [], outputs: [any PlannedNode] = [], mustPrecede: [any PlannedTask] = [], deps: DependencyDataStyle? = nil, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, priority: TaskPriority = .unspecified, enableSandboxing: Bool = false, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
         self.type = type
         self.ruleInfo = ruleInfo
         self.additionalSignatureData = additionalSignatureData
@@ -637,6 +719,7 @@ public struct PlannedTaskBuilder {
         self.priority = priority
         self.enableSandboxing = enableSandboxing
         self.repairViaOwnershipAnalysis = repairViaOwnershipAnalysis
+        self.validityCriteria = validityCriteria
     }
 
     public mutating func makeGate() {
@@ -786,7 +869,7 @@ extension CoreClientDelegate {
 
 public extension TaskGenerationDelegate {
     /// Create a new task with a reference to the task type and scope, and with fully expanded rule info, command line, and optional input/output dependencies.
-    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle?, payload: (any TaskPayload)?, ruleInfo: [String], additionalSignatureData: String, commandLine: [CommandLineArgument], additionalOutput: [String], environment: EnvironmentBindings, workingDirectory: Path, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask], action: (any PlannedTaskAction)?, execDescription: String?, preparesForIndexing: Bool, enableSandboxing: Bool, llbuildControlDisabled: Bool, additionalTaskOrderingOptions: TaskOrderingOptions, usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false) {
+    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle?, payload: (any TaskPayload)?, ruleInfo: [String], additionalSignatureData: String, commandLine: [CommandLineArgument], additionalOutput: [String], environment: EnvironmentBindings, workingDirectory: Path, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask], action: (any PlannedTaskAction)?, execDescription: String?, preparesForIndexing: Bool, enableSandboxing: Bool, llbuildControlDisabled: Bool, additionalTaskOrderingOptions: TaskOrderingOptions, usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
         var builder = PlannedTaskBuilder(type: type, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environment, enableSandboxing: enableSandboxing)
         builder.dependencyData = dependencyData
         builder.payload = payload
@@ -807,26 +890,27 @@ public extension TaskGenerationDelegate {
         builder.showEnvironment = showEnvironment
         builder.priority = priority
         builder.repairViaOwnershipAnalysis = repairViaOwnershipAnalysis
+        builder.validityCriteria = validityCriteria
         createTask(&builder)
     }
 
-    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle?, payload: (any TaskPayload)?, ruleInfo: [String], additionalSignatureData: String, commandLine: [ByteString], additionalOutput: [String], environment: EnvironmentBindings, workingDirectory: Path, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask], action: (any PlannedTaskAction)?, execDescription: String?, preparesForIndexing: Bool, enableSandboxing: Bool, llbuildControlDisabled: Bool, additionalTaskOrderingOptions: TaskOrderingOptions, usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false) {
-        createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map { .literal($0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs, outputs: outputs, mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis)
+    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle?, payload: (any TaskPayload)?, ruleInfo: [String], additionalSignatureData: String, commandLine: [ByteString], additionalOutput: [String], environment: EnvironmentBindings, workingDirectory: Path, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask], action: (any PlannedTaskAction)?, execDescription: String?, preparesForIndexing: Bool, enableSandboxing: Bool, llbuildControlDisabled: Bool, additionalTaskOrderingOptions: TaskOrderingOptions, usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
+        createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map { .literal($0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs, outputs: outputs, mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
     }
 
     /// Create a new task taking inputs and outputs as `Path` arrays.  They will be implicitly marshalled into `PlannedNode` arrays.
-    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [ByteString], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [Path], outputs: [Path], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false) {
-        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs.map(createNode), outputs: outputs.map(createNode), mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis)
+    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [ByteString], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [Path], outputs: [Path], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
+        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs.map(createNode), outputs: outputs.map(createNode), mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
     }
 
     /// Create a new task taking a command line as a `String` array, and inputs and outputs as `Path` arrays.  The command line will be implicitly marshalled into a `ByteString` array, and the inputs and outputs into `PlannedNode` arrays.
-    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [Path], outputs: [Path], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false) {
-        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs.map(createNode), outputs: outputs.map(createNode), mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis)
+    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [Path], outputs: [Path], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
+        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs.map(createNode), outputs: outputs.map(createNode), mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
     }
 
     /// Create a new task taking a command line as a `String` array.  It will be implicitly marshalled into a `ByteString` array.
-    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false) {
-        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs, outputs: outputs, mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis)
+    func createTask(type: any TaskTypeDescription, dependencyData: DependencyDataStyle? = nil, payload: (any TaskPayload)? = nil, ruleInfo: [String], additionalSignatureData: String = "", commandLine: [String], additionalOutput: [String] = [], environment: EnvironmentBindings, workingDirectory: Path, inputs: [any PlannedNode], outputs: [any PlannedNode], mustPrecede: [any PlannedTask] = [], action: (any PlannedTaskAction)? = nil, execDescription: String? = nil, preparesForIndexing: Bool = false, enableSandboxing: Bool, llbuildControlDisabled: Bool = false, additionalTaskOrderingOptions: TaskOrderingOptions = [], usesExecutionInputs: Bool = false, isGate: Bool = false, alwaysExecuteTask: Bool = false, showInLog: Bool = true, showCommandLineInLog: Bool = true, showEnvironment: Bool = false, priority: TaskPriority = .unspecified, repairViaOwnershipAnalysis: Bool = false, validityCriteria: (any TaskValidityCriteria)? = nil) {
+        return createTask(type: type, dependencyData: dependencyData, payload: payload, ruleInfo: ruleInfo, additionalSignatureData: additionalSignatureData, commandLine: commandLine.map{ ByteString(encodingAsUTF8: $0) }, additionalOutput: additionalOutput, environment: environment, workingDirectory: workingDirectory, inputs: inputs, outputs: outputs, mustPrecede: mustPrecede, action: action, execDescription: execDescription, preparesForIndexing: preparesForIndexing, enableSandboxing: enableSandboxing, llbuildControlDisabled: llbuildControlDisabled, additionalTaskOrderingOptions: additionalTaskOrderingOptions, usesExecutionInputs: usesExecutionInputs, isGate: isGate, alwaysExecuteTask: alwaysExecuteTask, showInLog: showInLog, showCommandLineInLog: showCommandLineInLog, showEnvironment: showEnvironment, priority: priority, repairViaOwnershipAnalysis: repairViaOwnershipAnalysis, validityCriteria: validityCriteria)
     }
 
     func createGateTask(inputs: [any PlannedNode], output: any PlannedNode, name: String? = nil, mustPrecede: [any PlannedTask] = [], payload: (any TaskPayload)? = nil, additionalSignatureData: String = "") {
@@ -856,6 +940,30 @@ extension ConditionallyStartable {
     }
 }
 
+/// Information about serialized diagnostics for a source file.
+public struct SerializedDiagnosticInfo: Sendable, Serializable {
+    public let serializedDiagnosticsPath: Path
+    public let sourceFilePath: Path?
+
+    public init(serializedDiagnosticsPath: Path, sourceFilePath: Path?) {
+        self.serializedDiagnosticsPath = serializedDiagnosticsPath
+        self.sourceFilePath = sourceFilePath
+    }
+
+    public func serialize<T>(to serializer: T) where T : SWBUtil.Serializer {
+        serializer.serializeAggregate(2) {
+            serializer.serialize(serializedDiagnosticsPath)
+            serializer.serialize(sourceFilePath)
+        }
+    }
+
+    public init(from deserializer: any SWBUtil.Deserializer) throws {
+        try deserializer.beginAggregate(2)
+        self.serializedDiagnosticsPath = try deserializer.deserialize()
+        self.sourceFilePath = try deserializer.deserialize()
+    }
+}
+
 /// Provides information and functionality for all occurrences of a particular type of task.  Every task has a reference to its task type description.
 public protocol TaskTypeDescription: AnyObject, ConditionallyStartable, Sendable {
     /// Describes the concrete TaskPayload type for deserialization
@@ -864,8 +972,8 @@ public protocol TaskTypeDescription: AnyObject, ConditionallyStartable, Sendable
     /// The aliases used by a command line tool. For e.g. lex reports itself as flex, and yacc as bison.
     var toolBasenameAliases: [String] { get }
 
-    /// Get the serialized diagnostics used by a task, if any.
-    func serializedDiagnosticsPaths(_ task: any ExecutableTask, _ fs: any FSProxy) -> [Path]
+    /// Get the serialized diagnostics info used by a task, if any.
+    func serializedDiagnosticsInfo(_ task: any ExecutableTask, _ fs: any FSProxy) -> [SerializedDiagnosticInfo]
 
     /// Returns an indexing-information structure for each of the indexable sources of the task.
     func generateIndexingInfo(for task: any ExecutableTask, input: TaskGenerateIndexingInfoInput) -> [TaskGenerateIndexingInfoOutput]
@@ -962,18 +1070,46 @@ extension DependencyDataStyle: Serializable {
 public protocol TaskPayload: Serializable, Sendable {
 }
 
+public enum IndexingInfoLanguage {
+    case c
+    case cpp
+    case metal
+    case objectiveC
+    case objectiveCpp
+    case swift
+}
+
 /// Defines the indexing information to be sent back to the client for a particular source file.
 ///
 /// This protocol includes `PropertyListItemConvertible` to describe how the info is packaged up to send back to the client.  Someday we hope to transition this to sending the info in a strongly typed format.
 public protocol SourceFileIndexingInfo: PropertyListItemConvertible {
+    /// The compiler arguments that should be used to index this source file.
+    ///
+    /// `nil` if this indexing info does not supply compiler arguments to index a source file.
+    var compilerArguments: [String]? { get }
+
+    /// The output path that is used for indexing, ie. the value of the `-index-unit-output-path` or `-o` option in
+    /// the source file's build settings.
+    ///
+    /// This is a `String` and not a `Path` because th index output path may be a fake path that is relative to the
+    /// build directory and has no relation to actual files on disks.
+    ///
+    /// `nil` if this indexing info does not produce an output file.
+    var indexOutputFile: String? { get }
+
+    var language: IndexingInfoLanguage? { get }
 }
 
 /// The `SourceFileIndexingInfo` info returned when only output paths are requested.
 public struct OutputPathIndexingInfo: SourceFileIndexingInfo {
     public let outputFile: Path
+    public var compilerArguments: [String]? { nil }
+    public var indexOutputFile: String? { outputFile.str }
+    public let language: IndexingInfoLanguage?
 
-    public init(outputFile: Path) {
+    public init(outputFile: Path, language: IndexingInfoLanguage?) {
         self.outputFile = outputFile
+        self.language = language
     }
 
     /// The indexing info is packaged and sent to the client in a property list format.
@@ -1221,11 +1357,15 @@ public protocol TaskOutputParser: AnyObject {
 extension TaskOutputParserDelegate {
     func readSerializedDiagnostics(at path: Path, workingDirectory: Path, workspaceContext: WorkspaceContext) -> [Diagnostic] {
         do {
-            // Using the default toolchain's libclang regardless of context should be sufficient, since we assume serialized diagnostics to be a stable format.
-            let toolchain = workspaceContext.core.toolchainRegistry.defaultToolchain
-            guard let libclangPath = toolchain?.librarySearchPaths.findLibrary(operatingSystem: workspaceContext.core.hostOperatingSystem, basename: "clang") ?? toolchain?.fallbackLibrarySearchPaths.findLibrary(operatingSystem: workspaceContext.core.hostOperatingSystem, basename: "clang") else {
-                throw StubError.error("unable to find libclang")
+            // Some compilers write an empty file when there are no diagnostics, which is rejected by libclang.
+            guard try localFS.getFileSize(path).count > 0 else {
+                return []
             }
+            // Using the default toolchain's libclang regardless of context should be sufficient, since we assume serialized diagnostics to be a stable format.
+            guard let toolchain = workspaceContext.core.toolchainRegistry.defaultToolchain else {
+                throw StubError.error("unable to find libclang (no default toolchain)")
+            }
+            let libclangPath = try toolchain.lookup(subject: .library(basename: "clang"), operatingSystem: workspaceContext.core.hostOperatingSystem)
             guard let libclang = workspaceContext.core.lookupLibclang(path: libclangPath).libclang else {
                 throw StubError.error("unable to open libclang: '\(libclangPath.str)'")
             }
@@ -1288,7 +1428,7 @@ public protocol TaskOutputParserDelegate: AnyObject {
     /// - Parameters:
     ///   - signature: A stable signature for the task (the same signature that would have been provided had the task been skipped).
     /// - Returns: A new delegate to use for reporting status on the subtask.
-    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, id: ByteString, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate
+    func startSubtask(buildOperationIdentifier: BuildSystemOperationIdentifier, taskName: String, signature: ByteString, ruleInfo: String, executionDescription: String, commandLine: [ByteString], additionalOutput: [String], interestingPath: Path?, workingDirectory: Path?, serializedDiagnosticsPaths: [Path]) -> any TaskOutputParserDelegate
 
     /// Emit output log data.
     func emitOutput(_ data: ByteString)

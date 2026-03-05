@@ -69,6 +69,11 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
         return nil
     }
 
+    public func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        // Customization point for subclasses
+        return nil
+    }
+
     /// Whether this product type supports having compiler sanitizer libraries embedded in it.
     public let canEmbedCompilerSanitizerLibraries: Bool
 
@@ -310,7 +315,13 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     ///
     /// In particular, Swift compilation runs during InstallAPI builds even when building static libraries, but only generates TBD files when building dylibs.
     public var supportsInstallAPI: Bool {
-        return ProductTypeIdentifier(identifier).supportsInstallAPI
+        // Static frameworks/libraries need to run installAPI if they contain Swift
+        // source code because we need .swiftmodule to build downstream targets.
+        return conformsTo(identifier: "com.apple.product-type.framework")
+            || conformsTo(identifier: "com.apple.product-type.framework.static")
+            || conformsTo(identifier: "com.apple.product-type.library.dynamic")
+            || conformsTo(identifier: "com.apple.product-type.library.static")
+            || conformsTo(identifier: "com.apple.product-type.objfile") // Swift packages need to run installAPI.
     }
 
     public var supportsEagerLinking: Bool {
@@ -329,7 +340,7 @@ public class ProductTypeSpec : Spec, SpecType, @unchecked Sendable {
     }
 
     /// Returns whether the product type supports embedding Swift standard libraries inside it.
-    public func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public func supportsEmbeddingSwiftStandardLibraries(producer: any CommandProducer) -> Bool {
         // Most product types don't support having the Swift libraries embedded in them.
         return false
     }
@@ -389,7 +400,7 @@ public final class ApplicationProductTypeSpec : BundleProductTypeSpec, @unchecke
         return "PBXApplicationProductType"
     }
 
-    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public override func supportsEmbeddingSwiftStandardLibraries(producer: any CommandProducer) -> Bool {
         return true
     }
 
@@ -529,6 +540,11 @@ public class FrameworkProductTypeSpec : BundleProductTypeSpec, @unchecked Sendab
         return descriptors
     }
 
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .framework, path: path)
+    }
+
 /*
     /// Build setting expressions to evaluate to determine how to create symbolic links for the product structure.
     static let productStructureSymlinkBuildSettings = [SymlinkDescriptor]([
@@ -610,7 +626,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         super.init(parser, basedOnSpec)
     }
 
-    public override func supportsEmbeddingSwiftStandardLibraries(producer: CommandProducer) -> Bool {
+    public override func supportsEmbeddingSwiftStandardLibraries(producer: any CommandProducer) -> Bool {
         return producer.isApplePlatform
     }
 
@@ -731,7 +747,7 @@ public final class XCTestBundleProductTypeSpec : BundleProductTypeSpec, @uncheck
         table.push(BuiltinMacros._BUILDABLE_SERIALIZATION_KEY, literal: "test-bundle-with-host: \(testHost)")
 
         // Inject a runpath search path to the host app's Frameworks directory if it isn't already present to ensure the embedded libraries can be found
-        let applicationProductType: ProductTypeSpec? = try? platform?.specRegistryProvider.specRegistry.getSpec("com.apple.product-type.application", domain: platform?.name ?? "")
+        let applicationProductType = try? platform?.specRegistryProvider.specRegistry.getSpec("com.apple.product-type.application", domain: platform?.name ?? "", ofType: ProductTypeSpec.self)
         if let frameworksRunpath = applicationProductType?.frameworksRunpathSearchPath(in: scope)?.str {
             if !scope.evaluate(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS).contains(frameworksRunpath) {
                 table.push(BuiltinMacros.LD_RUNPATH_SEARCH_PATHS, BuiltinMacros.namespace.parseStringList(["$(inherited)", frameworksRunpath]))
@@ -815,6 +831,12 @@ public final class DynamicLibraryProductTypeSpec : LibraryProductTypeSpec, @unch
         }
         return ([], [])
     }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .dynamicLibrary, path: path)
+    }
+
 }
 
 public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unchecked Sendable {
@@ -827,11 +849,21 @@ public final class StaticLibraryProductTypeSpec : LibraryProductTypeSpec, @unche
     public override var supportsDefinesModule: Bool {
         return true
     }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .staticLibrary, path: path)
+    }
 }
 
 public final class ToolProductTypeSpec : StandaloneExecutableProductTypeSpec, @unchecked Sendable {
     class public override var className: String {
         return "PBXToolProductType"
+    }
+
+    public override func artifactInfo(in scope: MacroEvaluationScope) -> ArtifactInfo? {
+        let path = scope.evaluate(BuiltinMacros.TARGET_BUILD_DIR).join(scope.evaluate(BuiltinMacros.FULL_PRODUCT_NAME))
+        return ArtifactInfo(kind: .executable, path: path)
     }
 }
 
@@ -842,7 +874,7 @@ public struct SymlinkDescriptor: Hashable
     public let location: Path
     /// The path the symbolic link points to.  This may be a relative path.
     public let toPath: Path
-    /// The effective path the symbolic link points to, if we know that `toPath` is itself going to go through symbolic links.  This may be a relative path.  This is important for validation of symlink provisional tasks.
+    /// The effective path the symbolic link points to, if we know that `toPath` is itself going to go through symbolic links.  This may be a relative path.  This is important for validation of symlink tasks.
     public let effectiveToPath: Path?
 
     public func hash(into hasher: inout Hasher) {
