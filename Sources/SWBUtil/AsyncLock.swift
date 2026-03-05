@@ -13,14 +13,14 @@
 /// Lock intended for use within an actor in order to prevent reentrancy in actor methods which themselves contain suspension points.
 public actor ActorLock {
     private var busy = false
-    private var queue: ArraySlice<CheckedContinuation<(), Never>> = []
+    private var queue: ArraySlice<UnsafeContinuation<(), Never>> = []
 
     public init() {
     }
 
     public func withLock<T: Sendable, E>(_ body: sending () async throws(E) -> T) async throws(E) -> T {
         while busy {
-            await withCheckedContinuation { cc in
+            await withUnsafeContinuation { cc in
                 queue.append(cc)
             }
         }
