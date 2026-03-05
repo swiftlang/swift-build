@@ -90,41 +90,41 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
     let plugin: WindowsPlugin
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
         do {
-        let operatingSystem = context.hostOperatingSystem
-        guard operatingSystem == .windows else {
-            return []
-        }
-
-        let platformsPath = context.developerPath.path.join("Platforms")
-        let directoryContents = try context.fs.listdir(platformsPath)
-        print("ERROR FROM WINDOWS BUILD: directoryCOntents \(directoryContents)")
-        return try directoryContents.compactMap { version in
-            let versionedPlatformsPath = platformsPath.join(version)
-            guard context.fs.isDirectory(versionedPlatformsPath) else {
-                return nil
+            let operatingSystem = context.hostOperatingSystem
+            guard operatingSystem == .windows else {
+                return []
             }
 
-            let windowsInfoPlistPath = versionedPlatformsPath.join("Windows.platform").join("Info.plist")
-            guard context.fs.exists(windowsInfoPlistPath) else {
-                throw StubError.error("ERROR FROM WINDOWS BUILD: windows info plist location: \(windowsInfoPlistPath)")
-            }
+            let platformsPath = context.developerPath.path.join("Platforms")
+            let directoryContents = try context.fs.listdir(platformsPath)
+            print("ERROR FROM WINDOWS BUILD: directoryCOntents \(directoryContents)")
+            return try directoryContents.compactMap { version in
+                let versionedPlatformsPath = platformsPath.join(version)
+                guard context.fs.isDirectory(versionedPlatformsPath) else {
+                    return nil
+                }
 
-            let windowsInfoPlist = try PropertyList.fromPath(windowsInfoPlistPath, fs: context.fs)
-            guard case let .plDict(dict) = windowsInfoPlist else {
-                throw StubError.error("Unexpected top-level property list type in \(windowsInfoPlistPath.str) (expected dictionary)")
-            }
+                let windowsInfoPlistPath = versionedPlatformsPath.join("Windows.platform").join("Info.plist")
+                guard context.fs.exists(windowsInfoPlistPath) else {
+                    throw StubError.error("ERROR FROM WINDOWS BUILD: windows info plist location: \(windowsInfoPlistPath)")
+                }
 
-            return (windowsInfoPlistPath.dirname, dict.merging([
-                "Type": .plString("Platform"),
-                "Name": .plString("windows"),
-                "Identifier": .plString("windows"),
-                "Description": .plString("Windows"),
-                "FamilyName": .plString("Windows"),
-                "FamilyIdentifier": .plString("windows"),
-                "IsDeploymentPlatform": .plString("YES"),
-                "Version": .plString(version),
-            ]) { old, new in new })
-        }
+                let windowsInfoPlist = try PropertyList.fromPath(windowsInfoPlistPath, fs: context.fs)
+                guard case let .plDict(dict) = windowsInfoPlist else {
+                    throw StubError.error("Unexpected top-level property list type in \(windowsInfoPlistPath.str) (expected dictionary)")
+                }
+
+                return (windowsInfoPlistPath.dirname, dict.merging([
+                    "Type": .plString("Platform"),
+                    "Name": .plString("windows"),
+                    "Identifier": .plString("windows"),
+                    "Description": .plString("Windows"),
+                    "FamilyName": .plString("Windows"),
+                    "FamilyIdentifier": .plString("windows"),
+                    "IsDeploymentPlatform": .plString("YES"),
+                    "Version": .plString(version),
+                ]) { old, new in new })
+            }
         } catch {
             print ("ERROR FROM WINDOWS BUILD: \(error)")
             throw error
