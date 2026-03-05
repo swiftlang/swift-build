@@ -95,13 +95,26 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
         }
 
         let platformsPath = context.developerPath.path.join("Platforms")
-        return try context.fs.listdir(platformsPath).compactMap { version in
-            let versionedPlatformsPath = platformsPath.join(version)
-            guard context.fs.isDirectory(versionedPlatformsPath) else {
-                return nil
+        let platformDirName = "Windows.platform"
+        return try context.fs.listdir(platformsPath).compactMap { versionOrPlatform in
+            // Normally, the platforms will be in versioned subdirectories of the Platforms directory.
+            // However, during the build of the toolchain itself in CI, Windows.platform will be
+            // directly under Platforms with no version component.
+            let windowsInfoPlistPath: Path
+            let version: String
+            if versionOrPlatform == platformDirName {
+                windowsInfoPlistPath = platformsPath.join(platformDirName).join("Info.plist")
+                version = "0.0.0"
+            } else {
+                let versionedPlatformsPath = platformsPath.join(versionOrPlatform)
+                guard context.fs.isDirectory(versionedPlatformsPath) else {
+                    return nil
+                }
+
+                windowsInfoPlistPath = versionedPlatformsPath.join(platformDirName).join("Info.plist")
+                version = versionOrPlatform
             }
 
-            let windowsInfoPlistPath = versionedPlatformsPath.join("Windows.platform").join("Info.plist")
             guard context.fs.exists(windowsInfoPlistPath) else {
                 return nil
             }
