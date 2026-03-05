@@ -10,20 +10,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-public struct AsyncSingleValueCache<Value: Sendable, E: Error>: ~Copyable, Sendable {
-    private let value = AsyncLockedValue<Value?>(nil)
+public struct AsyncSingleValueCache<Value: Sendable>: ~Copyable, Sendable {
+    enum Key: Hashable {
+        case key
+    }
+    private let cache = AsyncCache<Key, Value>()
 
     public init() { }
 
-    public func value(body: sending () async throws(E) -> sending Value) async throws(E) -> sending Value {
-        try await value.withLock { value throws(E) in
-            if let value {
-                return value
-            } else {
-                let newValue = try await body()
-                value = newValue
-                return newValue
-            }
-        }
+    public func value(body: @Sendable () async throws -> sending Value) async throws -> sending Value {
+        try await cache.value(forKey: Key.key, body)
     }
 }

@@ -17,7 +17,7 @@ import SWBUtil
 @Suite(.performance)
 fileprivate struct OrderedSetPerfTests: PerfTests {
     @Test
-    func appendTwice100k_X10() async {
+    func appendTwice100k_X10() async throws {
         let numIterations = 10
 
         // Test insertion of 2*N elements, with N duplicates.
@@ -25,7 +25,7 @@ fileprivate struct OrderedSetPerfTests: PerfTests {
         let halfN = N / 2
         #expect(halfN * 2 == N)
 
-        await measure {
+        try await measure {
             for _ in 0 ..< numIterations {
                 // Test many inserts followed by many duplicates.
                 var insertCount = 0

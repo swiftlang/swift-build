@@ -51,7 +51,7 @@ fileprivate struct TaskConstructionPerfTests: CoreBasedTests, PerfTests {
                 ]
             )
             let tester = try await TaskConstructionTester(self.getCore(), testWorkspace)
-            await measure {
+            try await measure {
                 await tester.checkBuild(runDestination: .macOS, checkTaskGraphIntegrity: false) { tester in
                     tester.checkTasks(.matchRuleType("CreateBuildDirectory")) { tasks in
                         #expect(tasks.count == 2505)

@@ -16,7 +16,6 @@ add_library(SWBUtil
   AsyncCache.swift
   AsyncFlatteningSequence.swift
   AsyncIteratorProtocol.swift
-  AsyncLock.swift
   AsyncOperationQueue.swift
   AsyncSingleValueCache.swift
   AsyncStreamController.swift

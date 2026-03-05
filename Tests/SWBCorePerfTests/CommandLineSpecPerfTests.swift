@@ -317,7 +317,7 @@ fileprivate struct CommandLineSpecPerfTests: CoreBasedTests, PerfTests {
         //
         // NOTE: As currently implemented, the performance of this test makes heavy use of the "constant flags" cache. That accurately matches what happens during a real build, but skews the pure results away from "how long does it take to do an individual compiler task construction job".
         let count = 1000
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...count {
                 await clangSpec.constructTasks(cbc, delegate)

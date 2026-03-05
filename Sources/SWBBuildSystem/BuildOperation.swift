@@ -458,8 +458,15 @@ package final class BuildOperation: BuildSystemOperation {
         if userPreferences.enableBuildSystemCaching {
             // Get the build system to use, keyed by the directory containing the (sole) database.
             let entry = cachedBuildSystems.getOrInsert(buildDescription.buildDatabasePath.dirname, { SystemCacheEntry() })
-            return await entry.lock.withLock { [buildEnvironment] _ in
-                await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
+            do {
+                return try await entry.serializationQueue.withOperation { [buildEnvironment] in
+                    return await _build(cacheEntry: entry, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)
+                }
+            } catch is CancellationError {
+                return .cancelled
+            } catch {
+                assertionFailure("withOperation was expected to only throw in case of cancellation, but threw unexpected error: \(error)")
+                return .failed
             }
         } else {
             return await _build(cacheEntry: nil, dbPath: dbPath, traceFile: traceFile, debuggingDataPath: debuggingDataPath, buildEnvironment: buildEnvironment, priorBuildDescription: priorBuildDescription)

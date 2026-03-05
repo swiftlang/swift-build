@@ -49,7 +49,13 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
         // The first is planned in `TAPISymbolExtractorTaskProducer`. The other two are planned in `TAPISymbolExtractor`
         var tasks: [any PlannedTask] = []
 
-        let documentationHeaderInfo = await TAPISymbolExtractor.headerFilesToExtractDocumentationFor(cbcWithoutInputs)
+        let documentationHeaderInfo: TAPISymbolExtractor.DocumentationHeaderInfo
+        do {
+            documentationHeaderInfo = try await TAPISymbolExtractor.headerFilesToExtractDocumentationFor(cbcWithoutInputs)
+        } catch {
+            context.error("\(error)")
+            return []
+        }
 
         var commandOrderingInputs: [any PlannedNode] = []
         // No task is planned if the `targetHeaderInfo` is empty or `nil`.
@@ -94,14 +100,18 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
                     )
                     let swiftCompilerInfo = await context.swiftCompilerSpec.discoveredCommandLineToolSpecInfo(cbc.producer, cbc.scope, delegate)
                     let clangCompilerInfo = await context.clangSpec.discoveredCommandLineToolSpecInfo(cbc.producer, context.settings.globalScope, delegate)
-                    await context.tapiSymbolExtractor?.constructTasksForClang(
-                        cbc,
-                        delegate,
-                        headerList: headerList,
-                        dependenciesModuleMaps: dependenciesModuleMaps.elements,
-                        swiftCompilerInfo: swiftCompilerInfo,
-                        clangCompilerInfo: clangCompilerInfo
-                    )
+                    do {
+                        try await context.tapiSymbolExtractor?.constructTasksForClang(
+                            cbc,
+                            delegate,
+                            headerList: headerList,
+                            dependenciesModuleMaps: dependenciesModuleMaps.elements,
+                            swiftCompilerInfo: swiftCompilerInfo,
+                            clangCompilerInfo: clangCompilerInfo
+                        )
+                    } catch {
+                        delegate.error("\(error)")
+                    }
                 }
 
                 // Generate Swift symbol extraction tasks (for Objective-C only code) for all architectures.
@@ -127,7 +137,11 @@ final class TAPISymbolExtractorTaskProducer: PhasedTaskProducer, TaskProducer {
                 for scope in archSpecificSubScopes {
                     // The spec will compute the task's outputs, even if they're not listed in the context.
                     let cbc = CommandBuildContext(producer: context, scope: scope, inputs: inputs, outputs: [], commandOrderingInputs: commandOrderingInputs)
-                    await context.tapiSymbolExtractor?.constructTasksForTAPI(cbc, delegate, dependenciesModuleMaps: dependenciesModuleMaps.elements)
+                    do {
+                        try await context.tapiSymbolExtractor?.constructTasksForTAPI(cbc, delegate, dependenciesModuleMaps: dependenciesModuleMaps.elements)
+                    } catch {
+                        delegate.error(error)
+                    }
                 }
 
                 // Generate Swift symbol extraction tasks (for Objective-C only code) for all architectures.

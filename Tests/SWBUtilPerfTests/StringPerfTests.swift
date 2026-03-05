@@ -39,10 +39,10 @@ fileprivate struct RandomUInt8Sequence: Sequence {
 fileprivate struct StringPerfTests: PerfTests {
     /// Creates a buffer containing 256 ASCII characters and then creates strings from it.
     @Test
-    func creationFromASCIIBuffer_X100000() async {
+    func creationFromASCIIBuffer_X100000() async throws {
         let iterations = 100000
         let buffer = [UInt8](RandomUInt8Sequence(range: 32...127, count: 256))
-        await measure {
+        try await measure {
             for _ in 1...iterations {
                 let _ = buffer.asReadableString()
             }

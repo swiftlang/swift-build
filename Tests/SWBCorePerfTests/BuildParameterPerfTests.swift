@@ -19,7 +19,7 @@ import SWBCore
 @Suite(.performance)
 fileprivate struct BuildParameterPerfTests: PerfTests {
     @Test
-    func init_X50_000() async {
+    func init_X50_000() async throws {
         let action = BuildAction.build
         let configuration = "Debug"
         let activeRunDestination = RunDestinationInfo(
@@ -43,7 +43,7 @@ fileprivate struct BuildParameterPerfTests: PerfTests {
         let toolchainOverride: String? = nil
         let arena = ArenaInfo.indexBuildArena(derivedDataRoot: Path("/Users/username/Library/Developer/Xcode/DerivedData"))
 
-        await measure {
+        try await measure {
             for _ in 0..<50_000 {
                 _ = BuildParameters(
                     action: action,
@@ -64,7 +64,7 @@ fileprivate struct BuildParameterPerfTests: PerfTests {
     }
 
     @Test
-    func hash_X10_000_000() async {
+    func hash_X10_000_000() async throws {
         let action = BuildAction.build
         let configuration = "Debug"
         let activeRunDestination = RunDestinationInfo(
@@ -103,7 +103,7 @@ fileprivate struct BuildParameterPerfTests: PerfTests {
             arena: arena
         )
 
-        await measure {
+        try await measure {
             var hasher = Hasher()
             for _ in 0..<10_000_000 {
                 bp.hash(into: &hasher)
@@ -112,8 +112,8 @@ fileprivate struct BuildParameterPerfTests: PerfTests {
     }
 
     @Test
-    func minimalInit_X100_000() async {
-        await measure {
+    func minimalInit_X100_000() async throws {
+        try await measure {
             for _ in 0..<100_000 {
                 _ = BuildParameters(
                     action: .build,
@@ -124,12 +124,12 @@ fileprivate struct BuildParameterPerfTests: PerfTests {
     }
 
     @Test
-    func minimalHash_X10_000_000() async {
+    func minimalHash_X10_000_000() async throws {
         let bp = BuildParameters(
             action: .build,
             configuration: "Debug"
         )
-        await measure {
+        try await measure {
             var hasher = Hasher()
             for _ in 0..<10_000_000 {
                 bp.hash(into: &hasher)

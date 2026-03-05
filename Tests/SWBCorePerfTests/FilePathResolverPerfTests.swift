@@ -53,7 +53,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let model = try TestGroup("SomeProject", path: "", sourceTree: .buildSetting("PROJECT_DIR")).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...100000
             {
@@ -72,7 +72,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let model = try TestGroup("SomeProject", sourceTree: .buildSetting("PROJECT_DIR")).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...100000
             {
@@ -88,7 +88,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let model = try TestGroup("SomeProject", path: "/tmp/AbsolutePath", sourceTree: .absolute).toProtocol()
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
 
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...100000
             {
@@ -109,7 +109,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let rootGroup = try #require(Reference.create(model, pifLoader, isRoot: true) as? FileGroup)
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
 
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...100000
             {
@@ -132,7 +132,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
         let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
 
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...100000
             {
@@ -155,7 +155,7 @@ fileprivate struct FilePathResolverPerfTests: PerfTests {
         let childGroup = try #require(rootGroup.children[0] as? FileGroup)
         let grandchildGroup = try #require(childGroup.children[0] as? FileGroup)
 
-        await measure {
+        try await measure {
             // We do each iteration many times in order to samples that are more likely to be statistically significant.
             for _ in 1...100000
             {
