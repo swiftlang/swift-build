@@ -89,6 +89,7 @@ struct WindowsPlatformSpecsExtension: SpecificationsExtension {
 struct WindowsPlatformExtension: PlatformInfoExtension {
     let plugin: WindowsPlugin
     func additionalPlatforms(context: any PlatformInfoExtensionAdditionalPlatformsContext) throws -> [(path: Path, data: [String: PropertyListItem])] {
+        do {
         let operatingSystem = context.hostOperatingSystem
         guard operatingSystem == .windows else {
             return []
@@ -96,7 +97,9 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
 
         let platformsPath = context.developerPath.path.join("Platforms")
         let platformDirName = "Windows.platform"
-        return try context.fs.listdir(platformsPath).compactMap { versionOrPlatform in
+        let directoryContents = context.fs.listdir(platformsPath)
+        print("ERROR FROM WINDOWS BUILD: directoryContents of \(platformsPath) : \(directoryContents)")
+        return try directoroContents.compactMap { versionOrPlatform in
             let windowsInfoPlistPath: Path
             let version: String
             if versionOrPlatform == platformDirName {
@@ -113,7 +116,7 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
             }
 
             guard context.fs.exists(windowsInfoPlistPath) else {
-                return nil
+                throws StubError.error("ERROR FROM WINDOWS BUILD: windows info plist does not exists at \(windowsInfoPlistPath)")
             }
 
             let windowsInfoPlist = try PropertyList.fromPath(windowsInfoPlistPath, fs: context.fs)
@@ -131,6 +134,10 @@ struct WindowsPlatformExtension: PlatformInfoExtension {
                 "IsDeploymentPlatform": .plString("YES"),
                 "Version": .plString(version),
             ]) { old, new in new })
+        }
+        } catch {
+            print("ERROR FROM WINDOWS BUILD: \(error)")
+            throw error
         }
     }
 
