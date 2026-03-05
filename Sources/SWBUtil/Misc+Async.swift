@@ -115,6 +115,7 @@ extension Sequence where Element: Sendable {
     }
 }
 
+/*
 @_alwaysEmitIntoClient
 public func withExtendedLifetime<T: ~Copyable, E: Error, Result: ~Copyable>(
     _ x: borrowing T,
@@ -123,3 +124,4 @@ public func withExtendedLifetime<T: ~Copyable, E: Error, Result: ~Copyable>(
     defer { withExtendedLifetime(x) { } }
     return try await body(x)
 }
+*/
