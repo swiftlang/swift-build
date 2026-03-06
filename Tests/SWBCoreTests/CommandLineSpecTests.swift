@@ -959,7 +959,8 @@ import SWBMacro
         #expect(precompileTask.ruleInfo == ["ProcessPCH", Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str, Path.root.join("tmp/prefix.h").str, "normal", "x86_64", "c", "com.apple.compilers.llvm.clang.1_0"])
         #expect(precompileTask.execDescription == "Precompile prefix.h (x86_64)")
         precompileTask.checkInputs([
-            .path(Path.root.join("tmp/prefix.h").str)
+            .path(Path.root.join("tmp/prefix.h").str),
+            .any,
         ])
         precompileTask.checkOutputs([
             .path(Path.root.join("tmp/precomps/SharedPrecompiledHeaders/\(pchHash)/prefix.h.gch").str)
