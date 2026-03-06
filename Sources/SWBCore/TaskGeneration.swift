@@ -810,6 +810,9 @@ public protocol TaskGenerationDelegate: AnyObject, TargetDiagnosticProducingDele
     /// FIXME: The name of this method is also a bit awkward.  We could probably do better.
     func createOrReuseSharedNodeWithIdentifier(_ ident: String, creator: () -> (any PlannedNode, any Sendable)) -> (any PlannedNode, any Sendable)
 
+    /// Register the current target as a consumer of the shared PCH.
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode)
+
     /// Adds the accessed path to the list of paths which invalidate the build description.
     func access(path: Path)
 

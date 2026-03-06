@@ -47,6 +47,17 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
     /// This is a limited mechanism for concurrent task construction processes to coordinate on the production of a shared node.
     let sharedIntermediateNodes = Registry<String, (any PlannedNode, any Sendable)>()
 
+    /// Tracks ordering dependencies for shared PCHs.
+    final class SharedPCHOrdering: Sendable {
+        let orderingNode: any PlannedNode
+        let inputs: SWBMutex<[any PlannedNode]>
+        init(orderingNode: any PlannedNode, inputs: consuming SWBMutex<[any PlannedNode]>) {
+            self.orderingNode = orderingNode
+            self.inputs = inputs
+        }
+    }
+    let sharedPCHOrdering = Registry<String, SharedPCHOrdering>()
+
     let delegate: any GlobalProductPlanDelegate
 
     struct VFSContentsKey: Hashable {

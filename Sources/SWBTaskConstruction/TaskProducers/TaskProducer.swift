@@ -1693,6 +1693,17 @@ class ProducerBasedTaskGenerationDelegate: TaskGenerationDelegate {
         return context.globalProductPlan.sharedIntermediateNodes.getOrInsert(ident, creator)
     }
 
+    func registerSharedPCHOrderingDependency(_ ident: String, orderingNode: any PlannedNode) {
+        guard let configuredTarget = context.configuredTarget,
+              let targetGateNodes = context.globalProductPlan.targetGateNodes[configuredTarget] else {
+            return
+        }
+        let ordering = context.globalProductPlan.sharedPCHOrdering.getOrInsert(ident) {
+            GlobalProductPlan.SharedPCHOrdering(orderingNode: orderingNode, inputs: SWBMutex([]))
+        }
+        ordering.inputs.withLock { $0.append(targetGateNodes.startCompilingNode) }
+    }
+
     func access(path: Path) {
         producer.access(path: path)
     }

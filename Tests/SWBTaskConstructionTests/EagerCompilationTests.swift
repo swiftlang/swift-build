@@ -1171,6 +1171,104 @@ fileprivate struct EagerCompilationTests: CoreBasedTests {
         }
     }
 
+    /// Tests that shared precompiled headers correctly depend on all consuming targets start-compiling nodes,
+    /// not just the first target that creates the shared PCH task.
+    ///
+    /// Setup: A (framework, produces header), B (framework, uses PCH, no dep on A),
+    /// C (framework, uses same PCH as B, depends on A).
+    /// B and C share the same PCH file with identical build settings which means a shared ProcessPCH task.
+    /// The shared ProcessPCH must follow A's modules-ready gate because C depends on A.
+    @Test(.requireSDKs(.macOS))
+    func eagerParallelCompilation_SharedPrecompiledHeader() async throws {
+        try await withTemporaryDirectory { tmpDir in
+            let sourceRoot = tmpDir.join("Project")
+
+            // B and C must have identical compiler command lines for the PCH to share.
+            let sharedPCHSettings: [String: String] = [
+                "GCC_PREFIX_HEADER": "Sources/Shared.pch",
+                "USE_HEADERMAP": "NO",
+                "TARGET_TEMP_DIR": "$(SYMROOT)/SharedTarget.build/$(CONFIGURATION)",
+                "DERIVED_FILE_DIR": "$(TARGET_TEMP_DIR)/DerivedSources",
+                "HEADER_SEARCH_PATHS": "",
+                "USER_HEADER_SEARCH_PATHS": "",
+                "FRAMEWORK_SEARCH_PATHS": "",
+                "CODE_SIGNING_ALLOWED": "NO",
+            ]
+
+            let project = TestProject(
+                "Eager C Compilation - Shared Precompiled headers",
+                sourceRoot: sourceRoot,
+                groupTree: TestGroup(
+                    "Group",
+                    path: "Sources",
+                    children: [
+                        TestFile("A.h"),
+                        TestFile("A.c"),
+                        TestFile("Shared.pch"),
+                        TestFile("B.c"),
+                        TestFile("C.c"),
+                    ]),
+                buildConfigurations: [TestBuildConfiguration(
+                    "Debug",
+                    buildSettings: [
+                        "GENERATE_INFOPLIST_FILE": "YES",
+                        "PRODUCT_NAME": "$(TARGET_NAME)",
+                        "ALWAYS_SEARCH_USER_PATHS": "false",
+                        "GCC_PRECOMPILE_PREFIX_HEADER": "YES",
+                    ])],
+                targets: [
+                    TestStandardTarget("A",
+                                       type: .framework,
+                                       buildConfigurations: [TestBuildConfiguration("Debug",
+                                                                                    buildSettings: ["GCC_PREFIX_HEADER": ""])],
+                                       buildPhases: [
+                                        TestHeadersBuildPhase([TestBuildFile("A.h", headerVisibility: .public)]),
+                                        TestSourcesBuildPhase([TestBuildFile("A.c")])
+                                       ]),
+                    TestStandardTarget("B",
+                                       type: .framework,
+                                       buildConfigurations: [TestBuildConfiguration("Debug",
+                                                                                    buildSettings: sharedPCHSettings)],
+                                       buildPhases: [
+                                        TestSourcesBuildPhase([TestBuildFile("B.c")])
+                                       ]),
+                    TestStandardTarget("C",
+                                       type: .framework,
+                                       buildConfigurations: [TestBuildConfiguration("Debug",
+                                                                                    buildSettings: sharedPCHSettings)],
+                                       buildPhases: [
+                                        TestSourcesBuildPhase([TestBuildFile("C.c")])
+                                       ],
+                                       dependencies: ["A"]),
+                ]
+            )
+
+            let tester = try await TaskConstructionTester(getCore(), project)
+            let parameters = BuildParameters(configuration: "Debug")
+            let buildRequest = BuildRequest(parameters: parameters, buildTargets: tester.workspace.projects[0].targets.map({ BuildRequest.BuildTargetInfo(parameters: parameters, target: $0) }), continueBuildingAfterErrors: true, useParallelTargets: true, useImplicitDependencies: false, useDryRun: false)
+
+            await tester.checkBuild(parameters, runDestination: .macOS, buildRequest: buildRequest) { results in
+                // There should be exactly one ProcessPCH task.
+                // This ensures the shared PCH is not stale when A's headers change.
+                results.checkTask(.matchRuleType("ProcessPCH")) { processPCH in
+                    results.checkTaskFollows(processPCH, .gateTask("C", suffix: "begin-compiling"))
+
+                    results.checkTaskFollows(processPCH, .gateTask("A", suffix: "modules-ready"))
+                }
+
+                // B's CompileC should follow the shared ProcessPCH
+                results.checkTask(.matchTargetName("B"), .matchRuleType("CompileC")) { compileB in
+                    results.checkTaskFollows(compileB, .matchRuleType("ProcessPCH"))
+                }
+
+                // C's CompileC should follow the shared ProcessPCH
+                results.checkTask(.matchTargetName("C"), .matchRuleType("CompileC")) { compileC in
+                    results.checkTaskFollows(compileC, .matchRuleType("ProcessPCH"))
+                }
+            }
+        }
+    }
+
     @Test(.requireSDKs(.macOS))
     func intentCompilation() async throws {
         try await withTemporaryDirectory { tmpDir in
