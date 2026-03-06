@@ -736,7 +736,7 @@ package final class GlobalProductPlan: GlobalTargetInfoProvider
 
     func diagnoseInvalidDeploymentTargets(diagnosticDelegate: any TargetDiagnosticProducingDelegate) {
         for target in planRequest.buildGraph.allTargets.filter({
-            planRequest.workspaceContext.workspace.project(for: $0.target).isPackage && $0.target.type != .packageProduct
+            planRequest.workspaceContext.workspace.project(for: $0.target).isPackage && $0.target.type == .standard
         }) {
             let settings = getTargetSettings(target)
             let platformDeploymentTargetMacro: StringMacroDeclaration?
